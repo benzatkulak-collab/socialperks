@@ -116,10 +116,10 @@ export function PricingSection() {
             id="pricing-heading"
             className="font-heading text-3xl italic text-brand-white sm:text-4xl lg:text-5xl"
           >
-            Simple pricing, serious results
+            Costs less than one Instagram ad
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim sm:text-lg">
-            Start free. Upgrade when you&apos;re ready. No hidden fees.
+            Start free. Most businesses stay on free or Starter. No contracts, cancel anytime.
           </p>
 
           {/* Billing toggle */}

@@ -11,13 +11,11 @@ import { EnterprisePortal } from "@/components/enterprise/portal";
 // ── Landing Components ───────────────────────────────────────────────────
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
-import { AgentTicker } from "@/components/shared/agent-ticker";
 import { Hero } from "@/components/landing/hero";
 import dynamic from "next/dynamic";
 
 const HowItWorks = dynamic(() => import("@/components/landing/how-it-works").then(m => m.HowItWorks));
 const AudienceSections = dynamic(() => import("@/components/landing/audience-sections").then(m => m.AudienceSections));
-const PlatformShowcase = dynamic(() => import("@/components/landing/platform-showcase").then(m => m.PlatformShowcase));
 const PricingSection = dynamic(() => import("@/components/landing/pricing-section").then(m => m.PricingSection));
 const SocialProof = dynamic(() => import("@/components/landing/social-proof").then(m => m.SocialProof));
 const CtaSection = dynamic(() => import("@/components/landing/cta-section").then(m => m.CtaSection));
@@ -87,12 +85,10 @@ function Landing() {
     <div className="min-h-screen">
       <Nav />
       <Hero />
-      <AgentTicker />
       <HowItWorks />
       <AudienceSections />
-      <PlatformShowcase />
-      <PricingSection />
       <SocialProof />
+      <PricingSection />
       <CtaSection />
       <Footer />
     </div>
