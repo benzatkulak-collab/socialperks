@@ -122,34 +122,67 @@ export function BusinessPortal({
         {/* Dashboard View */}
         {page === "dashboard" && (
           <div className="animate-fade-up">
-            <h1 className="text-2xl mb-1">
-              Welcome back, <span className="text-brand-cyan">{biz.name}</span>
-            </h1>
-            <p className="text-xs text-brand-dim mb-6">Here&apos;s how your marketing is performing</p>
+            {stats.activeCampaigns === 0 ? (
+              /* ── First-time / empty state ── */
+              <div>
+                <h1 className="text-2xl mb-2 text-brand-white">
+                  Hey {biz.name} — let&apos;s get you some customers
+                </h1>
+                <p className="text-sm text-brand-dim mb-8">
+                  Pick a campaign below and launch it in under 2 minutes. Your customers do the marketing, you just set the reward.
+                </p>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-              <Card><Stat value={String(stats.activeCampaigns)} label="Active Campaigns" color="#22D3EE" /></Card>
-              <Card><Stat value={String(stats.completions)} label="Completions" color="#34D399" /></Card>
-              <Card><Stat value={String(stats.reviews)} label="Reviews Generated" color="#FBBF24" /></Card>
-              <Card><Stat value={"$" + stats.marketingValue} label="Marketing Value" color="#F472B6" /></Card>
-            </div>
+                {/* Quick-launch options */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+                  <button onClick={() => setPage("campaigns")} className="rounded-xl border-2 border-brand-green/30 bg-brand-green/5 p-6 text-left transition-all hover:border-brand-green/60 hover:bg-brand-green/10">
+                    <span className="text-2xl">⭐</span>
+                    <h3 className="mt-3 text-sm font-semibold text-brand-white">Google Review Campaign</h3>
+                    <p className="mt-1 text-xs text-brand-dim">Give a small discount for a Google review. Best ROI for any local business.</p>
+                    <p className="mt-3 text-xs font-medium text-brand-green">Most popular &rarr;</p>
+                  </button>
 
-            <Card className="mb-6 bg-brand-elevated/50">
-              <div className="text-xs font-bold text-brand-dim mb-2">Quick Start</div>
-              <p className="text-xs text-brand-dim mb-4">
-                We&apos;ve generated {campaigns.length} campaign ideas tailored for your {biz.type.toLowerCase()}.
-                Start with the essentials &mdash; they&apos;re the quickest wins.
-              </p>
-              <Button size="sm" onClick={() => setPage("campaigns")}>Browse Campaigns &rarr;</Button>
-            </Card>
+                  <button onClick={() => setPage("campaigns")} className="rounded-xl border-2 border-brand-cyan/30 bg-brand-cyan/5 p-6 text-left transition-all hover:border-brand-cyan/60 hover:bg-brand-cyan/10">
+                    <span className="text-2xl">📸</span>
+                    <h3 className="mt-3 text-sm font-semibold text-brand-white">Instagram Story Campaign</h3>
+                    <p className="mt-1 text-xs text-brand-dim">Customers tag you in a story. Their followers see your business.</p>
+                    <p className="mt-3 text-xs font-medium text-brand-cyan">High reach &rarr;</p>
+                  </button>
 
-            <Card borderColor="green">
-              <div className="text-xs font-bold text-brand-green mb-2">Tip for {biz.type}s</div>
-              <p className="text-xs text-brand-dim">
-                Start with a Google Review campaign &mdash; it&apos;s the highest-ROI action for local businesses.
-                Most customers will happily leave a review for a small perk.
-              </p>
-            </Card>
+                  <button onClick={() => setPage("campaigns")} className="rounded-xl border-2 border-brand-amber/30 bg-brand-amber/5 p-6 text-left transition-all hover:border-brand-amber/60 hover:bg-brand-amber/10">
+                    <span className="text-2xl">🎬</span>
+                    <h3 className="mt-3 text-sm font-semibold text-brand-white">TikTok Video Campaign</h3>
+                    <p className="mt-1 text-xs text-brand-dim">Short video reviews from your customers. Can go viral.</p>
+                    <p className="mt-3 text-xs font-medium text-brand-amber">Biggest upside &rarr;</p>
+                  </button>
+                </div>
+
+                <Card className="bg-brand-elevated/30">
+                  <p className="text-xs text-brand-dim">
+                    Or browse all {campaigns.length} campaign ideas we&apos;ve generated for your {biz.type.toLowerCase()}.{" "}
+                    <button onClick={() => setPage("campaigns")} className="text-brand-cyan hover:underline font-medium">
+                      See all campaigns &rarr;
+                    </button>
+                  </p>
+                </Card>
+              </div>
+            ) : (
+              /* ── Active dashboard with stats ── */
+              <div>
+                <h1 className="text-2xl mb-1">
+                  {biz.name} <span className="text-brand-dim font-normal text-lg">&middot; Dashboard</span>
+                </h1>
+                <p className="text-xs text-brand-dim mb-6">Here&apos;s how your campaigns are doing</p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+                  <Card><Stat value={String(stats.activeCampaigns)} label="Active Campaigns" color="#22D3EE" /></Card>
+                  <Card><Stat value={String(stats.completions)} label="Completions" color="#34D399" /></Card>
+                  <Card><Stat value={String(stats.reviews)} label="Reviews" color="#FBBF24" /></Card>
+                  <Card><Stat value={"$" + stats.marketingValue} label="Marketing Value" color="#F472B6" /></Card>
+                </div>
+
+                <Button size="sm" onClick={() => setPage("campaigns")}>Manage Campaigns &rarr;</Button>
+              </div>
+            )}
           </div>
         )}
 
