@@ -44,7 +44,7 @@ interface SubmissionEntry {
 }
 
 function buildMarketplaceCampaigns(data: SeedData): MarketplaceCampaign[] {
-  const businesses = data.businesses.slice(0, 8); // Show first 8 businesses
+  const businesses = (data.businesses ?? []).slice(0, 8); // Show first 8 businesses
   const platformMap: Record<string, { name: string; icon: string; actionId: string; action: string; effort: number }> = {
     ig: { name: "Instagram", icon: "\uD83D\uDCF8", actionId: "ig_rl", action: "Reel", effort: 3 },
     tt: { name: "TikTok", icon: "\uD83C\uDFAC", actionId: "tt_vd", action: "Video", effort: 3 },

@@ -71,7 +71,7 @@ export function AuthForm({
             name, type, email, pin: "", avatar: "\uD83C\uDFEA",
             size: "small", location: "", industry: type,
           };
-          save({ ...data, businesses: [...data.businesses, biz] });
+          save({ ...data, businesses: [...(data.businesses ?? []), biz] });
           onAuth(biz, "business");
         } else {
           const inf: SeedInfluencer = {
@@ -80,7 +80,7 @@ export function AuthForm({
             bio: "", tier: "micro", niches: [],
             followerCount: 0, engagementRate: 0, platforms: [], location: "",
           };
-          save({ ...data, influencers: [...data.influencers, inf] });
+          save({ ...data, influencers: [...(data.influencers ?? []), inf] });
           onAuth(inf, "influencer");
         }
       } else {
