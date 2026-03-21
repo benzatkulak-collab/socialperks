@@ -31,7 +31,8 @@ export function useCampaigns(businessType: string, businessSize: string = "small
       })
       .then(json => {
         if (!controller.signal.aborted) {
-          setCampaigns(Array.isArray(json.data) ? json.data : []);
+          const result = json.data?.campaigns ?? json.data;
+          setCampaigns(Array.isArray(result) ? result : []);
           setLoading(false);
         }
       })
