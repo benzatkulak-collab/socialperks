@@ -4,6 +4,7 @@ interface Step {
   number: string;
   title: string;
   description: string;
+  example: string;
   icon: string;
   accent: string;
 }
@@ -11,34 +12,38 @@ interface Step {
 const STEPS: Step[] = [
   {
     number: "01",
-    title: "Create Your Perks",
+    title: "You pick the reward",
     description:
-      "Set what you'll offer — 10% off, a free item, early access. You choose the reward that fits your budget.",
-    icon: "🎁",
+      "10% off, a free coffee, $5 off their next visit — whatever works for your business and your margins.",
+    example: "\"15% off your next order for a Google review\"",
+    icon: "🏷️",
     accent: "border-brand-green",
   },
   {
     number: "02",
-    title: "Customers Take Action",
+    title: "Customers do the marketing",
     description:
-      "They post on Instagram, leave a Google review, share with friends — real marketing from real customers.",
+      "They post on Instagram, leave a Google review, share on TikTok, check in on Facebook — whatever you choose.",
+    example: "Customer posts a photo at your shop with a tag",
     icon: "📱",
     accent: "border-brand-cyan",
   },
   {
     number: "03",
-    title: "We Verify It",
+    title: "We make sure it happened",
     description:
-      "Automatic verification across 25 platforms. No manual checking. No guesswork. Just confirmed results.",
+      "No honor system. We verify the post, review, or share actually went live before anyone gets their discount.",
+    example: "Automatic check — did the review actually post?",
     icon: "✓",
     accent: "border-brand-amber",
   },
   {
     number: "04",
-    title: "They Earn, You Grow",
+    title: "They get their discount. You get the exposure.",
     description:
-      "Customers get their perk, you get lasting marketing that keeps working long after the post goes live.",
-    icon: "📈",
+      "Customer redeems their reward. Their post stays up forever — bringing you new customers long after.",
+    example: "One $2 pastry → a review seen by 500 people",
+    icon: "🤝",
     accent: "border-brand-pink",
   },
 ];
@@ -50,7 +55,6 @@ export function HowItWorks() {
       className="relative bg-brand-bg py-24 sm:py-32"
       aria-labelledby="how-it-works-heading"
     >
-      {/* Subtle top divider */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-border to-transparent"
         aria-hidden="true"
@@ -66,10 +70,10 @@ export function HowItWorks() {
             id="how-it-works-heading"
             className="font-heading text-3xl italic text-brand-white sm:text-4xl lg:text-5xl"
           >
-            Four steps to word-of-mouth growth
+            Simple enough for any business owner
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim sm:text-lg">
-            No marketing degree needed. If you can set a price, you can run a campaign.
+            If you can set a price on your menu, you can run a campaign. No marketing experience needed.
           </p>
         </div>
 
@@ -101,20 +105,13 @@ export function HowItWorks() {
               <p className="text-sm leading-relaxed text-brand-dim">
                 {step.description}
               </p>
+
+              {/* Concrete example */}
+              <p className="mt-4 rounded-md bg-brand-bg/50 px-3 py-2 font-mono text-xs text-brand-muted">
+                {step.example}
+              </p>
             </div>
           ))}
-        </div>
-
-        {/* Connecting line (desktop) */}
-        <div
-          className="mx-auto mt-12 hidden max-w-3xl items-center gap-2 lg:flex"
-          aria-hidden="true"
-        >
-          <div className="h-0.5 flex-1 rounded-full bg-gradient-to-r from-brand-green via-brand-cyan to-brand-amber" />
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-pink/30 bg-brand-surface">
-            <span className="text-xs text-brand-pink">✦</span>
-          </div>
-          <div className="h-0.5 flex-1 rounded-full bg-gradient-to-r from-brand-amber via-brand-pink to-brand-purple" />
         </div>
       </div>
     </section>
