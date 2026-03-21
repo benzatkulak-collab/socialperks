@@ -1,0 +1,503 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// Social Perks — Prisma Schema
+// Converted from src/lib/db/schema.ts
+// Run: npx prisma generate && npx prisma db push
+// ══════════════════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ──────────────────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String
+  passwordHash     String?   @map("password_hash")
+  role             String    @default("business_owner") @db.VarChar(50)
+  businessId       String?   @map("business_id")
+  influencerId     String?   @unique @map("influencer_id")
+  avatarUrl        String?   @map("avatar_url")
+  emailVerified    Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt  DateTime? @map("email_verified_at")
+  lastLoginAt      DateTime? @map("last_login_at")
+  preferences      Json      @default("{}")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  // Relations
+  business      Business?   @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  influencer    Influencer?  @relation(fields: [influencerId], references: [id], onDelete: SetNull)
+  submissions   CampaignSubmission[] @relation("SubmissionUser")
+  reviews       CampaignSubmission[] @relation("SubmissionReviewer")
+  perkWallets   PerkWallet[]
+  notifications Notification[]
+  analyticsEvents AnalyticsEvent[]
+
+  @@index([role], name: "users_role_idx")
+  @@index([businessId], name: "users_business_id_idx")
+  @@index([createdAt], name: "users_created_at_idx")
+  @@map("users")
+}
+
+// ─── Businesses ─────────────────────────────────────────────────────────────
+
+model Business {
+  id                    String    @id @default(uuid())
+  name                  String
+  type                  String
+  email                 String    @unique
+  pin                   String?   @db.VarChar(100)
+  avatar                String    @default("")
+  industry              String?   @db.VarChar(100)
+  size                  String    @default("small") @db.VarChar(50)
+  location              String?
+  website               String?
+  socialLinks           Json      @default("[]") @map("social_links")
+  plan                  String    @default("free") @db.VarChar(50)
+  description           String?
+  avgRating             Decimal?  @map("avg_rating") @db.Decimal(5, 4)
+  campaignCount         Int       @default(0) @map("campaign_count")
+  verified              Boolean   @default(false)
+  stripeCustomerId      String?   @map("stripe_customer_id")
+  stripeSubscriptionId  String?   @map("stripe_subscription_id")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt             DateTime? @map("deleted_at")
+
+  // Relations
+  users               User[]
+  launchedCampaigns   LaunchedCampaign[]
+  perkWallets         PerkWallet[]
+  apiKeys             ApiKey[]
+  webhooks            Webhook[]
+  platformConnections PlatformConnection[]
+
+  @@index([type], name: "businesses_type_idx")
+  @@index([industry], name: "businesses_industry_idx")
+  @@index([size], name: "businesses_size_idx")
+  @@index([plan], name: "businesses_plan_idx")
+  @@index([location], name: "businesses_location_idx")
+  @@index([verified], name: "businesses_verified_idx")
+  @@index([createdAt], name: "businesses_created_at_idx")
+  @@map("businesses")
+}
+
+// ─── Influencers ────────────────────────────────────────────────────────────
+
+model Influencer {
+  id                   String    @id @default(uuid())
+  userId               String    @unique @map("user_id")
+  displayName          String    @map("display_name")
+  bio                  String    @default("")
+  followerCount        Int       @default(0) @map("follower_count")
+  engagementRate       Decimal   @default(0) @map("engagement_rate") @db.Decimal(5, 4)
+  niches               String[]
+  location             String    @default("")
+  rateCard             Json      @default("{}") @map("rate_card")
+  portfolio            Json      @default("[]")
+  verified             Boolean   @default(false)
+  tier                 String    @default("micro") @db.VarChar(50)
+  avgResponseTimeHours Float?    @map("avg_response_time_hours")
+  completionRate       Decimal?  @map("completion_rate") @db.Decimal(5, 4)
+  campaignsCompleted   Int       @default(0) @map("campaigns_completed")
+  stripeConnectId      String?   @map("stripe_connect_id")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+
+  // Relations
+  user                User?
+  platforms           InfluencerPlatform[]
+  platformConnections PlatformConnection[]
+
+  @@index([tier], name: "influencers_tier_idx")
+  @@index([followerCount], name: "influencers_follower_count_idx")
+  @@index([engagementRate], name: "influencers_engagement_rate_idx")
+  @@index([verified], name: "influencers_verified_idx")
+  @@index([location], name: "influencers_location_idx")
+  @@index([createdAt], name: "influencers_created_at_idx")
+  @@map("influencers")
+}
+
+// ─── Influencer Platforms ───────────────────────────────────────────────────
+
+model InfluencerPlatform {
+  id             String    @id @default(uuid())
+  influencerId   String    @map("influencer_id")
+  platformId     String    @map("platform_id") @db.VarChar(50)
+  handle         String
+  followers      Int       @default(0)
+  engagementRate Decimal   @default(0) @map("engagement_rate") @db.Decimal(5, 4)
+  verified       Boolean   @default(false)
+  profileUrl     String?   @map("profile_url")
+  lastSyncedAt   DateTime? @map("last_synced_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  influencer Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+
+  @@unique([influencerId, platformId], name: "influencer_platforms_influencer_platform_unique")
+  @@index([influencerId], name: "influencer_platforms_influencer_id_idx")
+  @@index([platformId], name: "influencer_platforms_platform_id_idx")
+  @@index([handle], name: "influencer_platforms_handle_idx")
+  @@index([followers], name: "influencer_platforms_followers_idx")
+  @@map("influencer_platforms")
+}
+
+// ─── Campaigns (AI-suggested templates) ─────────────────────────────────────
+
+model Campaign {
+  id            String   @id @default(uuid())
+  name          String
+  description   String
+  actions       String[]
+  discountValue Decimal  @map("discount_value") @db.Decimal(10, 2)
+  discountType  String   @map("discount_type") @db.VarChar(50)
+  category      String   @db.VarChar(100)
+  tier          String   @db.VarChar(50)
+  aiReason      String   @map("ai_reason")
+  businessType  String?  @map("business_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  launchedCampaigns LaunchedCampaign[]
+
+  @@index([tier], name: "campaigns_tier_idx")
+  @@index([category], name: "campaigns_category_idx")
+  @@index([businessType], name: "campaigns_business_type_idx")
+  @@map("campaigns")
+}
+
+// ─── Launched Campaigns ─────────────────────────────────────────────────────
+
+model LaunchedCampaign {
+  id              String    @id @default(uuid())
+  businessId      String    @map("business_id")
+  name            String
+  description     String
+  actions         String[]
+  discountValue   Decimal   @map("discount_value") @db.Decimal(10, 2)
+  discountType    String    @map("discount_type") @db.VarChar(50)
+  guidelines      String?
+  maxCompletions  Int?      @map("max_completions")
+  expiresInDays   Int       @map("expires_in_days")
+  useTiers        Boolean   @default(false) @map("use_tiers")
+  status          String    @default("active") @db.VarChar(50)
+  fromSuggestion  String?   @map("from_suggestion")
+  completionCount Int       @default(0) @map("completion_count")
+  budgetCap       Decimal?  @map("budget_cap") @db.Decimal(10, 2)
+  budgetUsed      Decimal   @default(0) @map("budget_used") @db.Decimal(10, 2)
+  ftcDisclosures  String[]  @map("ftc_disclosures")
+  tags            String[]
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  suggestion  Campaign? @relation(fields: [fromSuggestion], references: [id], onDelete: SetNull)
+  submissions CampaignSubmission[]
+  earnedPerks EarnedPerk[]
+
+  @@index([businessId], name: "launched_campaigns_business_id_idx")
+  @@index([status], name: "launched_campaigns_status_idx")
+  @@index([businessId, status], name: "launched_campaigns_business_status_idx")
+  @@index([fromSuggestion], name: "launched_campaigns_from_suggestion_idx")
+  @@index([expiresAt], name: "launched_campaigns_expires_at_idx")
+  @@index([createdAt], name: "launched_campaigns_created_at_idx")
+  @@map("launched_campaigns")
+}
+
+// ─── Campaign Submissions ───────────────────────────────────────────────────
+
+model CampaignSubmission {
+  id           String    @id @default(uuid())
+  campaignId   String    @map("campaign_id")
+  userId       String    @map("user_id")
+  actionId     String    @map("action_id") @db.VarChar(50)
+  proofUrl     String    @map("proof_url")
+  proofType    String    @map("proof_type") @db.VarChar(50)
+  status       String    @default("pending") @db.VarChar(50)
+  platformId   String?   @map("platform_id") @db.VarChar(50)
+  metrics      Json?
+  autoVerified Boolean   @default(false) @map("auto_verified")
+  reviewNote   String?   @map("review_note")
+  reviewedBy   String?   @map("reviewed_by")
+  submittedAt  DateTime  @default(now()) @map("submitted_at")
+  reviewedAt   DateTime? @map("reviewed_at")
+  expiresAt    DateTime? @map("expires_at")
+
+  // Relations
+  campaign LaunchedCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User      @relation("SubmissionUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User?     @relation("SubmissionReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  earnedPerks EarnedPerk[]
+
+  @@unique([campaignId, userId, actionId], name: "campaign_submissions_unique_action")
+  @@index([campaignId], name: "campaign_submissions_campaign_id_idx")
+  @@index([userId], name: "campaign_submissions_user_id_idx")
+  @@index([status], name: "campaign_submissions_status_idx")
+  @@index([campaignId, status], name: "campaign_submissions_campaign_status_idx")
+  @@index([submittedAt], name: "campaign_submissions_submitted_at_idx")
+  @@index([platformId], name: "campaign_submissions_platform_id_idx")
+  @@map("campaign_submissions")
+}
+
+// ─── Perk Wallets ───────────────────────────────────────────────────────────
+
+model PerkWallet {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  businessId     String   @map("business_id")
+  totalAvailable Decimal  @default(0) @map("total_available") @db.Decimal(10, 2)
+  totalLifetime  Decimal  @default(0) @map("total_lifetime") @db.Decimal(10, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  earnedPerks EarnedPerk[]
+
+  @@unique([userId, businessId], name: "perk_wallets_user_business_unique")
+  @@index([userId], name: "perk_wallets_user_id_idx")
+  @@index([businessId], name: "perk_wallets_business_id_idx")
+  @@map("perk_wallets")
+}
+
+// ─── Earned Perks ───────────────────────────────────────────────────────────
+
+model EarnedPerk {
+  id             String    @id @default(uuid())
+  walletId       String    @map("wallet_id")
+  campaignId     String    @map("campaign_id")
+  submissionId   String?   @map("submission_id")
+  value          Decimal   @db.Decimal(10, 2)
+  type           String    @db.VarChar(50)
+  status         String    @default("available") @db.VarChar(50)
+  description    String?
+  redemptionCode String?   @unique @map("redemption_code") @db.VarChar(100)
+  earnedAt       DateTime  @default(now()) @map("earned_at")
+  redeemedAt     DateTime? @map("redeemed_at")
+  expiresAt      DateTime  @map("expires_at")
+
+  // Relations
+  wallet     PerkWallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  campaign   LaunchedCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  submission CampaignSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@index([walletId], name: "earned_perks_wallet_id_idx")
+  @@index([campaignId], name: "earned_perks_campaign_id_idx")
+  @@index([status], name: "earned_perks_status_idx")
+  @@index([expiresAt], name: "earned_perks_expires_at_idx")
+  @@index([walletId, status], name: "earned_perks_wallet_status_idx")
+  @@map("earned_perks")
+}
+
+// ─── API Keys ───────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id               String    @id @default(uuid())
+  businessId       String?   @map("business_id")
+  agentName        String    @map("agent_name")
+  keyHash          String    @unique @map("key_hash")
+  keyPrefix        String    @map("key_prefix") @db.VarChar(50)
+  permissions      String[]
+  rateLimit        Int       @default(60) @map("rate_limit")
+  totalRequests    BigInt    @default(0) @map("total_requests")
+  requestsToday    Int       @default(0) @map("requests_today")
+  requestsThisMonth Int     @default(0) @map("requests_this_month")
+  lastResetDate    DateTime  @default(now()) @map("last_reset_date")
+  active           Boolean   @default(true)
+  lastUsedAt       DateTime? @map("last_used_at")
+  expiresAt        DateTime? @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  business      Business?      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  agentSessions AgentSession[]
+  agentQueries  AgentQuery[]
+
+  @@index([keyPrefix], name: "api_keys_key_prefix_idx")
+  @@index([businessId], name: "api_keys_business_id_idx")
+  @@index([active], name: "api_keys_active_idx")
+  @@index([expiresAt], name: "api_keys_expires_at_idx")
+  @@map("api_keys")
+}
+
+// ─── Webhooks ───────────────────────────────────────────────────────────────
+
+model Webhook {
+  id                String    @id @default(uuid())
+  businessId        String    @map("business_id")
+  url               String
+  events            String[]
+  active            Boolean   @default(true)
+  secret            String
+  failureCount      Int       @default(0) @map("failure_count")
+  lastSuccessAt     DateTime? @map("last_success_at")
+  lastFailureAt     DateTime? @map("last_failure_at")
+  lastFailureReason String?   @map("last_failure_reason")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId], name: "webhooks_business_id_idx")
+  @@index([active], name: "webhooks_active_idx")
+  @@index([businessId, active], name: "webhooks_business_active_idx")
+  @@map("webhooks")
+}
+
+// ─── Analytics Events ───────────────────────────────────────────────────────
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  type       String   @db.VarChar(100)
+  entityId   String   @map("entity_id")
+  entityType String   @map("entity_type") @db.VarChar(50)
+  data       Json     @default("{}")
+  userId     String?  @map("user_id")
+  sessionId  String?  @map("session_id")
+  source     String?  @db.VarChar(50)
+  ipAddress  String?  @map("ip_address") @db.VarChar(50)
+  userAgent  String?  @map("user_agent")
+  timestamp  DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([type], name: "analytics_events_type_idx")
+  @@index([entityId, entityType], name: "analytics_events_entity_idx")
+  @@index([userId], name: "analytics_events_user_id_idx")
+  @@index([sessionId], name: "analytics_events_session_id_idx")
+  @@index([timestamp], name: "analytics_events_timestamp_idx")
+  @@index([type, timestamp], name: "analytics_events_type_timestamp_idx")
+  @@index([source], name: "analytics_events_source_idx")
+  @@map("analytics_events")
+}
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+model Notification {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  type       String    @db.VarChar(100)
+  title      String
+  body       String
+  read       Boolean   @default(false)
+  actionUrl  String?   @map("action_url")
+  entityId   String?   @map("entity_id")
+  entityType String?   @map("entity_type") @db.VarChar(50)
+  readAt     DateTime? @map("read_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "notifications_user_id_idx")
+  @@index([userId, read], name: "notifications_user_read_idx")
+  @@index([type], name: "notifications_type_idx")
+  @@index([createdAt], name: "notifications_created_at_idx")
+  @@index([entityId, entityType], name: "notifications_entity_idx")
+  @@map("notifications")
+}
+
+// ─── Agent Sessions ─────────────────────────────────────────────────────────
+
+model AgentSession {
+  id             String    @id @default(uuid())
+  apiKeyId       String    @map("api_key_id")
+  agentName      String    @map("agent_name")
+  agentType      String?   @map("agent_type") @db.VarChar(100)
+  ipAddress      String?   @map("ip_address") @db.VarChar(50)
+  userAgent      String?   @map("user_agent")
+  totalQueries   Int       @default(0) @map("total_queries")
+  totalResponseMs BigInt   @default(0) @map("total_response_ms")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  lastActivityAt DateTime  @default(now()) @map("last_activity_at")
+  endedAt        DateTime? @map("ended_at")
+
+  // Relations
+  apiKey  ApiKey       @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  queries AgentQuery[]
+
+  @@index([apiKeyId], name: "agent_sessions_api_key_id_idx")
+  @@index([agentName], name: "agent_sessions_agent_name_idx")
+  @@index([startedAt], name: "agent_sessions_started_at_idx")
+  @@index([lastActivityAt], name: "agent_sessions_last_activity_idx")
+  @@map("agent_sessions")
+}
+
+// ─── Agent Queries ──────────────────────────────────────────────────────────
+
+model AgentQuery {
+  id                  String   @id @default(uuid())
+  sessionId           String   @map("session_id")
+  apiKeyId            String   @map("api_key_id")
+  endpoint            String
+  method              String   @db.VarChar(100)
+  requestBody         Json?    @map("request_body")
+  responseStatus      Int      @map("response_status")
+  responseBodyPreview String?  @map("response_body_preview")
+  responseMs          Int      @map("response_ms")
+  error               String?
+  timestamp           DateTime @default(now())
+
+  // Relations
+  session AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  apiKey  ApiKey       @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId], name: "agent_queries_session_id_idx")
+  @@index([apiKeyId], name: "agent_queries_api_key_id_idx")
+  @@index([endpoint], name: "agent_queries_endpoint_idx")
+  @@index([responseStatus], name: "agent_queries_response_status_idx")
+  @@index([timestamp], name: "agent_queries_timestamp_idx")
+  @@index([endpoint, timestamp], name: "agent_queries_endpoint_timestamp_idx")
+  @@map("agent_queries")
+}
+
+// ─── Platform Connections ───────────────────────────────────────────────────
+
+model PlatformConnection {
+  id                    String    @id @default(uuid())
+  businessId            String?   @map("business_id")
+  influencerId          String?   @map("influencer_id")
+  platformId            String    @map("platform_id") @db.VarChar(50)
+  platformUserId        String?   @map("platform_user_id")
+  handle                String?
+  accessTokenEncrypted  String?   @map("access_token_encrypted")
+  refreshTokenEncrypted String?   @map("refresh_token_encrypted")
+  tokenExpiresAt        DateTime? @map("token_expires_at")
+  scopes                String[]
+  status                String    @default("active") @db.VarChar(50)
+  lastSyncedAt          DateTime? @map("last_synced_at")
+  syncError             String?   @map("sync_error")
+  metadata              Json      @default("{}")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  business   Business?   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  influencer Influencer? @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, platformId], name: "platform_connections_business_platform_unique")
+  @@unique([influencerId, platformId], name: "platform_connections_influencer_platform_unique")
+  @@index([businessId], name: "platform_connections_business_id_idx")
+  @@index([influencerId], name: "platform_connections_influencer_id_idx")
+  @@index([platformId], name: "platform_connections_platform_id_idx")
+  @@index([status], name: "platform_connections_status_idx")
+  @@index([tokenExpiresAt], name: "platform_connections_token_expires_idx")
+  @@map("platform_connections")
+}

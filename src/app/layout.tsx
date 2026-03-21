@@ -1,0 +1,97 @@
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://socialperks.io"),
+  title: "Social Perks — Turn Customers Into Your Marketing Team",
+  description:
+    "Offer perks. Customers post, review, and share. You grow. From neighborhood coffee shops to national brands. 25 platforms, 125 marketing actions, one simple dashboard.",
+  keywords: [
+    "social media marketing",
+    "customer referrals",
+    "review generation",
+    "local business marketing",
+    "influencer platform",
+    "word of mouth marketing",
+    "customer perks",
+    "loyalty marketing",
+  ],
+  openGraph: {
+    title: "Social Perks — Turn Customers Into Your Marketing Team",
+    description:
+      "Offer perks. Customers post, review, and share. You grow. Works for any business.",
+    type: "website",
+    siteName: "Social Perks",
+    url: "https://socialperks.io",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Social Perks",
+    description: "Turn customers into your marketing team. Start free.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#0C0F1A",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "Social Perks",
+              applicationCategory: "BusinessApplication",
+              description: "Turn customers into your marketing team. Offer perks in exchange for social media posts, reviews, and shares.",
+              operatingSystem: "Web",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "USD",
+              },
+            }),
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased">
+        {children}
+      </body>
+    </html>
+  );
+}
