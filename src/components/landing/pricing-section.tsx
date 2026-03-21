@@ -228,8 +228,9 @@ export function PricingSection() {
                 </ul>
 
                 {/* CTA */}
-                <button
-                  className={`w-full rounded-lg py-3 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-bg ${
+                <a
+                  href="#signup"
+                  className={`block w-full rounded-lg py-3 text-center text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-bg ${
                     tier.popular
                       ? "bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 focus:ring-brand-cyan/50"
                       : "border border-brand-border bg-brand-surface text-brand-text hover:border-brand-subtle hover:bg-brand-elevated focus:ring-brand-cyan/30"
@@ -237,7 +238,7 @@ export function PricingSection() {
                   aria-label={`${tier.cta} - ${tier.name} plan`}
                 >
                   {tier.cta}
-                </button>
+                </a>
               </div>
             );
           })}

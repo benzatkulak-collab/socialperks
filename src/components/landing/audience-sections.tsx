@@ -59,6 +59,7 @@ export function AudienceSections() {
   return (
     <section
       className="relative bg-brand-bg py-24 sm:py-32"
+      id="examples"
       aria-label="What businesses can do"
     >
       <div
