@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
@@ -64,14 +64,24 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const { connected, subscribe } = useRealtime({ businessId: biz.id });
 
   const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast(msg);
+    toastTimerRef.current = setTimeout(() => setToast(null), 4000);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
+  }, []);
 
   useEffect(() => {
     const unsub = subscribe("submission.created", () => {
-      setToast("New submission received!");
-      setTimeout(() => setToast(null), 4000);
+      showToast("New submission received!");
     });
     return unsub;
-  }, [subscribe]);
+  }, [subscribe, showToast]);
 
   // Get platform/action info
   const platform = PLATFORM_OPTIONS.find((p) => p.id === selectedPlatform);
@@ -132,8 +142,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     setLaunching(false);
     resetCreate();
     setPage("home");
-    setToast(`"${newCampaign.name}" is live!`);
-    setTimeout(() => setToast(null), 4000);
+    showToast(`"${newCampaign.name}" is live!`);
   }
 
   return (

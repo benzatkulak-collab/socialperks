@@ -37,7 +37,7 @@ export function useCampaigns(businessType: string, businessSize: string = "small
         }
       })
       .catch(e => {
-        if (e instanceof Error && e.name !== "AbortError") {
+        if (e instanceof Error && e.name !== "AbortError" && !controller.signal.aborted) {
           setError(e.message);
           setLoading(false);
         }

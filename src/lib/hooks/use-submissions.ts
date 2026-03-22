@@ -44,7 +44,8 @@ export function useSubmissions(userId: string) {
   useEffect(() => {
     refresh();
     return () => { abortRef.current?.abort(); };
-  }, [refresh]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const addOptimistic = useCallback((sub: Submission) => {
     setSubmissions(prev => [sub, ...prev]);

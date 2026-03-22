@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,20 +151,20 @@ export function EnterprisePortal({
   });
   const [brandGuidelines, setBrandGuidelines] = useState<BrandGuidelines | null>(null);
 
-  const demo = createEnterpriseDemo();
+  const demo = useMemo(() => createEnterpriseDemo(), []);
   const currentGuidelines = brandGuidelines ?? demo.guidelines;
 
-  const portalTabs = [
+  const portalTabs = useMemo(() => [
     { id: "dashboard", label: "Dashboard" },
     { id: "locations", label: "Locations" },
     { id: "reports", label: "Reports" },
     { id: "brand", label: "Brand" },
     { id: "api", label: "API" },
-  ];
+  ], []);
 
-  function handleNavigate(section: string) {
+  const handleNavigate = useCallback((section: string) => {
     setPage(section);
-  }
+  }, []);
 
   return (
     <div className="min-h-screen">

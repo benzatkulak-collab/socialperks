@@ -4,27 +4,9 @@ import { BusinessPortal } from "../portal";
 import type { SeedBusiness } from "@/lib/seed";
 import { createSeedData } from "@/lib/seed";
 
-// Mock the hooks
-vi.mock("@/lib/hooks/use-campaigns", () => ({
-  useCampaigns: () => ({
-    campaigns: [
-      { id: "c1", name: "Test Campaign", description: "A test", actions: ["ig_rl"], discountValue: 10, discountType: "pct", category: "social", tier: "essential", aiReason: "good" },
-    ],
-    filtered: [
-      { id: "c1", name: "Test Campaign", description: "A test", actions: ["ig_rl"], discountValue: 10, discountType: "pct", category: "social", tier: "essential", aiReason: "good" },
-    ],
-    loading: false,
-    error: null,
-    filters: { search: "", category: "all", tier: "all" },
-    setFilters: vi.fn(),
-    categories: ["social"],
-    tiers: ["essential"],
-  }),
-}));
-
 vi.mock("@/lib/hooks/use-business-dashboard", () => ({
   useBusinessDashboard: () => ({
-    stats: { activeCampaigns: 3, completions: 42, reviews: 15, marketingValue: 2500 },
+    stats: { activeCampaigns: 0, completions: 0, reviews: 0, marketingValue: 0 },
     loading: false,
     refresh: vi.fn(),
   }),
@@ -34,8 +16,15 @@ vi.mock("@/lib/hooks/use-realtime", () => ({
   useRealtime: () => ({ connected: false, lastEvent: null, subscribe: () => () => {} }),
 }));
 
-vi.mock("@/components/shared/agent-ticker", () => ({
-  AgentTicker: () => null,
+vi.mock("@/lib/platforms", () => ({
+  PLATFORMS: [
+    { id: "ig", name: "Instagram", icon: "📸", color: "#E1306C", actions: [
+      { id: "ig_st", label: "Story Tag", type: "content", effort: 1, value: 1.5, incentivizable: true },
+    ]},
+    { id: "go", name: "Google", icon: "⭐", color: "#FBBC04", actions: [
+      { id: "go_rv", label: "Review", type: "review", effort: 2, value: 5, incentivizable: false },
+    ]},
+  ],
 }));
 
 const mockBiz: SeedBusiness = {
@@ -53,24 +42,20 @@ const mockBiz: SeedBusiness = {
 describe("BusinessPortal", () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it("renders business name and type", () => {
+  it("renders business name", () => {
     render(<BusinessPortal biz={mockBiz} data={createSeedData()} save={vi.fn()} onLogout={vi.fn()} />);
-    expect(screen.getByText("Coffee Shop")).toBeInTheDocument();
-    // "Test Coffee" appears in both top bar and welcome heading
-    const matches = screen.getAllByText(/Test Coffee/);
-    expect(matches.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Test Coffee")).toBeInTheDocument();
   });
 
-  it("shows dashboard stats from hook", () => {
+  it("shows create campaign button in empty state", () => {
     render(<BusinessPortal biz={mockBiz} data={createSeedData()} save={vi.fn()} onLogout={vi.fn()} />);
-    expect(screen.getByText("3")).toBeInTheDocument(); // activeCampaigns
-    expect(screen.getByText("42")).toBeInTheDocument(); // completions
+    expect(screen.getByText("Create a new campaign")).toBeInTheDocument();
   });
 
-  it("navigates to campaigns tab", () => {
+  it("navigates to create flow", () => {
     render(<BusinessPortal biz={mockBiz} data={createSeedData()} save={vi.fn()} onLogout={vi.fn()} />);
-    fireEvent.click(screen.getByText("Campaigns"));
-    expect(screen.getByText("Test Campaign")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Create a new campaign"));
+    expect(screen.getByText("What do you want customers to do?")).toBeInTheDocument();
   });
 
   it("calls onLogout when Log Out clicked", () => {

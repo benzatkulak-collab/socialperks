@@ -42,12 +42,14 @@ export function useBusinessDashboard(businessId: string) {
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId]);
 
   useEffect(() => {
     refresh();
     return () => { abortRef.current?.abort(); };
-  }, [refresh]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessId]);
 
   return { stats, loading, refresh };
 }
