@@ -62,6 +62,13 @@ export function CtaSection() {
             Works for any business
           </span>
         </div>
+
+        <p className="mt-8 text-xs text-brand-subtle">
+          Building AI social media agents?{" "}
+          <a href="/agents" className="text-brand-purple hover:text-brand-purple/80 hover:underline">
+            Connect them to our API &rarr;
+          </a>
+        </p>
       </div>
     </section>
   );
