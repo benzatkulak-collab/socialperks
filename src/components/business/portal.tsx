@@ -192,7 +192,7 @@ export function BusinessPortal({
             <div className="animate-fade-up mb-4">
               <h1 className="text-2xl mb-1">Campaigns for your {biz.type.toLowerCase()}</h1>
               <p className="text-xs text-brand-dim">
-                {loading ? "Generating..." : `${campaigns.length} tailored campaigns \u00B7 ${PLATFORMS.length} platforms`}
+                {loading ? "Generating campaign ideas..." : `Pick one and launch it. ${filtered.length} options available.`}
               </p>
             </div>
 

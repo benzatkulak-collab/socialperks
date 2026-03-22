@@ -19,13 +19,12 @@ const PRICING_TIERS: PricingTier[] = [
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Try it out with your first campaign.",
+    description: "Run your first campaign and see results.",
     features: [
       "1 active campaign",
-      "Basic analytics",
       "Up to 50 completions/month",
+      "Basic analytics",
       "Email support",
-      "Community access",
     ],
     cta: "Start Free",
     popular: false,
@@ -33,37 +32,17 @@ const PRICING_TIERS: PricingTier[] = [
     accentBorder: "border-brand-border",
   },
   {
-    name: "Starter",
-    price: "$29",
-    period: "/month",
-    description: "For businesses ready to grow.",
-    features: [
-      "5 active campaigns",
-      "Full analytics dashboard",
-      "500 completions/month",
-      "QR code generation",
-      "Priority email support",
-      "Custom perk design",
-    ],
-    cta: "Start Free Trial",
-    popular: false,
-    accent: "text-brand-green",
-    accentBorder: "border-brand-green/30",
-  },
-  {
     name: "Pro",
-    price: "$79",
+    price: "$49",
     period: "/month",
-    description: "The full toolkit for serious growth.",
+    description: "Everything you need to grow.",
     features: [
       "Unlimited campaigns",
-      "Priority verification",
       "Unlimited completions",
-      "Influencer matching",
+      "Full analytics dashboard",
+      "QR codes for your counter",
+      "Priority verification",
       "API access",
-      "Follower tier bonuses",
-      "Advanced reporting",
-      "Phone support",
     ],
     cta: "Start Free Trial",
     popular: true,
@@ -74,18 +53,15 @@ const PRICING_TIERS: PricingTier[] = [
     name: "Enterprise",
     price: "Custom",
     period: "",
-    description: "For brands with multiple locations.",
+    description: "Multiple locations, custom needs.",
     features: [
       "Everything in Pro",
       "Multi-location management",
-      "SSO & team permissions",
+      "Team permissions",
       "Dedicated account manager",
-      "White-label options",
       "Custom integrations",
-      "SLA guarantee",
-      "Onboarding & training",
     ],
-    cta: "Talk to Sales",
+    cta: "Contact Us",
     popular: false,
     accent: "text-brand-amber",
     accentBorder: "border-brand-amber/30",
@@ -164,7 +140,7 @@ export function PricingSection() {
         </div>
 
         {/* Pricing cards */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+        <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
           {PRICING_TIERS.map((tier) => {
             const displayPrice =
               annual && tier.price !== "$0" && tier.price !== "Custom"

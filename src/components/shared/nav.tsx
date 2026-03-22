@@ -66,13 +66,14 @@ export function Nav() {
           className="flex items-center gap-2"
           aria-label="Social Perks home"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-cyan/10">
-            <span className="font-heading text-lg text-brand-cyan" aria-hidden="true">
-              S
-            </span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-cyan to-brand-cyan/60">
+            <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4" aria-hidden="true">
+              <path d="M10 2L18 10L10 18L2 10L10 2Z" fill="currentColor" className="text-brand-bg" />
+              <path d="M10 5L15 10L10 15L5 10L10 5Z" fill="currentColor" className="text-brand-bg/60" />
+            </svg>
           </div>
           <span className="font-heading text-xl italic text-brand-white">
-            Social Perks
+            Social<span className="text-brand-cyan">Perks</span>
           </span>
         </Link>
 

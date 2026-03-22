@@ -106,12 +106,12 @@ export function AudienceSections() {
         </div>
 
         {/* Section: Real examples */}
-        <div>
+        <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.02] p-8 sm:p-12">
           <div className="mb-12 text-center">
             <p className="mb-3 font-mono text-sm uppercase tracking-widest text-brand-green">
               Real examples
             </p>
-            <h2 className="font-heading text-3xl italic text-brand-white sm:text-4xl lg:text-5xl">
+            <h2 className="font-heading text-3xl italic text-brand-white sm:text-4xl">
               Here&apos;s what it looks like in practice
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim sm:text-lg">
@@ -123,7 +123,7 @@ export function AudienceSections() {
             {EXAMPLES.map((ex) => (
               <div
                 key={ex.business}
-                className="rounded-xl border border-brand-border/50 bg-brand-surface/30 p-5"
+                className="rounded-xl border border-brand-green/20 bg-brand-bg/80 p-5"
               >
                 <p className="mb-3 text-sm font-semibold text-brand-white">{ex.business}</p>
                 <div className="space-y-2 text-sm">
