@@ -76,7 +76,7 @@ export async function seedDatabase(): Promise<void> {
   // Seed a few campaigns per business
   const businessList = await businessRepo.findMany({}, { perPage: 100 });
   const campaignTemplates = [
-    { name: "Google Review Campaign", description: "Leave a Google review for a discount", actions: ["ggl_rv"], discount_value: 15, discount_type: "pct" as const },
+    { name: "Google Photos Campaign", description: "Upload photos of your visit to Google", actions: ["go_ph"], discount_value: 15, discount_type: "pct" as const },
     { name: "Instagram Story Feature", description: "Share your experience on Instagram Stories", actions: ["ig_st"], discount_value: 10, discount_type: "pct" as const },
     { name: "TikTok Video Review", description: "Create a short TikTok about your visit", actions: ["tt_vd"], discount_value: 20, discount_type: "pct" as const },
   ];

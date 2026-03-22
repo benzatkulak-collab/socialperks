@@ -40,10 +40,10 @@ const PLATFORM_OPTIONS = PLATFORMS.slice(0, 8).map((p) => ({
   icon: p.icon,
   color: p.color,
   actions: p.actions
-    .filter((a) => a.type === "content" || a.type === "review")
+    .filter((a) => (a.type === "content" || a.type === "review") && a.incentivizable !== false)
     .slice(0, 5)
     .map((a) => ({ id: a.id, label: a.label, effort: a.effort })),
-}));
+})).filter((p) => p.actions.length > 0);
 
 // ─── Component ──────────────────────────────────────────────────────────────
 

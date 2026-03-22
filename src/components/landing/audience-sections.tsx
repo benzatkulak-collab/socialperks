@@ -11,8 +11,8 @@ const EXAMPLES: Example[] = [
   {
     business: "Coffee Shop",
     offer: "Free pastry",
-    action: "Google review",
-    result: "89 new reviews in 3 months",
+    action: "Instagram story tag",
+    result: "200+ stories in 3 months",
   },
   {
     business: "Yoga Studio",
@@ -47,7 +47,7 @@ const EXAMPLES: Example[] = [
 ];
 
 const ACTIONS = [
-  { platform: "Google", actions: ["Leave a review", "Post a photo", "Answer a question"], icon: "🌐" },
+  { platform: "Google", actions: ["Upload photos", "Answer a question", "Check in at your location"], icon: "🌐" },
   { platform: "Instagram", actions: ["Post a story", "Tag your business", "Create a reel", "Share a photo"], icon: "📸" },
   { platform: "TikTok", actions: ["Post a video review", "Duet with your content", "Create a visit vlog"], icon: "🎵" },
   { platform: "Facebook", actions: ["Leave a recommendation", "Check in at your location", "Share a post"], icon: "👍" },

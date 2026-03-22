@@ -15,7 +15,7 @@ const STEPS: Step[] = [
     title: "You pick the reward",
     description:
       "10% off, a free coffee, $5 off their next visit — whatever works for your business and your margins.",
-    example: "\"15% off your next order for a Google review\"",
+    example: "\"15% off your next order for an Instagram story\"",
     icon: "🏷️",
     accent: "border-brand-green",
   },
@@ -23,7 +23,7 @@ const STEPS: Step[] = [
     number: "02",
     title: "Customers do the marketing",
     description:
-      "They post on Instagram, leave a Google review, share on TikTok, check in on Facebook — whatever you choose.",
+      "They post on Instagram, share on TikTok, check in on Google, tag you on Facebook — whatever you choose.",
     example: "Customer posts a photo at your shop with a tag",
     icon: "📱",
     accent: "border-brand-cyan",
