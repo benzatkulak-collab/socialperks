@@ -4,11 +4,10 @@ import { sessionStore, verifyJWT } from "@lib/auth/index.js";
 
 /**
  * Auth middleware — sets userId, userRole on context if authenticated.
- * Use `requireAuth` for routes that must be authenticated.
- * Use `optionalAuth` for routes where auth is optional.
+ * Uses async session lookup to support Postgres-backed sessions.
  */
 export const requireAuth = createMiddleware(async (c, next) => {
-  const result = authenticate(c);
+  const result = await authenticate(c);
   if (!result.authorized) {
     return c.json(
       { success: false, error: { code: result.code!, message: result.message! } },
@@ -21,7 +20,7 @@ export const requireAuth = createMiddleware(async (c, next) => {
 });
 
 export const optionalAuth = createMiddleware(async (c, next) => {
-  const result = authenticate(c);
+  const result = await authenticate(c);
   if (result.authorized) {
     c.set("userId", result.userId);
     c.set("userRole", result.userRole);
@@ -38,7 +37,7 @@ interface AuthResult {
   status?: number;
 }
 
-function authenticate(c: { req: { header: (name: string) => string | undefined }; [key: string]: unknown }): AuthResult {
+async function authenticate(c: { req: { header: (name: string) => string | undefined }; [key: string]: unknown }): Promise<AuthResult> {
   // 1. JWT from httpOnly cookie
   const jwtCookie = typeof (c as Record<string, unknown>).req === "object"
     ? getCookie(c as never, "sp-access-token")
@@ -65,8 +64,8 @@ function authenticate(c: { req: { header: (name: string) => string | undefined }
     };
   }
 
-  // 3. Session store lookup
-  const session = sessionStore.get(token);
+  // 3. Session store lookup (tries in-memory, then Postgres)
+  const session = await sessionStore.getAsync(token);
   if (session) {
     return { authorized: true, userId: session.userId, userRole: session.userRole };
   }

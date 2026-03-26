@@ -62,7 +62,7 @@ function setJWTCookies(c: Parameters<Parameters<typeof app.get>[1]>[0], userId: 
 }
 
 // GET /v1/auth — Validate session
-app.get("/", (c) => {
+app.get("/", async (c) => {
   const authHeader = c.req.header("authorization");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -70,7 +70,7 @@ app.get("/", (c) => {
     return apiError(c, "NO_TOKEN", "No session token provided. Send Authorization: Bearer <token>.", 401);
   }
 
-  const session = sessionStore.get(token);
+  const session = await sessionStore.getAsync(token);
   if (!session) {
     return apiError(c, "INVALID_SESSION", "Session is invalid or expired.", 401);
   }
@@ -208,7 +208,7 @@ app.post("/", rateLimit("strict"), async (c) => {
         const authHeader = c.req.header("authorization");
         const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : body.token;
         if (!token) return apiError(c, "NO_TOKEN", "No session token provided", 401);
-        const session = sessionStore.get(token);
+        const session = await sessionStore.getAsync(token);
         if (!session) return apiError(c, "INVALID_SESSION", "Session is invalid or expired", 401);
         return apiResponse(c, {
           user: { id: session.userId, email: session.email, role: session.userRole, businessId: session.businessId },

@@ -584,6 +584,32 @@ DROP INDEX IF EXISTS influencers_niches_gin;
 DROP INDEX IF EXISTS businesses_social_links_gin;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 004: Add sessions table for persistent auth sessions
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 4,
+    name: "add_sessions_table",
+    up: `
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  user_role TEXT NOT NULL CHECK (user_role IN ('business', 'influencer', 'enterprise')),
+  business_id TEXT,
+  email TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+CREATE INDEX idx_sessions_email ON sessions(email);
+`,
+    down: `
+DROP TABLE IF EXISTS sessions;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

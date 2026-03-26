@@ -47,49 +47,126 @@ interface Session {
 }
 
 // ─── Session Store ───────────────────────────────────────────────────────────
+// Uses Postgres when DATABASE_URL is set, falls back to in-memory Map.
 
 class SessionStore {
   private sessions = new Map<string, Session>();
   private readonly maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
   private createCounter = 0;
+  private db: import("../db/connection").DatabaseConnection | null = null;
+  private dbInitialized = false;
+
+  private async getDb() {
+    if (!this.dbInitialized) {
+      this.dbInitialized = true;
+      if (process.env.DATABASE_URL) {
+        try {
+          const { db } = await import("../db/connection");
+          this.db = db;
+        } catch {
+          // DB not available — fall back to in-memory
+        }
+      }
+    }
+    return this.db;
+  }
 
   create(userId: string, userRole: Session["userRole"], email: string, businessId: string | null): Session {
     this.createCounter += 1;
-    // Prune expired sessions every 100th create to avoid unbounded Map growth
-    if (this.createCounter % 100 === 0) {
-      this.pruneExpired();
-    }
+    if (this.createCounter % 100 === 0) this.pruneExpired();
+
     const token = generateSessionToken();
     const now = Date.now();
     const session: Session = { token, userId, userRole, businessId, email, createdAt: now, expiresAt: now + this.maxAge };
+
+    // Write to in-memory (immediate availability)
     this.sessions.set(token, session);
+
+    // Write to Postgres in background (non-blocking)
+    this.getDb().then((db) => {
+      if (db) {
+        db.query(
+          `INSERT INTO sessions (token, user_id, user_role, business_id, email, created_at, expires_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (token) DO NOTHING`,
+          [token, userId, userRole, businessId, email, new Date(now).toISOString(), new Date(now + this.maxAge).toISOString()]
+        ).catch((err) => console.error("[SessionStore] DB write failed:", err));
+      }
+    });
+
     return session;
   }
 
   get(token: string): Session | null {
+    // Try in-memory first (fast path)
     const session = this.sessions.get(token);
-    if (!session) return null;
-    if (Date.now() > session.expiresAt) { this.sessions.delete(token); return null; }
-    return session;
+    if (session) {
+      if (Date.now() > session.expiresAt) { this.sessions.delete(token); return null; }
+      return session;
+    }
+    // In-memory miss — the token might exist in Postgres from a previous process.
+    // Sync lookup not possible here (returns null, but the async restore happens below).
+    return null;
+  }
+
+  /** Async version that checks Postgres if in-memory misses. */
+  async getAsync(token: string): Promise<Session | null> {
+    const inMemory = this.get(token);
+    if (inMemory) return inMemory;
+
+    const db = await this.getDb();
+    if (!db) return null;
+
+    try {
+      const result = await db.query<{ user_id: string; user_role: string; business_id: string | null; email: string; created_at: string; expires_at: string }>(
+        `SELECT user_id, user_role, business_id, email, created_at, expires_at
+         FROM sessions WHERE token = $1 AND expires_at > NOW()`,
+        [token]
+      );
+      if (result.rows.length === 0) return null;
+      const row = result.rows[0];
+      const session: Session = {
+        token,
+        userId: row.user_id,
+        userRole: row.user_role as Session["userRole"],
+        businessId: row.business_id,
+        email: row.email,
+        createdAt: new Date(row.created_at).getTime(),
+        expiresAt: new Date(row.expires_at).getTime(),
+      };
+      // Restore to in-memory cache
+      this.sessions.set(token, session);
+      return session;
+    } catch {
+      return null;
+    }
   }
 
   destroy(token: string): boolean {
-    return this.sessions.delete(token);
+    const existed = this.sessions.delete(token);
+    this.getDb().then((db) => {
+      if (db) {
+        db.query(`DELETE FROM sessions WHERE token = $1`, [token])
+          .catch((err) => console.error("[SessionStore] DB delete failed:", err));
+      }
+    });
+    return existed;
   }
 
-  /** Remove all expired sessions from the store. */
   pruneExpired(): number {
     const now = Date.now();
     let pruned = 0;
-    for (const [token, session] of this.sessions) {
-      if (now > session.expiresAt) {
-        this.sessions.delete(token);
-        pruned += 1;
+    for (const [t, s] of this.sessions) {
+      if (now > s.expiresAt) { this.sessions.delete(t); pruned += 1; }
+    }
+    // Also prune in Postgres
+    this.getDb().then((db) => {
+      if (db) {
+        db.query(`DELETE FROM sessions WHERE expires_at < NOW()`)
+          .catch((err) => console.error("[SessionStore] DB prune failed:", err));
       }
-    }
-    if (pruned > 0) {
-      console.info(`[SessionStore] Pruned ${pruned} expired session(s). Active: ${this.sessions.size}`);
-    }
+    });
+    if (pruned > 0) console.info(`[SessionStore] Pruned ${pruned} expired session(s). Active: ${this.sessions.size}`);
     return pruned;
   }
 }
