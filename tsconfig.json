@@ -20,6 +20,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@social-perks/shared/*": [
+        "./packages/shared/src/*"
       ]
     },
     "plugins": [

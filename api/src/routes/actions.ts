@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { apiResponse, parsePagination, paginationMeta } from "../helpers.js";
 import { rateLimit } from "../middleware/rate-limit.js";
-import { ALL_ACTIONS as ACTIONS } from "@/lib/platforms";
+import { ALL_ACTIONS as ACTIONS } from "@social-perks/shared/platforms";
 
 const app = new Hono();
 

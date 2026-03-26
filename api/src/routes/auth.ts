@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
 import { apiResponse, apiError } from "../helpers.js";
 import { rateLimit } from "../middleware/rate-limit.js";
-import { createSeedData } from "@/lib/seed";
+import { createSeedData } from "@social-perks/shared/seed";
 import { businessRepo, userRepo } from "@/lib/db/repositories";
 import { hashPassword, verifyPassword, sessionStore, createTokenPair, verifyJWT } from "@/lib/auth";
 import { logger } from "@/lib/logging";

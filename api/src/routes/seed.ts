@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { apiResponse, apiError } from "../helpers.js";
-import { createSeedData } from "@/lib/seed";
+import { createSeedData } from "@social-perks/shared/seed";
 
 const app = new Hono();
 

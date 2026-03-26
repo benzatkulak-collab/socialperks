@@ -13,7 +13,7 @@ import { eventBus } from "@/lib/realtime";
 import { logger } from "@/lib/logging";
 import { awardPerk } from "@/lib/perk-wallet";
 import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
-import type { SubmissionStatus, ProofType, LaunchedCampaign } from "@/lib/types";
+import type { SubmissionStatus, ProofType, LaunchedCampaign } from "@social-perks/shared/types";
 
 const fraudPipeline = createFraudPipeline();
 const app = new Hono();
