@@ -1,0 +1,26 @@
+import { Hono } from "hono";
+import { apiResponse, apiError } from "../helpers.js";
+import { rateLimit } from "../middleware/rate-limit.js";
+import { estimatePricing } from "@/lib/ai-engine";
+import { logger } from "@/lib/logging";
+
+const app = new Hono();
+
+app.get("/", rateLimit("public"), (c) => {
+  try {
+    const actionId = c.req.query("actionId");
+    const platformId = c.req.query("platformId");
+    const businessType = c.req.query("businessType");
+
+    const pricing = estimatePricing({ actionId, platformId, businessType });
+
+    return apiResponse(c, { pricing, generatedAt: new Date().toISOString() }, 200, {
+      "Cache-Control": "public, max-age=3600",
+    });
+  } catch (err) {
+    logger.error("Pricing estimation failed", err);
+    return apiError(c, "PRICING_FAILED", "Failed to estimate pricing", 500);
+  }
+});
+
+export default app;

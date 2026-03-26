@@ -4,18 +4,52 @@ interface ApiResponse<T> { success: boolean; data?: T; error?: { code: string; m
 
 class ApiClient {
   private baseUrl: string;
-  constructor(baseUrl = "") { this.baseUrl = baseUrl; }
+  constructor(baseUrl = typeof window !== "undefined" ? (process.env.NEXT_PUBLIC_API_URL || "") : "") { this.baseUrl = baseUrl; }
+
+  /**
+   * Fetch with automatic retry for transient server errors (5xx) and network failures.
+   * Retries up to `retries` times with exponential backoff (200ms, 400ms).
+   */
+  private async fetchWithRetry(url: string, options: RequestInit, retries = 2): Promise<Response> {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, options);
+        if (response.status >= 500 && attempt < retries) {
+          // Wait with exponential backoff before retrying server errors
+          await new Promise(resolve => setTimeout(resolve, 200 * Math.pow(2, attempt)));
+          continue;
+        }
+        return response;
+      } catch (error: unknown) {
+        if (attempt === retries) throw error;
+        // Wait before retrying network errors
+        await new Promise(resolve => setTimeout(resolve, 200 * Math.pow(2, attempt)));
+      }
+    }
+    throw new Error("Max retries exceeded");
+  }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
-    const res = await fetch(this.baseUrl + endpoint, { headers: { "Content-Type": "application/json" }, ...options });
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
+    try {
+      const res = await this.fetchWithRetry(
+        this.baseUrl + endpoint,
+        { headers: { "Content-Type": "application/json" }, ...options }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        return {
+          success: false,
+          error: body?.error ?? { code: "HTTP_ERROR", message: `Request failed with status ${res.status}` },
+        };
+      }
+      return res.json();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Network request failed";
       return {
         success: false,
-        error: body?.error ?? { code: "HTTP_ERROR", message: `Request failed with status ${res.status}` },
+        error: { code: "NETWORK_ERROR", message },
       };
     }
-    return res.json();
   }
 
   async getCampaigns(params?: { businessId?: string; tier?: string; category?: string; page?: number }) {
@@ -66,6 +100,20 @@ class ApiClient {
 
   async getRecommendations(data: Record<string, unknown>) {
     return this.request(API_ENDPOINTS.aiRecommend, { method: "POST", body: JSON.stringify(data) });
+  }
+
+  async getSubmissions(params?: { campaignId?: string; businessId?: string; userId?: string; status?: string; page?: number }) {
+    const qs = new URLSearchParams();
+    if (params?.campaignId) qs.set("campaignId", params.campaignId);
+    if (params?.businessId) qs.set("businessId", params.businessId);
+    if (params?.userId) qs.set("userId", params.userId);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.page) qs.set("page", String(params.page));
+    return this.request(API_ENDPOINTS.submissions + "?" + qs.toString());
+  }
+
+  async reviewSubmission(data: { submissionId: string; reviewerId: string; decision: "approve" | "reject"; note?: string; campaign?: Record<string, unknown>; followerCount?: number }) {
+    return this.request(API_ENDPOINTS.submissionsReview, { method: "POST", body: JSON.stringify(data) });
   }
 
   async login(email: string, pin: string) {

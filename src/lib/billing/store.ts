@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 // ══════════════════════════════════════════════════════════════════════════════
 // Social Perks — Billing Store
 // Shared subscription state and plan configuration used by both the billing
