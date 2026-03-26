@@ -118,6 +118,85 @@ export class Logger {
   }
 }
 
+// -- Axiom Transport ----------------------------------------------------------
+
+/**
+ * Batched log transport for Axiom (axiom.co).
+ * Buffers log entries and flushes periodically or when batch is full.
+ * Falls back to console.log if AXIOM_TOKEN is not set.
+ *
+ * Set env vars:
+ *   AXIOM_TOKEN   — API token from axiom.co
+ *   AXIOM_DATASET — Dataset name (default: "social-perks")
+ */
+class AxiomTransport {
+  private buffer: LogEntry[] = [];
+  private readonly maxBatchSize = 100;
+  private readonly flushIntervalMs = 5_000;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private readonly token: string;
+  private readonly dataset: string;
+  private readonly baseUrl: string;
+
+  constructor() {
+    this.token = process.env.AXIOM_TOKEN ?? "";
+    this.dataset = process.env.AXIOM_DATASET ?? "social-perks";
+    this.baseUrl = process.env.AXIOM_URL ?? "https://api.axiom.co";
+
+    if (this.token) {
+      this.timer = setInterval(() => this.flush(), this.flushIntervalMs);
+      // Flush on process exit
+      process.on("beforeExit", () => this.flush());
+    }
+  }
+
+  get isConfigured(): boolean {
+    return !!this.token;
+  }
+
+  send(entry: LogEntry): void {
+    // Always write to stdout for local visibility
+    console.log(JSON.stringify(entry));
+
+    if (!this.token) return;
+
+    this.buffer.push(entry);
+    if (this.buffer.length >= this.maxBatchSize) {
+      this.flush();
+    }
+  }
+
+  private flush(): void {
+    if (this.buffer.length === 0) return;
+    const batch = this.buffer.splice(0);
+
+    fetch(`${this.baseUrl}/v1/datasets/${this.dataset}/ingest`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(batch.map((e) => ({ ...e, _time: e.timestamp }))),
+    }).catch((err) => {
+      console.error(`[Axiom] Flush failed: ${err instanceof Error ? err.message : "unknown"}`);
+      // Re-buffer on failure (drop if buffer too large)
+      if (this.buffer.length < 1000) {
+        this.buffer.unshift(...batch);
+      }
+    });
+  }
+
+  destroy(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.flush();
+  }
+}
+
+const axiom = new AxiomTransport();
+
 // -- Default Logger -----------------------------------------------------------
 
-export const logger = new Logger();
+export const logger = new Logger({
+  minLevel: (process.env.LOG_LEVEL as LogLevel) ?? "info",
+  output: (entry) => axiom.send(entry),
+});

@@ -1,9 +1,12 @@
 import { createMiddleware } from "hono/factory";
 import { randomUUID } from "crypto";
+import { logger } from "@lib/logging/index.js";
 
 export const tracing = createMiddleware(async (c, next) => {
   const requestId = randomUUID();
   const startTime = performance.now();
+  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const userAgent = c.req.header("user-agent") || "unknown";
 
   c.set("requestId", requestId);
 
@@ -11,36 +14,32 @@ export const tracing = createMiddleware(async (c, next) => {
     await next();
 
     const duration = Math.round(performance.now() - startTime);
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-    console.info(JSON.stringify({
-      level: "info",
+    logger.info("request", {
+      event: "http.request",
       requestId,
       method: c.req.method,
       path: c.req.path,
       status: c.res.status,
       duration,
       ip,
-      timestamp: new Date().toISOString(),
-    }));
+      userAgent,
+    });
 
     c.header("X-Request-Id", requestId);
     c.header("X-Response-Time", `${duration}ms`);
   } catch (error) {
     const duration = Math.round(performance.now() - startTime);
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
-    console.error(JSON.stringify({
-      level: "error",
+    logger.error("request failed", error, {
+      event: "http.error",
       requestId,
       method: c.req.method,
       path: c.req.path,
-      error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
       duration,
       ip,
-      timestamp: new Date().toISOString(),
-    }));
+      userAgent,
+    });
 
     c.header("X-Request-Id", requestId);
     return c.json(

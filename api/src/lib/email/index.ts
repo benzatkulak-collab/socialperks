@@ -55,74 +55,69 @@ export class ConsoleEmailProvider implements EmailProvider {
 export class ResendEmailProvider implements EmailProvider {
   private apiKey: string;
   private baseUrl: string;
+  private maxRetries: number;
 
-  constructor(apiKey?: string, baseUrl?: string) {
+  constructor(apiKey?: string, baseUrl?: string, maxRetries = 3) {
     this.apiKey = apiKey ?? process.env.RESEND_API_KEY ?? "";
     this.baseUrl = baseUrl ?? "https://api.resend.com";
+    this.maxRetries = maxRetries;
   }
 
   async send(message: EmailMessage): Promise<SendResult> {
     if (!this.apiKey) {
-      return {
-        success: false,
-        messageId: "",
-        error: "Resend API key not configured",
-      };
+      return { success: false, messageId: "", error: "Resend API key not configured" };
     }
 
-    let response: Response;
-    try {
-      response = await fetch(`${this.baseUrl}/emails`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: message.from ?? DEFAULT_FROM,
-          to: [message.to],
-          subject: message.subject,
-          html: message.html,
-          text: message.text,
-        }),
-      });
-    } catch (err) {
-      // Network failure (DNS, timeout, connection refused, etc.)
-      const errorMessage =
-        err instanceof Error ? err.message : "Network error";
-      return {
-        success: false,
-        messageId: "",
-        error: `Resend network error: ${errorMessage}`,
-      };
-    }
+    const payload = JSON.stringify({
+      from: message.from ?? DEFAULT_FROM,
+      to: [message.to],
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+    });
 
-    if (!response.ok) {
-      let errorDetail = `HTTP ${response.status}`;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
-        const errorBody = (await response.json()) as {
-          message?: string;
-        };
-        if (errorBody?.message) {
-          errorDetail += `: ${errorBody.message}`;
+        const response = await fetch(`${this.baseUrl}/emails`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
+          body: payload,
+        });
+
+        if (response.ok) {
+          const data = (await response.json().catch(() => ({}))) as { id?: string };
+          console.info(JSON.stringify({ level: "info", event: "email.sent", to: message.to, subject: message.subject, messageId: data.id, attempt, timestamp: new Date().toISOString() }));
+          return { success: true, messageId: data.id ?? "" };
         }
-      } catch {
-        // Could not parse error body — use status code only
+
+        // 429 (rate limited) or 5xx (server error) — retry
+        if ((response.status === 429 || response.status >= 500) && attempt < this.maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+          console.warn(JSON.stringify({ level: "warn", event: "email.retry", to: message.to, status: response.status, attempt, nextRetryMs: delay }));
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+
+        // Non-retryable error
+        let errorDetail = `HTTP ${response.status}`;
+        try { const body = (await response.json()) as { message?: string }; if (body?.message) errorDetail += `: ${body.message}`; } catch {}
+        console.error(JSON.stringify({ level: "error", event: "email.failed", to: message.to, error: errorDetail, attempt }));
+        return { success: false, messageId: "", error: `Resend API error: ${errorDetail}` };
+      } catch (err) {
+        // Network error — retry
+        if (attempt < this.maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+          console.warn(JSON.stringify({ level: "warn", event: "email.retry", to: message.to, error: err instanceof Error ? err.message : "Network error", attempt, nextRetryMs: delay }));
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+        const errorMessage = err instanceof Error ? err.message : "Network error";
+        console.error(JSON.stringify({ level: "error", event: "email.failed", to: message.to, error: errorMessage, attempt }));
+        return { success: false, messageId: "", error: `Resend network error: ${errorMessage}` };
       }
-      return {
-        success: false,
-        messageId: "",
-        error: `Resend API error: ${errorDetail}`,
-      };
     }
 
-    try {
-      const data = (await response.json()) as { id?: string };
-      return { success: true, messageId: data.id ?? "" };
-    } catch {
-      // Response was 2xx but body wasn't JSON — treat as success
-      return { success: true, messageId: "" };
-    }
+    return { success: false, messageId: "", error: "Max retries exceeded" };
   }
 }
 

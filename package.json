@@ -2,7 +2,9 @@
   "name": "social-perks",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +18,9 @@
     "api:test": "cd api && npx vitest run",
     "api:typecheck": "cd api && npx tsc --noEmit",
     "api:install": "cd api && npm install",
-    "test:all": "vitest run && cd api && npx vitest run"
+    "test:all": "vitest run && cd api && npx vitest run",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui"
   },
   "dependencies": {
     "@vitest/coverage-v8": "^2.1.9",
@@ -27,6 +31,7 @@
     "stripe": "^20.4.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",
