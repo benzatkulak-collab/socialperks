@@ -1,17 +1,17 @@
 import { createMiddleware } from "hono/factory";
-import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@lib/security/rate-limiter.js";
+import { checkRateLimitAsync, rateLimitHeaders, type RateLimitTier } from "@lib/security/rate-limiter.js";
 
 /**
  * Rate limit middleware factory.
+ * Uses Redis when REDIS_URL is set, falls back to in-memory.
  * Usage: app.use(rateLimit("standard"))
  */
 export function rateLimit(tier: RateLimitTier = "standard") {
   return createMiddleware(async (c, next) => {
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const endpoint = c.req.path;
-    const result = checkRateLimit(ip, endpoint, tier);
+    const result = await checkRateLimitAsync(ip, endpoint, tier);
 
-    // Always set rate limit headers
     const headers = rateLimitHeaders(result);
     for (const [k, v] of Object.entries(headers)) {
       c.header(k, v);

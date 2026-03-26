@@ -12,8 +12,9 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
-    "@social-perks/shared": "*",
-    "hono": "^4.7.0"
+    "@social-perks/shared": "file:../packages/shared",
+    "hono": "^4.7.0",
+    "ioredis": "^5.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
