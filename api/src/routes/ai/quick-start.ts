@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { marketingAgent } from "@/lib/ai-agent";
-import type { BusinessProfile } from "@/lib/ai-agent";
+import { marketingAgent } from "@lib/ai-agent";
+import type { BusinessProfile } from "@lib/ai-agent";
 import { apiResponse, apiError } from "../../helpers.js";
-import { logger } from "@/lib/logging";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 

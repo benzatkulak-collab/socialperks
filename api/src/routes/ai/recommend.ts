@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { getRecommendations } from "@/lib/ai-engine";
-import type { RecommendationInput } from "@/lib/ai-engine";
+import { getRecommendations } from "@lib/ai-engine";
+import type { RecommendationInput } from "@lib/ai-engine";
 import { apiResponse, apiError } from "../../helpers.js";
-import { logger } from "@/lib/logging";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 

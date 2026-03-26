@@ -3,8 +3,8 @@ import { apiResponse, apiError, parsePagination, paginationMeta } from "../helpe
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { createSeedData } from "@social-perks/shared/seed";
-import { matchingService } from "@/lib/ml/embedding-system";
-import { logger } from "@/lib/logging";
+import { matchingService } from "@lib/ml/embedding-system";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 const registeredInfluencers = new Map<string, Record<string, unknown>>();

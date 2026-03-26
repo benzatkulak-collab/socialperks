@@ -2,16 +2,16 @@ import { Hono } from "hono";
 import { apiResponse, apiError, parsePagination, paginationMeta } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireJson } from "../middleware/validation.js";
-import { campaignManager } from "@/lib/campaign-state-machine";
-import { checkCampaignCompliance } from "@/lib/compliance-engine";
-import { legalGuard } from "@/lib/legal-compliance";
-import { emitCampaignEvent } from "@/lib/events";
-import { domainEventStore } from "@/lib/event-sourcing";
-import { campaignRepo } from "@/lib/db/repositories";
-import { socialGraph } from "@/lib/ml/social-graph";
-import { matchingService } from "@/lib/ml/embedding-system";
-import { logger } from "@/lib/logging";
-import { eventBus } from "@/lib/realtime";
+import { campaignManager } from "@lib/campaign-state-machine";
+import { checkCampaignCompliance } from "@lib/compliance-engine";
+import { legalGuard } from "@lib/legal-compliance";
+import { emitCampaignEvent } from "@lib/events";
+import { domainEventStore } from "@lib/event-sourcing";
+import { campaignRepo } from "@lib/db/repositories";
+import { socialGraph } from "@lib/ml/social-graph";
+import { matchingService } from "@lib/ml/embedding-system";
+import { logger } from "@lib/logging";
+import { eventBus } from "@lib/realtime";
 
 const app = new Hono();
 

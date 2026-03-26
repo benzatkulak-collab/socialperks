@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
-import { sessionStore, verifyJWT } from "@/lib/auth/index.js";
+import { sessionStore, verifyJWT } from "@lib/auth/index.js";
 
 /**
  * Auth middleware — sets userId, userRole on context if authenticated.

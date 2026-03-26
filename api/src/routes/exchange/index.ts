@@ -2,9 +2,9 @@ import { Hono } from "hono";
 import { apiResponse, apiError, parsePagination, paginationMeta } from "../../helpers.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
-import { exchange } from "@/lib/exchange";
+import { exchange } from "@lib/exchange";
 import { PLATFORMS, ALL_ACTIONS as ACTIONS } from "@social-perks/shared/platforms";
-import { logger } from "@/lib/logging";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 

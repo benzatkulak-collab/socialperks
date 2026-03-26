@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { apiResponse, apiError } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
-import { matchingService } from "@/lib/ml/embedding-system";
-import { logger } from "@/lib/logging";
+import { matchingService } from "@lib/ml/embedding-system";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 

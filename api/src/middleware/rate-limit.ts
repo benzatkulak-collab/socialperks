@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter.js";
+import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@lib/security/rate-limiter.js";
 
 /**
  * Rate limit middleware factory.

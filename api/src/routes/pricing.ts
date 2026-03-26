@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { apiResponse, apiError } from "../helpers.js";
 import { rateLimit } from "../middleware/rate-limit.js";
-import { estimatePricing } from "@/lib/ai-engine";
-import { logger } from "@/lib/logging";
+import { estimatePricing } from "@lib/ai-engine";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 

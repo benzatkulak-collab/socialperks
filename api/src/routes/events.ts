@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { eventBus } from "@/lib/realtime";
-import { sessionStore } from "@/lib/auth";
+import { eventBus } from "@lib/realtime";
+import { sessionStore } from "@lib/auth";
 
 const app = new Hono();
 

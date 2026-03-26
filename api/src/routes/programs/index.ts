@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import { apiResponse, apiError } from "../../helpers.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
-import { perkProgramManager } from "@/lib/perk-programs";
-import type { CreateProgramConfig } from "@/lib/perk-programs";
-import { logger } from "@/lib/logging";
-import { eventBus } from "@/lib/realtime";
+import { perkProgramManager } from "@lib/perk-programs";
+import type { CreateProgramConfig } from "@lib/perk-programs";
+import { logger } from "@lib/logging";
+import { eventBus } from "@lib/realtime";
 
 const app = new Hono();
 

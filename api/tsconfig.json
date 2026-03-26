@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "paths": {
-      "@/*": ["../src/*"],
+      "@lib/*": ["./src/lib/*"],
       "@api/*": ["./src/*"],
       "@social-perks/shared/*": ["../packages/shared/src/*"]
     }

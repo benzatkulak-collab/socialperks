@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { apiResponse, apiError } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
-import { PLANS, subscriptions, generateStripeId, getOrCreateCustomerId, type Subscription } from "@/lib/billing/store";
-import { tenantManager } from "@/lib/multi-tenant";
-import type { TenantPlan } from "@/lib/multi-tenant";
-import { logger } from "@/lib/logging";
+import { PLANS, subscriptions, generateStripeId, getOrCreateCustomerId, type Subscription } from "@lib/billing/store";
+import { tenantManager } from "@lib/multi-tenant";
+import type { TenantPlan } from "@lib/multi-tenant";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 

@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Hono } from "hono";
-import { eventBus } from "@/lib/realtime";
-import { logger } from "@/lib/logging";
+import { eventBus } from "@lib/realtime";
+import { logger } from "@lib/logging";
 
 const app = new Hono();
 
