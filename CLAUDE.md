@@ -10,9 +10,12 @@ Social Perks is a platform where businesses offer perks (discounts/rewards) to c
 - **State**: localStorage with hooks (migration-ready for Postgres + Prisma)
 - **Engines**: 14 backend engines (event sourcing, state machine, fraud detection, etc.)
 - **10-Year Architecture**: Plugin system, social graph, vector embeddings, offline sync
-- **Auth**: PIN-based demo (structured for NextAuth.js migration)
+- **Auth**: JWT httpOnly cookies + Bearer tokens + API keys (PIN auth deprecated)
 - **AI**: Backend-only via `/api/v1/ai/*` routes — frontend NEVER runs AI logic
 - **API**: RESTful `/api/v1/*` routes with typed responses
+- **Security**: Layered security (CSRF tokens, tiered rate limiting, input validation, HTML sanitization)
+- **Monitoring**: 100% request tracing on all 35 API routes with structured JSON logging
+- **CI/CD**: GitHub Actions (lint, typecheck, test, build, deploy, security scanning)
 - **Mobile**: Shared interop layer in `src/lib/shared/mobile-interop.ts`
 
 ## Project Structure
@@ -28,10 +31,43 @@ src/
 │       ├── actions/route.ts     # Action library
 │       ├── influencers/route.ts # Influencer search/register
 │       ├── benchmarks/route.ts  # Industry benchmarks
+│       ├── submissions/
+│       │   ├── route.ts           # Submission CRUD
+│       │   └── review/route.ts    # Submission review (approve/reject)
+│       ├── billing/
+│       │   ├── route.ts           # Subscription management
+│       │   └── webhook/route.ts   # Stripe webhook handler
+│       ├── programs/
+│       │   ├── route.ts           # Perk program CRUD
+│       │   └── [programId]/
+│       │       ├── route.ts       # Program details/update/delete
+│       │       ├── progress/route.ts  # Member progress
+│       │       ├── submit/route.ts    # Action submission
+│       │       ├── cashback/route.ts  # Cash back management
+│       │       └── members/route.ts   # Member enrollment
+│       ├── exchange/
+│       │   ├── opportunities/route.ts # Market opportunities (public)
+│       │   ├── market/route.ts    # Real-time market data (public)
+│       │   ├── orders/route.ts    # Buy/sell order management
+│       │   ├── trades/route.ts    # Trade lifecycle
+│       │   └── enroll/route.ts    # Agent auto-enrollment
 │       ├── ai/
 │       │   ├── generate/route.ts  # AI campaign generation (BACKEND ONLY)
-│       │   └── recommend/route.ts # AI recommendations
-│       └── auth/route.ts        # Authentication
+│       │   ├── recommend/route.ts # AI recommendations
+│       │   ├── review/route.ts    # AI submission review pipeline
+│       │   ├── campaign-agent/route.ts # Full AI marketing plan
+│       │   └── quick-start/route.ts   # Quick-start recommendation
+│       ├── oauth/
+│       │   ├── connect/route.ts   # Start OAuth flow
+│       │   └── [platform]/route.ts # OAuth callback
+│       ├── events/route.ts        # SSE real-time stream
+│       ├── legal/route.ts         # Legal compliance briefings
+│       ├── recommendations/route.ts # ML-powered recommendations
+│       ├── verification/
+│       │   └── webhook/route.ts   # Platform webhook receiver
+│       ├── health/route.ts        # Health check
+│       ├── seed/route.ts          # Dev-only seed data
+│       └── auth/route.ts          # Authentication
 ├── components/
 │   ├── app.tsx                  # Main client component (multi-audience)
 │   ├── ui/                      # Reusable UI primitives (Badge, Button, Card, etc.)
@@ -48,9 +84,18 @@ src/
     ├── ideas.ts                 # 1000 platform ideas
     ├── db/
     │   └── schema.ts            # Prisma-ready database schema
+    ├── security/
+    │   ├── index.ts             # Security barrel export
+    │   ├── sanitize.ts          # HTML escaping for templates
+    │   ├── csrf.ts              # CSRF token generation/validation
+    │   ├── rate-limiter.ts      # Tiered rate limiting
+    │   └── validate.ts          # Input validation functions
+    ├── context/
+    │   └── app-context.tsx      # Global app state (Context + useReducer)
     ├── api/
     │   ├── client.ts            # Frontend API client
-    │   └── middleware.ts        # API helpers
+    │   ├── middleware.ts         # API helpers + rate limiting
+    │   └── with-request-context.ts  # Universal request tracing wrapper
     ├── hooks/
     │   ├── use-store.ts         # localStorage hook
     │   ├── use-campaigns.ts     # Campaign management hook
@@ -121,26 +166,98 @@ Auto-injected per platform. Cannot be disabled.
 - **Typography**: Serif headings (italic), sans body, mono for data
 - **Cards**: Subtle borders, hover lift, colored left borders for tiers
 
+## Security Architecture
+- **Rate Limiting**: 4-tier system (strict/standard/relaxed/public) in `lib/security/rate-limiter.ts`
+- **CSRF Protection**: HMAC-SHA256 tokens with session binding in `lib/security/csrf.ts`
+- **Input Validation**: Centralized validators (email, ID, string, number, enum) in `lib/security/validate.ts`
+- **XSS Prevention**: HTML entity escaping for all email templates via `lib/security/sanitize.ts`
+- **Auth**: JWT httpOnly cookies + Bearer tokens + API keys (PIN auth deprecated)
+- **Webhooks**: HMAC-SHA256 signature verification with replay protection
+
+## Monitoring & Observability
+- **Request Tracing**: Every route wrapped with `withRequestContext` or `withTracing`
+- **Structured Logging**: JSON format with requestId, method, path, status, duration, IP
+- **Response Headers**: `X-Request-Id` and `X-Response-Time` on every response
+- **Rate Limit Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+
 ## Commands
 ```bash
 npm install          # Install dependencies
 npm run dev          # Start dev server (localhost:3000)
 npm run build        # Production build (must pass with no errors)
 npm run lint         # Run ESLint
+npm run test         # Run test suite
+npm run test:coverage  # Run tests with coverage report
 ```
 
-## API Endpoints
+## API Endpoints (35 routes)
 ```
-GET  /api/v1/pricing?actionId=ig_rl&businessType=Restaurant
-GET  /api/v1/actions?platformId=ig&type=content
-GET  /api/v1/benchmarks?businessType=Coffee+Shop
-GET  /api/v1/influencers?niche=food&minFollowers=5000
-GET  /api/v1/campaigns?businessId=b1&tier=essential
-POST /api/v1/campaigns              # Create/launch campaign
-POST /api/v1/ai/generate            # Generate campaign suggestions
-POST /api/v1/ai/recommend           # Get optimization recommendations
-POST /api/v1/auth                   # Login
+# Auth
+GET  /api/v1/auth                    # Validate session (Bearer token)
+POST /api/v1/auth                    # Login/signup/logout/refresh/reset-password
+
+# Campaigns
+GET  /api/v1/campaigns               # List campaigns (filterable)
+POST /api/v1/campaigns               # Create/launch campaign
+
+# Submissions
+GET  /api/v1/submissions             # List submissions (filterable)
+POST /api/v1/submissions             # Create submission with proof
+POST /api/v1/submissions/review      # Approve/reject submission
+
+# AI (Backend-Only)
+POST /api/v1/ai/generate             # Generate campaign suggestions
+POST /api/v1/ai/recommend            # Optimization recommendations
+POST /api/v1/ai/review               # AI submission review pipeline
+POST /api/v1/ai/campaign-agent       # Full AI marketing plan
+POST /api/v1/ai/quick-start          # Quick-start single recommendation
+
+# Billing
+POST /api/v1/billing                 # Subscription management
+POST /api/v1/billing/webhook         # Stripe webhook handler
+
+# Perk Programs
+GET  /api/v1/programs                # List programs
+POST /api/v1/programs                # Create program
+GET  /api/v1/programs/:id            # Program details
+PUT  /api/v1/programs/:id            # Update program
+DELETE /api/v1/programs/:id          # End program
+GET  /api/v1/programs/:id/progress   # Member progress
+POST /api/v1/programs/:id/submit     # Submit action
+GET  /api/v1/programs/:id/cashback   # List payouts
+POST /api/v1/programs/:id/cashback   # Request/manage cashback
+GET  /api/v1/programs/:id/members    # List members
+POST /api/v1/programs/:id/members    # Enroll member
+
+# Exchange
+GET  /api/v1/exchange/opportunities  # Market opportunities (public)
+GET  /api/v1/exchange/market         # Real-time market data (public)
+GET  /api/v1/exchange/orders         # List orders
+POST /api/v1/exchange/orders         # Place buy/sell order
+GET  /api/v1/exchange/trades         # List trades
+POST /api/v1/exchange/trades         # Trade lifecycle actions
+POST /api/v1/exchange/enroll         # Agent auto-enrollment
+
+# Reference Data (public, cached)
+GET  /api/v1/pricing                 # Pricing oracle
+GET  /api/v1/actions                 # Action library (107 actions)
+GET  /api/v1/benchmarks              # Industry benchmarks
+GET  /api/v1/influencers             # Search influencers
+POST /api/v1/influencers             # Register influencer
+GET  /api/v1/recommendations         # ML-powered recommendations
+GET  /api/v1/legal                   # Legal compliance briefings
+
+# Infrastructure
+GET  /api/v1/events                  # SSE real-time stream
+GET  /api/v1/health                  # Health check
+POST /api/v1/oauth/connect           # Start OAuth flow
+GET  /api/v1/oauth/:platform         # OAuth callback
+POST /api/v1/verification/webhook    # Platform webhook receiver
+GET  /api/v1/verification/webhook    # Webhook challenge verification
+POST /api/v1/seed                    # Dev-only seed data
 ```
+
+See `API.md` for full request/response documentation.
 
 ## Demo Accounts (PIN: 1234)
 **Business:** yoga@ · sol@ · glow@ · iron@ · baked@ · ink@ · vet@ · bloom@ · smith@ · spark@ demo.com

@@ -107,7 +107,7 @@ export default function MediaKit({ influencer, portfolio, stats, platforms, rate
           <button
             type="button"
             onClick={handleShareLink}
-            className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition-all ${
+            className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 ${
               linkCopied
                 ? "bg-brand-green/10 text-brand-green"
                 : "bg-brand-cyan text-brand-bg hover:opacity-90"

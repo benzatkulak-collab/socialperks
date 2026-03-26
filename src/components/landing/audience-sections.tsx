@@ -1,5 +1,7 @@
 "use client";
 
+import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
+
 interface Example {
   business: string;
   offer: string;
@@ -58,7 +60,7 @@ const ACTIONS = [
 export function AudienceSections() {
   return (
     <section
-      className="relative bg-brand-bg py-24 sm:py-32"
+      className="relative bg-brand-bg py-20 sm:py-28 lg:py-32"
       id="examples"
       aria-label="What businesses can do"
     >
@@ -67,83 +69,83 @@ export function AudienceSections() {
         aria-hidden="true"
       />
 
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section: What you can ask for */}
-        <div className="mb-20">
-          <div className="mb-12 text-center">
-            <p className="mb-3 font-mono text-sm uppercase tracking-widest text-brand-cyan">
+        <div className="mb-20 sm:mb-24">
+          <AnimateOnScroll animation="fade-up" className="mb-10 text-center sm:mb-14">
+            <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan sm:text-xs">
               What your customers can do for you
             </p>
-            <h2 className="font-heading text-3xl italic text-brand-white sm:text-4xl lg:text-5xl">
+            <h2 className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic text-brand-white leading-tight">
               Pick the platforms. Pick the actions.
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim sm:text-lg">
+            <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
               You decide exactly what you want customers to do — and what they get in return.
             </p>
-          </div>
+          </AnimateOnScroll>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <AnimateOnScroll animation="fade-up" stagger staggerDelay={80} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
             {ACTIONS.map((platform) => (
               <div
                 key={platform.platform}
-                className="rounded-xl border border-brand-border/50 bg-brand-surface/40 p-5"
+                className="group rounded-xl border border-brand-border/40 bg-brand-surface/30 p-5 transition-all duration-300 hover:border-brand-border/70 hover:bg-brand-surface/50 sm:p-6"
               >
-                <div className="mb-3 flex items-center gap-2">
+                <div className="mb-3 flex items-center gap-2.5">
                   <span className="text-xl" aria-hidden="true">{platform.icon}</span>
                   <span className="text-sm font-semibold text-brand-white">{platform.platform}</span>
                 </div>
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                   {platform.actions.map((action) => (
                     <li key={action} className="flex items-center gap-2 text-sm text-brand-dim">
-                      <span className="text-brand-green text-xs" aria-hidden="true">+</span>
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-green/10 text-brand-green text-[10px]" aria-hidden="true">+</span>
                       {action}
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
-          </div>
+          </AnimateOnScroll>
         </div>
 
         {/* Section: Real examples */}
-        <div className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.02] p-8 sm:p-12">
-          <div className="mb-12 text-center">
-            <p className="mb-3 font-mono text-sm uppercase tracking-widest text-brand-green">
+        <AnimateOnScroll animation="fade-in" className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.02] p-6 sm:p-10 lg:p-12">
+          <AnimateOnScroll animation="fade-up" className="mb-10 text-center sm:mb-12">
+            <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-green sm:text-xs">
               Real examples
             </p>
-            <h2 className="font-heading text-3xl italic text-brand-white sm:text-4xl">
+            <h2 className="font-heading text-[clamp(1.75rem,3vw,2.5rem)] italic text-brand-white leading-tight">
               Here&apos;s what it looks like in practice
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim sm:text-lg">
+            <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
               Small discount in, real marketing out. Every time.
             </p>
-          </div>
+          </AnimateOnScroll>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <AnimateOnScroll animation="fade-up" stagger staggerDelay={80} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
             {EXAMPLES.map((ex) => (
               <div
                 key={ex.business}
-                className="rounded-xl border border-brand-green/20 bg-brand-bg/80 p-5"
+                className="rounded-xl border border-brand-green/15 bg-brand-bg/80 p-5 transition-all duration-300 hover:border-brand-green/30 hover:bg-brand-bg/90"
               >
-                <p className="mb-3 text-sm font-semibold text-brand-white">{ex.business}</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-brand-amber text-xs font-bold">GIVES</span>
+                <p className="mb-3.5 text-sm font-semibold text-brand-white">{ex.business}</p>
+                <div className="space-y-2.5 text-sm">
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-0.5 shrink-0 rounded bg-brand-amber/10 px-1.5 py-0.5 text-brand-amber text-[10px] font-bold tracking-wide">GIVES</span>
                     <span className="text-brand-dim">{ex.offer}</span>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-brand-cyan text-xs font-bold">FOR</span>
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-0.5 shrink-0 rounded bg-brand-cyan/10 px-1.5 py-0.5 text-brand-cyan text-[10px] font-bold tracking-wide">FOR</span>
                     <span className="text-brand-dim">{ex.action}</span>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 text-brand-green text-xs font-bold">GETS</span>
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-0.5 shrink-0 rounded bg-brand-green/10 px-1.5 py-0.5 text-brand-green text-[10px] font-bold tracking-wide">GETS</span>
                     <span className="text-brand-green font-medium">{ex.result}</span>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
+          </AnimateOnScroll>
+        </AnimateOnScroll>
       </div>
     </section>
   );

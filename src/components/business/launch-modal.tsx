@@ -112,7 +112,7 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
   }
 
   const inputClasses =
-    "font-body text-sm px-3.5 py-2.5 rounded-md border border-brand-border bg-brand-bg text-brand-text w-full outline-none transition-colors focus:border-brand-cyan";
+    "font-body text-sm px-3.5 py-2.5 rounded-md border border-brand-border bg-brand-bg text-brand-text w-full outline-none transition-all focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40";
 
   return (
     <div
@@ -134,7 +134,8 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
           </h2>
           <button
             onClick={onClose}
-            className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-transparent text-brand-dim hover:text-brand-text"
+            className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-transparent text-brand-dim hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+            aria-label="Close dialog"
           >
             ✕ Close
           </button>
@@ -348,7 +349,7 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
             <button
               onClick={handleLaunch}
               disabled={!name || !selectedActions.length}
-              className={`w-full font-body font-semibold rounded-lg border-none cursor-pointer transition-all duration-150 tracking-wide py-3.5 text-sm bg-brand-green text-white hover:brightness-110 ${
+              className={`w-full font-body font-semibold rounded-lg border-none cursor-pointer transition-all duration-150 tracking-wide py-3.5 text-sm bg-brand-green text-white hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                 !name || !selectedActions.length
                   ? "opacity-30 cursor-not-allowed"
                   : ""

@@ -26,6 +26,42 @@ import { pluginManager } from "./plugin-system";
 const submissions: Map<string, Submission> = new Map();
 const MAX_SUBMISSIONS = 50_000;
 
+// ─── Secondary Indexes (O(1) lookups by userId / campaignId) ────────────────
+
+/** userId → Set of submission IDs */
+const userSubmissions: Map<string, Set<string>> = new Map();
+/** campaignId → Set of submission IDs */
+const campaignSubmissions: Map<string, Set<string>> = new Map();
+
+function addToIndex(index: Map<string, Set<string>>, key: string, submissionId: string): void {
+  let set = index.get(key);
+  if (!set) {
+    set = new Set();
+    index.set(key, set);
+  }
+  set.add(submissionId);
+}
+
+function removeFromIndex(index: Map<string, Set<string>>, key: string, submissionId: string): void {
+  const set = index.get(key);
+  if (set) {
+    set.delete(submissionId);
+    if (set.size === 0) index.delete(key);
+  }
+}
+
+/** Resolve submission IDs from an index into Submission objects. */
+function resolveIndex(index: Map<string, Set<string>>, key: string): Submission[] {
+  const ids = index.get(key);
+  if (!ids) return [];
+  const result: Submission[] = [];
+  for (const id of ids) {
+    const sub = submissions.get(id);
+    if (sub) result.push(sub);
+  }
+  return result;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface Submission {
@@ -87,6 +123,9 @@ function generateId(): string {
 }
 
 const VALID_PROOF_TYPES: ProofType[] = ["screenshot", "url", "video", "api_verified"];
+
+// Only allow alphanumeric characters, hyphens, and underscores in IDs
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 // Require protocol + domain with at least one dot (prevents "http://x" or "https://")
 const URL_PATTERN = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
@@ -160,6 +199,12 @@ export function createSubmission(
       error: { code: "INVALID_CAMPAIGN_ID", message: "campaignId is required" },
     };
   }
+  if (!SAFE_ID_PATTERN.test(campaignId)) {
+    return {
+      success: false,
+      error: { code: "INVALID_CAMPAIGN_ID", message: "campaignId contains invalid characters (only alphanumeric, hyphens, underscores allowed)" },
+    };
+  }
 
   if (!userId || typeof userId !== "string") {
     return {
@@ -167,11 +212,23 @@ export function createSubmission(
       error: { code: "INVALID_USER_ID", message: "userId is required" },
     };
   }
+  if (!SAFE_ID_PATTERN.test(userId)) {
+    return {
+      success: false,
+      error: { code: "INVALID_USER_ID", message: "userId contains invalid characters (only alphanumeric, hyphens, underscores allowed)" },
+    };
+  }
 
   if (!actionId || typeof actionId !== "string") {
     return {
       success: false,
       error: { code: "INVALID_ACTION_ID", message: "actionId is required" },
+    };
+  }
+  if (!SAFE_ID_PATTERN.test(actionId)) {
+    return {
+      success: false,
+      error: { code: "INVALID_ACTION_ID", message: "actionId contains invalid characters (only alphanumeric, hyphens, underscores allowed)" },
     };
   }
 
@@ -200,10 +257,11 @@ export function createSubmission(
   }
 
   // Check for duplicate submissions (same user + campaign + action, pending OR approved)
-  const existing = Array.from(submissions.values()).find(
+  // Uses the userId index to avoid scanning all submissions
+  const userSubs = resolveIndex(userSubmissions, userId);
+  const existing = userSubs.find(
     (s) =>
       s.campaignId === campaignId &&
-      s.userId === userId &&
       s.actionId === actionId &&
       (s.status === "pending" || s.status === "approved")
   );
@@ -234,10 +292,17 @@ export function createSubmission(
   };
 
   submissions.set(submission.id, submission);
+  addToIndex(userSubmissions, userId, submission.id);
+  addToIndex(campaignSubmissions, campaignId, submission.id);
 
   if (submissions.size > MAX_SUBMISSIONS) {
     const oldest = Array.from(submissions.keys()).slice(0, Math.floor(MAX_SUBMISSIONS * 0.2));
     for (const key of oldest) {
+      const old = submissions.get(key);
+      if (old) {
+        removeFromIndex(userSubmissions, old.userId, key);
+        removeFromIndex(campaignSubmissions, old.campaignId, key);
+      }
       submissions.delete(key);
     }
   }
@@ -309,7 +374,10 @@ export async function reviewSubmission(
           error: { code: "PLUGIN_BLOCKED", message: hookResult.abortReason || "Blocked by plugin" },
         };
       }
-    } catch { /* plugin errors don't block the flow */ }
+    } catch (err) {
+      console.error('[Submissions] Plugin hook "submission.beforeApprove" failed:', err instanceof Error ? err.message : err);
+      // Plugin errors are logged but don't block the review flow
+    }
   }
 
   const now = new Date().toISOString();
@@ -342,9 +410,7 @@ export function getSubmissionsForCampaign(
   page = 1,
   perPage = 20
 ): PaginatedSubmissions {
-  let results = Array.from(submissions.values()).filter(
-    (s) => s.campaignId === campaignId
-  );
+  let results = resolveIndex(campaignSubmissions, campaignId);
 
   if (filters.status) {
     results = results.filter((s) => s.status === filters.status);
@@ -378,8 +444,7 @@ export function getSubmissionsForCampaign(
 }
 
 export function getSubmissionsForUser(userId: string): Submission[] {
-  return Array.from(submissions.values())
-    .filter((s) => s.userId === userId)
+  return resolveIndex(userSubmissions, userId)
     .sort(
       (a, b) =>
         new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
@@ -395,12 +460,26 @@ export function getSubmissions(
   page = 1,
   perPage = 20
 ): PaginatedSubmissions {
-  let results = Array.from(submissions.values());
+  // Start from the narrowest index available, then apply remaining filters
+  let results: Submission[];
+  let usedCampaignIndex = false;
+  let usedUserIndex = false;
 
   if (filters.campaignId) {
+    results = resolveIndex(campaignSubmissions, filters.campaignId);
+    usedCampaignIndex = true;
+  } else if (filters.userId) {
+    results = resolveIndex(userSubmissions, filters.userId);
+    usedUserIndex = true;
+  } else {
+    results = Array.from(submissions.values());
+  }
+
+  // Apply remaining filters (skip the one already used as the index key)
+  if (filters.campaignId && !usedCampaignIndex) {
     results = results.filter((s) => s.campaignId === filters.campaignId);
   }
-  if (filters.userId) {
+  if (filters.userId && !usedUserIndex) {
     results = results.filter((s) => s.userId === filters.userId);
   }
   if (filters.status) {
@@ -542,4 +621,6 @@ export function getStore(): Map<string, Submission> {
 
 export function clearStore(): void {
   submissions.clear();
+  userSubmissions.clear();
+  campaignSubmissions.clear();
 }

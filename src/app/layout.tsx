@@ -61,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -88,7 +88,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased">
+      <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
         {children}
       </body>
     </html>

@@ -226,7 +226,7 @@ export default function ProfileEditor({ influencer, onSave }: ProfileEditorProps
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-lg bg-brand-cyan px-5 py-2 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90"
+              className="rounded-lg bg-brand-cyan px-5 py-2 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               aria-label="Save profile changes"
             >
               Save Changes
@@ -242,7 +242,7 @@ export default function ProfileEditor({ influencer, onSave }: ProfileEditorProps
                 key={section.id}
                 type="button"
                 onClick={() => setActiveSection(section.id)}
-                className={`whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
                   activeSection === section.id
                     ? "border-b-2 border-brand-cyan text-brand-cyan"
                     : "text-brand-muted hover:text-brand-text"

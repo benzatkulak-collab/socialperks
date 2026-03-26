@@ -98,6 +98,8 @@ class FinancialLedger {
   private accounts: Map<string, Account> = new Map();
   private entries: LedgerEntry[] = [];
   private readonly maxEntries = 200_000;
+  /** Warnings accumulated during operations (e.g., approaching limits). */
+  private _warnings: string[] = [];
 
   // ── Account Operations ──────────────────────────────────────────────────
 
@@ -197,8 +199,8 @@ class FinancialLedger {
     relatedEntityType: string,
     metadata: Record<string, unknown> = {}
   ): LedgerEntry {
-    if (typeof amount !== "number" || isNaN(amount) || amount <= 0) {
-      throw new Error("Transaction amount must be a positive number");
+    if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Transaction amount must be a finite positive number");
     }
     if (!description || typeof description !== "string") {
       throw new Error("Transaction description is required");
@@ -242,6 +244,20 @@ class FinancialLedger {
     };
 
     this.entries.push(entry);
+
+    // Bounds checking: warn when approaching max entries, evict oldest when exceeded
+    if (this.entries.length > this.maxEntries) {
+      const evictCount = Math.floor(this.maxEntries * 0.1);
+      const warning = `[FinancialLedger] Entry limit exceeded (${this.entries.length}/${this.maxEntries}). Evicting oldest ${evictCount} entries.`;
+      console.warn(warning);
+      this._warnings.push(warning);
+      this.entries.splice(0, evictCount);
+    } else if (this.entries.length > this.maxEntries * 0.9) {
+      const warning = `[FinancialLedger] Approaching entry limit: ${this.entries.length}/${this.maxEntries} (${((this.entries.length / this.maxEntries) * 100).toFixed(0)}%)`;
+      console.warn(warning);
+      this._warnings.push(warning);
+    }
+
     return entry;
   }
 
@@ -807,6 +823,26 @@ class FinancialLedger {
     return this.accounts.size;
   }
 
+  // ── Warnings ───────────────────────────────────────────────────────────
+
+  /**
+   * Get accumulated warnings (approaching limits, evictions, etc.).
+   * Call drainWarnings() to retrieve and clear.
+   */
+  getWarnings(): readonly string[] {
+    return this._warnings;
+  }
+
+  /**
+   * Retrieve and clear all accumulated warnings.
+   * Useful for including in API responses or health checks.
+   */
+  drainWarnings(): string[] {
+    const warnings = [...this._warnings];
+    this._warnings = [];
+    return warnings;
+  }
+
   // ── Internal Helpers ────────────────────────────────────────────────────
 
   /**
@@ -829,6 +865,7 @@ class FinancialLedger {
   clear(): void {
     this.accounts.clear();
     this.entries.length = 0;
+    this._warnings = [];
   }
 
   /** Get raw accounts map — used in tests. */

@@ -243,13 +243,13 @@ export function CampaignCard({
           <div className="flex gap-2">
             <button
               onClick={() => onLaunch(campaign)}
-              className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-brand-green text-white hover:brightness-110"
+              className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-brand-green text-white hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
             >
               Launch Campaign
             </button>
             <button
               onClick={() => onLaunch(campaign)}
-              className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-brand-elevated text-brand-text border border-brand-border hover:border-brand-border-hover"
+              className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-brand-elevated text-brand-text border border-brand-border hover:border-brand-border-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
             >
               Customize & Launch
             </button>

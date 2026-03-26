@@ -48,7 +48,7 @@ export function Sidebar({ activePage, business, onNavigate }: SidebarProps) {
               <li key={item.id}>
                 <button
                   onClick={() => onNavigate(item.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-md text-sm font-body font-medium transition-colors duration-150 cursor-pointer border-none ${
+                  className={`w-full text-left px-3 py-2.5 rounded-md text-sm font-body font-medium transition-colors duration-150 cursor-pointer border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
                     isActive
                       ? "bg-brand-cyan/10 text-brand-cyan"
                       : "bg-transparent text-brand-dim hover:text-brand-text hover:bg-brand-elevated"

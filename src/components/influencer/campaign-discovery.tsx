@@ -265,7 +265,7 @@ export default function CampaignDiscovery({ campaigns, influencer }: CampaignDis
                 setMinEarnings(0);
                 setSortBy("match");
               }}
-              className="rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-muted transition-colors hover:text-brand-text"
+              className="rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-muted transition-colors hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
             >
               Clear Filters
             </button>
@@ -378,7 +378,7 @@ export default function CampaignDiscovery({ campaigns, influencer }: CampaignDis
                         <button
                           type="button"
                           onClick={() => handleApply(campaign.id)}
-                          className="mt-1 rounded-lg bg-brand-cyan px-5 py-1.5 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90"
+                          className="mt-1 rounded-lg bg-brand-cyan px-5 py-1.5 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
                           aria-label={`Apply to ${campaign.campaignName} at ${campaign.businessName}`}
                         >
                           Apply Now

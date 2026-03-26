@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Button } from "./button";
 
 interface EmptyStateProps {
   icon?: string;
@@ -8,6 +9,7 @@ interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  size?: "sm" | "md";
 }
 
 export function EmptyState({
@@ -16,25 +18,44 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  size = "md",
 }: EmptyStateProps) {
+  const isCompact = size === "sm";
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+    <div
+      className={`flex flex-col items-center justify-center text-center ${
+        isCompact ? "py-10 px-4" : "py-16 px-6"
+      }`}
+    >
       {icon && (
-        <span className="text-4xl mb-4 block">{icon}</span>
+        <span
+          className={`block mb-4 ${isCompact ? "text-3xl" : "text-4xl"}`}
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
       )}
-      <h4 className="font-heading italic text-lg text-brand-white mb-1">
+      <h4
+        className={`font-heading italic text-brand-white mb-1 ${
+          isCompact ? "text-base" : "text-lg"
+        }`}
+      >
         {title}
       </h4>
       {description && (
-        <p className="text-sm text-brand-muted max-w-xs mb-5">{description}</p>
+        <p
+          className={`text-brand-muted max-w-xs mb-5 ${
+            isCompact ? "text-xs" : "text-sm"
+          }`}
+        >
+          {description}
+        </p>
       )}
       {actionLabel && onAction && (
-        <button
-          onClick={onAction}
-          className="px-4 py-2 text-sm font-medium font-body rounded-lg bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 transition-colors duration-200"
-        >
+        <Button onClick={onAction} size={isCompact ? "sm" : "md"}>
           {actionLabel}
-        </button>
+        </Button>
       )}
     </div>
   );

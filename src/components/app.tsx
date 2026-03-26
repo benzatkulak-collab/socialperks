@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 
 // ── Portals ──────────────────────────────────────────────────────────────
 import { AuthForm } from "@/components/auth/auth-form";
@@ -33,6 +33,14 @@ import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
     Architecture: Frontend displays, backend thinks.
     AI logic lives in /api/v1/ai/* routes — never runs client-side.
     ═══════════════════════════════════════════════════════════════════ */
+
+// ─── Constant seed data (created once, outside component) ────────────────
+
+const INITIAL_SEED_DATA = createSeedData();
+
+// ─── Session restore timeout ─────────────────────────────────────────────
+
+const SESSION_RESTORE_TIMEOUT = 5000;
 
 // ═══════════════ Error Boundary ═══════════════
 
@@ -80,31 +88,34 @@ class ErrorBoundary extends React.Component<
 
 // ═══════════════ Landing ═══════════════
 
-function Landing() {
+const Landing = React.memo(function Landing() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <Nav />
       <Hero />
-      <HowItWorks />
-      <AudienceSections />
-      <SocialProof />
-      <PricingSection />
-      <CtaSection />
+      <div className="relative">
+        <HowItWorks />
+        <AudienceSections />
+        <SocialProof />
+        <PricingSection />
+        <CtaSection />
+      </div>
       <Footer />
     </div>
   );
-}
+});
 
 // ═══════════════ Main App ═══════════════
 
 export function SocialPerksApp() {
   const { value: data, setValue: setData, ready } = useLocalStorage<SeedData>(
     "sp-v2",
-    createSeedData()
+    INITIAL_SEED_DATA
   );
   const [screen, setScreen] = useState<"landing" | "auth" | "business" | "influencer" | "enterprise">("landing");
   const [currentUser, setCurrentUser] = useState<SeedBusiness | SeedInfluencer | null>(null);
   const [userRole, setUserRole] = useState<"business" | "influencer" | null>(null);
+  const [restoring, setRestoring] = useState(true);
 
   const save = useCallback(
     (next: SeedData) => {
@@ -112,6 +123,41 @@ export function SocialPerksApp() {
     },
     [setData]
   );
+
+  // Session restoration — attempt to validate an existing session cookie
+  // on mount. 5-second timeout prevents slow networks from leaving users
+  // stuck on the loading screen.
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SESSION_RESTORE_TIMEOUT);
+    async function restoreSession() {
+      try {
+        const res = await fetch("/api/v1/auth", {
+          method: "GET",
+          credentials: "include",
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled) return;
+        if (json.success && json.data?.user) {
+          const role = json.data.user.role === "influencer" ? "influencer" : "business";
+          setUserRole(role);
+          setScreen(role);
+        }
+      } catch {
+        // Timeout or network error — fall through to landing page
+      } finally {
+        clearTimeout(timeout);
+        if (!cancelled) {
+          setRestoring(false);
+        }
+      }
+    }
+    restoreSession();
+    return () => { cancelled = true; controller.abort(); };
+  }, []);
 
   // Listen for hash-based navigation from landing page components
   // Nav, Hero, and CTA buttons use href="#login" / href="#signup"
@@ -130,59 +176,82 @@ export function SocialPerksApp() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  if (!ready) {
+  const handleAuth = useCallback((user: SeedBusiness | SeedInfluencer, role: "business" | "influencer") => {
+    setCurrentUser(user);
+    setUserRole(role);
+    setScreen(role);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setCurrentUser(null);
+    setUserRole(null);
+    setScreen("landing");
+  }, []);
+
+  const handleBackToLanding = useCallback(() => setScreen("landing"), []);
+
+  const handleEnterpriseDemo = useCallback(() => setScreen("enterprise"), []);
+
+  // Memoize the current business user cast to avoid re-casting every render
+  const currentBusiness = useMemo(
+    () => (currentUser && userRole === "business" ? currentUser as SeedBusiness : null),
+    [currentUser, userRole]
+  );
+
+  const currentInfluencer = useMemo(
+    () => (currentUser && userRole === "influencer" ? currentUser as SeedInfluencer : null),
+    [currentUser, userRole]
+  );
+
+  if (!ready || restoring) {
     return (
-      <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+      <div className="min-h-screen flex items-center justify-center px-4" role="status" aria-label="Loading">
         <div className="text-center">
-          <div className="text-2xl mb-2 animate-pulse-slow" aria-hidden="true">&#9670;</div>
-          <div className="text-sm text-brand-dim">Loading Social Perks...</div>
+          <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-gradient-to-br from-brand-cyan to-brand-cyan/60 mb-4 animate-pulse-slow" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
+              <path d="M10 2L18 10L10 18L2 10L10 2Z" fill="currentColor" className="text-brand-bg" />
+              <path d="M10 5L15 10L10 15L5 10L10 5Z" fill="currentColor" className="text-brand-bg/60" />
+            </svg>
+          </div>
+          <div className="text-sm text-brand-dim font-medium">Loading Social Perks...</div>
         </div>
       </div>
     );
   }
 
-  function handleAuth(user: SeedBusiness | SeedInfluencer, role: "business" | "influencer") {
-    setCurrentUser(user);
-    setUserRole(role);
-    setScreen(role);
-  }
-
-  function handleLogout() {
-    setCurrentUser(null);
-    setUserRole(null);
-    setScreen("landing");
-  }
-
   return (
     <ErrorBoundary>
-      {screen === "landing" && <Landing />}
-      {screen === "auth" && (
-        <AuthForm
-          data={data}
-          save={save}
-          onBack={() => setScreen("landing")}
-          onAuth={handleAuth}
-          onEnterpriseDemo={() => setScreen("enterprise")}
-        />
-      )}
-      {screen === "business" && currentUser && userRole === "business" && (
-        <BusinessPortal
-          biz={currentUser as SeedBusiness}
-          data={data}
-          save={save}
-          onLogout={handleLogout}
-        />
-      )}
-      {screen === "influencer" && currentUser && userRole === "influencer" && (
-        <InfluencerPortal
-          influencer={currentUser as SeedInfluencer}
-          data={data}
-          onLogout={handleLogout}
-        />
-      )}
-      {screen === "enterprise" && (
-        <EnterprisePortal onLogout={handleLogout} />
-      )}
+      <main id="main-content">
+        {screen === "landing" && <Landing />}
+        {screen === "auth" && (
+          <AuthForm
+            data={data}
+            save={save}
+            onBack={handleBackToLanding}
+            onAuth={handleAuth}
+            onEnterpriseDemo={handleEnterpriseDemo}
+          />
+        )}
+        {screen === "business" && currentBusiness && (
+          <BusinessPortal
+            biz={currentBusiness}
+            data={data}
+            save={save}
+            onLogout={handleLogout}
+          />
+        )}
+        {screen === "influencer" && currentInfluencer && (
+          <InfluencerPortal
+            influencer={currentInfluencer}
+            data={data}
+            save={save}
+            onLogout={handleLogout}
+          />
+        )}
+        {screen === "enterprise" && (
+          <EnterprisePortal onLogout={handleLogout} />
+        )}
+      </main>
     </ErrorBoundary>
   );
 }

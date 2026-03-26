@@ -91,6 +91,11 @@ export class EventStore {
   private subscriptions: EventSubscription[] = [];
   private subscriptionCounter = 0;
 
+  /** Maximum number of events per stream before warning. */
+  private readonly maxEventsPerStream = 10_000;
+  /** Maximum number of aggregate streams before warning. */
+  private readonly maxStreams = 50_000;
+
   // ── Append ──────────────────────────────────────────────────────────────
 
   /**
@@ -147,6 +152,20 @@ export class EventStore {
 
     this.streams.set(aggregateId, stream);
     this.versions.set(aggregateId, nextVersion);
+
+    // Bounds checking: warn on unbounded stream growth
+    if (stream.length > this.maxEventsPerStream) {
+      console.warn(
+        `[EventSourcing] Stream "${aggregateId}" has ${stream.length} events (limit: ${this.maxEventsPerStream}). ` +
+        `Consider snapshotting more frequently to reduce replay cost.`
+      );
+    }
+    if (this.streams.size > this.maxStreams) {
+      console.warn(
+        `[EventSourcing] Total stream count (${this.streams.size}) exceeds limit (${this.maxStreams}). ` +
+        `Consider archiving old streams to prevent memory exhaustion.`
+      );
+    }
 
     // Notify subscribers
     for (const event of appended) {
@@ -232,7 +251,11 @@ export class EventStore {
       if (sub.eventType === "*" || sub.eventType === event.eventType) {
         try {
           sub.callback(event);
-        } catch {
+        } catch (err) {
+          console.error(
+            `[EventSourcing] Subscriber "${sub.id}" (eventType: "${sub.eventType}") threw on event "${event.eventType}":`,
+            err instanceof Error ? err.message : err
+          );
           // Subscriber errors must never break the event pipeline.
         }
       }
@@ -531,9 +554,9 @@ export class ProjectionManager {
             const count = this.eventCounts.get(name) ?? 0;
             this.eventCounts.set(name, count + 1);
           })
-          .catch(() => {
+          .catch((err) => {
             // Projection errors should not break the pipeline.
-            // In production, log to error tracking.
+            console.warn("[EventSourcing] Projection apply failed:", err);
           })
       );
     }
@@ -1032,7 +1055,11 @@ export class SagaOrchestrator {
 
       try {
         await step.compensate(instance.context);
-      } catch {
+      } catch (err) {
+        console.error(
+          `[EventSourcing] Saga "${instance.definitionName}" compensation step "${stepName}" failed:`,
+          err instanceof Error ? err.message : err
+        );
         // Compensation failure is logged but does not stop other compensations.
         // In production, this would trigger an alert for manual intervention.
       }

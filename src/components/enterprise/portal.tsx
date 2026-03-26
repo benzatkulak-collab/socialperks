@@ -167,22 +167,26 @@ export function EnterprisePortal({
   }, []);
 
   return (
-    <div className="min-h-screen">
-      {/* Top Bar */}
-      <div className="bg-brand-surface border-b border-brand-border px-4 md:px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Logo size="sm" />
-          <Badge color="#A78BFA">Enterprise</Badge>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-brand-dim hidden sm:block">{demo.enterprise.avatar} {demo.enterprise.companyName}</span>
-          <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
+    <div className="min-h-screen bg-brand-bg">
+      {/* Top Bar — sticky with backdrop blur */}
+      <div className="sticky top-0 z-40 bg-brand-surface/90 backdrop-blur-xl border-b border-brand-border/50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Logo size="sm" />
+            <Badge color="#A78BFA">Enterprise</Badge>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-brand-dim hidden sm:block">{demo.enterprise.avatar} {demo.enterprise.companyName}</span>
+            <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
+          </div>
         </div>
       </div>
 
-      {/* Sub-nav */}
-      <nav className="bg-brand-elevated border-b border-brand-border px-4 md:px-6 py-2" aria-label="Enterprise portal navigation">
-        <Tabs tabs={portalTabs} activeTab={page} onChange={setPage} />
+      {/* Sub-nav — sticky below top bar */}
+      <nav className="bg-brand-elevated/80 backdrop-blur-lg border-b border-brand-border/50 sticky top-[52px] z-30" aria-label="Enterprise portal navigation">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2">
+          <Tabs tabs={portalTabs} activeTab={page} onChange={setPage} />
+        </div>
       </nav>
 
       <AgentTicker />
@@ -197,7 +201,7 @@ export function EnterprisePortal({
 
       {/* Locations */}
       {page === "locations" && (
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <MultiLocation
             locations={demo.locations}
             onAddLocation={() => {
@@ -209,7 +213,7 @@ export function EnterprisePortal({
 
       {/* Reports */}
       {page === "reports" && (
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <Reports
             reportData={demo.reportData}
             dateRange={dateRange}
@@ -220,7 +224,7 @@ export function EnterprisePortal({
 
       {/* Brand */}
       {page === "brand" && (
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <BrandManager
             guidelines={currentGuidelines}
             templates={demo.templates}
@@ -233,7 +237,7 @@ export function EnterprisePortal({
 
       {/* API Console */}
       {page === "api" && (
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <ApiConsole
             apiKeys={demo.apiKeys}
             webhooks={demo.webhooks}

@@ -19,7 +19,10 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         setStoredValue(parsed);
         storedValueRef.current = parsed;
       }
-    } catch { /* SSR or parsing error — use initial */ }
+    } catch {
+      // Corrupted data — clear the key so next load starts fresh
+      try { window.localStorage.removeItem(key); } catch {}
+    }
     setReady(true);
   }, [key]);
 
@@ -31,7 +34,11 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
-    } catch { /* quota exceeded */ }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "QuotaExceededError") {
+        console.warn(`[useLocalStorage] QuotaExceededError: cannot write key "${key}". localStorage is full.`);
+      }
+    }
   }, [key]);
 
   return { value: storedValue, setValue, ready };

@@ -84,22 +84,22 @@ export function Dashboard({ business, campaigns, stats, onNavigate }: DashboardP
           {
             value: String(stats.activeCampaigns),
             label: "Active Campaigns",
-            color: "#22D3EE",
+            colorClass: "text-brand-cyan",
           },
           {
             value: String(stats.completions),
             label: "Completions",
-            color: "#34D399",
+            colorClass: "text-brand-green",
           },
           {
             value: String(stats.reviews),
             label: "Reviews Generated",
-            color: "#FBBF24",
+            colorClass: "text-brand-amber",
           },
           {
             value: formatCurrency(stats.marketingValue),
             label: "Marketing Value",
-            color: "#F472B6",
+            colorClass: "text-brand-pink",
           },
         ].map((stat) => (
           <div
@@ -108,8 +108,7 @@ export function Dashboard({ business, campaigns, stats, onNavigate }: DashboardP
           >
             <div className="text-center">
               <div
-                className="text-2xl font-extrabold font-mono"
-                style={{ color: stat.color }}
+                className={`text-2xl font-extrabold font-mono ${stat.colorClass}`}
               >
                 {stat.value}
               </div>
@@ -132,7 +131,7 @@ export function Dashboard({ business, campaigns, stats, onNavigate }: DashboardP
         </p>
         <button
           onClick={() => onNavigate?.("campaigns")}
-          className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-brand-cyan text-brand-bg hover:brightness-110"
+          className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-3 py-1.5 text-xs bg-brand-cyan text-brand-bg hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
         >
           Browse Campaigns →
         </button>
@@ -162,7 +161,7 @@ export function Dashboard({ business, campaigns, stats, onNavigate }: DashboardP
             {activeCampaigns.length > 3 && (
               <button
                 onClick={() => onNavigate?.("campaigns")}
-                className="text-2xs text-brand-cyan hover:underline font-body"
+                className="text-2xs text-brand-cyan hover:underline font-body rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
               >
                 View all {activeCampaigns.length} active campaigns →
               </button>

@@ -39,24 +39,24 @@ export function AgentTicker() {
     >
       {/* Fade edges */}
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-brand-bg to-transparent sm:w-24"
+        className="pointer-events-none absolute inset-y-0 left-0 z-raised w-16 bg-gradient-to-r from-brand-bg to-transparent sm:w-24"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-brand-bg to-transparent sm:w-24"
+        className="pointer-events-none absolute inset-y-0 right-0 z-raised w-16 bg-gradient-to-l from-brand-bg to-transparent sm:w-24"
         aria-hidden="true"
       />
 
-      {/* Scrolling content */}
-      <div className="flex ticker-scroll items-center py-2.5">
+      {/* Scrolling content — respects prefers-reduced-motion */}
+      <div className="flex ticker-scroll items-center py-2.5 motion-reduce:animate-none motion-reduce:[animation:none]">
         {items.map((item, i) => (
           <div
             key={`${item.text}-${i}`}
             className="flex shrink-0 items-center gap-2 px-6"
           >
             {/* Pulse dot */}
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-green opacity-75" />
+            <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-green opacity-75 motion-reduce:animate-none" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-green" />
             </span>
             <span className="whitespace-nowrap font-mono text-xs text-brand-muted">

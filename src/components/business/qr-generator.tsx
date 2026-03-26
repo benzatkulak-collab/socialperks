@@ -194,7 +194,7 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
             <select
               value={selectedCampaignId}
               onChange={(e) => setSelectedCampaignId(e.target.value)}
-              className="font-body text-sm px-3.5 py-2.5 rounded-md border border-brand-border bg-brand-bg text-brand-text w-full max-w-sm outline-none transition-colors focus:border-brand-cyan appearance-none cursor-pointer"
+              className="font-body text-sm px-3.5 py-2.5 rounded-md border border-brand-border bg-brand-bg text-brand-text w-full max-w-sm outline-none transition-all focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40 appearance-none cursor-pointer"
             >
               {campaigns.map((campaign) => (
                 <option key={campaign.id} value={campaign.id}>
@@ -264,7 +264,7 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
           <button
             disabled={!selectedCampaign}
             onClick={handleDownloadPNG}
-            className={`font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-5 py-2.5 text-xs bg-brand-cyan text-brand-bg hover:brightness-110 ${
+            className={`font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-5 py-2.5 text-xs bg-brand-cyan text-brand-bg hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
               !selectedCampaign ? "opacity-30 cursor-not-allowed" : ""
             }`}
           >
@@ -273,7 +273,7 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
           <button
             disabled={!selectedCampaign}
             onClick={handlePrint}
-            className={`font-body font-semibold rounded-md border border-brand-border cursor-pointer transition-all duration-150 tracking-wide px-5 py-2.5 text-xs bg-brand-elevated text-brand-text hover:border-brand-border-hover ${
+            className={`font-body font-semibold rounded-md border border-brand-border cursor-pointer transition-all duration-150 tracking-wide px-5 py-2.5 text-xs bg-brand-elevated text-brand-text hover:border-brand-border-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
               !selectedCampaign ? "opacity-30 cursor-not-allowed" : ""
             }`}
           >

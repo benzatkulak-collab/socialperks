@@ -2,8 +2,10 @@
 // Social Perks -- Transactional Email System
 //
 // Provider-agnostic email sending with template system.
-// ConsoleEmailProvider for dev/test; swap to SendGrid/SES in production.
+// ConsoleEmailProvider for dev/test; ResendEmailProvider for production.
 // ==============================================================================
+
+import { escapeHtml } from "@/lib/security/sanitize";
 
 // -- Types --------------------------------------------------------------------
 
@@ -31,15 +33,96 @@ export interface EmailTemplate {
   text: string;
 }
 
+// -- Default From Address ----------------------------------------------------
+
+const DEFAULT_FROM =
+  process.env.EMAIL_FROM || "Social Perks <noreply@socialperks.app>";
+
 // -- Console Provider (dev/test) ----------------------------------------------
 
 export class ConsoleEmailProvider implements EmailProvider {
   public sentMessages: EmailMessage[] = [];
 
   async send(message: EmailMessage): Promise<SendResult> {
-    this.sentMessages.push(message);
+    this.sentMessages.push({ ...message, from: message.from ?? DEFAULT_FROM });
     const messageId = `msg_${Date.now()}_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
     return { success: true, messageId };
+  }
+}
+
+// -- Resend Provider (production) ---------------------------------------------
+
+export class ResendEmailProvider implements EmailProvider {
+  private apiKey: string;
+  private baseUrl: string;
+
+  constructor(apiKey?: string, baseUrl?: string) {
+    this.apiKey = apiKey ?? process.env.RESEND_API_KEY ?? "";
+    this.baseUrl = baseUrl ?? "https://api.resend.com";
+  }
+
+  async send(message: EmailMessage): Promise<SendResult> {
+    if (!this.apiKey) {
+      return {
+        success: false,
+        messageId: "",
+        error: "Resend API key not configured",
+      };
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/emails`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: message.from ?? DEFAULT_FROM,
+          to: [message.to],
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
+        }),
+      });
+    } catch (err) {
+      // Network failure (DNS, timeout, connection refused, etc.)
+      const errorMessage =
+        err instanceof Error ? err.message : "Network error";
+      return {
+        success: false,
+        messageId: "",
+        error: `Resend network error: ${errorMessage}`,
+      };
+    }
+
+    if (!response.ok) {
+      let errorDetail = `HTTP ${response.status}`;
+      try {
+        const errorBody = (await response.json()) as {
+          message?: string;
+        };
+        if (errorBody?.message) {
+          errorDetail += `: ${errorBody.message}`;
+        }
+      } catch {
+        // Could not parse error body — use status code only
+      }
+      return {
+        success: false,
+        messageId: "",
+        error: `Resend API error: ${errorDetail}`,
+      };
+    }
+
+    try {
+      const data = (await response.json()) as { id?: string };
+      return { success: true, messageId: data.id ?? "" };
+    } catch {
+      // Response was 2xx but body wasn't JSON — treat as success
+      return { success: true, messageId: "" };
+    }
   }
 }
 
@@ -60,9 +143,10 @@ ${body}
 // -- Email Templates ----------------------------------------------------------
 
 export function welcomeEmail(userName: string): EmailTemplate {
-  const subject = `Welcome to Social Perks, ${userName}!`;
+  const safeName = escapeHtml(userName);
+  const subject = `Welcome to Social Perks, ${safeName}!`;
   const html = wrapHtml(
-    `<h1 style="color: #22D3EE; font-family: 'Instrument Serif', serif; font-style: italic;">Welcome, ${userName}!</h1>
+    `<h1 style="color: #22D3EE; font-family: 'Instrument Serif', serif; font-style: italic;">Welcome, ${safeName}!</h1>
 <p style="color: #94A3B8; line-height: 1.6;">You're now part of Social Perks -- where businesses reward customers for real marketing actions.</p>
 <p style="color: #94A3B8; line-height: 1.6;">Get started by creating your first campaign or browsing available perks.</p>
 <a href="https://socialperks.app/dashboard" style="display: inline-block; padding: 12px 24px; background-color: #22D3EE; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">Go to Dashboard</a>`
@@ -76,11 +160,14 @@ export function submissionApprovedEmail(
   campaignName: string,
   perkValue: string
 ): EmailTemplate {
-  const subject = `Your submission for "${campaignName}" was approved!`;
+  const safeName = escapeHtml(userName);
+  const safeCampaign = escapeHtml(campaignName);
+  const safePerk = escapeHtml(perkValue);
+  const subject = `Your submission for "${safeCampaign}" was approved!`;
   const html = wrapHtml(
     `<h1 style="color: #34D399; font-family: 'Instrument Serif', serif; font-style: italic;">Submission Approved!</h1>
-<p style="color: #94A3B8; line-height: 1.6;">Great news, ${userName}! Your submission for <strong style="color: #E2E8F0;">${campaignName}</strong> has been approved.</p>
-<p style="color: #94A3B8; line-height: 1.6;">You earned a perk worth <strong style="color: #22D3EE;">${perkValue}</strong>.</p>
+<p style="color: #94A3B8; line-height: 1.6;">Great news, ${safeName}! Your submission for <strong style="color: #E2E8F0;">${safeCampaign}</strong> has been approved.</p>
+<p style="color: #94A3B8; line-height: 1.6;">You earned a perk worth <strong style="color: #22D3EE;">${safePerk}</strong>.</p>
 <a href="https://socialperks.app/perks" style="display: inline-block; padding: 12px 24px; background-color: #34D399; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">View Your Perks</a>`
   );
   const text = `Your submission for "${campaignName}" was approved! You earned ${perkValue}. View your perks at https://socialperks.app/perks`;
@@ -92,13 +179,16 @@ export function submissionRejectedEmail(
   campaignName: string,
   reason?: string
 ): EmailTemplate {
-  const subject = `Your submission for "${campaignName}" was not approved`;
-  const reasonBlock = reason
-    ? `<p style="color: #94A3B8; line-height: 1.6;">Reason: <em style="color: #E2E8F0;">${reason}</em></p>`
+  const safeName = escapeHtml(userName);
+  const safeCampaign = escapeHtml(campaignName);
+  const safeReason = reason ? escapeHtml(reason) : undefined;
+  const subject = `Your submission for "${safeCampaign}" was not approved`;
+  const reasonBlock = safeReason
+    ? `<p style="color: #94A3B8; line-height: 1.6;">Reason: <em style="color: #E2E8F0;">${safeReason}</em></p>`
     : "";
   const html = wrapHtml(
     `<h1 style="color: #FBBF24; font-family: 'Instrument Serif', serif; font-style: italic;">Submission Not Approved</h1>
-<p style="color: #94A3B8; line-height: 1.6;">Hi ${userName}, unfortunately your submission for <strong style="color: #E2E8F0;">${campaignName}</strong> was not approved this time.</p>
+<p style="color: #94A3B8; line-height: 1.6;">Hi ${safeName}, unfortunately your submission for <strong style="color: #E2E8F0;">${safeCampaign}</strong> was not approved this time.</p>
 ${reasonBlock}
 <p style="color: #94A3B8; line-height: 1.6;">Don't worry — you can review the guidelines and submit again.</p>
 <a href="https://socialperks.app/campaigns" style="display: inline-block; padding: 12px 24px; background-color: #FBBF24; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">Browse Campaigns</a>`
@@ -111,12 +201,14 @@ export function passwordResetEmail(
   userName: string,
   resetLink: string
 ): EmailTemplate {
+  const safeName = escapeHtml(userName);
+  const safeLink = escapeHtml(resetLink);
   const subject = "Reset your Social Perks password";
   const html = wrapHtml(
     `<h1 style="color: #FBBF24; font-family: 'Instrument Serif', serif; font-style: italic;">Password Reset</h1>
-<p style="color: #94A3B8; line-height: 1.6;">Hi ${userName}, we received a request to reset your password.</p>
+<p style="color: #94A3B8; line-height: 1.6;">Hi ${safeName}, we received a request to reset your password.</p>
 <p style="color: #94A3B8; line-height: 1.6;">Click the button below to create a new password. This link expires in 1 hour.</p>
-<a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #FBBF24; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">Reset Password</a>
+<a href="${safeLink}" style="display: inline-block; padding: 12px 24px; background-color: #FBBF24; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">Reset Password</a>
 <p style="color: #64748B; font-size: 12px; margin-top: 24px;">If you didn't request this, you can safely ignore this email.</p>`
   );
   const text = `Hi ${userName}, reset your Social Perks password using this link: ${resetLink}`;
@@ -125,4 +217,11 @@ export function passwordResetEmail(
 
 // -- Default Provider ---------------------------------------------------------
 
-export const emailProvider = new ConsoleEmailProvider();
+function createEmailProvider(): EmailProvider {
+  if (process.env.RESEND_API_KEY) {
+    return new ResendEmailProvider(process.env.RESEND_API_KEY);
+  }
+  return new ConsoleEmailProvider();
+}
+
+export const emailProvider = createEmailProvider();

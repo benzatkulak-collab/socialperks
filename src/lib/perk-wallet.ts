@@ -19,6 +19,25 @@ const wallets: Map<string, PerkWallet> = new Map();
 // Secondary index: perkId → wallet key (for fast perk lookups)
 const perkIndex: Map<string, string> = new Map();
 
+// ─── Redemption Lock (prevents double-redemption race conditions) ────────────
+
+const redemptionLocks = new Map<string, Promise<void>>();
+
+async function withRedemptionLock<T>(perkId: string, fn: () => Promise<T>): Promise<T> {
+  while (redemptionLocks.has(perkId)) {
+    await redemptionLocks.get(perkId);
+  }
+  let resolve: () => void;
+  const lock = new Promise<void>(r => { resolve = r; });
+  redemptionLocks.set(perkId, lock);
+  try {
+    return await fn();
+  } finally {
+    redemptionLocks.delete(perkId);
+    resolve!();
+  }
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface EarnedPerk {
@@ -134,10 +153,10 @@ export function awardPerk(
     };
   }
 
-  if (typeof value !== "number" || isNaN(value) || value <= 0) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     return {
       success: false,
-      error: { code: "INVALID_VALUE", message: "value must be a positive number" },
+      error: { code: "INVALID_VALUE", message: "value must be a finite positive number" },
     };
   }
 
@@ -161,12 +180,12 @@ export function awardPerk(
     };
   }
 
-  if (typeof expiryDays !== "number" || expiryDays < 1) {
+  if (typeof expiryDays !== "number" || !Number.isFinite(expiryDays) || expiryDays < 1) {
     return {
       success: false,
       error: {
         code: "INVALID_EXPIRY",
-        message: "expiryDays must be a positive number",
+        message: "expiryDays must be a finite positive number",
       },
     };
   }
@@ -217,7 +236,10 @@ export function awardPerk(
   // Record in financial ledger
   try {
     ledger.awardPerk(businessId, userId, perk.value, campaignId);
-  } catch { /* ledger is best-effort — don't block perk award */ }
+  } catch (err) {
+    console.error('[PerkWallet] Ledger awardPerk failed:', err instanceof Error ? err.message : err);
+    // Continue execution but log the failure for monitoring
+  }
 
   return { success: true, data: perk };
 }
@@ -274,30 +296,43 @@ export function redeemPerk(perkId: string, userId: string): RedeemResult {
 
   const perk = wallet.perks[perkIdx];
 
-  if (perk.status === "redeemed") {
-    return {
-      success: false,
-      error: {
-        code: "ALREADY_REDEEMED",
-        message: `Perk was already redeemed on ${perk.redeemedAt}`,
-      },
-    };
-  }
-
-  if (perk.status === "expired") {
-    return {
-      success: false,
-      error: { code: "PERK_EXPIRED", message: "This perk has expired" },
-    };
-  }
-
-  // Check if perk has passed its expiration date
-  if (new Date(perk.expiresAt).getTime() < Date.now()) {
+  // Check if perk has passed its expiration date (do this first to update status)
+  if (
+    perk.status === "available" &&
+    new Date(perk.expiresAt).getTime() < Date.now()
+  ) {
     // Mark as expired
     wallet.perks[perkIdx] = { ...perk, status: "expired" };
     return {
       success: false,
       error: { code: "PERK_EXPIRED", message: "This perk has expired" },
+    };
+  }
+
+  // Only "available" perks can be redeemed — reject all other statuses explicitly
+  if (perk.status !== "available") {
+    if (perk.status === "redeemed") {
+      return {
+        success: false,
+        error: {
+          code: "ALREADY_REDEEMED",
+          message: `Perk was already redeemed on ${perk.redeemedAt}`,
+        },
+      };
+    }
+    if (perk.status === "expired") {
+      return {
+        success: false,
+        error: { code: "PERK_EXPIRED", message: "This perk has expired" },
+      };
+    }
+    // Catch-all for any unexpected status values
+    return {
+      success: false,
+      error: {
+        code: "INVALID_STATUS",
+        message: `Perk cannot be redeemed: current status is "${perk.status}"`,
+      },
     };
   }
 
@@ -318,12 +353,27 @@ export function redeemPerk(perkId: string, userId: string): RedeemResult {
   // Record in financial ledger
   try {
     ledger.redeemPerk(userId, wallet.businessId, perk.value, perk.id);
-  } catch { /* best-effort */ }
+  } catch (err) {
+    console.error('[PerkWallet] Ledger redeemPerk failed:', err instanceof Error ? err.message : err);
+    // Continue execution but log the failure for monitoring
+  }
 
   return {
     success: true,
     data: { perk: redeemed, redemptionCode: redeemed.redemptionCode },
   };
+}
+
+// ─── Safe Redeem Perk (with lock) ─────────────────────────────────────────────
+
+/**
+ * Redeem a perk with a per-perk lock to prevent double-redemption
+ * from concurrent requests. Wraps the synchronous redeemPerk in a lock.
+ */
+export async function safeRedeemPerk(perkId: string, userId: string): Promise<RedeemResult> {
+  return withRedemptionLock(perkId, async () => {
+    return redeemPerk(perkId, userId);
+  });
 }
 
 // ─── Get Wallet ──────────────────────────────────────────────────────────────

@@ -132,6 +132,7 @@ const MAX_FINGERPRINTS = 50_000;
 const shingleIndex = new Map<string, Set<string>>();
 const submissionContent = new Map<string, string>(); // submissionId → original content
 const MAX_SHINGLE_ENTRIES = 100_000;
+const MAX_SUBMISSION_CONTENT = 100_000;
 
 /** Extract word trigrams from normalized text for near-duplicate candidate lookup. */
 function extractShingles(text: string): string[] {
@@ -167,6 +168,16 @@ function findCandidates(text: string, minSharedShingles: number = 2): string[] {
 function indexContent(submissionId: string, content: string): void {
   const shingles = extractShingles(content);
   submissionContent.set(submissionId, content);
+  // Evict oldest entries if submissionContent grows too large
+  if (submissionContent.size > MAX_SUBMISSION_CONTENT) {
+    const evictCount = Math.floor(MAX_SUBMISSION_CONTENT * 0.1);
+    const keys = submissionContent.keys();
+    for (let i = 0; i < evictCount; i++) {
+      const key = keys.next().value;
+      if (key !== undefined) submissionContent.delete(key);
+    }
+    console.warn(`[FraudDetection] submissionContent exceeded ${MAX_SUBMISSION_CONTENT}, evicted ${evictCount} entries`);
+  }
   for (const shingle of shingles) {
     let ids = shingleIndex.get(shingle);
     if (!ids) {
@@ -177,10 +188,12 @@ function indexContent(submissionId: string, content: string): void {
   }
   // Evict oldest shingle entries if index grows too large
   if (shingleIndex.size > MAX_SHINGLE_ENTRIES) {
-    const keysToDelete = Array.from(shingleIndex.keys()).slice(0, Math.floor(MAX_SHINGLE_ENTRIES * 0.2));
+    const evictCount = Math.floor(MAX_SHINGLE_ENTRIES * 0.1);
+    const keysToDelete = Array.from(shingleIndex.keys()).slice(0, evictCount);
     for (const key of keysToDelete) {
       shingleIndex.delete(key);
     }
+    console.warn(`[FraudDetection] shingleIndex exceeded ${MAX_SHINGLE_ENTRIES}, evicted ${evictCount} entries`);
   }
 }
 
@@ -726,8 +739,14 @@ export function checkSubmission(
       userId: submission.userId,
     });
     if (knownProofUrls.size > MAX_KNOWN_URLS) {
-      const first = knownProofUrls.keys().next().value;
-      if (first !== undefined) knownProofUrls.delete(first);
+      // Evict oldest 10% of entries to prevent memory exhaustion
+      const evictCount = Math.floor(MAX_KNOWN_URLS * 0.1);
+      const keys = knownProofUrls.keys();
+      for (let i = 0; i < evictCount; i++) {
+        const key = keys.next().value;
+        if (key !== undefined) knownProofUrls.delete(key);
+      }
+      console.warn(`[FraudDetection] knownProofUrls exceeded ${MAX_KNOWN_URLS}, evicted ${evictCount} entries`);
     }
   }
 
@@ -738,8 +757,14 @@ export function checkSubmission(
     existing.push(submission.id);
     contentFingerprints.set(fp, existing);
     if (contentFingerprints.size > MAX_FINGERPRINTS) {
-      const first = contentFingerprints.keys().next().value;
-      if (first !== undefined) contentFingerprints.delete(first);
+      // Evict oldest 10% of entries to prevent memory exhaustion
+      const evictCount = Math.floor(MAX_FINGERPRINTS * 0.1);
+      const keys = contentFingerprints.keys();
+      for (let i = 0; i < evictCount; i++) {
+        const key = keys.next().value;
+        if (key !== undefined) contentFingerprints.delete(key);
+      }
+      console.warn(`[FraudDetection] contentFingerprints exceeded ${MAX_FINGERPRINTS}, evicted ${evictCount} entries`);
     }
     indexContent(submission.id, submission.content);
   }
@@ -894,6 +919,12 @@ export function seedFraudState(
   existingSubmissions: readonly SubmissionRecord[]
 ): void {
   for (const sub of existingSubmissions) {
+    // Respect size limits during seeding to prevent memory exhaustion
+    if (knownProofUrls.size >= MAX_KNOWN_URLS) {
+      console.warn(`[FraudDetection] seedFraudState: knownProofUrls reached limit (${MAX_KNOWN_URLS}), skipping remaining URL entries`);
+      break;
+    }
+
     const normalizedUrl = normalizeUrl(sub.proofUrl);
     if (!knownProofUrls.has(normalizedUrl)) {
       knownProofUrls.set(normalizedUrl, {
@@ -903,11 +934,13 @@ export function seedFraudState(
     }
 
     if (sub.content && sub.content.trim().length >= MIN_TEXT_LENGTH) {
-      const fp = fingerprint(sub.content);
-      const existing = contentFingerprints.get(fp) ?? [];
-      existing.push(sub.id);
-      contentFingerprints.set(fp, existing);
-      indexContent(sub.id, sub.content);
+      if (contentFingerprints.size < MAX_FINGERPRINTS) {
+        const fp = fingerprint(sub.content);
+        const existing = contentFingerprints.get(fp) ?? [];
+        existing.push(sub.id);
+        contentFingerprints.set(fp, existing);
+        indexContent(sub.id, sub.content);
+      }
     }
   }
 }

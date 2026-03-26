@@ -81,10 +81,10 @@ export default function EnterpriseDashboard({ enterprise, onNavigate }: Enterpri
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-brand-bg font-body">
+    <div className="bg-brand-bg font-body">
       {/* Header */}
-      <header className="border-b border-brand-border bg-brand-surface">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <header className="border-b border-brand-border/50 bg-brand-surface/40">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div

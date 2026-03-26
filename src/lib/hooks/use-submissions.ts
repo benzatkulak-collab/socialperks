@@ -34,7 +34,7 @@ export function useSubmissions(userId: string) {
       setSubmissions(json.data?.submissions ?? []);
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== "AbortError") {
-        // Keep existing data on error
+        console.warn("[useSubmissions] Fetch failed, keeping existing data:", e.message);
       }
     } finally {
       if (!controller.signal.aborted) setLoading(false);

@@ -1,5 +1,7 @@
 "use client";
 
+import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
+
 interface Step {
   number: string;
   title: string;
@@ -52,7 +54,7 @@ export function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="relative bg-brand-bg py-24 sm:py-32"
+      className="relative bg-brand-bg py-20 sm:py-28 lg:py-32"
       aria-labelledby="how-it-works-heading"
     >
       <div
@@ -60,46 +62,45 @@ export function HowItWorks() {
         aria-hidden="true"
       />
 
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
-        <div className="mb-16 text-center sm:mb-20">
-          <p className="mb-3 font-mono text-sm uppercase tracking-widest text-brand-cyan">
+        <AnimateOnScroll animation="fade-up" className="mb-14 text-center sm:mb-16 lg:mb-20">
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan sm:text-xs">
             How it works
           </p>
           <h2
             id="how-it-works-heading"
-            className="font-heading text-3xl italic text-brand-white sm:text-4xl lg:text-5xl"
+            className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic text-brand-white leading-tight"
           >
             Simple enough for any business owner
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim sm:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
             If you can set a price on your menu, you can run a campaign. No marketing experience needed.
           </p>
-        </div>
+        </AnimateOnScroll>
 
         {/* Steps grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          {STEPS.map((step, i) => (
+        <AnimateOnScroll animation="fade-up" stagger staggerDelay={100} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-5 lg:gap-6">
+          {STEPS.map((step) => (
             <div
               key={step.number}
-              className={`group animate-fade-up rounded-xl border-l-2 ${step.accent} border border-brand-border/50 bg-brand-surface/40 p-6 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-brand-border hover:bg-brand-surface/60 sm:p-8`}
-              style={{ animationDelay: `${i * 0.1}s` }}
+              className={`group rounded-xl border-l-2 ${step.accent} border border-brand-border/40 bg-brand-surface/30 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-border/70 hover:bg-brand-surface/50 hover:shadow-lg hover:shadow-brand-bg/50 sm:p-6 lg:p-7`}
             >
               {/* Step number */}
               <div className="mb-4 flex items-center gap-3">
-                <span className="font-mono text-xs font-semibold text-brand-muted">
+                <span className="font-mono text-[11px] font-semibold text-brand-muted">
                   {step.number}
                 </span>
-                <div className="h-px flex-1 bg-brand-border/50" />
+                <div className="h-px flex-1 bg-brand-border/40" />
               </div>
 
               {/* Icon */}
-              <div className="mb-4 text-3xl" aria-hidden="true">
+              <div className="mb-4 text-2xl sm:text-3xl" aria-hidden="true">
                 {step.icon}
               </div>
 
               {/* Content */}
-              <h3 className="mb-2 font-body text-lg font-semibold text-brand-white">
+              <h3 className="mb-2 font-body text-base font-semibold text-brand-white sm:text-lg leading-snug">
                 {step.title}
               </h3>
               <p className="text-sm leading-relaxed text-brand-dim">
@@ -107,12 +108,12 @@ export function HowItWorks() {
               </p>
 
               {/* Concrete example */}
-              <p className="mt-4 rounded-md bg-brand-bg/50 px-3 py-2 font-mono text-xs text-brand-muted">
+              <p className="mt-4 rounded-lg bg-brand-bg/60 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-brand-muted">
                 {step.example}
               </p>
             </div>
           ))}
-        </div>
+        </AnimateOnScroll>
       </div>
     </section>
   );

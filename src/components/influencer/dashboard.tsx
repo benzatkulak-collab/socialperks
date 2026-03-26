@@ -184,14 +184,14 @@ export default function InfluencerDashboard({ influencer, onNavigate }: Influenc
               <button
                 type="button"
                 onClick={() => onNavigate?.("profile")}
-                className="rounded-lg border border-brand-border bg-brand-elevated px-4 py-2 text-sm font-medium text-brand-text transition-colors hover:border-brand-cyan/40 hover:text-brand-cyan"
+                className="rounded-lg border border-brand-border bg-brand-elevated px-4 py-2 text-sm font-medium text-brand-text transition-colors hover:border-brand-cyan/40 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               >
                 Edit Profile
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate?.("media-kit")}
-                className="rounded-lg bg-brand-cyan px-4 py-2 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90"
+                className="rounded-lg bg-brand-cyan px-4 py-2 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               >
                 View Media Kit
               </button>
@@ -237,7 +237,7 @@ export default function InfluencerDashboard({ influencer, onNavigate }: Influenc
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`relative pb-3 text-sm font-medium capitalize transition-colors ${
+                className={`relative pb-3 text-sm font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded-sm ${
                   activeTab === tab
                     ? "text-brand-cyan"
                     : "text-brand-muted hover:text-brand-text"
@@ -380,7 +380,7 @@ function CampaignCard({ campaign, isApplied, onApply }: { campaign: AvailableCam
             <button
               type="button"
               onClick={() => onApply(campaign.id)}
-              className="mt-1 rounded-lg bg-brand-cyan px-4 py-1.5 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90"
+              className="mt-1 rounded-lg bg-brand-cyan px-4 py-1.5 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               aria-label={`Apply to ${campaign.campaignName} at ${campaign.businessName}`}
             >
               Apply

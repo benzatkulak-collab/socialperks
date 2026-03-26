@@ -51,10 +51,14 @@ interface Session {
 class SessionStore {
   private sessions = new Map<string, Session>();
   private readonly maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+  private createCounter = 0;
 
   create(userId: string, userRole: Session["userRole"], email: string, businessId: string | null): Session {
-    // clean expired
-    this.cleanup();
+    this.createCounter += 1;
+    // Prune expired sessions every 100th create to avoid unbounded Map growth
+    if (this.createCounter % 100 === 0) {
+      this.pruneExpired();
+    }
     const token = generateSessionToken();
     const now = Date.now();
     const session: Session = { token, userId, userRole, businessId, email, createdAt: now, expiresAt: now + this.maxAge };
@@ -73,11 +77,20 @@ class SessionStore {
     return this.sessions.delete(token);
   }
 
-  private cleanup(): void {
+  /** Remove all expired sessions from the store. */
+  pruneExpired(): number {
     const now = Date.now();
+    let pruned = 0;
     for (const [token, session] of this.sessions) {
-      if (now > session.expiresAt) this.sessions.delete(token);
+      if (now > session.expiresAt) {
+        this.sessions.delete(token);
+        pruned += 1;
+      }
     }
+    if (pruned > 0) {
+      console.info(`[SessionStore] Pruned ${pruned} expired session(s). Active: ${this.sessions.size}`);
+    }
+    return pruned;
   }
 }
 

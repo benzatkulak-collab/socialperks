@@ -13,6 +13,25 @@ import {
 } from "./events";
 import type { DiscountType } from "./types";
 
+// ─── Budget Lock (prevents race conditions on concurrent spend) ─────────────
+
+const budgetLocks = new Map<string, Promise<void>>();
+
+async function withBudgetLock<T>(campaignId: string, fn: () => Promise<T>): Promise<T> {
+  while (budgetLocks.has(campaignId)) {
+    await budgetLocks.get(campaignId);
+  }
+  let resolve: () => void;
+  const lock = new Promise<void>(r => { resolve = r; });
+  budgetLocks.set(campaignId, lock);
+  try {
+    return await fn();
+  } finally {
+    budgetLocks.delete(campaignId);
+    resolve!();
+  }
+}
+
 // ─── States & Transitions ───────────────────────────────────────────────────
 
 export type CampaignState = "draft" | "active" | "paused" | "ended" | "expired";
@@ -367,6 +386,14 @@ class CampaignStateMachine {
    * If the budget would be exceeded, the campaign is auto-paused.
    *
    * Call this BEFORE awarding a perk to decide whether to proceed.
+   *
+   * CONCURRENCY NOTE: For atomic check-and-spend in a single-process
+   * environment, use `checkAndSpendBudget()` which acquires a per-campaign
+   * lock to prevent concurrent requests from passing checkBudget
+   * simultaneously and causing overspend. In a distributed/multi-process
+   * environment, this still needs an atomic compare-and-increment
+   * (e.g., Postgres UPDATE ... SET spent = spent + $1 WHERE spent + $1
+   * <= allocated RETURNING *) or a distributed lock/lease.
    */
   checkBudget(
     campaignId: string,
@@ -418,11 +445,30 @@ class CampaignStateMachine {
    * Call this after a perk is awarded.
    */
   recordSpend(campaignId: string, amount: number): void {
-    if (typeof amount !== "number" || isNaN(amount) || amount < 0) {
-      throw new Error("Spend amount must be a non-negative number");
+    if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0) {
+      throw new Error("Spend amount must be a finite non-negative number");
     }
     const lifecycle = this.requireCampaign(campaignId);
     lifecycle.budget.spent += amount;
+  }
+
+  /**
+   * Atomic check-and-spend: acquires a per-campaign lock so that the
+   * budget check and spend recording cannot be interleaved by concurrent
+   * requests. Returns the same result shape as checkBudget, but the
+   * spend is already recorded when withinBudget is true.
+   */
+  async checkAndSpendBudget(
+    campaignId: string,
+    perkValue: number
+  ): Promise<{ lifecycle: CampaignLifecycle; withinBudget: boolean; autoPaused: boolean }> {
+    return withBudgetLock(campaignId, async () => {
+      const result = this.checkBudget(campaignId, perkValue);
+      if (result.withinBudget) {
+        this.recordSpend(campaignId, perkValue);
+      }
+      return result;
+    });
   }
 
   // ── Queries ─────────────────────────────────────────────────────────────
@@ -456,6 +502,11 @@ class CampaignStateMachine {
       }
     }
     return result;
+  }
+
+  /** List all tracked campaigns. */
+  listAll(): CampaignLifecycle[] {
+    return Array.from(this.campaigns.values());
   }
 
   /** List all campaigns for a specific business. */

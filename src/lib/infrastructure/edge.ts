@@ -702,8 +702,9 @@ export class DistributedCache {
               this.set(key, newValue, locationId);
             }
           })
-          .catch(() => {
+          .catch((err) => {
             // Revalidation failure is non-fatal; stale data continues to be served
+            console.warn("[EdgeCache] Background revalidation failed:", err);
           });
         break;
       }

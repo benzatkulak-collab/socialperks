@@ -13,25 +13,25 @@ const STAT_CARDS = [
   {
     label: "Impressions",
     value: "0",
-    color: "#22D3EE",
+    colorClass: "text-brand-cyan",
     description: "Total campaign views",
   },
   {
     label: "Completion Rate",
     value: "0%",
-    color: "#34D399",
+    colorClass: "text-brand-green",
     description: "Actions completed",
   },
   {
     label: "Avg Perk",
     value: "$0",
-    color: "#FBBF24",
+    colorClass: "text-brand-amber",
     description: "Average perk value",
   },
   {
     label: "ROI",
     value: "0x",
-    color: "#F472B6",
+    colorClass: "text-brand-pink",
     description: "Return on investment",
   },
 ] as const;
@@ -60,8 +60,7 @@ export function AnalyticsOverview({
           >
             <div className="text-center">
               <div
-                className="text-2xl font-extrabold font-mono"
-                style={{ color: stat.color }}
+                className={`text-2xl font-extrabold font-mono ${stat.colorClass}`}
               >
                 {stat.value}
               </div>
@@ -104,7 +103,7 @@ export function AnalyticsOverview({
           </p>
           <button
             onClick={() => onNavigate?.("campaigns")}
-            className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-4 py-2 text-xs bg-brand-cyan text-brand-bg hover:brightness-110"
+            className="font-body font-semibold rounded-md border-none cursor-pointer transition-all duration-150 tracking-wide px-4 py-2 text-xs bg-brand-cyan text-brand-bg hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
           >
             Browse Campaigns
           </button>

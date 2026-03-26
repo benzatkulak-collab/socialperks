@@ -37,7 +37,7 @@ export function useBusinessDashboard(businessId: string) {
       });
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== "AbortError") {
-        // Stats stay at defaults on error
+        console.warn("[useBusinessDashboard] Stats fetch failed, keeping defaults:", e.message);
       }
     } finally {
       if (!controller.signal.aborted) setLoading(false);

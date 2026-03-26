@@ -90,7 +90,7 @@ export default function AgentsPage() {
     <div className="min-h-screen bg-brand-bg">
       {/* Nav */}
       <header className="border-b border-brand-border/50">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2" aria-label="Back to home">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-cyan/10">
               <span className="font-heading text-lg text-brand-cyan">S</span>
@@ -108,7 +108,7 @@ export default function AgentsPage() {
 
       {/* Hero */}
       <section className="py-20 sm:py-28">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <div className="mb-6 inline-block rounded-full border border-brand-purple/30 bg-brand-purple/10 px-4 py-1.5">
               <span className="font-mono text-xs font-medium text-brand-purple">FOR AI AGENT BUILDERS</span>
@@ -138,7 +138,7 @@ export default function AgentsPage() {
 
       {/* Why */}
       <section className="border-t border-brand-border/50 py-20 sm:py-28">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="mb-4 font-heading text-3xl italic text-brand-white sm:text-4xl">
             The problem your agents have
           </h2>
@@ -161,7 +161,7 @@ export default function AgentsPage() {
 
       {/* How it works */}
       <section id="how-it-works" className="border-t border-brand-border/50 py-20 sm:py-28">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="mb-4 font-heading text-3xl italic text-brand-white sm:text-4xl">
             Four API calls. That&apos;s it.
           </h2>
@@ -183,7 +183,7 @@ export default function AgentsPage() {
 
       {/* Code examples */}
       <section className="border-t border-brand-border/50 py-20 sm:py-28">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="mb-4 font-heading text-3xl italic text-brand-white sm:text-4xl">
             Simple REST API
           </h2>
@@ -216,7 +216,7 @@ export default function AgentsPage() {
 
       {/* Endpoints reference */}
       <section className="border-t border-brand-border/50 py-20 sm:py-28">
-        <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <h2 className="mb-4 font-heading text-3xl italic text-brand-white sm:text-4xl">
             API Reference
           </h2>

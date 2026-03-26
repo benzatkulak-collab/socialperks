@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 
 interface PricingTier {
   name: string;
@@ -74,7 +75,7 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative bg-brand-bg py-24 sm:py-32"
+      className="relative bg-brand-bg py-20 sm:py-28 lg:py-32"
       aria-labelledby="pricing-heading"
     >
       <div
@@ -82,34 +83,34 @@ export function PricingSection() {
         aria-hidden="true"
       />
 
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
-        <div className="mb-12 text-center sm:mb-16">
-          <p className="mb-3 font-mono text-sm uppercase tracking-widest text-brand-cyan">
+        <AnimateOnScroll animation="fade-up" className="mb-12 text-center sm:mb-16">
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan sm:text-xs">
             Pricing
           </p>
           <h2
             id="pricing-heading"
-            className="font-heading text-3xl italic text-brand-white sm:text-4xl lg:text-5xl"
+            className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic text-brand-white leading-tight"
           >
             Costs less than one Instagram ad
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim sm:text-lg">
+          <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
             Start free. Most businesses stay on free or Starter. No contracts, cancel anytime.
           </p>
 
           {/* Billing toggle */}
           <div className="mt-8 flex items-center justify-center gap-3">
             <span
-              className={`text-sm ${
-                !annual ? "text-brand-white" : "text-brand-muted"
+              className={`text-sm transition-colors ${
+                !annual ? "text-brand-white font-medium" : "text-brand-muted"
               }`}
             >
               Monthly
             </span>
             <button
               onClick={() => setAnnual(!annual)}
-              className={`relative h-7 w-12 rounded-full border transition-colors ${
+              className={`relative h-7 w-12 rounded-full border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                 annual
                   ? "border-brand-cyan/40 bg-brand-cyan/20"
                   : "border-brand-border bg-brand-surface"
@@ -119,28 +120,28 @@ export function PricingSection() {
               aria-label="Toggle annual billing"
             >
               <span
-                className={`absolute top-0.5 h-6 w-6 rounded-full bg-brand-white transition-transform ${
+                className={`absolute top-0.5 h-6 w-6 rounded-full bg-brand-white shadow-sm transition-transform duration-200 ${
                   annual ? "translate-x-5" : "translate-x-0.5"
                 }`}
               />
             </button>
             <span
-              className={`text-sm ${
-                annual ? "text-brand-white" : "text-brand-muted"
+              className={`text-sm transition-colors ${
+                annual ? "text-brand-white font-medium" : "text-brand-muted"
               }`}
             >
               Annual
             </span>
             {annual && (
-              <span className="ml-1 rounded-full bg-brand-green/10 px-2 py-0.5 text-xs font-medium text-brand-green">
+              <span className="ml-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-xs font-semibold text-brand-green">
                 Save 20%
               </span>
             )}
           </div>
-        </div>
+        </AnimateOnScroll>
 
         {/* Pricing cards */}
-        <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+        <AnimateOnScroll animation="fade-up" stagger staggerDelay={120} className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-5 lg:gap-6 items-start">
           {PRICING_TIERS.map((tier) => {
             const displayPrice =
               annual && tier.price !== "$0" && tier.price !== "Custom"
@@ -152,27 +153,27 @@ export function PricingSection() {
                 key={tier.name}
                 className={`relative flex flex-col rounded-xl border ${
                   tier.popular
-                    ? "border-brand-cyan/40 bg-brand-surface/60"
-                    : "border-brand-border/50 bg-brand-surface/30"
-                } p-6 backdrop-blur-sm transition-all hover:-translate-y-1 hover:border-brand-border sm:p-8`}
+                    ? "border-brand-cyan/40 bg-brand-surface/60 shadow-lg shadow-brand-cyan/5"
+                    : "border-brand-border/40 bg-brand-surface/30"
+                } p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-border/70 hover:shadow-lg hover:shadow-brand-bg/50 sm:p-7 lg:p-8`}
               >
                 {/* Popular badge */}
                 {tier.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full bg-brand-cyan px-4 py-1 text-xs font-semibold text-brand-bg">
+                    <span className="rounded-full bg-brand-cyan px-4 py-1 text-xs font-semibold text-brand-bg shadow-md shadow-brand-cyan/20">
                       Most Popular
                     </span>
                   </div>
                 )}
 
                 {/* Tier name */}
-                <p className={`mb-2 font-mono text-sm font-medium uppercase tracking-wider ${tier.accent}`}>
+                <p className={`mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.15em] ${tier.accent} sm:text-xs`}>
                   {tier.name}
                 </p>
 
                 {/* Price */}
                 <div className="mb-1 flex items-baseline gap-1">
-                  <span className="font-heading text-4xl text-brand-white">
+                  <span className="font-heading text-3xl text-brand-white sm:text-4xl">
                     {displayPrice}
                   </span>
                   {tier.period && (
@@ -183,17 +184,17 @@ export function PricingSection() {
                 </div>
 
                 {/* Description */}
-                <p className="mb-6 text-sm text-brand-dim">{tier.description}</p>
+                <p className="mb-6 text-sm text-brand-dim leading-relaxed">{tier.description}</p>
 
                 {/* Divider */}
-                <div className="mb-6 h-px bg-brand-border/50" />
+                <div className="mb-6 h-px bg-brand-border/40" />
 
                 {/* Features */}
                 <ul className="mb-8 flex-1 space-y-3" role="list">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5">
                       <span
-                        className={`mt-1 text-xs ${tier.popular ? "text-brand-cyan" : "text-brand-muted"}`}
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${tier.popular ? "bg-brand-cyan/10 text-brand-cyan" : "bg-brand-muted/10 text-brand-muted"}`}
                         aria-hidden="true"
                       >
                         ✓
@@ -206,10 +207,10 @@ export function PricingSection() {
                 {/* CTA */}
                 <a
                   href="#signup"
-                  className={`block w-full rounded-lg py-3 text-center text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-bg ${
+                  className={`block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                     tier.popular
-                      ? "bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 focus:ring-brand-cyan/50"
-                      : "border border-brand-border bg-brand-surface text-brand-text hover:border-brand-subtle hover:bg-brand-elevated focus:ring-brand-cyan/30"
+                      ? "bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 hover:shadow-md hover:shadow-brand-cyan/20 focus-visible:ring-brand-cyan/50"
+                      : "border border-brand-border bg-brand-surface text-brand-text hover:border-brand-subtle hover:bg-brand-elevated focus-visible:ring-brand-cyan/30"
                   }`}
                   aria-label={`${tier.cta} - ${tier.name} plan`}
                 >
@@ -218,10 +219,10 @@ export function PricingSection() {
               </div>
             );
           })}
-        </div>
+        </AnimateOnScroll>
 
         {/* Bottom note */}
-        <p className="mt-10 text-center text-sm text-brand-muted">
+        <p className="mt-12 text-center text-sm text-brand-muted">
           All plans include FTC-compliant disclosures, SSL encryption, and 99.9% uptime.
         </p>
       </div>

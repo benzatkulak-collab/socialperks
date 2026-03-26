@@ -12,7 +12,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-brand-bg">
       {/* Nav */}
       <header className="border-b border-brand-border/50">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/"
             className="flex items-center gap-2"
@@ -35,7 +35,7 @@ export default function TermsPage() {
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
+      <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8 sm:py-16">
         <h1 className="font-heading text-3xl italic text-brand-white sm:text-4xl">
           Terms of Service
         </h1>
