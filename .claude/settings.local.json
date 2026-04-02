@@ -25,7 +25,12 @@
       "WebFetch(domain:www.blockchain-council.org)",
       "WebFetch(domain:dev.to)",
       "WebFetch(domain:www.firecrawl.dev)",
-      "WebFetch(domain:composio.dev)"
+      "WebFetch(domain:composio.dev)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(brew list:*)",
+      "Bash(git add:*)"
     ]
   }
 }
