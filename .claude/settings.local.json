@@ -16,7 +16,16 @@
       "Bash(while read:*)",
       "Bash(do echo:*)",
       "Bash(done)",
-      "Bash(__NEW_LINE_87cdce4ca7ef0db5__ echo:*)"
+      "Bash(__NEW_LINE_87cdce4ca7ef0db5__ echo:*)",
+      "Bash(gh repo:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npx uipro-cli:*)",
+      "WebSearch",
+      "WebFetch(domain:www.blockchain-council.org)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:www.firecrawl.dev)",
+      "WebFetch(domain:composio.dev)"
     ]
   }
 }
