@@ -176,7 +176,15 @@ export type { Session };
 
 // ─── JWT Utilities ─────────────────────────────────────────────────────────
 
-const JWT_SECRET = process.env.AUTH_SECRET || "dev-secret-change-in-production";
+const JWT_SECRET = (() => {
+  const secret = process.env.AUTH_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("FATAL: AUTH_SECRET environment variable must be set in production");
+  }
+  console.warn("[AUTH] WARNING: Using default dev secret. Set AUTH_SECRET for production.");
+  return "dev-only-unsafe-secret-do-not-use-in-prod";
+})();
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes in seconds
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days in seconds
 

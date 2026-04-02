@@ -4,7 +4,7 @@ const CSRF_SECRET = (() => {
   const secret = process.env.CSRF_SECRET || process.env.AUTH_SECRET;
   if (secret) return secret;
   if (process.env.NODE_ENV === "production") {
-    throw new Error("FATAL: CSRF_SECRET or AUTH_SECRET must be set in production");
+    throw new Error("FATAL: CSRF_SECRET or AUTH_SECRET environment variable must be set in production");
   }
   console.warn("[CSRF] WARNING: Using default dev secret. Set CSRF_SECRET for production.");
   return "dev-only-unsafe-csrf-secret";

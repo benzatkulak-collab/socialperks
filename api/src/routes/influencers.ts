@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError, parsePagination, paginationMeta } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
@@ -6,14 +7,15 @@ import { createSeedData } from "@social-perks/shared/seed";
 import { matchingService } from "@lib/ml/embedding-system";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 const registeredInfluencers = new Map<string, Record<string, unknown>>();
 
 app.get("/", rateLimit("public"), (c) => {
   const params = c.req.query();
   const niche = params.niche;
   const tier = params.tier;
-  const minFollowers = params.minFollowers ? parseInt(params.minFollowers) : undefined;
+  const rawMinFollowers = params.minFollowers ? parseInt(params.minFollowers) : undefined;
+  const minFollowers = rawMinFollowers !== undefined && !isNaN(rawMinFollowers) && rawMinFollowers >= 0 ? rawMinFollowers : undefined;
   const platformId = params.platformId;
   const location = params.location;
   const { page, perPage } = parsePagination(new URLSearchParams(params));

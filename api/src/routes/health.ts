@@ -1,6 +1,7 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.get("/", (c) => {
   return c.json({

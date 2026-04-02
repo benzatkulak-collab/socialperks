@@ -1,7 +1,9 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError, parsePagination, paginationMeta } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireJson } from "../middleware/validation.js";
+import { rateLimit } from "../middleware/rate-limit.js";
 import { campaignManager } from "@lib/campaign-state-machine";
 import { checkCampaignCompliance } from "@lib/compliance-engine";
 import { legalGuard } from "@lib/legal-compliance";
@@ -13,10 +15,10 @@ import { matchingService } from "@lib/ml/embedding-system";
 import { logger } from "@lib/logging";
 import { eventBus } from "@lib/realtime";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // GET /v1/campaigns
-app.get("/", (c) => {
+app.get("/", rateLimit("relaxed"), (c) => {
   const params = c.req.query();
   const businessId = params.businessId;
   const state = params.state ?? params.status;
@@ -41,7 +43,7 @@ app.get("/", (c) => {
 });
 
 // POST /v1/campaigns
-app.post("/", requireJson, requireAuth, async (c) => {
+app.post("/", rateLimit("standard"), requireJson, requireAuth, async (c) => {
   try {
     const body = await c.req.json();
     const userId = c.get("userId");

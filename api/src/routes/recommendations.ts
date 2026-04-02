@@ -1,17 +1,21 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { matchingService } from "@lib/ml/embedding-system";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.get("/", rateLimit("relaxed"), requireAuth, (c) => {
   const userId = c.get("userId");
-  const maxCampaigns = parseInt(c.req.query("maxCampaigns") ?? "10");
-  const maxBusinesses = parseInt(c.req.query("maxBusinesses") ?? "5");
-  const minScore = parseFloat(c.req.query("minScore") ?? "0.3");
+  const rawMaxCampaigns = parseInt(c.req.query("maxCampaigns") ?? "10");
+  const rawMaxBusinesses = parseInt(c.req.query("maxBusinesses") ?? "5");
+  const rawMinScore = parseFloat(c.req.query("minScore") ?? "0.3");
+  const maxCampaigns = isNaN(rawMaxCampaigns) ? 10 : rawMaxCampaigns;
+  const maxBusinesses = isNaN(rawMaxBusinesses) ? 5 : rawMaxBusinesses;
+  const minScore = isNaN(rawMinScore) || !isFinite(rawMinScore) ? 0.3 : rawMinScore;
 
   try {
     const recommendations = matchingService.getRecommendations({

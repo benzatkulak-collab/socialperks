@@ -1,14 +1,24 @@
 import crypto from "crypto";
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
+import { rateLimit } from "../middleware/rate-limit.js";
 import { eventBus } from "@lib/realtime";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
-const WEBHOOK_SECRET = process.env.VERIFICATION_WEBHOOK_SECRET ?? "whsec_verification_demo";
+const WEBHOOK_SECRET = (() => {
+  const secret = process.env.VERIFICATION_WEBHOOK_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("FATAL: VERIFICATION_WEBHOOK_SECRET must be set in production");
+  }
+  console.warn("[VERIFICATION] WARNING: Using default dev webhook secret.");
+  return "dev-only-webhook-secret";
+})();
 
 // GET /v1/verification/webhook — Webhook challenge verification
-app.get("/webhook", (c) => {
+app.get("/webhook", rateLimit("relaxed"), (c) => {
   const challenge = c.req.query("hub.challenge") ?? c.req.query("challenge");
   const verifyToken = c.req.query("hub.verify_token") ?? c.req.query("verify_token");
 
@@ -20,7 +30,7 @@ app.get("/webhook", (c) => {
 });
 
 // POST /v1/verification/webhook — Receive platform webhooks
-app.post("/webhook", async (c) => {
+app.post("/webhook", rateLimit("standard"), async (c) => {
   try {
     const rawBody = await c.req.text();
     const signature = c.req.header("x-hub-signature-256") ?? c.req.header("x-signature");

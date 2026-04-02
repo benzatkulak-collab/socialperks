@@ -223,8 +223,8 @@ describe("TenantProvisioner", () => {
       adminName: "API Admin",
     });
     expect(result.success).toBe(true);
-    expect(result.apiKey).toBeDefined();
-    expect(result.apiKey!.startsWith("sk_")).toBe(true);
+    expect(result.apiKeyHint).toBeDefined();
+    expect(result.apiKeyHint!.startsWith("sk_")).toBe(true);
   });
 
   it("starter plan does not get API key", () => {
@@ -236,7 +236,7 @@ describe("TenantProvisioner", () => {
       adminName: "Starter Admin",
     });
     expect(result.success).toBe(true);
-    expect(result.apiKey).toBeUndefined();
+    expect(result.apiKeyHint).toBeUndefined();
   });
 
   it("provision fails with missing name", () => {

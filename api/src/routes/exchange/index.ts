@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError, parsePagination, paginationMeta } from "../../helpers.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
@@ -6,14 +7,15 @@ import { exchange } from "@lib/exchange";
 import { PLATFORMS, ALL_ACTIONS as ACTIONS } from "@social-perks/shared/platforms";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // GET /v1/exchange/opportunities (public)
 app.get("/opportunities", rateLimit("public"), (c) => {
   const params = c.req.query();
-  const platforms = params.platforms?.split(",").filter(Boolean) ?? [];
-  const niches = params.niches?.split(",").filter(Boolean) ?? [];
-  const followerCount = params.followerCount ? parseInt(params.followerCount) : undefined;
+  const platforms = (params.platforms?.split(",").filter(Boolean) ?? []).slice(0, 20);
+  const niches = (params.niches?.split(",").filter(Boolean) ?? []).slice(0, 20);
+  const parsedFollowers = params.followerCount ? parseInt(params.followerCount) : undefined;
+  const followerCount = parsedFollowers !== undefined && !isNaN(parsedFollowers) && parsedFollowers >= 0 ? parsedFollowers : undefined;
   const location = params.location;
 
   try {
@@ -138,12 +140,17 @@ app.post("/enroll", rateLimit("standard"), requireAuth, async (c) => {
     const body = await c.req.json();
     if (!body.platforms || !Array.isArray(body.platforms)) return apiError(c, "MISSING_FIELDS", "platforms array is required");
     if (!body.niches || !Array.isArray(body.niches)) return apiError(c, "MISSING_FIELDS", "niches array is required");
+    // Validate array items are strings and cap length
+    const platforms = body.platforms.filter((p: unknown) => typeof p === "string").slice(0, 20) as string[];
+    const niches = body.niches.filter((n: unknown) => typeof n === "string").slice(0, 20) as string[];
+    if (platforms.length === 0) return apiError(c, "INVALID_INPUT", "platforms must contain at least one valid string");
+    if (niches.length === 0) return apiError(c, "INVALID_INPUT", "niches must contain at least one valid string");
 
     const userId = c.get("userId");
     const result = exchange.autoEnroll({
       userId: userId ?? "anonymous",
-      platforms: body.platforms,
-      niches: body.niches,
+      platforms,
+      niches,
       followerCounts: body.followerCounts ?? {},
       minPrice: body.minPrice,
       location: body.location,

@@ -1,9 +1,10 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { reviewOrchestrator, type ReviewRequest } from "@lib/ai-review/index";
 import { apiResponse, apiError } from "../../helpers.js";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.post("/", async (c) => {
   try {

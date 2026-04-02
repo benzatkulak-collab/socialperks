@@ -1,12 +1,13 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
+import type { AppEnv } from "@api/env.js";
 import { sessionStore, verifyJWT } from "@lib/auth/index.js";
 
 /**
  * Auth middleware — sets userId, userRole on context if authenticated.
  * Uses async session lookup to support Postgres-backed sessions.
  */
-export const requireAuth = createMiddleware(async (c, next) => {
+export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   const result = await authenticate(c);
   if (!result.authorized) {
     return c.json(
@@ -19,7 +20,7 @@ export const requireAuth = createMiddleware(async (c, next) => {
   await next();
 });
 
-export const optionalAuth = createMiddleware(async (c, next) => {
+export const optionalAuth = createMiddleware<AppEnv>(async (c, next) => {
   const result = await authenticate(c);
   if (result.authorized) {
     c.set("userId", result.userId);
@@ -76,14 +77,26 @@ async function authenticate(c: { req: { header: (name: string) => string | undef
     return { authorized: true, userId: jwtPayload.sub, userRole: jwtPayload.role };
   }
 
-  // 5. Demo token (non-production only)
-  if (token.startsWith("demo-token-") && process.env.NODE_ENV !== "production") {
-    return { authorized: true, userId: token.replace("demo-token-", "") };
+  // 5. Demo token (development only — requires explicit ALLOW_DEMO_TOKENS=true)
+  if (
+    token.startsWith("demo-token-") &&
+    process.env.NODE_ENV === "development" &&
+    process.env.ALLOW_DEMO_TOKENS === "true"
+  ) {
+    const demoUserId = token.replace("demo-token-", "").slice(0, 100);
+    if (/^[a-zA-Z0-9@._-]+$/.test(demoUserId)) {
+      return { authorized: true, userId: demoUserId };
+    }
   }
 
-  // 6. API key (sk_ prefix)
-  if (token.startsWith("sk_") && token.length >= 8) {
-    return { authorized: true, userId: null };
+  // 6. API key (sk_ prefix) — validate against stored keys
+  if (token.startsWith("sk_") && token.length >= 32) {
+    // API keys must be verified against a key store, not just by prefix
+    const apiKeySession = await sessionStore.getAsync(token);
+    if (apiKeySession) {
+      return { authorized: true, userId: apiKeySession.userId, userRole: apiKeySession.userRole };
+    }
+    // Fall through to INVALID_TOKEN if not found in store
   }
 
   return {

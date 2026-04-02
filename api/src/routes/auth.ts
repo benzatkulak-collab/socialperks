@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { createSeedData } from "@social-perks/shared/seed";
@@ -8,7 +9,7 @@ import { hashPassword, verifyPassword, sessionStore, createTokenPair, verifyJWT 
 import { logger } from "@lib/logging";
 import { emailProvider, welcomeEmail, passwordResetEmail } from "@lib/email";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // In-memory user store for password-based auth (until DB migration)
 interface StoredUser {
@@ -27,6 +28,23 @@ interface ResetToken { email: string; token: string; expiresAt: number; }
 const resetTokens = new Map<string, ResetToken>();
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 const RESET_BASE_URL = process.env.RESET_PASSWORD_URL || "https://socialperks.app/reset-password";
+
+// Per-email rate limiting for password reset (max 3 per hour)
+const resetRateLimit = new Map<string, { count: number; windowStart: number }>();
+const RESET_RATE_LIMIT_MAX = 3;
+const RESET_RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
+
+function checkResetRateLimit(email: string): boolean {
+  const now = Date.now();
+  const entry = resetRateLimit.get(email);
+  if (!entry || now - entry.windowStart > RESET_RATE_LIMIT_WINDOW) {
+    resetRateLimit.set(email, { count: 1, windowStart: now });
+    return true;
+  }
+  if (entry.count >= RESET_RATE_LIMIT_MAX) return false;
+  entry.count += 1;
+  return true;
+}
 
 // Seed data bootstrap
 let authSeeded = false;
@@ -51,12 +69,13 @@ async function ensureAuthSeeded(): Promise<void> {
 
 function setJWTCookies(c: Parameters<Parameters<typeof app.get>[1]>[0], userId: string, role: string, email: string, businessId: string | null) {
   const tokens = createTokenPair(userId, role, email, businessId);
-  const isProduction = process.env.NODE_ENV === "production";
+  // Always set secure flag unless explicitly in development mode
+  const secureCookies = process.env.NODE_ENV !== "development";
   setCookie(c, "sp-access-token", tokens.accessToken, {
-    httpOnly: true, secure: isProduction, sameSite: "Lax", maxAge: 900, path: "/",
+    httpOnly: true, secure: secureCookies, sameSite: "Lax", maxAge: 900, path: "/",
   });
   setCookie(c, "sp-refresh-token", tokens.refreshToken, {
-    httpOnly: true, secure: isProduction, sameSite: "Strict", maxAge: 604800, path: "/api/v1/auth",
+    httpOnly: true, secure: secureCookies, sameSite: "Strict", maxAge: 604800, path: "/api/v1/auth",
   });
   return tokens;
 }
@@ -106,12 +125,18 @@ app.post("/", rateLimit("strict"), async (c) => {
         if (typeof email !== "string" || typeof password !== "string" || typeof name !== "string") {
           return apiError(c, "INVALID_INPUT", "email, password, and name must be strings");
         }
-        const sanitizedEmail = email.slice(0, 254).toLowerCase();
+        const sanitizedEmail = email.slice(0, 254).toLowerCase().trim();
         const sanitizedName = name.slice(0, 200);
+        // Validate email format
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
+          return apiError(c, "INVALID_EMAIL", "Please provide a valid email address");
+        }
         if (password.length < 8) return apiError(c, "WEAK_PASSWORD", "Password must be at least 8 characters");
+        if (password.length > 128) return apiError(c, "INVALID_INPUT", "Password must be 128 characters or less");
         const validRoles = ["business", "influencer", "enterprise"];
         if (!validRoles.includes(role)) return apiError(c, "INVALID_ROLE", `role must be one of: ${validRoles.join(", ")}`);
-        if (registeredUsers.has(sanitizedEmail)) return apiError(c, "EMAIL_EXISTS", "An account with this email already exists", 409);
+        // Use generic error to prevent account enumeration
+        if (registeredUsers.has(sanitizedEmail)) return apiError(c, "SIGNUP_FAILED", "Unable to create account. Please try again or use a different email.", 409);
 
         const passwordHash = await hashPassword(password);
         const userId = `usr_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
@@ -220,6 +245,13 @@ app.post("/", rateLimit("strict"), async (c) => {
         const { email } = body;
         if (!email || typeof email !== "string") return apiError(c, "MISSING_FIELDS", "email is required");
         const sanitizedEmail = email.slice(0, 254).toLowerCase();
+
+        // Per-email rate limit: max 3 reset requests per hour
+        if (!checkResetRateLimit(sanitizedEmail)) {
+          // Return generic message to avoid leaking whether the email exists
+          return apiResponse(c, { message: "If an account with that email exists, a password reset link has been sent." });
+        }
+
         const storedUser = registeredUsers.get(sanitizedEmail);
         if (!storedUser) return apiResponse(c, { message: "If an account with that email exists, a password reset link has been sent." });
 

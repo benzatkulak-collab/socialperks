@@ -152,7 +152,7 @@ export interface ProvisionResult {
   success: boolean;
   tenant?: Tenant;
   adminUserId?: string;
-  apiKey?: string;
+  apiKeyHint?: string;
   error?: string;
 }
 
@@ -1145,7 +1145,8 @@ class TenantProvisioner {
         success: true,
         tenant,
         adminUserId: adminUser.id,
-        apiKey,
+        // Only return masked API key hint — full key should be delivered via secure channel
+        apiKeyHint: apiKey ? `${apiKey.slice(0, 8)}...${apiKey.slice(-4)}` : undefined,
       };
     } catch (err) {
       return {

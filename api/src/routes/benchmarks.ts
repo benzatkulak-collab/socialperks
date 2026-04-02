@@ -1,9 +1,10 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { getBenchmarks } from "@lib/ai-engine";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.get("/", rateLimit("public"), (c) => {
   const businessType = c.req.query("businessType");

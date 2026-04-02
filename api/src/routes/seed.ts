@@ -1,11 +1,13 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
 import { createSeedData } from "@social-perks/shared/seed";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.post("/", (c) => {
-  if (process.env.NODE_ENV === "production") {
+  // Only allow in explicitly-set development mode
+  if (process.env.NODE_ENV !== "development") {
     return apiError(c, "NOT_FOUND", "Not found", 404);
   }
 

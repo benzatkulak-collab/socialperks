@@ -1,10 +1,11 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { estimatePricing } from "@lib/ai-engine";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.get("/", rateLimit("public"), (c) => {
   try {

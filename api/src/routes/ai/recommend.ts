@@ -1,10 +1,11 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { getRecommendations } from "@lib/ai-engine";
 import type { RecommendationInput } from "@lib/ai-engine";
 import { apiResponse, apiError } from "../../helpers.js";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.post("/", async (c) => {
   try {

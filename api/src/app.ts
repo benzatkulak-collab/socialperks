@@ -1,6 +1,9 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import type { AppEnv } from "@api/env.js";
 import { tracing } from "./middleware/tracing.js";
+import { maxBodySize } from "./middleware/validation.js";
+import { csrfProtection } from "./middleware/csrf.js";
 
 // Route imports
 import health from "./routes/health.js";
@@ -22,26 +25,35 @@ import oauth from "./routes/oauth.js";
 import verification from "./routes/verification.js";
 import seed from "./routes/seed.js";
 
-export const app = new Hono();
+export const app = new Hono<AppEnv>();
 
 // ─── Global middleware ───────────────────────────────────────────────────────
+
+// Request body size limit (1MB default) — prevents payload DoS
+app.use("/*", maxBodySize(1_048_576));
+
 app.use("/*", cors({
   origin: (origin) => {
-    if (process.env.NODE_ENV !== "production") {
-      // Allow localhost in development
+    if (process.env.NODE_ENV === "development") {
+      // Only allow localhost in explicitly-set development mode
       if (origin.startsWith("http://localhost:")) return origin;
     }
     const allowed = (process.env.ALLOWED_ORIGINS ?? "").split(",").map((o) => o.trim()).filter(Boolean);
     return allowed.includes(origin) ? origin : "";
   },
   allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+  allowHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+  exposeHeaders: ["X-CSRF-Token", "X-Request-Id", "X-Response-Time"],
+  credentials: true,
 }));
 
 app.use("/*", tracing);
 
+// CSRF protection — validates tokens on state-changing requests
+app.use("/*", csrfProtection);
+
 // ─── Mount routes under /v1 ─────────────────────────────────────────────────
-const v1 = new Hono();
+const v1 = new Hono<AppEnv>();
 
 v1.route("/health", health);
 v1.route("/auth", auth);
@@ -61,6 +73,15 @@ v1.route("/events", events);
 v1.route("/oauth", oauth);
 v1.route("/verification", verification);
 v1.route("/seed", seed);
+
+// CSP violation reporting endpoint — receives browser reports
+v1.post("/csp-report", async (c) => {
+  try {
+    const report = await c.req.json();
+    console.info(JSON.stringify({ level: "warn", event: "csp.violation", report: report["csp-report"] ?? report, timestamp: new Date().toISOString() }));
+  } catch { /* ignore malformed reports */ }
+  return c.json({ received: true });
+});
 
 app.route("/v1", v1);
 

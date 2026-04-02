@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError, parsePagination, paginationMeta } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
@@ -16,10 +17,10 @@ import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from 
 import type { SubmissionStatus, ProofType, LaunchedCampaign } from "@social-perks/shared/types";
 
 const fraudPipeline = createFraudPipeline();
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // GET /v1/submissions
-app.get("/", (c) => {
+app.get("/", rateLimit("relaxed"), (c) => {
   const params = c.req.query();
   const campaignId = params.campaignId;
   const businessId = params.businessId;
@@ -35,15 +36,20 @@ app.get("/", (c) => {
 
   let resolvedCampaignIds: string[] | undefined;
   if (businessId) {
+    if (typeof businessId !== "string" || businessId.length > 100) return apiError(c, "INVALID_INPUT", "Invalid businessId");
     resolvedCampaignIds = campaignManager.listByBusiness(businessId).map((ca) => ca.id);
   }
 
   let result;
   if (resolvedCampaignIds && !campaignId) {
+    // Cap campaign IDs to prevent memory exhaustion from unbounded loops
+    const cappedCampaignIds = resolvedCampaignIds.slice(0, 50);
     const allSubmissions: ReturnType<typeof getSubmissions> = { submissions: [], total: 0, page: 1, perPage, totalPages: 0 };
-    for (const cId of resolvedCampaignIds) {
-      const partial = getSubmissions({ campaignId: cId, userId, status: status as SubmissionStatus | undefined, actionId }, 1, 10000);
+    for (const cId of cappedCampaignIds) {
+      const partial = getSubmissions({ campaignId: cId, userId, status: status as SubmissionStatus | undefined, actionId }, 1, 500);
       allSubmissions.submissions.push(...partial.submissions);
+      // Safety cap: stop accumulating if we already have more than enough
+      if (allSubmissions.submissions.length > 10000) break;
     }
     allSubmissions.submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
     allSubmissions.total = allSubmissions.submissions.length;
@@ -60,7 +66,7 @@ app.get("/", (c) => {
 });
 
 // POST /v1/submissions
-app.post("/", requireAuth, async (c) => {
+app.post("/", rateLimit("standard"), requireAuth, async (c) => {
   try {
     const body = await c.req.json();
     const authUserId = c.get("userId");
@@ -86,12 +92,28 @@ app.post("/", requireAuth, async (c) => {
     if (!result.success) return apiError(c, result.error!.code, result.error!.message, result.error!.code === "DUPLICATE_SUBMISSION" ? 409 : 400);
 
     const submission = result.data!;
-    let fraudScore = null;
-    try { const uc: UserContext = { userId: String(body.userId), accountCreatedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), submissions: [] }; const sr = fraudPipeline.scoreAndDecide({ submissionId: submission.id, userId: String(body.userId), campaignId: String(body.campaignId), platformId: metadata.platformId ? String(metadata.platformId) : "unknown", proofUrl: String(body.proofUrl), proofType: body.proofType as string, metadata: metadata as Record<string, unknown> }, uc); fraudScore = { score: sr.prediction.fraudScore, riskLevel: sr.prediction.riskLevel, decision: sr.decision, confidence: sr.prediction.confidence }; } catch { /* non-blocking */ }
 
+    // Fraud detection — BLOCKING: reject high-risk submissions
+    let fraudScore = null;
+    try {
+      const uc: UserContext = { userId: String(body.userId), accountCreatedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), submissions: [] };
+      const sr = fraudPipeline.scoreAndDecide({ submissionId: submission.id, userId: String(body.userId), campaignId: String(body.campaignId), platformId: metadata.platformId ? String(metadata.platformId) : "unknown", proofUrl: String(body.proofUrl), proofType: body.proofType as string, metadata: metadata as Record<string, unknown> }, uc);
+      fraudScore = { score: sr.prediction.fraudScore, riskLevel: sr.prediction.riskLevel, decision: sr.decision, confidence: sr.prediction.confidence };
+      // Block submissions flagged as high risk by the fraud pipeline
+      if (sr.decision === "block" || (sr.prediction.fraudScore > 0.85 && sr.prediction.confidence > 0.7)) {
+        logger.warn("Submission blocked by fraud detection", { submissionId: submission.id, fraudScore: sr.prediction.fraudScore, riskLevel: sr.prediction.riskLevel });
+        return apiError(c, "FRAUD_DETECTED", "Submission flagged for suspicious activity. Please contact support if you believe this is an error.", 403);
+      }
+    } catch (err) {
+      // Fail open but log — fraud detection should not block legitimate users on error
+      logger.error("Fraud pipeline error (failing open)", err);
+    }
+
+    // Compliance scan — non-blocking enrichment
     let complianceResult = null;
     try { const contentText = (metadata.content as string) ?? (metadata.caption as string) ?? (metadata.text as string) ?? ""; if (contentText) { const scanResult = contentScanner.scan(contentText, { platform: metadata.platformId ? String(metadata.platformId) : undefined }); complianceResult = { complianceScore: scanResult.complianceScore, hasDisclosure: scanResult.hasDisclosure, issues: scanResult.issues.length }; } } catch { /* non-blocking */ }
 
+    // AI review — non-blocking enrichment
     let aiVerdict = null;
     try { const verdict = await reviewOrchestrator.review({ submissionId: submission.id, campaignId: String(body.campaignId), userId: String(body.userId), platformId: metadata.platformId ? String(metadata.platformId) : "unknown", actionId: String(body.actionId), proofUrl: String(body.proofUrl), proofType: body.proofType as "url" | "screenshot" | "video", metadata: metadata as Record<string, unknown> }); aiVerdict = { decision: verdict.decision, confidence: verdict.confidence, scores: verdict.scores, explanation: verdict.explanation, ...(complianceResult ? { complianceScore: complianceResult.complianceScore } : {}) }; } catch { /* non-blocking */ }
 
@@ -115,6 +137,12 @@ app.post("/review", rateLimit("standard"), requireAuth, async (c) => {
     if (missing.length > 0) return apiError(c, "MISSING_FIELDS", `Missing required fields: ${missing.join(", ")}`, 400);
     if (typeof body.submissionId !== "string" || typeof body.reviewerId !== "string") return apiError(c, "INVALID_INPUT", "submissionId and reviewerId must be strings");
     if (body.decision !== "approve" && body.decision !== "reject") return apiError(c, "INVALID_DECISION", "decision must be 'approve' or 'reject'", 400);
+
+    // Authorization: reviewerId must match the authenticated user
+    const authUserId = c.get("userId");
+    if (authUserId && authUserId !== String(body.reviewerId)) {
+      return apiError(c, "FORBIDDEN", "reviewerId must match the authenticated user", 403);
+    }
 
     let aiVerdict = null;
     try { const existing = getSubmissionById(String(body.submissionId)); if (existing) { const verdict = await reviewOrchestrator.review({ submissionId: existing.id, campaignId: existing.campaignId, userId: existing.userId, platformId: (existing.metadata as Record<string, unknown>)?.platformId ? String((existing.metadata as Record<string, unknown>).platformId) : "unknown", actionId: existing.actionId, proofUrl: existing.proofUrl, proofType: existing.proofType as "url" | "screenshot" | "video", metadata: (existing.metadata as Record<string, unknown>) ?? {} }); aiVerdict = { decision: verdict.decision, confidence: verdict.confidence, scores: verdict.scores, explanation: verdict.explanation }; } } catch { /* non-blocking */ }

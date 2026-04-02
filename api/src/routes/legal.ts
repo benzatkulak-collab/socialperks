@@ -1,10 +1,11 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { legalGuard } from "@lib/legal-compliance";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.get("/", rateLimit("relaxed"), requireAuth, (c) => {
   const businessType = c.req.query("businessType");

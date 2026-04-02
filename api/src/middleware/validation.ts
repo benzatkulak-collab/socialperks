@@ -1,9 +1,10 @@
 import { createMiddleware } from "hono/factory";
+import type { AppEnv } from "@api/env.js";
 
 /**
  * Require Content-Type: application/json on the request.
  */
-export const requireJson = createMiddleware(async (c, next) => {
+export const requireJson = createMiddleware<AppEnv>(async (c, next) => {
   const contentType = c.req.header("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     return c.json(
@@ -18,7 +19,7 @@ export const requireJson = createMiddleware(async (c, next) => {
  * Check that Content-Length does not exceed maxBytes.
  */
 export function maxBodySize(maxBytes: number = 1_048_576) {
-  return createMiddleware(async (c, next) => {
+  return createMiddleware<AppEnv>(async (c, next) => {
     const contentLength = c.req.header("content-length");
     if (contentLength && parseInt(contentLength, 10) > maxBytes) {
       return c.json(

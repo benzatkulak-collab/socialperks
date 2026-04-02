@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
@@ -8,7 +9,7 @@ import { tenantManager } from "@lib/multi-tenant";
 import type { TenantPlan } from "@lib/multi-tenant";
 import { logger } from "@lib/logging";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // POST /v1/billing — Subscription management
 app.post("/", rateLimit("standard"), requireAuth, async (c) => {
@@ -59,7 +60,14 @@ app.post("/", rateLimit("standard"), requireAuth, async (c) => {
 
 // POST /v1/billing/webhook — Stripe webhook handler (no auth, verified by signature)
 app.post("/webhook", async (c) => {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "whsec_demo_secret";
+  const webhookSecret = (() => {
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (secret) return secret;
+    if (process.env.NODE_ENV === "production") {
+      return ""; // Will fail signature verification (safe by default)
+    }
+    return "whsec_dev_only_secret";
+  })();
   try {
     const rawBody = await c.req.text();
     const signatureHeader = c.req.header("stripe-signature");

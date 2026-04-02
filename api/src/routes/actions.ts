@@ -1,9 +1,10 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { apiResponse, parsePagination, paginationMeta } from "../helpers.js";
 import { rateLimit } from "../middleware/rate-limit.js";
 import { ALL_ACTIONS as ACTIONS } from "@social-perks/shared/platforms";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.get("/", rateLimit("public"), (c) => {
   const params = c.req.query();

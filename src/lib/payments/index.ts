@@ -1811,9 +1811,15 @@ export class TaxReporter {
 
 /** Default Stripe configuration for development (mock). */
 const defaultStripeConfig: StripeConfig = {
-  secretKey: "sk_test_mock_development_key",
-  webhookSecret: "whsec_mock_development_secret",
-  platformAccountId: "acct_platform_mock",
+  secretKey: process.env.STRIPE_SECRET_KEY || (() => {
+    if (process.env.NODE_ENV === "production") throw new Error("FATAL: STRIPE_SECRET_KEY must be set in production");
+    return "sk_test_mock_development_key";
+  })(),
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || (() => {
+    if (process.env.NODE_ENV === "production") throw new Error("FATAL: STRIPE_WEBHOOK_SECRET must be set in production");
+    return "whsec_dev_only_mock_secret";
+  })(),
+  platformAccountId: process.env.STRIPE_PLATFORM_ACCOUNT_ID || "acct_platform_mock",
 };
 
 /** Shared financial ledger instance. */

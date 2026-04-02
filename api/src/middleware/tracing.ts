@@ -1,8 +1,9 @@
 import { createMiddleware } from "hono/factory";
 import { randomUUID } from "crypto";
+import type { AppEnv } from "@api/env.js";
 import { logger } from "@lib/logging/index.js";
 
-export const tracing = createMiddleware(async (c, next) => {
+export const tracing = createMiddleware<AppEnv>(async (c, next) => {
   const requestId = randomUUID();
   const startTime = performance.now();
   const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";

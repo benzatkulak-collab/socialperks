@@ -1,4 +1,5 @@
 import { createMiddleware } from "hono/factory";
+import type { AppEnv } from "@api/env.js";
 import { checkRateLimitAsync, rateLimitHeaders, type RateLimitTier } from "@lib/security/rate-limiter.js";
 
 /**
@@ -7,8 +8,14 @@ import { checkRateLimitAsync, rateLimitHeaders, type RateLimitTier } from "@lib/
  * Usage: app.use(rateLimit("standard"))
  */
 export function rateLimit(tier: RateLimitTier = "standard") {
-  return createMiddleware(async (c, next) => {
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  return createMiddleware<AppEnv>(async (c, next) => {
+    // Use the rightmost X-Forwarded-For entry (most likely set by trusted proxy),
+    // or fall back to direct connection info. Never trust the leftmost entry blindly.
+    const forwardedFor = c.req.header("x-forwarded-for");
+    const forwardedParts = forwardedFor?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+    const ip = forwardedParts.length > 0
+      ? forwardedParts[forwardedParts.length - 1]
+      : "unknown";
     const endpoint = c.req.path;
     const result = await checkRateLimitAsync(ip, endpoint, tier);
 

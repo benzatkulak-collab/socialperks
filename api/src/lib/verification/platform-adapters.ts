@@ -148,6 +148,7 @@ abstract class BaseAdapter implements PlatformAdapter {
           "Content-Type": "application/json",
           ...options?.headers,
         },
+        signal: AbortSignal.timeout(15_000), // 15s timeout to prevent hanging on external APIs
       });
 
       if (response.status === 429) {

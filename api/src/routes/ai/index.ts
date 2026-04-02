@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { AppEnv } from "@api/env.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
 import generate from "./generate.js";
@@ -7,7 +8,7 @@ import review from "./review.js";
 import campaignAgent from "./campaign-agent.js";
 import quickStart from "./quick-start.js";
 
-const ai = new Hono();
+const ai = new Hono<AppEnv>();
 
 // All AI routes require auth + standard rate limit
 ai.use("/*", requireAuth);

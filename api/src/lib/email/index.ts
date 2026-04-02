@@ -82,6 +82,7 @@ export class ResendEmailProvider implements EmailProvider {
           method: "POST",
           headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
           body: payload,
+          signal: AbortSignal.timeout(10_000), // 10s timeout to prevent hanging
         });
 
         if (response.ok) {

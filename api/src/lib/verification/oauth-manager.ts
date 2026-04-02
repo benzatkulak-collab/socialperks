@@ -474,6 +474,7 @@ export class OAuthManager {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(body).toString(),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
