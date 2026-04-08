@@ -182,7 +182,17 @@ export function SocialPerksApp() {
     setScreen(role);
   }, []);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch("/api/v1/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "logout" }),
+      });
+    } catch {
+      // Best-effort — clear local state regardless
+    }
     setCurrentUser(null);
     setUserRole(null);
     setScreen("landing");
@@ -249,7 +259,10 @@ export function SocialPerksApp() {
           />
         )}
         {screen === "enterprise" && (
-          <EnterprisePortal onLogout={handleLogout} />
+          <EnterprisePortal
+            onLogout={handleLogout}
+            businessId={currentBusiness?.id ?? null}
+          />
         )}
       </main>
     </ErrorBoundary>

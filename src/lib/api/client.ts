@@ -1,6 +1,36 @@
 import { API_ENDPOINTS } from "@/lib/shared/constants";
+import type { DiscountType, BusinessSize, CampaignTier } from "@/lib/types";
 
 interface ApiResponse<T> { success: boolean; data?: T; error?: { code: string; message: string }; pagination?: { page: number; perPage: number; total: number; totalPages: number; }; }
+
+/** Request body for POST /api/v1/campaigns */
+interface CreateCampaignRequest {
+  businessId: string;
+  name: string;
+  actions: string[];
+  discountValue: number;
+  discountType: DiscountType;
+  description?: string;
+  guidelines?: string;
+  maxCompletions?: number | null;
+  expiresInDays?: number;
+  useTiers?: boolean;
+  fromSuggestion?: string;
+  budgetCap?: number | null;
+  tags?: string[];
+  tier?: CampaignTier;
+  businessType?: string;
+  category?: string;
+}
+
+/** Request body for POST /api/v1/ai/recommend */
+interface RecommendationRequest {
+  businessType: string;
+  businessSize?: BusinessSize;
+  activeCampaigns?: string[];
+  completionHistory?: { campaignName: string; completions: number; category: string }[];
+  goals?: ("reviews" | "social-reach" | "referrals" | "engagement" | "brand-awareness")[];
+}
 
 class ApiClient {
   private baseUrl: string;
@@ -33,7 +63,7 @@ class ApiClient {
     try {
       const res = await this.fetchWithRetry(
         this.baseUrl + endpoint,
-        { headers: { "Content-Type": "application/json" }, ...options }
+        { headers: { "Content-Type": "application/json" }, credentials: "include", ...options }
       );
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -61,7 +91,7 @@ class ApiClient {
     return this.request(API_ENDPOINTS.campaigns + "?" + qs.toString());
   }
 
-  async createCampaign(data: Record<string, unknown>) {
+  async createCampaign(data: CreateCampaignRequest) {
     return this.request(API_ENDPOINTS.campaigns, { method: "POST", body: JSON.stringify(data) });
   }
 
@@ -98,7 +128,7 @@ class ApiClient {
     return this.request(API_ENDPOINTS.aiGenerate, { method: "POST", body: JSON.stringify({ businessType, businessSize }) });
   }
 
-  async getRecommendations(data: Record<string, unknown>) {
+  async getRecommendations(data: RecommendationRequest) {
     return this.request(API_ENDPOINTS.aiRecommend, { method: "POST", body: JSON.stringify(data) });
   }
 

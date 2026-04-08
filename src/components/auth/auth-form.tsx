@@ -11,8 +11,6 @@ import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 
 const DEFAULT_BUSINESS_AVATAR = "\uD83C\uDFEA";
 const DEFAULT_INFLUENCER_AVATAR = "\uD83C\uDFA4";
-const FORGOT_PASSWORD_DELAY = 800;
-
 export interface AuthFormProps {
   data: SeedData;
   save: (d: SeedData) => void;
@@ -50,6 +48,7 @@ export function AuthForm({
       const res = await fetch("/api/v1/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "login", email, password }),
       });
       const json = await res.json();
@@ -78,6 +77,7 @@ export function AuthForm({
       const pinRes = await fetch("/api/v1/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action: "login", email, pin: password }),
       });
       const pinJson = await pinRes.json();
@@ -111,6 +111,7 @@ export function AuthForm({
       const res = await fetch("/api/v1/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           action: "signup", email, password, name,
           role: signupRole === "business" ? "business" : "influencer",
@@ -149,8 +150,13 @@ export function AuthForm({
     if (!resetEmail) { setError("Email is required."); return; }
     setLoading(true);
     try {
-      // In production this would call a real password reset endpoint
-      await new Promise((resolve) => setTimeout(resolve, FORGOT_PASSWORD_DELAY));
+      await fetch("/api/v1/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "reset-password", email: resetEmail }),
+      });
+      // Always show success to prevent email enumeration
       setScreen("forgot-success");
     } catch {
       setError("Something went wrong. Please try again.");
@@ -224,8 +230,8 @@ export function AuthForm({
             </div>
 
             <div className="space-y-4">
-              <Field label="Email" value={email} onChange={setEmail} placeholder="you@yourbusiness.com" />
-              <Field label="Password" value={password} onChange={setPassword} type="password" placeholder="Your password" />
+              <Field label="Email" value={email} onChange={setEmail} placeholder="you@yourbusiness.com" type="email" required />
+              <Field label="Password" value={password} onChange={setPassword} type="password" placeholder="Your password" required />
             </div>
 
             <div className="flex justify-end mt-2">
@@ -290,7 +296,7 @@ export function AuthForm({
             </div>
 
             <div className="space-y-4">
-              <Field label="Email" value={resetEmail} onChange={setResetEmail} placeholder="you@yourbusiness.com" />
+              <Field label="Email" value={resetEmail} onChange={setResetEmail} placeholder="you@yourbusiness.com" type="email" required />
             </div>
 
             {inputSection}
@@ -408,12 +414,13 @@ export function AuthForm({
               value={name}
               onChange={setName}
               placeholder={signupRole === "business" ? "Maria's Coffee Shop" : "Your creator name"}
+              required
             />
             {signupRole === "business" && (
-              <Field label="Business Type" value={type} onChange={setType} placeholder="Coffee Shop, Yoga Studio, Salon..." />
+              <Field label="Business Type" value={type} onChange={setType} placeholder="Coffee Shop, Yoga Studio, Salon..." required />
             )}
-            <Field label="Email" value={email} onChange={setEmail} placeholder="you@email.com" />
-            <Field label="Password" value={password} onChange={setPassword} type="password" placeholder="At least 8 characters" />
+            <Field label="Email" value={email} onChange={setEmail} placeholder="you@email.com" type="email" required />
+            <Field label="Password" value={password} onChange={setPassword} type="password" placeholder="At least 8 characters" required minLength={8} />
           </div>
 
           {inputSection}

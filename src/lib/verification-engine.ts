@@ -6,10 +6,16 @@
  * integrate with real APIs in production; for now they simulate verification
  * with realistic confidence scores and delays.
  *
- * Fallback chain: API verification -> URL check -> Screenshot OCR -> Manual review
+ * Fallback chain: API verification -> URL check -> Screenshot Analysis -> Manual review
  *
  * Storage: in-memory Map for verification results.
  */
+
+import {
+  analyzeScreenshotUrl,
+  analyzeScreenshotBuffer,
+  type ScreenshotAnalysis,
+} from "./verification/screenshot-analyzer";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -952,55 +958,74 @@ class URLVerifier implements PlatformVerifier {
 
 class ScreenshotVerifier implements PlatformVerifier {
   readonly platformId = "_screenshot";
-  readonly platformName = "Screenshot OCR";
+  readonly platformName = "Screenshot Analysis";
 
   /**
-   * Screenshot verification using OCR.
+   * Screenshot verification using image analysis.
    *
-   * Production integration:
-   * - Tesseract.js for client-side OCR, or Google Cloud Vision / AWS Textract
-   * - Extract text from screenshot image
-   * - Match extracted text against expected content (business name, hashtags,
-   *   platform UI elements)
-   * - Check for tampering indicators (Photoshop metadata, inconsistent fonts)
+   * Analyzes image headers, EXIF metadata, dimensions, and file characteristics
+   * to determine screenshot authenticity. Uses the screenshot-analyzer module
+   * for real image inspection when a fetchable URL is provided, with graceful
+   * fallback to heuristic-based scoring.
    */
   async verify(submission: VerificationSubmission): Promise<VerificationResult> {
     const start = Date.now();
-    await simulateLatency(200, 600); // OCR is slower
 
     let confidence = 0;
     const details: Record<string, unknown> = {
-      method: "ocr_simulation",
-      ocrEngine: "Tesseract.js (planned) / Google Cloud Vision",
+      method: "screenshot_analysis",
     };
 
     if (submission.proofType === "screenshot") {
-      // Simulate OCR confidence based on proof URL (in production, would
-      // actually download and process the image)
-      const hasImageExtension = /\.(jpg|jpeg|png|webp|gif|bmp)($|\?)/i.test(
-        submission.proofUrl
-      );
+      // Try real image analysis if the proof URL is fetchable
+      let analysis: ScreenshotAnalysis | null = null;
 
-      if (hasImageExtension) {
-        confidence = 0.5;
-        details.imageFormat = "valid";
-        details.ocrConfidence = "medium";
-        details.note =
-          "Screenshot detected; simulated OCR — would extract text and match against business name, hashtags, platform UI";
-      } else if (/^https?:\/\//.test(submission.proofUrl)) {
-        // URL pointing to an image host (imgur, cloudinary, etc.)
-        confidence = 0.45;
-        details.imageFormat = "url_hosted";
-        details.ocrConfidence = "medium-low";
+      if (/^https?:\/\//.test(submission.proofUrl)) {
+        try {
+          analysis = await analyzeScreenshotUrl(submission.proofUrl);
+        } catch {
+          // Fallback to heuristic if fetch fails
+          analysis = null;
+        }
+      }
+
+      if (analysis && analysis.isValid) {
+        // Use real analysis confidence
+        confidence = analysis.confidence;
+        details.analysisMethod = "image_inspection";
+        details.fileType = analysis.fileType;
+        details.dimensions = analysis.dimensions;
+        details.fileSize = analysis.fileSize;
+        details.checks = analysis.checks;
+        details.warnings = analysis.warnings;
+        details.platformIndicators = analysis.platformIndicators;
       } else {
-        confidence = 0.2;
-        details.imageFormat = "unknown";
-        details.ocrConfidence = "low";
+        // Fallback: heuristic scoring based on URL patterns
+        const hasImageExtension = /\.(jpg|jpeg|png|webp|gif|bmp)($|\?)/i.test(
+          submission.proofUrl
+        );
+
+        if (hasImageExtension) {
+          confidence = 0.5;
+          details.imageFormat = "valid";
+          details.note =
+            "Screenshot URL detected; full image analysis unavailable";
+        } else if (/^https?:\/\//.test(submission.proofUrl)) {
+          confidence = 0.45;
+          details.imageFormat = "url_hosted";
+        } else {
+          confidence = 0.2;
+          details.imageFormat = "unknown";
+        }
+
+        if (analysis && !analysis.isValid) {
+          details.analysisWarnings = analysis.warnings;
+        }
       }
 
       // Platform context gives a small boost if we know what UI to expect
       const platformBoosts: Record<string, number> = {
-        ig: 0.08, // Instagram UI is distinctive
+        ig: 0.08,
         tt: 0.07,
         go: 0.06,
         fb: 0.05,
@@ -1011,10 +1036,8 @@ class ScreenshotVerifier implements PlatformVerifier {
       const boost = platformBoosts[submission.platformId] ?? 0;
       confidence = Math.min(1, confidence + boost);
     } else {
-      // Not a screenshot — this verifier shouldn't be the primary,
-      // but can still provide some baseline
       confidence = 0.2;
-      details.note = "Non-screenshot proof type — OCR not applicable";
+      details.note = "Non-screenshot proof type — image analysis not applicable";
     }
 
     const durationMs = Date.now() - start;
@@ -1034,6 +1057,13 @@ class ScreenshotVerifier implements PlatformVerifier {
 
   isAvailable(): boolean {
     return true;
+  }
+
+  /**
+   * Analyze a screenshot buffer directly (for use outside the verify flow).
+   */
+  async analyzeBuffer(buffer: Buffer, filename?: string): Promise<ScreenshotAnalysis> {
+    return analyzeScreenshotBuffer(buffer, filename);
   }
 }
 

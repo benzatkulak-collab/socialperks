@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { SWRegister } from "@/components/shared/sw-register";
+import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -41,6 +43,7 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -89,7 +92,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
+        <SWRegister />
         {children}
+        <OfflineIndicator />
       </body>
     </html>
   );

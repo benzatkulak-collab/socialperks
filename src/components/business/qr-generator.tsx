@@ -13,6 +13,16 @@ interface QRGeneratorProps {
   campaigns: CampaignOption[];
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function getCampaignUrl(campaignId: string): string {
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://socialperks.io";
+  return `${origin}/c/${campaignId}`;
+}
+
 // ─── QR Matrix Generator ────────────────────────────────────────────────────
 
 function hashString(str: string): number {
@@ -140,8 +150,20 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>(
     campaigns[0]?.id ?? ""
   );
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
+  const campaignUrl = selectedCampaign
+    ? getCampaignUrl(selectedCampaign.id)
+    : "";
+
+  const handleCopyLink = useCallback(() => {
+    if (!campaignUrl) return;
+    navigator.clipboard.writeText(campaignUrl).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  }, [campaignUrl]);
 
   const handleDownloadPNG = useCallback(() => {
     if (!selectedCampaign) return;
@@ -187,11 +209,12 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
       <div className="bg-brand-surface border border-brand-border rounded-lg p-6">
         {/* Campaign Selector */}
         <div className="mb-6">
-          <label className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
+          <label htmlFor="qr-campaign-select" className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
             Select Campaign
           </label>
           {campaigns.length > 0 ? (
             <select
+              id="qr-campaign-select"
               value={selectedCampaignId}
               onChange={(e) => setSelectedCampaignId(e.target.value)}
               className="font-body text-sm px-3.5 py-2.5 rounded-md border border-brand-border bg-brand-bg text-brand-text w-full max-w-sm outline-none transition-all focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40 appearance-none cursor-pointer"
@@ -214,7 +237,7 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
           {selectedCampaign ? (
             <div className="flex flex-col items-center">
               <div data-qr-svg="">
-                <QRCodeSVG name={selectedCampaign.name} size={256} />
+                <QRCodeSVG name={campaignUrl} size={256} />
               </div>
               <span className="text-xs text-brand-muted font-body text-center mt-3">
                 QR code for{" "}
@@ -222,9 +245,20 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
                   {selectedCampaign.name}
                 </span>
               </span>
-              <span className="text-3xs text-brand-dim font-body mt-1">
-                socialperks.io/c/{selectedCampaign.id}
-              </span>
+
+              {/* Campaign URL (prominent + copy) */}
+              <div className="mt-3 flex items-center gap-2 bg-brand-bg border border-brand-border rounded-lg px-3 py-2 max-w-sm w-full">
+                <span className="text-xs text-brand-cyan font-mono truncate flex-1">
+                  {campaignUrl}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="shrink-0 text-2xs font-semibold px-2.5 py-1 rounded-md border border-brand-border bg-brand-elevated text-brand-text hover:border-brand-border-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+                >
+                  {linkCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="w-64 h-64 border-2 border-dashed border-brand-border rounded-xl flex flex-col items-center justify-center bg-brand-elevated/50">

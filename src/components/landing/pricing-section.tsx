@@ -206,7 +206,7 @@ export function PricingSection() {
 
                 {/* CTA */}
                 <a
-                  href="#signup"
+                  href="/dashboard#signup"
                   className={`block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                     tier.popular
                       ? "bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 hover:shadow-md hover:shadow-brand-cyan/20 focus-visible:ring-brand-cyan/50"

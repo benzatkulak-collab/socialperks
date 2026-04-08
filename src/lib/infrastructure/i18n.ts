@@ -718,7 +718,7 @@ export class I18nFormatter {
         return `${dayNames[d.getDay()]}, ${monthNames[month]} ${day}, ${year}`;
 
       default: {
-        const _exhaustive: never = style;
+        style satisfies never;
         return `${pad2(month + 1)}/${pad2(day)}/${year}`;
       }
     }

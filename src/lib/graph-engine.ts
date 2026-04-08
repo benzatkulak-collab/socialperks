@@ -78,9 +78,6 @@ class SocialGraph {
   private edges: GraphEdge[] = [];
   /** Adjacency list: nodeId -> edges connected to that node (in or out). */
   private adjacency: Map<string, GraphEdge[]> = new Map();
-  private readonly maxNodes = 100_000;
-  private readonly maxEdges = 500_000;
-
   // ── Node Operations ─────────────────────────────────────────────────────
 
   /** Add a node to the graph. If a node with the same ID exists, it is overwritten. */

@@ -14,6 +14,7 @@ interface FieldProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  minLength?: number;
 }
 
 export function Field({
@@ -28,6 +29,7 @@ export function Field({
   required = false,
   disabled = false,
   className = "",
+  minLength,
 }: FieldProps) {
   const id = useId();
   const errorId = error ? `${id}-error` : undefined;
@@ -65,6 +67,7 @@ export function Field({
           placeholder={placeholder}
           rows={4}
           disabled={disabled}
+          required={required}
           className={`${inputClasses} resize-y min-h-[80px]`}
           aria-invalid={!!error}
           aria-describedby={describedBy}
@@ -78,6 +81,8 @@ export function Field({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
+          required={required}
+          minLength={minLength}
           className={inputClasses}
           aria-invalid={!!error}
           aria-describedby={describedBy}

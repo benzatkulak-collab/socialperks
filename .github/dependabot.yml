@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────
+# Dependabot Configuration — Automated Dependency Updates
+# ─────────────────────────────────────────────────────────────
+
+version: 2
+
+updates:
+  # ── npm Dependencies ─────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 10
+    reviewers:
+      - benzatkulak
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: "deps"
+      include: scope
+    groups:
+      # Group all minor and patch updates into a single PR
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
+      # Keep major updates as individual PRs for review
+    ignore:
+      # Ignore major version bumps for core framework (review manually)
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # ── GitHub Actions ───────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+      - automated
+    commit-message:
+      prefix: "ci"
+      include: scope
+    groups:
+      actions-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
+
+  # ── Docker ───────────────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - docker
+      - automated
+    commit-message:
+      prefix: "docker"

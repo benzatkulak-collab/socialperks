@@ -3,7 +3,7 @@
 // Real vector store, embedding generator, and similarity-based matching
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { PLATFORMS, ALL_ACTIONS, ACTION_CATEGORIES, findAction } from "../platforms";
+import { PLATFORMS, findAction } from "../platforms";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -32,7 +32,6 @@ const TIER_INDEX: Record<string, number> = {
   high_impact: 3,
   premium: 4,
 };
-const NUM_TIERS = 5;
 
 const NICHE_INDEX: Record<string, number> = {
   food: 0, fitness: 1, beauty: 2, fashion: 3, travel: 4,

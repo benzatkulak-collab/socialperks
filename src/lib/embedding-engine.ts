@@ -248,8 +248,6 @@ const TIER_INDEX: Record<string, number> = {
   high_impact: 3,
   premium: 4,
 };
-const NUM_TIERS = 5;
-
 /** Business size to numeric value. */
 const SIZE_VALUE: Record<string, number> = {
   solo: 0.2,

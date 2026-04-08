@@ -11,7 +11,6 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { PLATFORMS, ALL_ACTIONS, findAction, findPlatform } from "./platforms";
-import type { Action } from "./types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

@@ -3,8 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
   async rewrites() {
-    // Proxy API requests to the Hono API service in development
-    const apiUrl = process.env.API_URL || "http://localhost:4000";
+    // Only proxy to external API service when API_URL is explicitly set.
+    // Otherwise use the built-in Next.js API routes in app/api/v1/.
+    const apiUrl = process.env.API_URL;
+    if (!apiUrl) return [];
     return [
       {
         source: "/api/v1/:path*",

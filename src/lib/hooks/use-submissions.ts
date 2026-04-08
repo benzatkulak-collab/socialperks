@@ -27,7 +27,7 @@ export function useSubmissions(userId: string) {
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/v1/submissions?userId=${encodeURIComponent(userId)}`, { signal: controller.signal });
+      const res = await fetch(`/api/v1/submissions?userId=${encodeURIComponent(userId)}`, { signal: controller.signal, credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       const json = await res.json();
       if (controller.signal.aborted) return;
@@ -44,8 +44,7 @@ export function useSubmissions(userId: string) {
   useEffect(() => {
     refresh();
     return () => { abortRef.current?.abort(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [refresh]);
 
   const addOptimistic = useCallback((sub: Submission) => {
     setSubmissions(prev => [sub, ...prev]);

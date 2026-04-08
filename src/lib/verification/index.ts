@@ -7,6 +7,29 @@
  * This is the single entry point for all verification operations.
  */
 
+export { checkProofUrl, detectPlatform, isValidHttpsUrl } from "./url-checker";
+export type { UrlCheckResult } from "./url-checker";
+
+export {
+  analyzeScreenshotUrl,
+  analyzeScreenshotBuffer,
+  detectPlatformFromFilename,
+  validateImageHeaders,
+  extractImageMetadata,
+  detectManipulation,
+} from "./screenshot-analyzer";
+export type { ScreenshotAnalysis, PlatformIndicator } from "./screenshot-analyzer";
+
+export {
+  getImageType,
+  getPngDimensions,
+  getJpegDimensions,
+  getJpegExif,
+  detectUniformBlocks,
+  detectMultipleHeaders,
+} from "./image-parser";
+export type { ImageType, ExifData } from "./image-parser";
+
 export { OAuthManager, oauthManager } from "./oauth-manager";
 export type { OAuthConfig, OAuthToken, TokenExchangeRequest, TokenRefreshResult, TokenStore } from "./oauth-manager";
 

@@ -172,10 +172,6 @@ function daysBetween(a: Date, b: Date): number {
   return Math.abs(b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24);
 }
 
-function minutesBetween(a: Date, b: Date): number {
-  return Math.abs(b.getTime() - a.getTime()) / (1000 * 60);
-}
-
 /** Sigmoid function for logistic regression. */
 function sigmoid(x: number): number {
   // Clamp to avoid overflow

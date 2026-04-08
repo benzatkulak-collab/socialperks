@@ -21,7 +21,7 @@ export function useBusinessDashboard(businessId: string) {
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`, { signal: controller.signal });
+      const res = await fetch(`/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`, { signal: controller.signal, credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       const json = await res.json();
       if (controller.signal.aborted) return;
@@ -42,14 +42,12 @@ export function useBusinessDashboard(businessId: string) {
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId]);
 
   useEffect(() => {
     refresh();
     return () => { abortRef.current?.abort(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [businessId]);
+  }, [refresh]);
 
   return { stats, loading, refresh };
 }

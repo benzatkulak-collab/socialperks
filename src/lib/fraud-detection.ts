@@ -346,7 +346,7 @@ export function checkAccountAge(
  * Check if a user is reviewing their own business.
  */
 function checkSelfReview(
-  userId: string,
+  _userId: string,
   businessId: string,
   ownedBusinessIds: readonly string[]
 ): boolean {

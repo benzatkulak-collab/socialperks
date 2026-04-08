@@ -80,7 +80,7 @@ const SORT_OPTIONS = [
 
 // ═══════════════ Component ═══════════════
 
-export default function CampaignDiscovery({ campaigns, influencer }: CampaignDiscoveryProps) {
+export default function CampaignDiscovery({ campaigns, influencer: _influencer }: CampaignDiscoveryProps) {
   const [search, setSearch] = useState("");
   const [businessTypeFilter, setBusinessTypeFilter] = useState("All");
   const [platformFilter, setPlatformFilter] = useState("all");

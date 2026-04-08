@@ -110,12 +110,6 @@ class SyncEngine {
    */
   private transport: SyncTransportFn | null = null;
 
-  /**
-   * Optional server fetch function. When set, conflict detection can
-   * pull the latest server version for comparison.
-   */
-  private serverFetch: ServerFetchFn | null = null;
-
   /** Promise-based mutex to prevent concurrent sync runs. */
   private syncLock: Promise<void> = Promise.resolve();
 
@@ -142,8 +136,8 @@ class SyncEngine {
   }
 
   /** Register a function for fetching server state (used in conflict detection). */
-  setServerFetch(fn: ServerFetchFn): void {
-    this.serverFetch = fn;
+  setServerFetch(_fn: ServerFetchFn): void {
+    // Will be wired up when conflict detection reads from the server
   }
 
   // ── Queue Operations ────────────────────────────────────────────────────

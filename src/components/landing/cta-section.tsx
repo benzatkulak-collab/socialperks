@@ -44,7 +44,7 @@ export function CtaSection() {
         <AnimateOnScroll animation="fade-up" delay={200}>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:mt-12">
             <a
-              href="#signup"
+              href="/dashboard#signup"
               className="w-full sm:w-auto rounded-xl bg-brand-cyan px-10 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0"
             >
               Create Your First Campaign

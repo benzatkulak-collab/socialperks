@@ -1418,9 +1418,6 @@ class UsageTracker {
     const startDate = new Date(reportYear, reportMonth - 1, 1);
     const endDate = new Date(reportYear, reportMonth, 1);
 
-    const after = startDate.toISOString();
-    const before = endDate.toISOString();
-
     const tenantEvents = this.events.filter((e) => {
       if (e.tenantId !== tenantId) return false;
       const ts = new Date(e.timestamp).getTime();

@@ -7,29 +7,17 @@ import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Tabs } from "@/components/ui/tabs";
 import { Logo } from "@/components/ui/logo";
-import { AgentTicker } from "@/components/shared/agent-ticker";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { formatNumber } from "@/lib/shared/formatters";
 import { PLATFORMS } from "@/lib/platforms";
-import { useSubmissions, type Submission } from "@/lib/hooks/use-submissions";
+import { useSubmissions } from "@/lib/hooks/use-submissions";
 import type { SeedData, SeedInfluencer } from "@/lib/seed";
-
-interface MarketplaceCampaign {
-  id: string;
-  businessId: string;
-  businessName: string;
-  businessType: string;
-  businessAvatar: string;
-  campaignName: string;
-  description: string;
-  perkValue: number;
-  perkType: "pct" | "dol";
-  platform: string;
-  platformIcon: string;
-  actionId: string;
-  actionsRequired: string[];
-  effortLevel: number;
-}
+import { type MarketplaceCampaign, TIER_COLORS, buildMarketplaceCampaigns } from "@/components/influencer/marketplace-utils";
+import { SubmissionModal } from "@/components/influencer/submission-modal";
+import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
+import { DashboardSkeleton, EarningsSkeleton } from "@/components/ui/portal-skeletons";
+import { PerkWallet } from "@/components/influencer/perk-wallet";
+import { NotificationCenter } from "@/components/shared/notification-center";
 
 interface SubmissionEntry {
   id: string;
@@ -42,192 +30,6 @@ interface SubmissionEntry {
   status: "pending" | "approved" | "rejected";
   submittedAt: string;
   perkValue?: number;
-}
-
-// ─── Constants outside component ─────────────────────────────────────────
-
-const TIER_COLORS: Record<string, string> = {
-  micro: "#22D3EE",
-  mid: "#A78BFA",
-  macro: "#FBBF24",
-  mega: "#F472B6",
-};
-
-const PLATFORM_MAP: Record<string, { name: string; icon: string; actionId: string; action: string; effort: number }> = {
-  ig: { name: "Instagram", icon: "\uD83D\uDCF8", actionId: "ig_rl", action: "Reel", effort: 3 },
-  tt: { name: "TikTok", icon: "\uD83C\uDFAC", actionId: "tt_vd", action: "Video", effort: 3 },
-  ggl: { name: "Google", icon: "\uD83C\uDF10", actionId: "ggl_rv", action: "Review", effort: 1 },
-  yt: { name: "YouTube", icon: "\uD83D\uDCFA", actionId: "yt_sh", action: "Short", effort: 3 },
-  yelp: { name: "Yelp", icon: "\u2B50", actionId: "yelp_rv", action: "Review", effort: 1 },
-  fb: { name: "Facebook", icon: "\uD83D\uDC4D", actionId: "fb_ps", action: "Post", effort: 2 },
-};
-
-const PLATFORM_KEYS = Object.keys(PLATFORM_MAP);
-
-function buildMarketplaceCampaigns(data: SeedData): MarketplaceCampaign[] {
-  const businesses = (data.businesses ?? []).slice(0, 8); // Show first 8 businesses
-  const campaigns: MarketplaceCampaign[] = [];
-
-  businesses.forEach((biz, idx) => {
-    // Each business gets 1-2 campaigns
-    const pk1 = PLATFORM_KEYS[idx % PLATFORM_KEYS.length];
-    const p1 = PLATFORM_MAP[pk1];
-    campaigns.push({
-      id: `mkt-${biz.id}-1`,
-      businessId: biz.id,
-      businessName: biz.name,
-      businessType: biz.type,
-      businessAvatar: biz.avatar,
-      campaignName: `${p1.action} for ${biz.name}`,
-      description: `Share your experience at ${biz.name} with a ${p1.name} ${p1.action.toLowerCase()}.`,
-      perkValue: 15 + (idx % 3) * 5,
-      perkType: "pct",
-      platform: p1.name,
-      platformIcon: p1.icon,
-      actionId: p1.actionId,
-      actionsRequired: [p1.action],
-      effortLevel: p1.effort,
-    });
-    if (idx < 5) {
-      const pk2 = PLATFORM_KEYS[(idx + 3) % PLATFORM_KEYS.length];
-      const p2 = PLATFORM_MAP[pk2];
-      campaigns.push({
-        id: `mkt-${biz.id}-2`,
-        businessId: biz.id,
-        businessName: biz.name,
-        businessType: biz.type,
-        businessAvatar: biz.avatar,
-        campaignName: `${p2.action} Campaign — ${biz.name}`,
-        description: `Leave a ${p2.action.toLowerCase()} on ${p2.name} about your visit to ${biz.name}.`,
-        perkValue: 10 + (idx % 4) * 5,
-        perkType: idx % 2 === 0 ? "pct" : "dol",
-        platform: p2.name,
-        platformIcon: p2.icon,
-        actionId: p2.actionId,
-        actionsRequired: [p2.action],
-        effortLevel: p2.effort,
-      });
-    }
-  });
-
-  return campaigns;
-}
-
-// ═══════════════ Submission Modal ═══════════════
-
-function SubmissionModal({
-  campaign,
-  onSubmit,
-  onClose,
-}: {
-  campaign: MarketplaceCampaign;
-  onSubmit: (proofUrl: string, proofType: string, notes: string) => void;
-  onClose: () => void;
-}) {
-  const [proofUrl, setProofUrl] = useState("");
-  const [proofType, setProofType] = useState("url");
-  const [notes, setNotes] = useState("");
-  const [error, setError] = useState("");
-
-  const handleSubmit = useCallback(() => {
-    if (!proofUrl.trim()) {
-      setError("Please provide a proof URL.");
-      return;
-    }
-    onSubmit(proofUrl, proofType, notes);
-  }, [proofUrl, proofType, notes, onSubmit]);
-
-  const handleProofUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setProofUrl(e.target.value);
-    setError("");
-  }, []);
-
-  const handleProofTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setProofType(e.target.value);
-  }, []);
-
-  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNotes(e.target.value);
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Submit proof">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-brand-surface border border-brand-border rounded-xl p-6 animate-fade-up">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-md text-brand-muted hover:text-brand-text hover:bg-brand-elevated transition-colors text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
-          aria-label="Close modal"
-        >
-          &times;
-        </button>
-        <h2 className="text-lg font-bold text-brand-text mb-1">Submit Proof</h2>
-        <p className="text-xs text-brand-dim mb-4">
-          {campaign.platformIcon} {campaign.campaignName}
-        </p>
-
-        <div className="bg-brand-elevated/50 rounded-lg p-3 mb-4">
-          <div className="text-xs text-brand-muted mb-1">Requirements</div>
-          <div className="text-xs text-brand-text">
-            {campaign.description}
-          </div>
-          <div className="flex gap-2 mt-2">
-            {campaign.actionsRequired.map((a) => (
-              <span key={a} className="px-2 py-0.5 rounded bg-brand-cyan/10 text-brand-cyan text-3xs font-semibold">{a}</span>
-            ))}
-          </div>
-          <div className="text-xs text-brand-green mt-2 font-semibold">
-            Perk: {campaign.perkValue}{campaign.perkType === "pct" ? "% off" : " dollars"}
-          </div>
-        </div>
-
-        <div className="space-y-3 mb-4">
-          <div>
-            <label className="block text-xs font-semibold text-brand-dim mb-1">Proof URL</label>
-            <input
-              type="url"
-              placeholder="https://instagram.com/p/..."
-              value={proofUrl}
-              onChange={handleProofUrlChange}
-              className="w-full px-3 py-2 rounded-md border border-brand-border bg-brand-bg text-brand-text text-sm font-body outline-none focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40 transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-brand-dim mb-1">Proof Type</label>
-            <select
-              value={proofType}
-              onChange={handleProofTypeChange}
-              className="w-full px-3 py-2 rounded-md border border-brand-border bg-brand-bg text-brand-text text-sm font-body outline-none focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40 cursor-pointer appearance-none"
-            >
-              <option value="url">URL</option>
-              <option value="screenshot">Screenshot</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-brand-dim mb-1">Notes (optional)</label>
-            <textarea
-              placeholder="Any additional context about your submission..."
-              value={notes}
-              onChange={handleNotesChange}
-              rows={3}
-              className="w-full px-3 py-2 rounded-md border border-brand-border bg-brand-bg text-brand-text text-sm font-body outline-none focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40 transition-all resize-none"
-            />
-          </div>
-        </div>
-
-        {error && <div className="text-xs text-brand-red mb-3" role="alert" aria-live="polite">{error}</div>}
-
-        <div className="flex gap-3">
-          <Button fullWidth onClick={handleSubmit}>
-            Submit Proof
-          </Button>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ═══════════════ Influencer Portal ═══════════════
@@ -247,7 +49,7 @@ export function InfluencerPortal({
 }: InfluencerPortalProps) {
   const [page, setPage] = useState<string>("dashboard");
   const [appliedCampaigns, setAppliedCampaigns] = useState<Set<string>>(new Set());
-  const { submissions: serverSubmissions, addOptimistic, refresh: refreshSubmissions } = useSubmissions(influencer.id);
+  const { submissions: serverSubmissions, loading: submissionsLoading, addOptimistic, refresh: refreshSubmissions } = useSubmissions(influencer.id);
   const submissions: SubmissionEntry[] = useMemo(() => serverSubmissions.map(s => ({
     id: s.id,
     campaignId: s.campaignId,
@@ -260,6 +62,12 @@ export function InfluencerPortal({
     submittedAt: s.submittedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
     perkValue: s.perkValue,
   })), [serverSubmissions]);
+
+  // Extract auth token from cookie for SSE notifications
+  const authToken = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return document.cookie.match(/sp-access-token=([^;]+)/)?.[1] ?? null;
+  }, []);
 
   const [showSubmitModal, setShowSubmitModal] = useState<MarketplaceCampaign | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
@@ -297,7 +105,7 @@ export function InfluencerPortal({
     let cancelled = false;
     async function fetchCampaigns() {
       try {
-        const res = await fetch("/api/v1/campaigns?status=active");
+        const res = await fetch("/api/v1/campaigns?status=active", { credentials: "include" });
         if (!res.ok) return;
         const json = await res.json();
         const campaigns = json.data?.campaigns ?? [];
@@ -346,12 +154,18 @@ export function InfluencerPortal({
     return Array.from(set).sort();
   }, [marketplaceCampaigns]);
 
+  const walletAvailableBalance = useMemo(
+    () => submissions.filter(s => s.status === "approved").reduce((sum, s) => sum + (s.perkValue || 0), 0),
+    [submissions]
+  );
+
   const portalTabs = useMemo(() => [
     { id: "dashboard", label: "Dashboard" },
     { id: "discover", label: "Discover", count: marketplaceCampaigns.length },
     { id: "earnings", label: "Earnings", count: submissions.length || undefined },
+    { id: "wallet", label: "Wallet", count: walletAvailableBalance > 0 ? walletAvailableBalance : undefined },
     { id: "profile", label: "Profile" },
-  ], [marketplaceCampaigns.length, submissions.length]);
+  ], [marketplaceCampaigns.length, submissions.length, walletAvailableBalance]);
 
   // Memoized computed stats
   const totalEarned = useMemo(
@@ -410,6 +224,7 @@ export function InfluencerPortal({
       await fetch("/api/v1/submissions", {
         method: "POST",
         signal: controller.signal,
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: campaign.id,
@@ -526,6 +341,7 @@ export function InfluencerPortal({
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-brand-dim hidden sm:block">{influencer.avatar} {influencer.displayName}</span>
+            <NotificationCenter token={authToken} />
             <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
           </div>
         </div>
@@ -549,6 +365,8 @@ export function InfluencerPortal({
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {page === "dashboard" && (
+          <SectionErrorBoundary section="Dashboard">
+          {submissionsLoading ? <DashboardSkeleton /> : (
           <div className="animate-fade-up">
             <h1 className="font-heading text-2xl italic mb-1 sm:text-3xl">
               Hey, <span className="text-brand-pink">{influencer.displayName}</span>
@@ -590,9 +408,12 @@ export function InfluencerPortal({
             </Card>
             </AnimateOnScroll>
           </div>
+          )}
+          </SectionErrorBoundary>
         )}
 
         {page === "discover" && (
+          <SectionErrorBoundary section="Discover">
           <div className="animate-fade-up">
             <h1 className="font-heading text-2xl italic mb-1 sm:text-3xl">Discover Campaigns</h1>
             <p className="text-sm text-brand-dim mb-4 sm:mb-6">
@@ -688,9 +509,12 @@ export function InfluencerPortal({
               )}
             </div>
           </div>
+          </SectionErrorBoundary>
         )}
 
         {page === "earnings" && (
+          <SectionErrorBoundary section="Earnings">
+          {submissionsLoading ? <EarningsSkeleton /> : (
           <div className="animate-fade-up">
             <h1 className="font-heading text-2xl italic mb-1 sm:text-3xl">Earnings &amp; Submissions</h1>
             <p className="text-sm text-brand-dim mb-6 sm:mb-8">Track your submissions and income</p>
@@ -765,11 +589,13 @@ export function InfluencerPortal({
                     {/* Inline dispute form */}
                     {disputeId === sub.id && (
                       <div className="mt-3 pt-3 border-t border-brand-border animate-fade-up">
-                        <label className="block text-xs font-semibold text-brand-dim mb-1">Reason for dispute</label>
+                        <label htmlFor="dispute-reason" className="block text-xs font-semibold text-brand-dim mb-1">Reason for dispute</label>
                         <textarea
+                          id="dispute-reason"
                           value={disputeReason}
                           onChange={handleDisputeReasonChange}
                           rows={2}
+                          required
                           placeholder="Explain why you think this rejection was incorrect..."
                           className="w-full px-3 py-2 rounded-md border border-brand-border bg-brand-bg text-brand-text text-xs outline-none focus:border-brand-cyan transition-colors resize-none"
                         />
@@ -788,9 +614,18 @@ export function InfluencerPortal({
               </div>
             )}
           </div>
+          )}
+          </SectionErrorBoundary>
+        )}
+
+        {page === "wallet" && (
+          <SectionErrorBoundary section="Wallet">
+            <PerkWallet influencerId={influencer.id} influencerName={influencer.displayName} />
+          </SectionErrorBoundary>
         )}
 
         {page === "profile" && (
+          <SectionErrorBoundary section="Profile">
           <div className="animate-fade-up">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -803,7 +638,7 @@ export function InfluencerPortal({
             </div>
 
             {profileSaved && (
-              <div className="bg-brand-green/10 border border-brand-green/30 rounded-lg px-4 py-2.5 text-sm text-brand-green font-medium mb-4" role="status">
+              <div className="bg-brand-green/10 border border-brand-green/30 rounded-lg px-4 py-2.5 text-sm text-brand-green font-medium mb-4" role="status" aria-live="polite">
                 Profile updated successfully.
               </div>
             )}
@@ -817,8 +652,9 @@ export function InfluencerPortal({
                 {editingProfile ? (
                   <div className="mt-3 space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-brand-dim mb-1">Bio</label>
+                      <label htmlFor="edit-bio" className="block text-xs font-semibold text-brand-dim mb-1">Bio</label>
                       <textarea
+                        id="edit-bio"
                         value={editBio}
                         onChange={(e) => setEditBio(e.target.value)}
                         rows={3}
@@ -827,8 +663,9 @@ export function InfluencerPortal({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-brand-dim mb-1">Location</label>
+                      <label htmlFor="edit-location" className="block text-xs font-semibold text-brand-dim mb-1">Location</label>
                       <input
+                        id="edit-location"
                         type="text"
                         value={editLocation}
                         onChange={(e) => setEditLocation(e.target.value)}
@@ -882,6 +719,7 @@ export function InfluencerPortal({
               </Card>
             </div>
           </div>
+          </SectionErrorBoundary>
         )}
       </div>
 

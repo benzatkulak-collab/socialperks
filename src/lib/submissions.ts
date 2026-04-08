@@ -16,9 +16,7 @@ import type {
   DiscountType,
 } from "./types";
 import { findAction, FOLLOWER_TIERS } from "./platforms";
-import { checkSubmission, type FraudCheck, type FraudSignal } from "./fraud-detection";
 import { emitSubmissionEvent } from "./events";
-import { verificationEngine } from "./verification-engine";
 import { pluginManager } from "./plugin-system";
 
 // ─── In-Memory Store ─────────────────────────────────────────────────────────

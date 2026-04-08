@@ -1,0 +1,174 @@
+/**
+ * POST /api/v1/submissions/review — Approve or reject a submission
+ */
+
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import {
+  ok,
+  err,
+  rateLimit,
+  parseBody,
+  withTiming,
+} from "../../_shared";
+import { withTenant, checkResourceAccess } from "../../_tenant";
+import { reviewSubmission, calculatePerkValue } from "@/lib/submissions";
+import { awardPerk } from "@/lib/perk-wallet";
+import { campaignManager } from "@/lib/campaign-state-machine";
+import { validateId, validateString, validateEnum } from "@/lib/security/validate";
+import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
+import type { LaunchedCampaign } from "@/lib/types";
+import { eventPublisher } from "@/lib/realtime/publisher";
+import {
+  checkCompletionLimit,
+  recordCompletion,
+  getBusinessPlan,
+  buildPlanLimitError,
+} from "@/lib/billing/enforcement";
+
+// ─── POST ───────────────────────────────────────────────────────────────────
+
+export const POST = withTiming(async (req: NextRequest) => {
+  // Auth + tenant isolation
+  const tenantResult = withTenant(req);
+  if (tenantResult instanceof NextResponse) return tenantResult;
+  const { tenant } = tenantResult;
+
+  // Rate limit — standard
+  const limited = rateLimit(req, "standard");
+  if (limited) return limited;
+
+  // Parse body
+  const body = await parseBody<{
+    submissionId?: string;
+    reviewerId?: string;
+    decision?: string;
+    note?: string;
+    campaign?: LaunchedCampaign;
+    followerCount?: number;
+    submitterEmail?: string;
+    submitterName?: string;
+  }>(req);
+  if (body instanceof Response) return body;
+
+  // Validate submissionId
+  const sv = validateId(body.submissionId);
+  if (!sv.success) return err("INVALID_SUBMISSION_ID", sv.error, 400);
+
+  // Validate reviewerId
+  const rv = validateId(body.reviewerId);
+  if (!rv.success) return err("INVALID_REVIEWER_ID", rv.error, 400);
+
+  // Validate decision
+  const dv = validateEnum(body.decision, "decision", ["approve", "reject"] as const);
+  if (!dv.success) return err("INVALID_DECISION", dv.error, 400);
+
+  // Optional: validate note
+  if (body.note !== undefined) {
+    const nv = validateString(body.note, "note", { max: 1000 });
+    if (!nv.success) return err("INVALID_NOTE", nv.error, 400);
+  }
+
+  // Tenant isolation: verify the reviewer's tenant owns the campaign
+  // associated with this submission
+  if (body.campaign?.businessId) {
+    const accessDenied = checkResourceAccess(tenant, body.campaign.businessId);
+    if (accessDenied) return accessDenied;
+  }
+
+  // Perform the review
+  const result = await reviewSubmission(
+    sv.data,
+    rv.data,
+    dv.data as "approve" | "reject",
+    body.note
+  );
+
+  if (!result.success) {
+    const status = result.error!.code === "NOT_FOUND" ? 404 : 400;
+    return err(result.error!.code, result.error!.message, status);
+  }
+
+  const submission = result.data!;
+
+  // If approving and campaign data is provided, calculate and award perk
+  let perk = null;
+  if (dv.data === "approve" && body.campaign) {
+    const campaign = body.campaign;
+    const followerCount = body.followerCount ?? 0;
+
+    // ── Plan enforcement: completion limit ──────────────────────────────────
+    const completionBusinessId = campaign.businessId;
+    const completionPlan = getBusinessPlan(completionBusinessId);
+    const completionCheck = checkCompletionLimit(completionBusinessId, completionPlan);
+    if (!completionCheck.allowed) {
+      const planLabel = completionPlan.charAt(0).toUpperCase() + completionPlan.slice(1);
+      const body403 = buildPlanLimitError(
+        `${planLabel} plan allows ${completionCheck.limit} completion${completionCheck.limit === 1 ? "" : "s"} per month. Upgrade for more.`,
+        completionCheck.limit,
+        completionCheck.current,
+        completionPlan
+      );
+      return NextResponse.json(body403, { status: 403 });
+    }
+
+    // Calculate perk value using submission engine
+    const perkCalc = calculatePerkValue(submission, campaign, followerCount);
+
+    // Record completion in campaign state machine (if tracked)
+    const lifecycle = campaignManager.getState(submission.campaignId);
+    if (lifecycle && lifecycle.state === "active") {
+      try {
+        campaignManager.recordCompletion(submission.campaignId);
+      } catch {
+        // Campaign may not be in a state to record completions — continue
+      }
+    }
+
+    // Award the perk to the user's wallet
+    const awardResult = awardPerk(
+      submission.userId,
+      campaign.businessId,
+      submission.campaignId,
+      submission.id,
+      perkCalc.totalValue,
+      perkCalc.baseType,
+    );
+
+    if (awardResult.success) {
+      // Record usage against monthly completion limit
+      recordCompletion(completionBusinessId);
+
+      perk = {
+        ...awardResult.data,
+        calculation: perkCalc,
+      };
+    }
+  }
+
+  // Fire-and-forget notification email to submitter (if email available)
+  if (body.submitterEmail) {
+    const recipientName = body.submitterName || "there";
+    const campaignName = body.campaign?.name || "your campaign";
+
+    if (dv.data === "approve") {
+      const perkDisplay = perk?.calculation
+        ? `$${perk.calculation.totalValue.toFixed(2)}`
+        : "a perk";
+      const template = submissionApprovedEmail(recipientName, campaignName, perkDisplay);
+      emailProvider.send({ to: body.submitterEmail, ...template }).catch(() => {});
+    } else {
+      const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
+      emailProvider.send({ to: body.submitterEmail, ...template }).catch(() => {});
+    }
+  }
+
+  const eventType = dv.data === "approve" ? "submission.approved" : "submission.rejected";
+  const reviewBusinessId = campaignManager.getState(submission.campaignId)?.businessId;
+  eventPublisher.publish(eventType, { submissionId: sv.data, decision: dv.data }, reviewBusinessId);
+
+  return ok({
+    submission,
+    perk,
+  });
+});

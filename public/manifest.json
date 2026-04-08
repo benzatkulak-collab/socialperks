@@ -1,0 +1,31 @@
+{
+  "name": "Social Perks",
+  "short_name": "SocialPerks",
+  "description": "Turn customers into your marketing team. Offer perks in exchange for social media posts, reviews, and shares.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0C0F1A",
+  "background_color": "#0C0F1A",
+  "categories": ["business", "marketing", "social"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

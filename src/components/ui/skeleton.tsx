@@ -30,6 +30,7 @@ export function Skeleton({
         bg-brand-elevated animate-shimmer
         bg-[length:200%_100%]
         bg-gradient-to-r from-brand-elevated via-brand-border/50 to-brand-elevated
+        ${className}
       `}
       role="status"
       aria-label="Loading"

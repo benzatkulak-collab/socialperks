@@ -456,7 +456,7 @@ function classifyRecommendation(
 
 function generateReasoning(
   influencer: Influencer,
-  campaign: LaunchedCampaign,
+  _campaign: LaunchedCampaign,
   business: Business,
   breakdown: MatchScore["breakdown"],
   recommendation: MatchScore["recommendation"]

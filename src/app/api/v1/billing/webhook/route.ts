@@ -1,0 +1,192 @@
+/**
+ * POST /api/v1/billing/webhook
+ *
+ * Stripe webhook handler. No auth (uses Stripe-Signature header).
+ * Handles: checkout.session.completed, customer.subscription.updated,
+ * customer.subscription.deleted, invoice.payment_failed.
+ * Includes 5-minute replay protection.
+ */
+
+import { NextRequest } from "next/server";
+import { ok, err, withTiming } from "../../_shared";
+import {
+  subscriptions,
+  generateStripeId,
+  type Subscription,
+} from "@/lib/billing/store";
+import { stripe, isStripeConfigured } from "@/lib/stripe";
+
+// ─── Replay Protection ──────────────────────────────────────────────────────
+
+const processedEvents = new Map<string, number>();
+const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+let pruneCounter = 0;
+
+function pruneProcessedEvents(): void {
+  const cutoff = Date.now() - REPLAY_WINDOW_MS;
+  for (const [id, timestamp] of processedEvents) {
+    if (timestamp < cutoff) processedEvents.delete(id);
+  }
+}
+
+// ─── POST ───────────────────────────────────────────────────────────────────
+
+export const POST = withTiming(async (req: NextRequest) => {
+  // No auth — Stripe signs the webhook payload
+  const signature = req.headers.get("stripe-signature");
+  if (!signature) {
+    return err("MISSING_SIGNATURE", "Stripe-Signature header is required", 401);
+  }
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let body: Record<string, unknown>;
+  let eventId: string;
+  let eventType: string;
+
+  // Real Stripe signature verification when configured
+  if (stripe && isStripeConfigured() && webhookSecret) {
+    try {
+      const rawBody = await req.text();
+      const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+      body = event as unknown as Record<string, unknown>;
+      eventId = event.id;
+      eventType = event.type;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Webhook signature verification failed";
+      return err("INVALID_SIGNATURE", message, 400);
+    }
+  } else {
+    // Mock mode: parse timestamp for replay protection
+    let eventTimestamp: number | null = null;
+    for (const part of signature.split(",")) {
+      const [key, value] = part.split("=");
+      if (key === "t" && value) {
+        eventTimestamp = parseInt(value, 10);
+        break;
+      }
+    }
+
+    if (eventTimestamp) {
+      const eventAge = Date.now() - eventTimestamp * 1000;
+      if (eventAge > REPLAY_WINDOW_MS) {
+        return err("REPLAY_DETECTED", "Event timestamp is too old (>5 minutes)", 400);
+      }
+    }
+
+    try {
+      body = (await req.json()) as Record<string, unknown>;
+    } catch {
+      return err("INVALID_BODY", "Request body is not valid JSON", 400);
+    }
+
+    eventId = (body.id as string) ?? crypto.randomUUID();
+    eventType = body.type as string;
+  }
+
+  if (!eventType) {
+    return err("MISSING_EVENT_TYPE", "Event type is required", 400);
+  }
+
+  // Check for duplicate event
+  if (++pruneCounter % 50 === 0) pruneProcessedEvents();
+  if (processedEvents.has(eventId)) {
+    // Idempotent: return 200 but do nothing
+    return ok({ received: true, duplicate: true });
+  }
+  processedEvents.set(eventId, Date.now());
+
+  const eventData = (body.data as Record<string, unknown>)?.object as Record<string, unknown> | undefined;
+
+  // ── Handle event types ──────────────────────────────────────────────────
+
+  switch (eventType) {
+    case "checkout.session.completed": {
+      console.info(`[Billing Webhook] checkout.session.completed — event=${eventId}`);
+
+      if (eventData) {
+        const customerId = eventData.customer as string;
+        const subscriptionId = eventData.subscription as string;
+        const metadata = eventData.metadata as Record<string, string> | undefined;
+        const businessId = metadata?.businessId;
+        const plan = metadata?.plan ?? "starter";
+        const billingPeriod = (metadata?.billingPeriod ?? "monthly") as "monthly" | "annual";
+
+        if (businessId && subscriptionId) {
+          const now = new Date();
+          const periodEnd = new Date(now);
+          periodEnd.setMonth(periodEnd.getMonth() + (billingPeriod === "annual" ? 12 : 1));
+
+          const sub: Subscription = {
+            id: subscriptionId,
+            businessId,
+            customerId: customerId ?? generateStripeId("cus"),
+            plan,
+            billingPeriod,
+            status: "active",
+            currentPeriodStart: now.toISOString(),
+            currentPeriodEnd: periodEnd.toISOString(),
+            cancelAtPeriodEnd: false,
+            createdAt: now.toISOString(),
+          };
+          subscriptions.set(subscriptionId, sub);
+          console.info(`[Billing Webhook] Created subscription ${subscriptionId} for business ${businessId}`);
+        }
+      }
+      break;
+    }
+
+    case "customer.subscription.updated": {
+      console.info(`[Billing Webhook] customer.subscription.updated — event=${eventId}`);
+
+      if (eventData) {
+        const subscriptionId = eventData.id as string;
+        const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
+        if (existing) {
+          const status = eventData.status as Subscription["status"] | undefined;
+          const cancelAtPeriodEnd = eventData.cancel_at_period_end as boolean | undefined;
+          subscriptions.set(subscriptionId, {
+            ...existing,
+            ...(status && { status }),
+            ...(typeof cancelAtPeriodEnd === "boolean" && { cancelAtPeriodEnd }),
+          });
+          console.info(`[Billing Webhook] Updated subscription ${subscriptionId}`);
+        }
+      }
+      break;
+    }
+
+    case "customer.subscription.deleted": {
+      console.info(`[Billing Webhook] customer.subscription.deleted — event=${eventId}`);
+
+      if (eventData) {
+        const subscriptionId = eventData.id as string;
+        const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
+        if (existing) {
+          subscriptions.set(subscriptionId, { ...existing, status: "canceled" });
+          console.info(`[Billing Webhook] Canceled subscription ${subscriptionId}`);
+        }
+      }
+      break;
+    }
+
+    case "invoice.payment_failed": {
+      console.info(`[Billing Webhook] invoice.payment_failed — event=${eventId}`);
+
+      if (eventData) {
+        const subscriptionId = eventData.subscription as string;
+        const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
+        if (existing) {
+          subscriptions.set(subscriptionId, { ...existing, status: "past_due" });
+          console.info(`[Billing Webhook] Marked subscription ${subscriptionId} as past_due`);
+        }
+      }
+      break;
+    }
+
+    default:
+      console.info(`[Billing Webhook] Unhandled event type: ${eventType} — event=${eventId}`);
+  }
+
+  return ok({ received: true });
+});

@@ -12,6 +12,7 @@ const NAV_LINKS: NavLink[] = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Examples", href: "#examples" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export function Nav() {
@@ -110,28 +111,34 @@ export function Nav() {
 
         {/* Desktop links */}
         <ul className="hidden items-center gap-1 lg:flex" role="list">
-          {NAV_LINKS.map((link) => (
-            <li key={link.label}>
-              <a
-                href={link.href}
-                className="
-                  relative rounded-lg px-3 py-2 text-sm text-brand-dim
-                  transition-all duration-fast ease-smooth
-                  hover:bg-brand-surface/60 hover:text-brand-text
-                  active:scale-[0.98]
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40
-                "
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const cls = `
+              relative rounded-lg px-3 py-2 text-sm text-brand-dim
+              transition-all duration-fast ease-smooth
+              hover:bg-brand-surface/60 hover:text-brand-text
+              active:scale-[0.98]
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40
+            `;
+            return (
+              <li key={link.label}>
+                {link.href.startsWith("/") ? (
+                  <Link href={link.href} className={cls}>
+                    {link.label}
+                  </Link>
+                ) : (
+                  <a href={link.href} className={cls}>
+                    {link.label}
+                  </a>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-3 lg:flex">
           <a
-            href="#login"
+            href="/dashboard#login"
             className="
               rounded-lg px-4 py-2 text-sm font-medium text-brand-dim
               transition-all duration-fast ease-smooth
@@ -217,31 +224,44 @@ export function Nav() {
       >
         <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8">
           <ul className="space-y-1" role="list">
-            {NAV_LINKS.map((link, i) => (
-              <li
-                key={link.label}
-                className="animate-fade-up"
-                style={{ animationDelay: `${i * 50}ms` }}
-              >
-                <a
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="
-                    block rounded-lg px-4 py-3 text-base text-brand-dim
-                    transition-all duration-fast ease-smooth
-                    hover:bg-brand-surface/50 hover:text-brand-text
-                    active:bg-brand-elevated
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40
-                  "
+            {NAV_LINKS.map((link, i) => {
+              const cls = `
+                block rounded-lg px-4 py-3 text-base text-brand-dim
+                transition-all duration-fast ease-smooth
+                hover:bg-brand-surface/50 hover:text-brand-text
+                active:bg-brand-elevated
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40
+              `;
+              return (
+                <li
+                  key={link.label}
+                  className="animate-fade-up"
+                  style={{ animationDelay: `${i * 50}ms` }}
                 >
-                  {link.label}
-                </a>
-              </li>
-            ))}
+                  {link.href.startsWith("/") ? (
+                    <Link
+                      href={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cls}
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cls}
+                    >
+                      {link.label}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           <div className="mt-6 flex flex-col gap-3 border-t border-brand-border/50 pt-6">
             <a
-              href="#login"
+              href="/dashboard#login"
               onClick={() => setMobileOpen(false)}
               className="
                 rounded-xl border border-brand-border bg-brand-surface/50

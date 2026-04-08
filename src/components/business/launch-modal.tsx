@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useId } from "react";
 import { PLATFORMS, FOLLOWER_TIERS } from "@/lib/platforms";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -43,6 +43,7 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
     };
   }, [handleKeyDown]);
 
+  const fieldId = useId();
   const [name, setName] = useState(campaign.name);
   const [instructions, setInstructions] = useState(campaign.description);
   const [guidelines, setGuidelines] = useState("");
@@ -147,23 +148,26 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
           <div>
             {/* Campaign Name */}
             <div className="mb-3.5">
-              <label className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
+              <label htmlFor={`${fieldId}-name`} className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
                 Campaign Name
               </label>
               <input
+                id={`${fieldId}-name`}
                 className={inputClasses}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Name your campaign"
+                required
               />
             </div>
 
             {/* Customer Instructions */}
             <div className="mb-3.5">
-              <label className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
+              <label htmlFor={`${fieldId}-instructions`} className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
                 Customer Instructions
               </label>
               <textarea
+                id={`${fieldId}-instructions`}
                 className={`${inputClasses} resize-y min-h-[80px]`}
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
@@ -173,10 +177,11 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
 
             {/* Content Guidelines */}
             <div className="mb-3.5">
-              <label className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
+              <label htmlFor={`${fieldId}-guidelines`} className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
                 Content Guidelines
               </label>
               <textarea
+                id={`${fieldId}-guidelines`}
                 className={`${inputClasses} resize-y min-h-[80px]`}
                 value={guidelines}
                 onChange={(e) => setGuidelines(e.target.value)}
@@ -187,15 +192,17 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
             {/* Perk Value & Type */}
             <div className="flex gap-3">
               <div className="flex-1 mb-3.5">
-                <label className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
+                <label htmlFor={`${fieldId}-perk-value`} className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
                   Perk Value
                 </label>
                 <input
+                  id={`${fieldId}-perk-value`}
                   className={inputClasses}
                   type="number"
                   min="1"
                   value={perkValue}
                   onChange={(e) => setPerkValue(e.target.value)}
+                  required
                 />
               </div>
               <div className="flex-1 mb-3.5">
@@ -228,10 +235,11 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
             {/* Max Completions & Expiry */}
             <div className="flex gap-3">
               <div className="flex-1 mb-3.5">
-                <label className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
+                <label htmlFor={`${fieldId}-max-completions`} className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
                   Max Completions
                 </label>
                 <input
+                  id={`${fieldId}-max-completions`}
                   className={inputClasses}
                   type="number"
                   min="1"
@@ -241,10 +249,11 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
                 />
               </div>
               <div className="flex-1 mb-3.5">
-                <label className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
+                <label htmlFor={`${fieldId}-expires`} className="block text-2xs font-semibold text-brand-dim mb-1.5 font-body">
                   Expires (days)
                 </label>
                 <input
+                  id={`${fieldId}-expires`}
                   className={inputClasses}
                   type="number"
                   min="1"
@@ -340,7 +349,7 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
 
             {/* Validation Error */}
             {validationError && (
-              <div className="text-xs text-brand-red bg-brand-red/5 border border-brand-red/20 rounded-md px-3 py-2 mb-4 font-body" role="alert">
+              <div className="text-xs text-brand-red bg-brand-red/5 border border-brand-red/20 rounded-md px-3 py-2 mb-4 font-body" role="alert" aria-live="assertive">
                 {validationError}
               </div>
             )}

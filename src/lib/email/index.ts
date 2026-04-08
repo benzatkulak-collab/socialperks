@@ -215,6 +215,43 @@ export function passwordResetEmail(
   return { subject, html, text };
 }
 
+export function contactFormEmail(
+  name: string,
+  email: string,
+  subject: string,
+  message: string
+): EmailTemplate {
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeSubject = escapeHtml(subject);
+  const safeMessage = escapeHtml(message).replace(/\n/g, "<br>");
+  const emailSubject = `[Contact] ${safeSubject} — from ${safeName}`;
+  const html = wrapHtml(
+    `<h1 style="color: #22D3EE; font-family: 'Instrument Serif', serif; font-style: italic;">New Contact Form Submission</h1>
+<table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+  <tr>
+    <td style="color: #64748B; padding: 8px 12px 8px 0; vertical-align: top; white-space: nowrap;">Name</td>
+    <td style="color: #E2E8F0; padding: 8px 0;"><strong>${safeName}</strong></td>
+  </tr>
+  <tr>
+    <td style="color: #64748B; padding: 8px 12px 8px 0; vertical-align: top; white-space: nowrap;">Email</td>
+    <td style="color: #E2E8F0; padding: 8px 0;"><a href="mailto:${safeEmail}" style="color: #22D3EE; text-decoration: underline;">${safeEmail}</a></td>
+  </tr>
+  <tr>
+    <td style="color: #64748B; padding: 8px 12px 8px 0; vertical-align: top; white-space: nowrap;">Subject</td>
+    <td style="color: #E2E8F0; padding: 8px 0;">${safeSubject}</td>
+  </tr>
+</table>
+<div style="margin-top: 20px; padding: 16px; background-color: #0C0F1A; border-radius: 8px; border: 1px solid #2D3348;">
+  <p style="color: #64748B; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.05em;">Message</p>
+  <p style="color: #94A3B8; line-height: 1.6; margin: 0;">${safeMessage}</p>
+</div>
+<p style="color: #64748B; font-size: 12px; margin-top: 24px;">Reply directly to this email to respond to the sender.</p>`
+  );
+  const text = `New Contact Form Submission\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`;
+  return { subject: emailSubject, html, text };
+}
+
 // -- Default Provider ---------------------------------------------------------
 
 function createEmailProvider(): EmailProvider {

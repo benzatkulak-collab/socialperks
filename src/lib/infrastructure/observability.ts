@@ -168,10 +168,6 @@ interface EWMAState {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function generateId(prefix: string): string {
-  return `${prefix}_${crypto.randomUUID()}`;
-}
-
 function generateHexId(length: number): string {
   const bytes = new Uint8Array(Math.ceil(length / 2));
   crypto.getRandomValues(bytes);
@@ -690,7 +686,7 @@ export class MetricsCollector {
 export class SLOMonitor {
   private slos: Map<string, SLO> = new Map();
   private events: Map<string, SLOEvent[]> = new Map();
-  private alerts: SLOAlert[] = new Array();
+  private alerts: SLOAlert[] = [];
   private readonly burnRateAlertThreshold: number;
 
   constructor(burnRateAlertThreshold: number = 2.0) {
