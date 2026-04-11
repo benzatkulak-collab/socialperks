@@ -5,6 +5,7 @@
  */
 
 import type { CampaignStatus, CampaignTier, DiscountType } from "../../types";
+import { prisma } from "@/lib/db/prisma";
 import {
   type PaginatedResult,
   type PaginationOptions,
@@ -93,6 +94,11 @@ export class CampaignRepository
   private readonly table = "launched_campaigns";
 
   async findById(id: string): Promise<CampaignRow | null> {
+    if (prisma) {
+      const row = await prisma.launchedCampaign.findUnique({ where: { id } });
+      return row ? (row as unknown as CampaignRow) : null;
+    }
+
     const store = tryGetStore();
     if (store) {
       const row = store.selectById(this.table, id);
@@ -111,6 +117,38 @@ export class CampaignRepository
     filter: CampaignFilter = {},
     options: PaginationOptions = {},
   ): Promise<PaginatedResult<CampaignRow>> {
+    if (prisma) {
+      const page = options.page ?? 1;
+      const perPage = options.perPage ?? 50;
+      const orderBy = options.orderBy ?? "created_at";
+      const order = options.order ?? "desc";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const where: any = {};
+
+      if (filter.business_id) where.businessId = filter.business_id;
+      if (filter.status) where.status = filter.status;
+      if (filter.from_suggestion) where.fromSuggestion = filter.from_suggestion;
+      if (filter.search) where.name = { contains: filter.search, mode: "insensitive" };
+
+      const [data, total] = await Promise.all([
+        prisma.launchedCampaign.findMany({
+          where,
+          orderBy: { [orderBy]: order },
+          skip: (page - 1) * perPage,
+          take: perPage,
+        }),
+        prisma.launchedCampaign.count({ where }),
+      ]);
+
+      return {
+        data: data as unknown as CampaignRow[],
+        total,
+        page,
+        perPage,
+        totalPages: Math.max(1, Math.ceil(total / perPage)),
+      };
+    }
+
     const store = tryGetStore();
     if (store) {
       const where: Record<string, unknown> = {};
@@ -196,6 +234,33 @@ export class CampaignRepository
   }
 
   async create(input: CreateCampaignInput): Promise<CampaignRow> {
+    if (prisma) {
+      const expiresAt = new Date(
+        Date.now() + input.expires_in_days * 24 * 60 * 60 * 1000,
+      );
+      const row = await prisma.launchedCampaign.create({
+        data: {
+          businessId: input.business_id,
+          name: input.name,
+          description: input.description,
+          actions: input.actions,
+          discountValue: input.discount_value,
+          discountType: input.discount_type,
+          guidelines: input.guidelines ?? null,
+          maxCompletions: input.max_completions ?? null,
+          expiresInDays: input.expires_in_days,
+          useTiers: input.use_tiers ?? false,
+          status: "active",
+          fromSuggestion: input.from_suggestion ?? null,
+          budgetCap: input.budget_cap ?? null,
+          ftcDisclosures: input.ftc_disclosures ?? [],
+          tags: input.tags ?? [],
+          expiresAt,
+        },
+      });
+      return row as unknown as CampaignRow;
+    }
+
     const store = tryGetStore();
     const now = new Date().toISOString();
     const id = generateId();
@@ -263,6 +328,38 @@ export class CampaignRepository
     id: string,
     input: UpdateCampaignInput,
   ): Promise<CampaignRow | null> {
+    if (prisma) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: any = {};
+        if (input.name !== undefined) data.name = input.name;
+        if (input.description !== undefined) data.description = input.description;
+        if (input.actions !== undefined) data.actions = input.actions;
+        if (input.discount_value !== undefined) data.discountValue = input.discount_value;
+        if (input.discount_type !== undefined) data.discountType = input.discount_type;
+        if (input.guidelines !== undefined) data.guidelines = input.guidelines;
+        if (input.max_completions !== undefined) data.maxCompletions = input.max_completions;
+        if (input.expires_in_days !== undefined) data.expiresInDays = input.expires_in_days;
+        if (input.use_tiers !== undefined) data.useTiers = input.use_tiers;
+        if (input.status !== undefined) data.status = input.status;
+        if (input.completion_count !== undefined) data.completionCount = input.completion_count;
+        if (input.budget_cap !== undefined) data.budgetCap = input.budget_cap;
+        if (input.budget_used !== undefined) data.budgetUsed = input.budget_used;
+        if (input.ftc_disclosures !== undefined) data.ftcDisclosures = input.ftc_disclosures;
+        if (input.tags !== undefined) data.tags = input.tags;
+
+        if (Object.keys(data).length === 0) return this.findById(id);
+
+        const row = await prisma.launchedCampaign.update({
+          where: { id },
+          data,
+        });
+        return row as unknown as CampaignRow;
+      } catch {
+        return null;
+      }
+    }
+
     const store = tryGetStore();
     if (store) {
       const existing = store.selectById(this.table, id);
@@ -350,6 +447,20 @@ export class CampaignRepository
   }
 
   async delete(id: string): Promise<boolean> {
+    if (prisma) {
+      try {
+        // Campaigns use status-based lifecycle, not soft-delete.
+        // Setting status to "ended" is the logical delete.
+        await prisma.launchedCampaign.update({
+          where: { id },
+          data: { status: "ended", updatedAt: new Date() },
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     const store = tryGetStore();
     if (store) {
       // Campaigns use status-based lifecycle, not soft-delete.
@@ -369,6 +480,15 @@ export class CampaignRepository
 
   /** Hard-delete (for tests). */
   async hardDelete(id: string): Promise<boolean> {
+    if (prisma) {
+      try {
+        await prisma.launchedCampaign.delete({ where: { id } });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     const store = tryGetStore();
     if (store) {
       return store.delete(this.table, id);
@@ -386,6 +506,21 @@ export class CampaignRepository
     id: string,
     budgetUsedDelta: number = 0,
   ): Promise<CampaignRow | null> {
+    if (prisma) {
+      try {
+        const row = await prisma.launchedCampaign.update({
+          where: { id },
+          data: {
+            completionCount: { increment: 1 },
+            budgetUsed: { increment: budgetUsedDelta },
+          },
+        });
+        return row as unknown as CampaignRow;
+      } catch {
+        return null;
+      }
+    }
+
     const store = tryGetStore();
     if (store) {
       const existing = store.selectById(this.table, id);

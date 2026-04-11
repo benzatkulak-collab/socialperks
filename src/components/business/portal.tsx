@@ -364,16 +364,16 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
       )}
 
       {/* Top Bar — sticky with backdrop blur */}
-      <div className="sticky top-0 z-40 bg-brand-surface/90 backdrop-blur-xl border-b border-brand-border/50">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-40 bg-brand-surface/90 backdrop-blur-xl border-b border-brand-border/50 safe-top">
+        <div className="mx-auto max-w-5xl px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Logo size="sm" />
-            <nav className="flex items-center gap-1 ml-4">
+            <nav className="flex items-center gap-0.5 sm:gap-1 ml-2 sm:ml-4">
               {(["home", "analytics"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setPage(tab)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 min-h-[36px] ${
                     page === tab
                       ? "bg-brand-cyan/10 text-brand-cyan"
                       : "text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50"
@@ -384,11 +384,14 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               ))}
             </nav>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-brand-dim hidden sm:block">{biz.avatar} {biz.name}</span>
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <span className="text-xs text-brand-dim hidden sm:block truncate max-w-[140px]">{biz.avatar} {biz.name}</span>
             {connected && <span className="flex h-2 w-2 rounded-full bg-brand-green animate-pulse" title="Live" />}
             <NotificationCenter token={authToken} />
-            <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
+            <Button variant="ghost" size="sm" onClick={onLogout} className="hidden xs:inline-flex">Log Out</Button>
+            <button onClick={onLogout} className="xs:hidden text-xs text-brand-dim hover:text-brand-white p-1.5" aria-label="Log out">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10.5 11.5L14 8l-3.5-3.5M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
           </div>
         </div>
       </div>

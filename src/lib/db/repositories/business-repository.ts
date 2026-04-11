@@ -5,6 +5,7 @@
  */
 
 import type { BusinessPlan, BusinessSize } from "../../types";
+import { prisma } from "@/lib/db/prisma";
 import {
   type PaginatedResult,
   type PaginationOptions,
@@ -94,6 +95,13 @@ export class BusinessRepository
   private readonly table = "businesses";
 
   async findById(id: string): Promise<BusinessRow | null> {
+    if (prisma) {
+      const row = await prisma.business.findFirst({
+        where: { id, deletedAt: null },
+      });
+      return row ? (row as unknown as BusinessRow) : null;
+    }
+
     const store = tryGetStore();
     if (store) {
       const row = store.selectById(this.table, id);
@@ -109,6 +117,13 @@ export class BusinessRepository
   }
 
   async findByEmail(email: string): Promise<BusinessRow | null> {
+    if (prisma) {
+      const row = await prisma.business.findFirst({
+        where: { email, deletedAt: null },
+      });
+      return row ? (row as unknown as BusinessRow) : null;
+    }
+
     const store = tryGetStore();
     if (store) {
       const result = store.selectMany(this.table, {
@@ -129,6 +144,41 @@ export class BusinessRepository
     filter: BusinessFilter = {},
     options: PaginationOptions = {},
   ): Promise<PaginatedResult<BusinessRow>> {
+    if (prisma) {
+      const page = options.page ?? 1;
+      const perPage = options.perPage ?? 50;
+      const orderBy = options.orderBy ?? "created_at";
+      const order = options.order ?? "desc";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const where: any = { deletedAt: null };
+
+      if (filter.type) where.type = filter.type;
+      if (filter.plan) where.plan = filter.plan;
+      if (filter.size) where.size = filter.size;
+      if (filter.industry) where.industry = filter.industry;
+      if (filter.verified !== undefined) where.verified = filter.verified;
+      if (filter.location) where.location = filter.location;
+      if (filter.search) where.name = { contains: filter.search, mode: "insensitive" };
+
+      const [data, total] = await Promise.all([
+        prisma.business.findMany({
+          where,
+          orderBy: { [orderBy]: order },
+          skip: (page - 1) * perPage,
+          take: perPage,
+        }),
+        prisma.business.count({ where }),
+      ]);
+
+      return {
+        data: data as unknown as BusinessRow[],
+        total,
+        page,
+        perPage,
+        totalPages: Math.max(1, Math.ceil(total / perPage)),
+      };
+    }
+
     const store = tryGetStore();
     if (store) {
       const where: Record<string, unknown> = {
@@ -219,6 +269,26 @@ export class BusinessRepository
   }
 
   async create(input: CreateBusinessInput): Promise<BusinessRow> {
+    if (prisma) {
+      const row = await prisma.business.create({
+        data: {
+          name: input.name,
+          type: input.type,
+          email: input.email,
+          pin: input.pin ?? null,
+          avatar: input.avatar ?? "",
+          industry: input.industry ?? null,
+          size: input.size ?? "small",
+          location: input.location ?? null,
+          website: input.website ?? null,
+          socialLinks: input.social_links ?? [],
+          plan: input.plan ?? "free",
+          description: input.description ?? null,
+        },
+      });
+      return row as unknown as BusinessRow;
+    }
+
     const store = tryGetStore();
     const now = new Date().toISOString();
     const id = generateId();
@@ -283,6 +353,40 @@ export class BusinessRepository
     id: string,
     input: UpdateBusinessInput,
   ): Promise<BusinessRow | null> {
+    if (prisma) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: any = {};
+        if (input.name !== undefined) data.name = input.name;
+        if (input.type !== undefined) data.type = input.type;
+        if (input.email !== undefined) data.email = input.email;
+        if (input.pin !== undefined) data.pin = input.pin;
+        if (input.avatar !== undefined) data.avatar = input.avatar;
+        if (input.industry !== undefined) data.industry = input.industry;
+        if (input.size !== undefined) data.size = input.size;
+        if (input.location !== undefined) data.location = input.location;
+        if (input.website !== undefined) data.website = input.website;
+        if (input.social_links !== undefined) data.socialLinks = input.social_links;
+        if (input.plan !== undefined) data.plan = input.plan;
+        if (input.description !== undefined) data.description = input.description;
+        if (input.avg_rating !== undefined) data.avgRating = input.avg_rating;
+        if (input.campaign_count !== undefined) data.campaignCount = input.campaign_count;
+        if (input.verified !== undefined) data.verified = input.verified;
+        if (input.stripe_customer_id !== undefined) data.stripeCustomerId = input.stripe_customer_id;
+        if (input.stripe_subscription_id !== undefined) data.stripeSubscriptionId = input.stripe_subscription_id;
+
+        if (Object.keys(data).length === 0) return this.findById(id);
+
+        const row = await prisma.business.update({
+          where: { id },
+          data,
+        });
+        return row as unknown as BusinessRow;
+      } catch {
+        return null;
+      }
+    }
+
     const store = tryGetStore();
     if (store) {
       const existing = store.selectById(this.table, id);
@@ -378,6 +482,18 @@ export class BusinessRepository
   }
 
   async delete(id: string): Promise<boolean> {
+    if (prisma) {
+      try {
+        await prisma.business.update({
+          where: { id },
+          data: { deletedAt: new Date() },
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     const store = tryGetStore();
     if (store) {
       return store.softDelete(this.table, id);
@@ -392,6 +508,15 @@ export class BusinessRepository
 
   /** Hard-delete (for tests). */
   async hardDelete(id: string): Promise<boolean> {
+    if (prisma) {
+      try {
+        await prisma.business.delete({ where: { id } });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     const store = tryGetStore();
     if (store) {
       return store.delete(this.table, id);

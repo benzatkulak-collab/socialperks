@@ -72,6 +72,7 @@ export function Nav() {
       className={`
         fixed left-0 right-0 top-0 z-sticky
         transition-all duration-slow ease-smooth
+        safe-top
         ${
           scrolled
             ? "border-b border-brand-border/50 bg-brand-bg/80 backdrop-blur-xl shadow-sm"
@@ -175,11 +176,11 @@ export function Nav() {
           </a>
         </div>
 
-        {/* Mobile hamburger */}
+        {/* Mobile hamburger — 44px min touch target for accessibility */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="
-            flex h-10 w-10 items-center justify-center rounded-lg
+            flex h-11 w-11 items-center justify-center rounded-lg
             text-brand-dim
             transition-all duration-fast ease-smooth
             hover:bg-brand-surface/50 hover:text-brand-text
@@ -235,16 +236,17 @@ export function Nav() {
         aria-label={mobileOpen ? "Mobile navigation menu" : undefined}
         aria-hidden={!mobileOpen}
       >
-        <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8">
+        <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8 pb-safe">
           <ul className="space-y-1" role="list">
             {NAV_LINKS.map((link, i) => {
               const isCurrent = link.href === currentHash || (link.href.startsWith("/") && typeof window !== "undefined" && window.location.pathname === link.href);
               const cls = `
-                block rounded-lg px-4 py-3 text-base text-brand-dim
+                block rounded-lg px-4 py-3.5 text-base text-brand-dim
                 transition-all duration-fast ease-smooth
                 hover:bg-brand-surface/50 hover:text-brand-text
                 active:bg-brand-elevated
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40
+                min-h-[44px] flex items-center
               `;
               return (
                 <li

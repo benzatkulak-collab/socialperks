@@ -120,4 +120,29 @@ export class Logger {
 
 // -- Default Logger -----------------------------------------------------------
 
-export const logger = new Logger();
+const minLevel = (process.env.LOG_LEVEL as LogLevel) || "info";
+
+export const logger = new Logger({ minLevel });
+
+// -- Request Logging Helper ---------------------------------------------------
+
+/**
+ * Convenience method for logging HTTP request/response pairs.
+ * Selects log level based on HTTP status code.
+ */
+export function logRequest(
+  req: { method: string; url: string },
+  status: number,
+  durationMs: number,
+  extra?: Record<string, unknown>,
+): void {
+  const path = new URL(req.url, "http://localhost").pathname;
+  const level: LogLevel = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
+  logger[level](`${req.method} ${path} ${status}`, {
+    path,
+    method: req.method,
+    statusCode: status,
+    durationMs,
+    ...extra,
+  });
+}
