@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { generateQRSvg } from '@/lib/qr/generator';
 
 interface QRCodeProps {
@@ -8,9 +8,9 @@ interface QRCodeProps {
   className?: string;
 }
 
-export function QRCode({ url, size = 200, className = '' }: QRCodeProps) {
+export const QRCode = React.memo(function QRCode({ url, size = 200, className = '' }: QRCodeProps) {
   const svg = useMemo(() => generateQRSvg(url, size), [url, size]);
   return (
     <div className={className} dangerouslySetInnerHTML={{ __html: svg }} aria-label={`QR code for ${url}`} role="img" />
   );
-}
+});

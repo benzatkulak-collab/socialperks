@@ -1,18 +1,31 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 
-// ── Portals ──────────────────────────────────────────────────────────────
+// ── Portals (lazy-loaded for code splitting) ─────────────────────────────
 import { AuthForm } from "@/components/auth/auth-form";
-import { BusinessPortal } from "@/components/business/portal";
-import { InfluencerPortal } from "@/components/influencer/portal";
-import { EnterprisePortal } from "@/components/enterprise/portal";
+import dynamic from "next/dynamic";
+import { DashboardSkeleton, InfluencerDashboardSkeleton, EnterpriseDashboardSkeleton } from "@/components/ui/portal-skeletons";
+
+const BusinessPortal = dynamic(
+  () => import("@/components/business/portal").then(m => ({ default: m.BusinessPortal })),
+  { loading: () => <DashboardSkeleton /> }
+);
+
+const InfluencerPortal = dynamic(
+  () => import("@/components/influencer/portal").then(m => ({ default: m.InfluencerPortal })),
+  { loading: () => <InfluencerDashboardSkeleton /> }
+);
+
+const EnterprisePortal = dynamic(
+  () => import("@/components/enterprise/portal").then(m => ({ default: m.EnterprisePortal })),
+  { loading: () => <EnterpriseDashboardSkeleton /> }
+);
 
 // ── Landing Components ───────────────────────────────────────────────────
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { Hero } from "@/components/landing/hero";
-import dynamic from "next/dynamic";
 
 const HowItWorks = dynamic(() => import("@/components/landing/how-it-works").then(m => m.HowItWorks));
 const AudienceSections = dynamic(() => import("@/components/landing/audience-sections").then(m => m.AudienceSections));
@@ -25,6 +38,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ToastContainer } from "@/components/ui/toast";
 import { useLocalStorage } from "@/lib/hooks/use-store";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { AppProvider, useAppContext } from "@/lib/context/app-context";
 import { createSeedData } from "@/lib/seed";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 
@@ -38,10 +53,6 @@ import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 // ─── Constant seed data (created once, outside component) ────────────────
 
 const INITIAL_SEED_DATA = createSeedData();
-
-// ─── Session restore timeout ─────────────────────────────────────────────
-
-const SESSION_RESTORE_TIMEOUT = 5000;
 
 // ═══════════════ Error Boundary ═══════════════
 
@@ -106,17 +117,24 @@ const Landing = React.memo(function Landing() {
   );
 });
 
-// ═══════════════ Main App ═══════════════
+// ═══════════════ App Content (inside AppProvider) ═══════════════
 
-export function SocialPerksApp() {
+function SocialPerksAppContent() {
   const { value: data, setValue: setData, ready } = useLocalStorage<SeedData>(
     "sp-v2",
     INITIAL_SEED_DATA
   );
-  const [screen, setScreen] = useState<"landing" | "auth" | "business" | "influencer" | "enterprise">("landing");
-  const [currentUser, setCurrentUser] = useState<SeedBusiness | SeedInfluencer | null>(null);
-  const [userRole, setUserRole] = useState<"business" | "influencer" | null>(null);
-  const [restoring, setRestoring] = useState(true);
+
+  // Auth state managed by useAuth hook (handles session restore + API logout)
+  const { user: authUser, logout: authLogout, restoring } = useAuth();
+
+  // App-wide state from context (screen, userRole, theme)
+  const { state: appState, dispatch } = useAppContext();
+  const screen = appState.screen;
+  const userRole = appState.userRole;
+
+  // currentUser tracks the rich SeedBusiness/SeedInfluencer object for portals
+  const [currentUser, setCurrentUser] = React.useState<SeedBusiness | SeedInfluencer | null>(null);
 
   const save = useCallback(
     (next: SeedData) => {
@@ -125,40 +143,14 @@ export function SocialPerksApp() {
     [setData]
   );
 
-  // Session restoration — attempt to validate an existing session cookie
-  // on mount. 5-second timeout prevents slow networks from leaving users
-  // stuck on the loading screen.
+  // When the auth hook restores a session, update screen & role via context
   useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), SESSION_RESTORE_TIMEOUT);
-    async function restoreSession() {
-      try {
-        const res = await fetch("/api/v1/auth", {
-          method: "GET",
-          credentials: "include",
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (cancelled) return;
-        if (json.success && json.data?.user) {
-          const role = json.data.user.role === "influencer" ? "influencer" : "business";
-          setUserRole(role);
-          setScreen(role);
-        }
-      } catch {
-        // Timeout or network error — fall through to landing page
-      } finally {
-        clearTimeout(timeout);
-        if (!cancelled) {
-          setRestoring(false);
-        }
-      }
+    if (restoring) return;
+    if (authUser) {
+      const role = authUser.role === "influencer" ? "influencer" as const : "business" as const;
+      dispatch({ type: 'SET_AUTH', payload: { screen: role, userRole: role } });
     }
-    restoreSession();
-    return () => { cancelled = true; controller.abort(); };
-  }, []);
+  }, [restoring, authUser, dispatch]);
 
   // Listen for hash-based navigation from landing page components
   // Nav, Hero, and CTA buttons use href="#login" / href="#signup"
@@ -166,7 +158,7 @@ export function SocialPerksApp() {
     function handleHashChange() {
       const hash = window.location.hash;
       if (hash === "#login" || hash === "#signup") {
-        setScreen("auth");
+        dispatch({ type: 'SET_SCREEN', payload: 'auth' });
         // Clear hash so back button works naturally
         window.history.replaceState(null, "", window.location.pathname);
       }
@@ -175,33 +167,26 @@ export function SocialPerksApp() {
     // Also check on mount in case the page loaded with a hash
     handleHashChange();
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [dispatch]);
 
   const handleAuth = useCallback((user: SeedBusiness | SeedInfluencer, role: "business" | "influencer") => {
     setCurrentUser(user);
-    setUserRole(role);
-    setScreen(role);
-  }, []);
+    dispatch({ type: 'SET_AUTH', payload: { screen: role, userRole: role } });
+  }, [dispatch]);
 
   const handleLogout = useCallback(async () => {
-    try {
-      await fetch("/api/v1/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ action: "logout" }),
-      });
-    } catch {
-      // Best-effort — clear local state regardless
-    }
+    await authLogout();
     setCurrentUser(null);
-    setUserRole(null);
-    setScreen("landing");
-  }, []);
+    dispatch({ type: 'LOGOUT' });
+  }, [authLogout, dispatch]);
 
-  const handleBackToLanding = useCallback(() => setScreen("landing"), []);
+  const handleBackToLanding = useCallback(() => {
+    dispatch({ type: 'SET_SCREEN', payload: 'landing' });
+  }, [dispatch]);
 
-  const handleEnterpriseDemo = useCallback(() => setScreen("enterprise"), []);
+  const handleEnterpriseDemo = useCallback(() => {
+    dispatch({ type: 'SET_SCREEN', payload: 'enterprise' });
+  }, [dispatch]);
 
   // Memoize the current business user cast to avoid re-casting every render
   const currentBusiness = useMemo(
@@ -268,5 +253,15 @@ export function SocialPerksApp() {
       </main>
       <ToastContainer />
     </ErrorBoundary>
+  );
+}
+
+// ═══════════════ Main App (wraps with AppProvider) ═══════════════
+
+export function SocialPerksApp() {
+  return (
+    <AppProvider>
+      <SocialPerksAppContent />
+    </AppProvider>
   );
 }

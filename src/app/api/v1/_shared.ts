@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
+import { validateCsrfToken } from "@/lib/security/csrf";
 import { verifyJWT, sessionStore } from "@/lib/auth";
 import {
   detectVersion,
@@ -110,6 +111,35 @@ export function requireAuth(req: NextRequest): AuthUser | NextResponse {
   const user = getUser(req);
   if (!user) return err("NO_TOKEN", "Authentication required", 401);
   return user;
+}
+
+// ─── CSRF Protection ─────────────────────────────────────────────────────
+
+/**
+ * Validate the CSRF token from the request.
+ * Checks X-CSRF-Token header first, then falls back to `_csrf` in the body.
+ * Requires an authenticated user (sessionId used to bind the token).
+ * Returns null if valid, or an error Response if invalid.
+ */
+export function requireCsrf(
+  req: NextRequest,
+  user: AuthUser,
+  body?: Record<string, unknown> | null
+): NextResponse | null {
+  const token =
+    req.headers.get("x-csrf-token") ??
+    (body && typeof body === "object" ? (body as Record<string, unknown>)._csrf as string : null) ??
+    null;
+
+  if (!token || typeof token !== "string") {
+    return err("CSRF_TOKEN_MISSING", "CSRF token is required. Include X-CSRF-Token header or _csrf in the request body.", 403);
+  }
+
+  if (!validateCsrfToken(token, user.id)) {
+    return err("CSRF_TOKEN_INVALID", "CSRF token is invalid or expired", 403);
+  }
+
+  return null; // valid
 }
 
 // ─── API Key Permissions & Scoping ───────────────────────────────────────

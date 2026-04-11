@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   ok,
   err,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -24,6 +25,7 @@ import {
   type Subscription,
 } from "@/lib/billing/store";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { logError } from "@/lib/logging";
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 
@@ -31,7 +33,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth + tenant isolation
   const tenantResult = withTenant(req);
   if (tenantResult instanceof NextResponse) return tenantResult;
-  const { tenant } = tenantResult;
+  const { user, tenant } = tenantResult;
+
+  // CSRF protection
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — standard
   const limited = rateLimit(req, "standard");
@@ -112,6 +118,7 @@ export const POST = withTiming(async (req: NextRequest) => {
           customerId: stripeCustomerId,
         });
       } catch (e) {
+        logError(e, { method: "POST", path: "/api/v1/billing", userId: user.id, action: "create_checkout", businessId });
         const message = e instanceof Error ? e.message : "Stripe checkout failed";
         return err("STRIPE_ERROR", message, 502);
       }
@@ -163,6 +170,7 @@ export const POST = withTiming(async (req: NextRequest) => {
           customerId,
         });
       } catch (e) {
+        logError(e, { method: "POST", path: "/api/v1/billing", userId: user.id, action: "create_portal", businessId });
         const message = e instanceof Error ? e.message : "Stripe portal failed";
         return err("STRIPE_ERROR", message, 502);
       }

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useBusinessDashboard } from "@/lib/hooks/use-business-dashboard";
 import { useRealtime } from "@/lib/hooks/use-realtime";
+import { useToast } from "@/lib/context/app-context";
 import { PLATFORMS } from "@/lib/platforms";
 import { PortalHome } from "./portal-home";
 import { PortalCreate } from "./portal-create";
@@ -97,18 +98,11 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     return document.cookie.match(/sp-access-token=([^;]+)/)?.[1] ?? null;
   }, []);
 
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  // Toast notifications via AppContext
+  const contextShowToast = useToast();
   const showToast = useCallback((msg: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast(msg);
-    toastTimerRef.current = setTimeout(() => setToast(null), 4000);
-  }, []);
-
-  useEffect(() => {
-    return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
-  }, []);
+    contextShowToast(msg, "success", 4000);
+  }, [contextShowToast]);
 
   useEffect(() => {
     const unsub = subscribe("submission.created", () => {
@@ -395,15 +389,6 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
           </div>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="bg-brand-green/10 border border-brand-green/30 rounded-xl px-4 py-3 text-sm text-brand-green font-medium animate-fade-up" role="status" aria-live="polite">
-            {toast}
-          </div>
-        </div>
-      )}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
 

@@ -6,6 +6,7 @@
  */
 
 import { NextRequest } from "next/server";
+import { generateCsrfToken } from "@/lib/security/csrf";
 
 /**
  * Build a NextRequest suitable for passing to a route handler.
@@ -38,9 +39,15 @@ export function createRequest(
 
 /**
  * Convenience wrapper to build an Authorization header with a Bearer token.
+ * Includes a valid CSRF token when a userId is provided (required for
+ * mutating endpoints that enforce CSRF protection).
  */
-export function authHeaders(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}` };
+export function authHeaders(token: string, userId?: string): Record<string, string> {
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (userId) {
+    headers["X-CSRF-Token"] = generateCsrfToken(userId);
+  }
+  return headers;
 }
 
 /**

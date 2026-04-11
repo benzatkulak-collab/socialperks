@@ -1,12 +1,14 @@
 'use client';
 
+import React from 'react';
+
 interface BarChartProps {
   data: { label: string; value: number; color?: string }[];
   height?: number;
   className?: string;
 }
 
-export function BarChart({ data, height = 200, className = '' }: BarChartProps) {
+export const BarChart = React.memo(function BarChart({ data, height = 200, className = '' }: BarChartProps) {
   const max = Math.max(...data.map(d => d.value), 1);
   const barWidth = Math.min(48, Math.floor(300 / data.length));
   const gap = 8;
@@ -32,7 +34,7 @@ export function BarChart({ data, height = 200, className = '' }: BarChartProps) 
       </svg>
     </div>
   );
-}
+});
 
 interface LineChartProps {
   data: { label: string; value: number }[];
@@ -41,7 +43,7 @@ interface LineChartProps {
   className?: string;
 }
 
-export function LineChart({ data, height = 160, color = '#22D3EE', className = '' }: LineChartProps) {
+export const LineChart = React.memo(function LineChart({ data, height = 160, color = '#22D3EE', className = '' }: LineChartProps) {
   if (data.length < 2) return null;
   const max = Math.max(...data.map(d => d.value), 1);
   const min = Math.min(...data.map(d => d.value), 0);
@@ -81,7 +83,7 @@ export function LineChart({ data, height = 160, color = '#22D3EE', className = '
       </svg>
     </div>
   );
-}
+});
 
 interface DonutChartProps {
   data: { label: string; value: number; color: string }[];
@@ -89,7 +91,7 @@ interface DonutChartProps {
   className?: string;
 }
 
-export function DonutChart({ data, size = 160, className = '' }: DonutChartProps) {
+export const DonutChart = React.memo(function DonutChart({ data, size = 160, className = '' }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
   const radius = size / 2 - 10;
   const circumference = 2 * Math.PI * radius;
@@ -122,7 +124,7 @@ export function DonutChart({ data, size = 160, className = '' }: DonutChartProps
       </div>
     </div>
   );
-}
+});
 
 interface SparklineProps {
   data: number[];
@@ -131,7 +133,7 @@ interface SparklineProps {
   color?: string;
 }
 
-export function Sparkline({ data, width = 80, height = 24, color = '#22D3EE' }: SparklineProps) {
+export const Sparkline = React.memo(function Sparkline({ data, width = 80, height = 24, color = '#22D3EE' }: SparklineProps) {
   if (data.length < 2) return null;
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -142,4 +144,4 @@ export function Sparkline({ data, width = 80, height = 24, color = '#22D3EE' }: 
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
     </svg>
   );
-}
+});

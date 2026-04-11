@@ -171,6 +171,105 @@ Required: `businessId`, `name`, `actions`, `discountValue`, `discountType` (pct/
 }
 ```
 
+### `GET /api/v1/campaigns/:campaignId` -- Get single campaign
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | relaxed |
+
+**Response:**
+```json
+{
+  "campaign": { "id": "camp_...", "businessId": "biz_123", "state": "active", ... }
+}
+```
+
+### `PUT /api/v1/campaigns/:campaignId` -- Update campaign
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+**Body (lifecycle action):**
+```json
+{
+  "action": "pause",
+  "reason": "Budget review"
+}
+```
+Actions: `pause`, `resume`, `end`.
+
+**Body (field update):**
+```json
+{
+  "name": "Updated Campaign Name",
+  "description": "New description",
+  "guidelines": "Updated guidelines",
+  "discountValue": 20,
+  "discountType": "pct",
+  "maxCompletions": 100,
+  "expiresInDays": 60,
+  "tags": ["food", "local"]
+}
+```
+Only active or paused campaigns can be field-updated. All fields are optional.
+
+### `DELETE /api/v1/campaigns/:campaignId` -- Soft-delete campaign
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+Soft-deletes the campaign by setting its state to `ended`. Requires ownership verification. Returns the updated campaign object.
+
+### `GET /api/v1/campaigns/experiments` -- List A/B experiments
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+**Query params:**
+| Param | Type | Description |
+|-------|------|-------------|
+| campaignId | string | Filter experiments by campaign |
+| experimentId | string | Get a specific experiment with significance data |
+
+### `POST /api/v1/campaigns/experiments` -- Manage A/B experiments
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+**Actions:**
+
+#### `action: "create"`
+```json
+{
+  "action": "create",
+  "campaignId": "camp_123",
+  "name": "Discount Test",
+  "variants": [
+    { "name": "10% off", "discountValue": 10 },
+    { "name": "20% off", "discountValue": 20 }
+  ]
+}
+```
+
+#### `action: "convert"`
+```json
+{ "action": "convert", "experimentId": "exp_123", "value": 1 }
+```
+
+#### `action: "conclude"`
+```json
+{ "action": "conclude", "experimentId": "exp_123" }
+```
+
 ---
 
 ## Submissions
@@ -234,6 +333,47 @@ Required: `campaignId`, `userId`, `actionId`, `proofUrl`, `proofType` (screensho
 }
 ```
 Required: `submissionId`, `reviewerId`, `decision` (approve/reject). Include `campaign` object when approving for automatic perk calculation and award.
+
+### `GET /api/v1/submissions/:submissionId` -- Get single submission
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | relaxed |
+
+**Response:**
+```json
+{
+  "submission": {
+    "id": "sub_...",
+    "campaignId": "camp_...",
+    "userId": "usr_...",
+    "actionId": "ig_rl",
+    "proofUrl": "https://...",
+    "proofType": "url",
+    "status": "pending",
+    "submittedAt": "2026-03-24T...",
+    "metadata": {}
+  }
+}
+```
+
+### `DELETE /api/v1/submissions/:submissionId` -- Soft-delete submission
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+Soft-deletes a submission by marking it as rejected with a deletion note. Only pending submissions can be deleted. Requires the submitter or the campaign's business owner to be authenticated.
+
+**Response:**
+```json
+{
+  "submission": { "id": "sub_...", "status": "rejected", ... },
+  "message": "Submission soft-deleted (status set to rejected)"
+}
+```
 
 ---
 
@@ -762,6 +902,61 @@ Returns: 107 marketing actions across 15 platforms with effort level, value, and
 ```
 Required: `displayName`, `email`.
 
+### `GET /api/v1/influencers/:influencerId` -- Get influencer profile
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | relaxed |
+
+**Response:**
+```json
+{
+  "influencer": {
+    "id": "i_abc123",
+    "displayName": "Priya Patel",
+    "email": "priya@example.com",
+    "bio": "...",
+    "tier": "mid",
+    "niches": ["food", "wellness"],
+    "followerCount": 50000,
+    "engagementRate": 0.04,
+    "platforms": [{ "platformId": "ig", "handle": "@priya", "followers": 50000 }],
+    "location": "San Francisco, CA"
+  }
+}
+```
+
+### `PUT /api/v1/influencers/:influencerId` -- Update influencer profile
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+**Body:**
+```json
+{
+  "displayName": "Priya Patel Updated",
+  "bio": "Updated bio",
+  "niches": ["food", "wellness", "travel"],
+  "followerCount": 55000,
+  "engagementRate": 0.045,
+  "platforms": [{ "platformId": "ig", "handle": "@priya", "followers": 55000 }],
+  "location": "Los Angeles, CA"
+}
+```
+All fields are optional. Tier is recalculated automatically when followerCount changes.
+
+### `DELETE /api/v1/influencers/:influencerId` -- Archive influencer profile
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+Soft-deletes the influencer profile by marking it as archived. Archived profiles are excluded from search results and GET by ID.
+
 ### `GET /api/v1/recommendations` -- ML-powered recommendations
 
 | Field | Value |
@@ -784,7 +979,119 @@ Required: `displayName`, `email`.
 
 ---
 
-## OAuth
+## Auth: TOTP (Two-Factor Authentication)
+
+### `POST /api/v1/auth/totp` -- Manage 2FA
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | strict (5/min) |
+
+**Actions:**
+
+#### `action: "setup"`
+```json
+{ "action": "setup" }
+```
+Returns `uri` (otpauth:// URI for authenticator apps) and `secret` (base32 TOTP secret).
+
+#### `action: "verify"`
+```json
+{ "action": "verify", "code": "123456" }
+```
+Confirms TOTP setup with a code from the authenticator app. Returns `backupCodes` (8 one-time backup codes).
+
+#### `action: "disable"`
+```json
+{ "action": "disable", "code": "123456" }
+```
+Disables 2FA. Requires a valid TOTP code.
+
+#### `action: "status"`
+```json
+{ "action": "status" }
+```
+Returns `{ enabled: true|false }`.
+
+---
+
+## Auth: Sessions
+
+### `GET /api/v1/auth/sessions` -- List active sessions
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+**Response:**
+```json
+{
+  "sessions": [
+    {
+      "id": "sess_...",
+      "ipAddress": "1.2.3.4",
+      "userAgent": "Mozilla/5.0...",
+      "createdAt": "2026-03-24T...",
+      "lastActiveAt": "2026-03-24T...",
+      "isCurrent": true
+    }
+  ],
+  "total": 3
+}
+```
+
+### `POST /api/v1/auth/sessions` -- Revoke sessions
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | strict (5/min) |
+
+**Actions:**
+
+#### `action: "revoke"`
+```json
+{ "action": "revoke", "sessionId": "sess_123" }
+```
+Revokes a specific session. Returns `{ revoked: true }`.
+
+#### `action: "revoke-all"`
+```json
+{ "action": "revoke-all" }
+```
+Revokes all sessions except the current one. Returns `{ revokedCount: N }`.
+
+---
+
+## Auth: OAuth (Social Login)
+
+### `POST /api/v1/auth/oauth/connect` -- Start social login flow
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | strict (5/min) |
+
+**Body:**
+```json
+{ "provider": "google", "redirectUri": "https://..." }
+```
+Supported providers: `google`, `github`. Returns `url` (authorization URL to redirect to), `state` (CSRF token), and `provider` name.
+
+### `GET /api/v1/auth/oauth/:provider/callback` -- OAuth callback
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | None |
+
+Handles the OAuth redirect from the social provider. Exchanges the authorization code for tokens, retrieves user info, creates or links the account, and redirects to the app with a JWT token. Query params: `code`, `state`.
+
+---
+
+## OAuth (Platform Connections)
 
 ### `POST /api/v1/oauth/connect` -- Start OAuth flow
 
@@ -884,6 +1191,198 @@ Handles Instagram/Facebook subscription verification challenges. Query params: `
 | Rate limit | None |
 
 Returns 404 in production. Returns demo businesses, influencers, and stats in development.
+
+---
+
+## Batch Operations
+
+### `POST /api/v1/batch` -- Bulk operations
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+**Body:**
+```json
+{
+  "action": "bulk-approve-submissions",
+  "ids": ["sub_123", "sub_456", "sub_789"],
+  "reason": "All verified"
+}
+```
+
+**Actions:**
+| Action | Description |
+|--------|-------------|
+| `bulk-approve-submissions` | Approve multiple submissions at once |
+| `bulk-reject-submissions` | Reject multiple submissions (reason required) |
+| `bulk-launch-campaigns` | Resume paused campaigns |
+| `bulk-pause-campaigns` | Pause multiple active campaigns |
+| `bulk-delete-campaigns` | Soft-delete (end) multiple campaigns |
+
+Maximum batch size: 100 items. IDs are deduplicated. Returns per-item success/failure details.
+
+**Response:**
+```json
+{
+  "succeeded": ["sub_123", "sub_456"],
+  "failed": [{ "id": "sub_789", "error": "Submission already approved" }],
+  "total": 3,
+  "successCount": 2,
+  "failedCount": 1
+}
+```
+
+---
+
+## Images
+
+### `POST /api/v1/images` -- Upload image
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+| Content-Type | multipart/form-data |
+
+Upload an image file. Max size: 10 MB. Allowed types: image/jpeg, image/png, image/webp, image/gif. Images are automatically optimized and a thumbnail is generated.
+
+**Query params:**
+| Param | Type | Description |
+|-------|------|-------------|
+| format | string | Target format: jpeg, png, webp (default: webp) |
+
+**Response (201):**
+```json
+{
+  "id": "uuid",
+  "url": "https://...",
+  "thumbnail": "https://...",
+  "width": 1920,
+  "height": 1080,
+  "size": 245000,
+  "originalSize": 1200000,
+  "savings": 80,
+  "format": "webp"
+}
+```
+
+### `GET /api/v1/images` -- List uploaded images
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | relaxed |
+
+**Query params:** `page`, `perPage`. Returns images for the authenticated user, sorted newest first.
+
+---
+
+## CSRF Token
+
+### `GET /api/v1/csrf` -- Generate CSRF token
+
+| Field | Value |
+|-------|-------|
+| Auth | None (optional) |
+| Rate limit | standard |
+
+Returns a CSRF token bound to the current session. Also sets the token as a `sp-csrf-token` cookie for the double-submit pattern.
+
+**Response:**
+```json
+{
+  "csrfToken": "hmac-token-string"
+}
+```
+
+---
+
+## Export
+
+### `POST /api/v1/export` -- Export data
+
+| Field | Value |
+|-------|-------|
+| Auth | Bearer token |
+| Rate limit | standard |
+
+**Body:**
+```json
+{
+  "format": "csv",
+  "entity": "campaigns",
+  "filters": {}
+}
+```
+
+| Param | Values |
+|-------|--------|
+| format | `csv`, `pdf` |
+| entity | `campaigns`, `submissions`, `analytics`, `earnings` |
+
+Returns the file as a download (CSV or HTML-formatted PDF).
+
+---
+
+## GraphQL
+
+### `GET /api/graphql` -- GraphQL Playground
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | None |
+
+Returns a GraphiQL interactive IDE in the browser.
+
+### `POST /api/graphql` -- Execute GraphQL query
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | None |
+
+**Body:**
+```json
+{
+  "query": "{ campaigns { id name state } }",
+  "variables": {}
+}
+```
+
+**Response:**
+```json
+{
+  "data": { "campaigns": [...] }
+}
+```
+
+---
+
+## OpenAPI Documentation
+
+### `GET /api/v1/docs` -- OpenAPI 3.1 JSON specification
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | None |
+| Cache | 1 hour |
+| CORS | Enabled |
+
+Returns the full OpenAPI 3.1 spec as JSON. Can be loaded by external tools (Swagger UI, Postman, etc.).
+
+### `GET /api/v1/docs/ui` -- Swagger UI
+
+| Field | Value |
+|-------|-------|
+| Auth | None |
+| Rate limit | None |
+| Cache | 1 hour |
+
+Serves an interactive Swagger UI page that loads the OpenAPI spec from `/api/v1/docs`.
 
 ---
 

@@ -9,6 +9,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -25,6 +26,7 @@ import { checkProofUrl } from "@/lib/verification/url-checker";
 import { findAction } from "@/lib/platforms";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { logError } from "@/lib/logging";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
@@ -133,6 +135,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
 
+  // CSRF protection
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
+
   // Rate limit — standard for writes
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
@@ -201,8 +207,8 @@ export const POST = withTiming(async (req: NextRequest) => {
           };
         }
       })
-      .catch(() => {
-        // Silently swallow — URL check failure should never break submission flow
+      .catch((urlError) => {
+        logError(urlError, { method: "POST", path: "/api/v1/submissions", userId: user.id, submissionId, context: "url_verification" });
       });
   }
 

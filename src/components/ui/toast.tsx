@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export interface Toast {
   id: string;
@@ -22,7 +22,7 @@ const TOAST_ICONS = {
   info: '\u2139',
 };
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
+const ToastItem = React.memo(function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       </button>
     </div>
   );
-}
+});
 
 // Global toast state
 let toastListeners: Array<(toasts: Toast[]) => void> = [];

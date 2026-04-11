@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNotificationsSSE, type SSENotification } from "@/lib/hooks/use-notifications-sse";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ function relativeTime(iso: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function NotificationCenter({ token }: NotificationCenterProps) {
+export const NotificationCenter = React.memo(function NotificationCenter({ token }: NotificationCenterProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead, connected } =
     useNotificationsSSE(token);
   const [open, setOpen] = useState(false);
@@ -218,7 +218,7 @@ export function NotificationCenter({ token }: NotificationCenterProps) {
       )}
     </div>
   );
-}
+});
 
 // ─── Empty state ────────────────────────────────────────────────────────────
 
@@ -255,7 +255,7 @@ function EmptyState() {
 
 // ─── Individual notification item ───────────────────────────────────────────
 
-function NotificationItem({
+const NotificationItem = React.memo(function NotificationItem({
   notification,
   onClick,
 }: {
@@ -303,4 +303,4 @@ function NotificationItem({
       </button>
     </li>
   );
-}
+});

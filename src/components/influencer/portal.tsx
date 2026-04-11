@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { formatNumber } from "@/lib/shared/formatters";
 import { PLATFORMS } from "@/lib/platforms";
 import { useSubmissions } from "@/lib/hooks/use-submissions";
+import { useToast } from "@/lib/context/app-context";
 import type { SeedData, SeedInfluencer } from "@/lib/seed";
 import { type MarketplaceCampaign, TIER_COLORS, buildMarketplaceCampaigns } from "@/components/influencer/marketplace-utils";
 import { SubmissionModal } from "@/components/influencer/submission-modal";
@@ -70,7 +71,9 @@ export function InfluencerPortal({
   }, []);
 
   const [showSubmitModal, setShowSubmitModal] = useState<MarketplaceCampaign | null>(null);
-  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+
+  // Toast notifications via AppContext
+  const contextShowToast = useToast();
 
   // Dispute flow state
   const [disputeId, setDisputeId] = useState<string | null>(null);
@@ -81,18 +84,6 @@ export function InfluencerPortal({
   const [editingProfile, setEditingProfile] = useState(false);
   const [editBio, setEditBio] = useState(influencer.bio || "");
   const [editLocation, setEditLocation] = useState(influencer.location || "");
-  const [profileSaved, setProfileSaved] = useState(false);
-
-  // Timer refs for cleanup
-  const submitSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const profileSavedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (submitSuccessTimer.current) clearTimeout(submitSuccessTimer.current);
-      if (profileSavedTimer.current) clearTimeout(profileSavedTimer.current);
-    };
-  }, []);
 
   // Marketplace state
   const [platformFilter, setPlatformFilter] = useState("all");
@@ -250,9 +241,6 @@ export function InfluencerPortal({
       });
       refreshSubmissions();
     } catch {
-      if (controller.signal.aborted) {
-        setSubmitSuccess(null);
-      }
       // Add optimistically even on error/timeout so user's work isn't lost
       addOptimistic({
         id: entry.id,
@@ -271,10 +259,8 @@ export function InfluencerPortal({
     }
     setAppliedCampaigns((prev) => new Set(prev).add(campaign.id));
     setShowSubmitModal(null);
-    setSubmitSuccess(campaign.campaignName);
-    if (submitSuccessTimer.current) clearTimeout(submitSuccessTimer.current);
-    submitSuccessTimer.current = setTimeout(() => setSubmitSuccess(null), 3000);
-  }, [influencer.id, addOptimistic, refreshSubmissions]);
+    contextShowToast(`Submitted! Awaiting review for "${campaign.campaignName}"`, "success", 3000);
+  }, [influencer.id, addOptimistic, refreshSubmissions, contextShowToast]);
 
   const handleCloseSubmitModal = useCallback(() => setShowSubmitModal(null), []);
 
@@ -296,7 +282,6 @@ export function InfluencerPortal({
     setEditingProfile(true);
     setEditBio(influencer.bio || "");
     setEditLocation(influencer.location || "");
-    setProfileSaved(false);
   }, [influencer.bio, influencer.location]);
 
   const handleSaveProfile = useCallback(() => {
@@ -308,10 +293,8 @@ export function InfluencerPortal({
     influencer.bio = editBio;
     influencer.location = editLocation;
     setEditingProfile(false);
-    setProfileSaved(true);
-    if (profileSavedTimer.current) clearTimeout(profileSavedTimer.current);
-    profileSavedTimer.current = setTimeout(() => setProfileSaved(false), 3000);
-  }, [influencer, editBio, editLocation, data, save]);
+    contextShowToast("Profile updated successfully.", "success", 3000);
+  }, [influencer, editBio, editLocation, data, save, contextShowToast]);
 
   const handleCancelEditProfile = useCallback(() => setEditingProfile(false), []);
 
@@ -353,15 +336,6 @@ export function InfluencerPortal({
           <Tabs tabs={portalTabs} activeTab={page} onChange={setPage} />
         </div>
       </nav>
-
-      {/* Success toast */}
-      {submitSuccess && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="bg-brand-green/10 border border-brand-green/30 rounded-xl px-4 py-3 text-sm text-brand-green font-medium animate-fade-up" role="status">
-            Submitted! Awaiting review for &quot;{submitSuccess}&quot;
-          </div>
-        </div>
-      )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {page === "dashboard" && (
@@ -636,12 +610,6 @@ export function InfluencerPortal({
                 {editingProfile ? "Cancel Editing" : "Edit Profile"}
               </Button>
             </div>
-
-            {profileSaved && (
-              <div className="bg-brand-green/10 border border-brand-green/30 rounded-lg px-4 py-2.5 text-sm text-brand-green font-medium mb-4" role="status" aria-live="polite">
-                Profile updated successfully.
-              </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>

@@ -7,7 +7,7 @@
  * Supports page numbers with ellipsis, per-page selector, and showing range info.
  */
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 
 interface PaginationProps {
   /** Current page number (1-indexed) */
@@ -28,7 +28,7 @@ interface PaginationProps {
   className?: string;
 }
 
-export function Pagination({
+export const Pagination = React.memo(function Pagination({
   page,
   totalPages,
   perPage,
@@ -166,4 +166,4 @@ export function Pagination({
       )}
     </div>
   );
-}
+});

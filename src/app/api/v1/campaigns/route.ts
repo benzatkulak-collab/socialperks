@@ -10,6 +10,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -27,6 +28,7 @@ import {
   getBusinessPlan,
   buildPlanLimitError,
 } from "@/lib/billing/enforcement";
+import { logError } from "@/lib/logging";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
@@ -105,7 +107,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth + tenant isolation
   const tenantResult = withTenant(req);
   if (tenantResult instanceof NextResponse) return tenantResult;
-  const { tenant } = tenantResult;
+  const { user, tenant } = tenantResult;
+
+  // CSRF protection
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — standard for writes
   const limited = rateLimit(req, "standard");
@@ -210,6 +216,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       201
     );
   } catch (error) {
+    logError(error, { method: "POST", path: "/api/v1/campaigns", userId: user.id, businessId: bv.data });
     const message = error instanceof Error ? error.message : "Failed to launch campaign";
     return err("LAUNCH_FAILED", message, 500);
   }
@@ -284,6 +291,7 @@ export const PUT = withTiming(async (req: NextRequest) => {
 
       return ok({ campaign: updated! });
     } catch (error) {
+      logError(error, { method: "PUT", path: "/api/v1/campaigns", userId: user.id, campaignId: cv.data, action: actionV.data });
       const message = error instanceof Error ? error.message : "Failed to update campaign state";
       return err("STATE_TRANSITION_FAILED", message, 409);
     }

@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import {
   ok,
   err,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -19,6 +20,7 @@ import { validateId, validateString, validateEnum } from "@/lib/security/validat
 import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
 import type { LaunchedCampaign } from "@/lib/types";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { logError } from "@/lib/logging";
 import {
   checkCompletionLimit,
   recordCompletion,
@@ -32,7 +34,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth + tenant isolation
   const tenantResult = withTenant(req);
   if (tenantResult instanceof NextResponse) return tenantResult;
-  const { tenant } = tenantResult;
+  const { user, tenant } = tenantResult;
+
+  // CSRF protection
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — standard
   const limited = rateLimit(req, "standard");
@@ -156,10 +162,14 @@ export const POST = withTiming(async (req: NextRequest) => {
         ? `$${perk.calculation.totalValue.toFixed(2)}`
         : "a perk";
       const template = submissionApprovedEmail(recipientName, campaignName, perkDisplay);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch(() => {});
+      emailProvider.send({ to: body.submitterEmail, ...template }).catch((emailErr) => {
+        logError(emailErr, { method: "POST", path: "/api/v1/submissions/review", context: "email_send_approved", submissionId: sv.data });
+      });
     } else {
       const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch(() => {});
+      emailProvider.send({ to: body.submitterEmail, ...template }).catch((emailErr) => {
+        logError(emailErr, { method: "POST", path: "/api/v1/submissions/review", context: "email_send_rejected", submissionId: sv.data });
+      });
     }
   }
 

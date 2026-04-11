@@ -20,7 +20,7 @@ interface TabsProps {
   id?: string;
 }
 
-export function Tabs({
+export const Tabs = React.memo(function Tabs({
   tabs,
   activeTab,
   onChange,
@@ -213,10 +213,10 @@ export function Tabs({
       })}
     </div>
   );
-}
+});
 
 /** Wrapper for tab panel content. Use alongside Tabs for proper ARIA relationships. */
-export function TabPanel({
+export const TabPanel = React.memo(function TabPanel({
   tabId,
   tabsId,
   active,
@@ -241,4 +241,4 @@ export function TabPanel({
       {children}
     </div>
   );
-}
+});

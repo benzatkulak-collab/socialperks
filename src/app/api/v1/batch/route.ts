@@ -15,6 +15,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -23,6 +24,7 @@ import { reviewSubmission, getSubmissionById } from "@/lib/submissions";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { logError } from "@/lib/logging";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -59,6 +61,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth required for all batch operations
   const user = requireAuth(req);
   if (user instanceof NextResponse) return user;
+
+  // CSRF protection
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — standard for writes
   const limited = rateLimit(req, "standard");
@@ -202,6 +208,7 @@ async function processBulkSubmissionReview(
         campaignLifecycle?.businessId
       );
     } else {
+      logError(new Error(result.error?.message ?? "Review failed"), { method: "POST", path: "/api/v1/batch", context: "bulk-submission-review", submissionId: id });
       failed.push({
         id,
         error: result.error?.message ?? "Review failed",
@@ -301,6 +308,7 @@ function processBulkCampaignAction(
 
       succeeded.push(id);
     } catch (error) {
+      logError(error, { method: "POST", path: "/api/v1/batch", context: "bulk-campaign-action", campaignId: id, action });
       const message = error instanceof Error
         ? error.message
         : "Operation failed";

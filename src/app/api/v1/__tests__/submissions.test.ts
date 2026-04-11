@@ -98,7 +98,7 @@ describe("Submissions API", () => {
   it("GET /submissions — with auth scopes to tenant campaigns", async () => {
     const res = await GET(
       createRequest("/api/v1/submissions", {
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -134,7 +134,7 @@ describe("Submissions API", () => {
       createRequest("/api/v1/submissions", {
         method: "POST",
         body: { campaignId: "camp_test" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -154,7 +154,7 @@ describe("Submissions API", () => {
           proofUrl: "https://example.com/proof",
           proofType: "invalid_type",
         },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);

@@ -24,6 +24,7 @@ import { createRequest, parseResponse, authHeaders } from "./helpers";
 describe("Campaigns API", () => {
   let token: string;
   let businessId: string;
+  let userId: string;
 
   beforeAll(async () => {
     const email = `camp-test-${Date.now()}@example.com`;
@@ -42,6 +43,7 @@ describe("Campaigns API", () => {
     const data = await res.json();
     token = data.data?.accessToken || "";
     businessId = data.data?.user?.businessId || "";
+    userId = data.data?.user?.id || "";
   });
 
   // ── GET ────────────────────────────────────────────────────────────────────
@@ -102,7 +104,7 @@ describe("Campaigns API", () => {
   it("GET /campaigns — with auth scopes to tenant", async () => {
     const res = await GET(
       createRequest("/api/v1/campaigns", {
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -140,7 +142,7 @@ describe("Campaigns API", () => {
       createRequest("/api/v1/campaigns", {
         method: "POST",
         body: { businessId },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -160,7 +162,7 @@ describe("Campaigns API", () => {
           discountValue: 10,
           discountType: "pct",
         },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -181,7 +183,7 @@ describe("Campaigns API", () => {
           discountValue: 10,
           discountType: "invalid",
         },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -205,7 +207,7 @@ describe("Campaigns API", () => {
           discountType: "pct",
           expiresInDays: 30,
         },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -230,7 +232,7 @@ describe("Campaigns API", () => {
           discountValue: 5,
           discountType: "pct",
         },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);

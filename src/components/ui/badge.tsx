@@ -68,7 +68,7 @@ const sizeClasses = {
   md: "px-2 py-0.5 text-3xs gap-1.5",
 };
 
-export function Badge({
+export const Badge = React.memo(function Badge({
   children,
   color = "cyan",
   variant = "default",
@@ -114,4 +114,4 @@ export function Badge({
       {children}
     </span>
   );
-}
+});

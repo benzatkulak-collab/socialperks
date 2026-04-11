@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 interface NavLink {
@@ -15,7 +15,7 @@ const NAV_LINKS: NavLink[] = [
   { label: "Contact", href: "/contact" },
 ];
 
-export function Nav() {
+export const Nav = React.memo(function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState("");
@@ -311,4 +311,4 @@ export function Nav() {
       </div>
     </header>
   );
-}
+});

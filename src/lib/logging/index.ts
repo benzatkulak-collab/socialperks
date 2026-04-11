@@ -146,3 +146,42 @@ export function logRequest(
     ...extra,
   });
 }
+
+// -- Error Logging Helper -----------------------------------------------------
+
+export interface ErrorContext {
+  /** HTTP method (GET, POST, etc.) */
+  method?: string;
+  /** Request path */
+  path?: string;
+  /** Authenticated user ID, if available */
+  userId?: string;
+  /** Additional context fields */
+  [key: string]: unknown;
+}
+
+/**
+ * Structured error logging helper for API route catch blocks.
+ *
+ * Extracts error name, message, and stack trace from the error object
+ * and combines them with request context (method, path, userId).
+ *
+ * Usage:
+ *   catch (e) { logError(e, { method: "POST", path: "/api/v1/campaigns", userId: user?.id }); }
+ */
+export function logError(
+  error: unknown,
+  context: ErrorContext = {},
+): void {
+  const errorObj = error instanceof Error ? error : new Error(String(error));
+  const meta: Record<string, unknown> = {
+    ...context,
+    error: {
+      name: errorObj.name,
+      message: errorObj.message,
+      stack: errorObj.stack,
+    },
+  };
+
+  logger.error(`Error in ${context.method ?? "?"} ${context.path ?? "unknown"}`, undefined, meta);
+}

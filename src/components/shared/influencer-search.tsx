@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 
 interface Influencer {
   id: string;
@@ -26,7 +26,7 @@ const TIER_COLORS: Record<string, string> = {
   mega: 'border-pink-400/30 text-pink-300',
 };
 
-export function InfluencerSearch({ influencers, onSelect }: InfluencerSearchProps) {
+export const InfluencerSearch = React.memo(function InfluencerSearch({ influencers, onSelect }: InfluencerSearchProps) {
   const [query, setQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [nicheFilter, setNicheFilter] = useState<string>('all');
@@ -118,4 +118,4 @@ export function InfluencerSearch({ influencers, onSelect }: InfluencerSearchProp
       </div>
     </div>
   );
-}
+});
