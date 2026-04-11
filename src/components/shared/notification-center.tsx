@@ -199,7 +199,7 @@ export function NotificationCenter({ token }: NotificationCenterProps) {
           </div>
 
           {/* Notification list */}
-          <div className="overflow-y-auto max-h-[360px] overscroll-contain">
+          <div className="overflow-y-auto max-h-[360px] overscroll-contain" aria-live="polite" aria-relevant="additions">
             {notifications.length === 0 ? (
               <EmptyState />
             ) : (

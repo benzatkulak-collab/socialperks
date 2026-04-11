@@ -352,6 +352,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     <div className="min-h-screen bg-brand-bg">
       {/* Onboarding wizard for new businesses with no campaigns */}
       {showOnboarding && myCampaigns.length === 0 && (
+        <SectionErrorBoundary section="Onboarding">
         <OnboardingWizard
           businessId={biz.id}
           businessName={biz.name}
@@ -359,6 +360,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
         />
+        </SectionErrorBoundary>
       )}
 
       {/* Top Bar — sticky with backdrop blur */}
@@ -480,11 +482,13 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
 
       {/* Campaign Edit Modal */}
       {editingCampaign && (
+        <SectionErrorBoundary section="Campaign Editor">
         <CampaignEditModal
           campaign={editingCampaign}
           onSave={handleEditSave}
           onClose={handleEditClose}
         />
+        </SectionErrorBoundary>
       )}
     </div>
   );

@@ -23,6 +23,7 @@ const CtaSection = dynamic(() => import("@/components/landing/cta-section").then
 // ── UI & Data ────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ToastContainer } from "@/components/ui/toast";
 import { useLocalStorage } from "@/lib/hooks/use-store";
 import { createSeedData } from "@/lib/seed";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
@@ -231,7 +232,7 @@ export function SocialPerksApp() {
 
   return (
     <ErrorBoundary>
-      <main id="main-content">
+      <main id="main-content" role="main">
         {screen === "landing" && <Landing />}
         {screen === "auth" && (
           <AuthForm
@@ -265,6 +266,7 @@ export function SocialPerksApp() {
           />
         )}
       </main>
+      <ToastContainer />
     </ErrorBoundary>
   );
 }

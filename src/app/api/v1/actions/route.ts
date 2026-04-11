@@ -10,9 +10,10 @@
 
 import { NextRequest } from "next/server";
 import { ok, err, getQuery, paginate, withTiming } from "../_shared";
+import { withCache } from "@/lib/cache/middleware";
 import { PLATFORMS, ALL_ACTIONS } from "@/lib/platforms";
 
-export const GET = withTiming(async (req: NextRequest) => {
+export const GET = withCache(withTiming(async (req: NextRequest) => {
   const params = getQuery(req);
   const { page, perPage } = paginate(params);
 
@@ -77,4 +78,4 @@ export const GET = withTiming(async (req: NextRequest) => {
     200,
     { "Cache-Control": "public, max-age=3600, s-maxage=3600" }
   );
-});
+}), { ttl: 1800 });

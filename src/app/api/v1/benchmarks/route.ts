@@ -9,9 +9,10 @@
 
 import { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../_shared";
+import { withCache } from "@/lib/cache/middleware";
 import { getBenchmarks } from "@/lib/ai-engine";
 
-export const GET = withTiming(async (req: NextRequest) => {
+export const GET = withCache(withTiming(async (req: NextRequest) => {
   const params = getQuery(req);
   const businessType = params.get("businessType");
 
@@ -26,4 +27,4 @@ export const GET = withTiming(async (req: NextRequest) => {
     200,
     { "Cache-Control": "public, max-age=1800, s-maxage=1800" }
   );
-});
+}), { ttl: 600 });

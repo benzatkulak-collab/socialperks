@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
+import { SkipLinks } from "@/components/shared/skip-links";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -92,6 +93,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
+        <SkipLinks />
         <SWRegister />
         {children}
         <OfflineIndicator />

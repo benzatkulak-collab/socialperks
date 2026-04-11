@@ -8,6 +8,7 @@
 
 import { NextRequest } from "next/server";
 import { ok, err, rateLimit, getQuery, withTiming } from "../../_shared";
+import { withCache } from "@/lib/cache/middleware";
 import { ALL_ACTIONS, findAction, findPlatform } from "@/lib/platforms";
 
 // ─── Synthetic market helpers ───────────────────────────────────────────────
@@ -39,7 +40,7 @@ function currentHourBucket(): number {
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
-export const GET = withTiming(async (req: NextRequest) => {
+export const GET = withCache(withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "public");
   if (limited) return limited;
 
@@ -221,4 +222,4 @@ export const GET = withTiming(async (req: NextRequest) => {
     200,
     { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
   );
-});
+}), { ttl: 30 });

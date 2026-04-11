@@ -8,6 +8,7 @@
 
 import { NextRequest } from "next/server";
 import { ok, err, rateLimit, getQuery, withTiming } from "../../_shared";
+import { withCache } from "@/lib/cache/middleware";
 import { PLATFORMS, ALL_ACTIONS, FOLLOWER_TIERS } from "@/lib/platforms";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -31,7 +32,7 @@ function estimateMonthlyEarnings(
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
-export const GET = withTiming(async (req: NextRequest) => {
+export const GET = withCache(withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "public");
   if (limited) return limited;
 
@@ -151,4 +152,4 @@ export const GET = withTiming(async (req: NextRequest) => {
     200,
     { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
   );
-});
+}), { ttl: 60 });

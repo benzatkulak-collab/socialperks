@@ -3,10 +3,33 @@
  *
  * Each queue has a registered processor that calls the appropriate service.
  * Import from here (or the barrel `@/lib/jobs`) to enqueue work.
+ *
+ * When REDIS_URL is set, `createQueue` returns a BullMQ-backed adapter.
+ * Otherwise it returns the in-memory JobQueue for zero-dependency dev.
  */
 
 import { JobQueue } from "./queue";
-import type { Job } from "./queue";
+import type { Job, QueueOptions } from "./queue";
+import { BullMQAdapter } from "./bullmq-adapter";
+
+// ─── Queue Factory ──────────────────────────────────────────────────────────
+
+/**
+ * Creates a queue backed by BullMQ (Redis) when REDIS_URL is set,
+ * or the in-memory JobQueue otherwise.
+ *
+ * The returned object has the same interface regardless of backend.
+ */
+export function createQueue<T = unknown>(
+  name: string,
+  opts?: QueueOptions
+): JobQueue<T> | BullMQAdapter<T> {
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    return new BullMQAdapter<T>(name, redisUrl, opts);
+  }
+  return new JobQueue<T>(name, opts);
+}
 
 // ─── Email Queue ────────────────────────────────────────────────────────────
 
@@ -182,13 +205,89 @@ analyticsQueue.process(async (job: Job<AnalyticsJobData>) => {
   }
 });
 
+// ─── Webhook Delivery Queue ──────────────────────────────────────────────────
+
+export interface WebhookJobData {
+  webhookId: string;
+  businessId: string;
+  url: string;
+  event: string;
+  payload: Record<string, unknown>;
+  secret: string;
+}
+
+export const webhookQueue = new JobQueue<WebhookJobData>("webhook", {
+  concurrency: 5,
+  maxAttempts: 5,
+  defaultTimeout: 15_000,
+  onDead: (job: Job) => {
+    console.error(`[jobs:webhook] Dead letter: job=${job.id} webhook=${(job.data as WebhookJobData).webhookId} event=${(job.data as WebhookJobData).event} error=${job.lastError}`);
+  },
+});
+
+webhookQueue.process(async (job: Job<WebhookJobData>) => {
+  const { url, event, payload, secret } = job.data;
+
+  // Compute HMAC-SHA256 signature for the payload
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const body = JSON.stringify({ event, data: payload, timestamp: Date.now() });
+  const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
+  const signature = Array.from(new Uint8Array(signatureBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-SP-Signature": signature,
+      "X-SP-Event": event,
+    },
+    body,
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Webhook delivery failed: ${response.status} ${response.statusText}`);
+  }
+
+  return { status: response.status, delivered: true };
+});
+
+// ─── Webhook Retry Queue (legacy) ───────────────────────────────────────────
+
+// Backward-compatible accessor for externally-registered webhook retry queues.
+
+let _webhookRetryQueue: JobQueue | null = null;
+
+/**
+ * Register the webhook retry queue created externally (by the webhook store).
+ * Called once during webhook store initialization.
+ */
+export function registerWebhookQueue(queue: JobQueue): void {
+  _webhookRetryQueue = queue;
+}
+
+/** Get the webhook retry queue (may be null if not yet initialized). */
+export function getWebhookRetryQueue(): JobQueue | null {
+  return _webhookRetryQueue;
+}
+
 // ─── Registry Utilities ─────────────────────────────────────────────────────
 
 /** All registered queues for bulk operations */
-export const allQueues = [emailQueue, verificationQueue, payoutQueue, analyticsQueue] as const;
+export const allQueues = [emailQueue, verificationQueue, payoutQueue, analyticsQueue, webhookQueue] as const;
 
 /** Look up a queue by name */
 export function getQueueByName(name: string): JobQueue | null {
+  if (name === "webhook-retry" && _webhookRetryQueue) return _webhookRetryQueue;
   return (allQueues.find((q) => q.name === name) as JobQueue | undefined) ?? null;
 }
 

@@ -7,6 +7,18 @@ vi.mock("next/dynamic", () => ({
   default: () => () => null,
 }));
 
+// Mock socket.io — it's an optional production dependency not installed in test env.
+// The realtime publisher imports socket-server which requires socket.io.
+vi.mock("socket.io", () => ({
+  __esModule: true,
+  Server: vi.fn().mockImplementation(() => ({
+    on: vi.fn(),
+    emit: vi.fn(),
+    to: vi.fn().mockReturnThis(),
+    close: vi.fn(),
+  })),
+}));
+
 // Mock crypto.randomUUID for environments that don't support it
 if (typeof globalThis.crypto === "undefined") {
   Object.defineProperty(globalThis, "crypto", {

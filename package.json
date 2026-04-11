@@ -19,18 +19,32 @@
     "api:typecheck": "cd api && npx tsc --noEmit",
     "api:install": "cd api && npm install",
     "test:all": "vitest run && cd api && npx vitest run",
+    "test:load": "echo 'Run with: k6 run k6/auth-stress.js'",
     "test:e2e": "npx playwright test",
-    "test:e2e:ui": "npx playwright test --ui"
+    "test:e2e:ui": "npx playwright test --ui",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "prisma:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.0.0",
     "@vitest/coverage-v8": "^3.2.4",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.4.0",
     "next": "^15.1.0",
     "postgres": "^3.4.8",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "socket.io": "^4.8.0",
+    "socket.io-client": "^4.8.0",
     "stripe": "^20.4.1"
   },
   "devDependencies": {
+    "prisma": "^6.0.0",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

@@ -18,6 +18,7 @@ const NAV_LINKS: NavLink[] = [
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState("");
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,6 +43,16 @@ export function Nav() {
     }
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Track current hash for aria-current
+  useEffect(() => {
+    function updateHash() {
+      setCurrentHash(window.location.hash);
+    }
+    updateHash();
+    window.addEventListener("hashchange", updateHash);
+    return () => window.removeEventListener("hashchange", updateHash);
   }, []);
 
   // Prevent body scroll when mobile menu is open
@@ -77,6 +88,7 @@ export function Nav() {
       </a>
       <nav
         className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8"
+        role="navigation"
         aria-label="Main navigation"
       >
         {/* Logo */}
@@ -112,6 +124,7 @@ export function Nav() {
         {/* Desktop links */}
         <ul className="hidden items-center gap-1 lg:flex" role="list">
           {NAV_LINKS.map((link) => {
+            const isCurrent = link.href === currentHash || (link.href.startsWith("/") && typeof window !== "undefined" && window.location.pathname === link.href);
             const cls = `
               relative rounded-lg px-3 py-2 text-sm text-brand-dim
               transition-all duration-fast ease-smooth
@@ -122,11 +135,11 @@ export function Nav() {
             return (
               <li key={link.label}>
                 {link.href.startsWith("/") ? (
-                  <Link href={link.href} className={cls}>
+                  <Link href={link.href} className={cls} aria-current={isCurrent ? "page" : undefined}>
                     {link.label}
                   </Link>
                 ) : (
-                  <a href={link.href} className={cls}>
+                  <a href={link.href} className={cls} aria-current={isCurrent ? "page" : undefined}>
                     {link.label}
                   </a>
                 )}
@@ -225,6 +238,7 @@ export function Nav() {
         <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8">
           <ul className="space-y-1" role="list">
             {NAV_LINKS.map((link, i) => {
+              const isCurrent = link.href === currentHash || (link.href.startsWith("/") && typeof window !== "undefined" && window.location.pathname === link.href);
               const cls = `
                 block rounded-lg px-4 py-3 text-base text-brand-dim
                 transition-all duration-fast ease-smooth
@@ -243,6 +257,7 @@ export function Nav() {
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
                       className={cls}
+                      aria-current={isCurrent ? "page" : undefined}
                     >
                       {link.label}
                     </Link>
@@ -251,6 +266,7 @@ export function Nav() {
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
                       className={cls}
+                      aria-current={isCurrent ? "page" : undefined}
                     >
                       {link.label}
                     </a>

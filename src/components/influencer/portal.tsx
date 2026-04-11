@@ -725,11 +725,13 @@ export function InfluencerPortal({
 
       {/* Submission Modal */}
       {showSubmitModal && (
+        <SectionErrorBoundary section="Submission Form">
         <SubmissionModal
           campaign={showSubmitModal}
           onSubmit={(proofUrl, proofType, notes) => handleSubmitProof(showSubmitModal, proofUrl, proofType, notes)}
           onClose={handleCloseSubmitModal}
         />
+        </SectionErrorBoundary>
       )}
     </div>
   );

@@ -5,6 +5,10 @@ import React from "react";
 interface SectionErrorBoundaryProps {
   children: React.ReactNode;
   section?: string;
+  /** Optional callback invoked when the user clicks the retry button */
+  onRetry?: () => void;
+  /** Optional callback invoked when an error is caught, useful for error reporting */
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
 interface SectionErrorBoundaryState {
@@ -31,12 +35,22 @@ export class SectionErrorBoundary extends React.Component<
       error,
       errorInfo
     );
+    this.props.onError?.(error, errorInfo);
   }
+
+  private handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+    this.props.onRetry?.();
+  };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-6 text-center">
+        <div
+          className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-6 text-center"
+          role="alert"
+          aria-live="assertive"
+        >
           <div className="text-2xl mb-2" aria-hidden="true">&#9888;</div>
           <p className="text-sm font-medium text-brand-text mb-1">
             {this.props.section
@@ -47,7 +61,7 @@ export class SectionErrorBoundary extends React.Component<
             {this.state.error?.message || "An unexpected error occurred."}
           </p>
           <button
-            onClick={() => this.setState({ hasError: false, error: null })}
+            onClick={this.handleRetry}
             className="px-3 py-1.5 text-xs font-medium rounded-md bg-white/[0.06] text-brand-text hover:bg-white/[0.1] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50"
           >
             Retry

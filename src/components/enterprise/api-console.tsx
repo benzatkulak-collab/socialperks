@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { STATUS_STYLES } from "./api-console-types";
-import type { ApiKey, Webhook, ApiConsoleProps } from "./api-console-types";
+import type { ApiKey, ApiKeyScope, Webhook, ApiConsoleProps } from "./api-console-types";
 import { ApiKeysSection } from "./api-keys-section";
 import { WebhooksSection } from "./webhooks-section";
 import { ApiUsageSection } from "./api-usage-section";
@@ -19,6 +19,7 @@ export default function ApiConsole({ apiKeys, webhooks, usage }: ApiConsoleProps
   const [codeTab, setCodeTab] = useState<"curl" | "javascript" | "python">("curl");
   const [showCreateKey, setShowCreateKey] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
+  const [newKeyScope, setNewKeyScope] = useState<ApiKeyScope>("read");
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
   // Webhook form state
@@ -65,6 +66,7 @@ export default function ApiConsole({ apiKeys, webhooks, usage }: ApiConsoleProps
       name: newKeyName,
       keyPrefix: `${prefix}${randomSuffix}`,
       environment,
+      scope: newKeyScope,
       createdAt: new Date().toISOString().split("T")[0],
       lastUsed: null,
       requestsToday: 0,
@@ -72,8 +74,9 @@ export default function ApiConsole({ apiKeys, webhooks, usage }: ApiConsoleProps
     };
     setLocalKeys((prev) => [...prev, newKey]);
     setNewKeyName("");
+    setNewKeyScope("read");
     setShowCreateKey(false);
-  }, [newKeyName, environment]);
+  }, [newKeyName, environment, newKeyScope]);
 
   const handleRevokeKey = useCallback((keyId: string) => {
     setRevokedKeyIds((prev) => {
@@ -199,10 +202,12 @@ export default function ApiConsole({ apiKeys, webhooks, usage }: ApiConsoleProps
               environment={environment}
               showCreateKey={showCreateKey}
               newKeyName={newKeyName}
+              newKeyScope={newKeyScope}
               copiedKeyId={copiedKeyId}
               statusStyles={STATUS_STYLES}
               onToggleCreateKey={() => setShowCreateKey(!showCreateKey)}
               onNewKeyNameChange={setNewKeyName}
+              onNewKeyScopeChange={setNewKeyScope}
               onGenerateKey={handleGenerateKey}
               onCopyKey={handleCopyKey}
               onRevokeKey={handleRevokeKey}
