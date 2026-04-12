@@ -11,6 +11,7 @@
 import { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../_shared";
 import { withCache } from "@/lib/cache/middleware";
+import { setStaleWhileRevalidate, setETag } from "@/lib/api/edge-cache";
 import { estimatePricing } from "@/lib/ai-engine";
 import { PLATFORMS, ALL_ACTIONS } from "@/lib/platforms";
 
@@ -33,21 +34,21 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
     }
 
     const pricing = estimatePricing(actionId, businessType);
-
-    return ok(
-      {
-        pricing,
-        action: {
-          id: action.id,
-          label: action.label,
-          platform: action.platformName,
-          type: action.type,
-          effort: action.effort,
-        },
+    const data = {
+      pricing,
+      action: {
+        id: action.id,
+        label: action.label,
+        platform: action.platformName,
+        type: action.type,
+        effort: action.effort,
       },
-      200,
-      { "Cache-Control": "public, max-age=3600, s-maxage=3600" }
-    );
+    };
+
+    const res = ok(data, 200);
+    setStaleWhileRevalidate(res, 300, 3600); // 5 min CDN + 1 hour stale
+    setETag(res, data);
+    return res;
   }
 
   // If platformId, return pricing for all actions on that platform
@@ -71,15 +72,16 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
       },
     }));
 
-    return ok(
-      {
-        platform: { id: platform.id, name: platform.name },
-        pricing: pricingList,
-        count: pricingList.length,
-      },
-      200,
-      { "Cache-Control": "public, max-age=3600, s-maxage=3600" }
-    );
+    const data = {
+      platform: { id: platform.id, name: platform.name },
+      pricing: pricingList,
+      count: pricingList.length,
+    };
+
+    const res = ok(data, 200);
+    setStaleWhileRevalidate(res, 300, 3600); // 5 min CDN + 1 hour stale
+    setETag(res, data);
+    return res;
   }
 
   // Default: return pricing overview for all platforms
@@ -100,9 +102,9 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
     };
   });
 
-  return ok(
-    { platforms: overview, businessType },
-    200,
-    { "Cache-Control": "public, max-age=3600, s-maxage=3600" }
-  );
+  const data = { platforms: overview, businessType };
+  const res = ok(data, 200);
+  setStaleWhileRevalidate(res, 300, 3600); // 5 min CDN + 1 hour stale
+  setETag(res, data);
+  return res;
 }), { ttl: 300 });

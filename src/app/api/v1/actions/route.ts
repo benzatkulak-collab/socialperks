@@ -8,9 +8,10 @@
  * Query params: platformId?, type?, maxEffort?, page?, perPage?
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, paginate, withTiming } from "../_shared";
 import { withCache } from "@/lib/cache/middleware";
+import { setStaleWhileRevalidate, setETag } from "@/lib/api/edge-cache";
 import { PLATFORMS, ALL_ACTIONS } from "@/lib/platforms";
 
 export const GET = withCache(withTiming(async (req: NextRequest) => {
@@ -67,15 +68,16 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
   const start = (page - 1) * perPage;
   const paged = actions.slice(start, start + perPage);
 
-  return ok(
-    {
-      actions: paged,
-      total,
-      page,
-      perPage,
-      totalPages: Math.ceil(total / perPage),
-    },
-    200,
-    { "Cache-Control": "public, max-age=3600, s-maxage=3600" }
-  );
+  const data = {
+    actions: paged,
+    total,
+    page,
+    perPage,
+    totalPages: Math.ceil(total / perPage),
+  };
+
+  const res = ok(data, 200);
+  setStaleWhileRevalidate(res, 1800, 14400); // 30 min CDN + 4 hour stale
+  setETag(res, data);
+  return res;
 }), { ttl: 1800 });

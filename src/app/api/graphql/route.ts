@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { resolvers } from '@/lib/graphql/resolvers';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -7,7 +7,7 @@
  * Auth required for all actions.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   ok,
   err,

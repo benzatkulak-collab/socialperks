@@ -220,6 +220,33 @@ const pt: TranslationStrings = {
     accountVerified: "Sua conta foi verificada",
   },
 
+  // ─── Status Labels ─────────────────────────────────────────────────────
+  status: {
+    active: "Ativo",
+    paused: "Pausado",
+    completed: "Concluido",
+    pending: "Pendente",
+    approved: "Aprovado",
+    rejected: "Rejeitado",
+    ended: "Encerrado",
+    expired: "Expirado",
+    draft: "Rascunho",
+  },
+
+  // ─── Pluralization examples ───────────────────────────────────────────
+  items_zero: "Nenhum item",
+  items_one: "{{count}} item",
+  items_other: "{{count}} itens",
+  campaigns_count_zero: "Nenhuma campanha",
+  campaigns_count_one: "{{count}} campanha",
+  campaigns_count_other: "{{count}} campanhas",
+  submissions_count_zero: "Nenhum envio",
+  submissions_count_one: "{{count}} envio",
+  submissions_count_other: "{{count}} envios",
+  days_zero: "Nenhum dia",
+  days_one: "{{count}} dia",
+  days_other: "{{count}} dias",
+
   // ─── Perk / Wallet ──────────────────────────────────────────────────────
   perk: {
     earned: "Beneficio obtido",

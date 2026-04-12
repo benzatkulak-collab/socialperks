@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { err, requireAuth, requireCsrf, rateLimit, parseBody, withTiming } from '@/app/api/v1/_shared';
 import { generateCSV, csvResponse } from '@/lib/export/csv';
 import { generatePDFHTML, pdfHTMLResponse } from '@/lib/export/pdf';

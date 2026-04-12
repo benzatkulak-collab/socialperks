@@ -5,7 +5,8 @@
  * response format, auth, rate limiting, and request tracing.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { validateCsrfToken } from "@/lib/security/csrf";
 import { verifyJWT, sessionStore } from "@/lib/auth";

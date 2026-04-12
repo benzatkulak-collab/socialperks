@@ -6,7 +6,7 @@
  * No auth required (this is the login initiation endpoint).
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, parseBody, withTiming } from "../../../_shared";
 import {
   oauthProviders,

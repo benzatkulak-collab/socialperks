@@ -6,9 +6,10 @@
  * Cached for 60 seconds.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, getQuery, withTiming } from "../../_shared";
 import { withCache } from "@/lib/cache/middleware";
+import { setStaleWhileRevalidate } from "@/lib/api/edge-cache";
 import { ALL_ACTIONS, findAction, findPlatform } from "@/lib/platforms";
 
 // ─── Synthetic market helpers ───────────────────────────────────────────────
@@ -89,11 +90,9 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
         volume24h: syntheticVolume(a.id, hourBucket) * 24,
       };
     });
-    return ok(
-      { view: "depth", depth },
-      200,
-      { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
-    );
+    const depthRes = ok({ view: "depth", depth }, 200);
+    setStaleWhileRevalidate(depthRes, 30, 120); // 30 sec CDN + 2 min stale
+    return depthRes;
   }
 
   // ── View: movers — top gainers and losers ───────────────────────────────
@@ -115,15 +114,16 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
     });
 
     const sorted = withChange.sort((a, b) => b.changePercent - a.changePercent);
-    return ok(
+    const moversRes = ok(
       {
         view: "movers",
         gainers: sorted.slice(0, 10),
         losers: sorted.slice(-10).reverse(),
       },
-      200,
-      { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
+      200
     );
+    setStaleWhileRevalidate(moversRes, 30, 120); // 30 sec CDN + 2 min stale
+    return moversRes;
   }
 
   // ── View: history — price history over requested hours ──────────────────
@@ -149,11 +149,9 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
       };
     });
 
-    return ok(
-      { view: "history", hours, history },
-      200,
-      { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
-    );
+    const historyRes = ok({ view: "history", hours, history }, 200);
+    setStaleWhileRevalidate(historyRes, 30, 120); // 30 sec CDN + 2 min stale
+    return historyRes;
   }
 
   // ── View: stats (default) — aggregate market statistics ─────────────────
@@ -206,7 +204,7 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
     avgPrice: Math.round((data.totalValue / data.count) * 100) / 100,
   }));
 
-  return ok(
+  const statsRes = ok(
     {
       view: "stats",
       market: {
@@ -219,7 +217,8 @@ export const GET = withCache(withTiming(async (req: NextRequest) => {
       platformStats,
       typeStats,
     },
-    200,
-    { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
+    200
   );
+  setStaleWhileRevalidate(statsRes, 30, 120); // 30 sec CDN + 2 min stale
+  return statsRes;
 }), { ttl: 30 });

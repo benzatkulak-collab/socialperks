@@ -6,7 +6,7 @@
  * Auth required, standard rate limit.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   ok,
   err,

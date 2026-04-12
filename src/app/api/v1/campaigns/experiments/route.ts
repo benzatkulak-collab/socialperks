@@ -2,7 +2,7 @@
  * Campaign A/B Testing API.
  * Create experiments, record conversions, view results.
  */
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, requireAuth, parseBody } from "@/app/api/v1/_shared";
 import {
   createCampaignExperiment,

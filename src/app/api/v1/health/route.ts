@@ -8,6 +8,7 @@
 
 import type { NextRequest } from "next/server";
 import { ok, rateLimit, withTiming } from "../_shared";
+import { setNoCacheHeaders } from "@/lib/api/edge-cache";
 import { db } from "@/lib/db/connection";
 
 export const GET = withTiming(async (req: NextRequest) => {
@@ -25,7 +26,7 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   const status = database.connected ? "ok" : "degraded";
 
-  return ok({
+  const res = ok({
     status,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -40,4 +41,6 @@ export const GET = withTiming(async (req: NextRequest) => {
       poolSize: database.poolSize,
     },
   });
+  setNoCacheHeaders(res);
+  return res;
 });
