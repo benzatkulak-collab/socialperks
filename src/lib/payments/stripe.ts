@@ -161,7 +161,9 @@ export class PaymentProcessor {
 
   constructor(_config: StripeConfig, ledger: FinancialLedger) {
     this.ledger = ledger;
-    this.stripe = new MockStripeClient();
+    this.stripe = new MockStripeClient(
+      process.env.NODE_ENV === "test" ? 0 : 0.02
+    );
   }
 
   /**
