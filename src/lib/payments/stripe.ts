@@ -19,7 +19,7 @@ import type {
   PayoutResult,
   RefundResult,
 } from "./types";
-import { FinancialLedger } from "./ledger";
+import type { FinancialLedger } from "./ledger";
 import { generateId, round2, nowISO } from "./helpers";
 
 // ── Mock Stripe Client ────────────────────────────────────────────────────

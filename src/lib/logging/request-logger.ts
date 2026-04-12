@@ -3,7 +3,8 @@
  * Wraps Next.js route handlers with structured request/response logging.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { logger } from "./index";
 
 type Handler = (req: NextRequest, ctx?: unknown) => Promise<NextResponse>;

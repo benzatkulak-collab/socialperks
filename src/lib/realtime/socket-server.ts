@@ -118,5 +118,5 @@ export function shutdownSocketServer(): void {
   io.disconnectSockets(true);
   io.close();
   io = null;
-  console.info('[Socket.io] Server shut down');
+  console.warn('[Socket.io] Server shut down');
 }

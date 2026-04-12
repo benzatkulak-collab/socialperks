@@ -1009,7 +1009,7 @@ export function generateComplianceReport(
       return b.count - a.count;
     })
     .slice(0, 10)
-    .map(({ count, ...issue }) => issue);
+    .map(({ count: _count, ...issue }) => issue);
 
   // Generate recommendations
   const recommendations: string[] = [];

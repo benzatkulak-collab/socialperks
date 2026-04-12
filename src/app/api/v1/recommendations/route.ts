@@ -10,7 +10,7 @@
  * Query params: influencerId (required), maxCampaigns?, maxBusinesses?, minScore?
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, rateLimit, withTiming } from "../_shared";
 import { createSeedData } from "@/lib/seed";
 import { generateCampaigns } from "@/lib/ai-engine";

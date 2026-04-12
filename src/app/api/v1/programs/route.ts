@@ -4,7 +4,7 @@
  * Perk program CRUD — list and create.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   ok,
   err,

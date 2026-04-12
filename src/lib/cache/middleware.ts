@@ -9,7 +9,8 @@
  *   export const GET = withCache(handler, { ttl: 300 });
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { cache } from "./index";
 
 type Handler = (req: NextRequest, ctx?: unknown) => Promise<NextResponse>;

@@ -10,7 +10,7 @@
  */
 
 import type { EscrowHold, EscrowRelease } from "./types";
-import { FinancialLedger } from "./ledger";
+import type { FinancialLedger } from "./ledger";
 import { generateId, round2, nowISO } from "./helpers";
 
 export class EscrowManager {

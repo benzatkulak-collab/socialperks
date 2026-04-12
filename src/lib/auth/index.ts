@@ -111,7 +111,7 @@ class SessionStore {
       }
     }
     if (pruned > 0) {
-      console.info(`[SessionStore] Pruned ${pruned} expired session(s). Active: ${this.sessions.size}`);
+      console.warn(`[SessionStore] Pruned ${pruned} expired session(s). Active: ${this.sessions.size}`);
     }
     return pruned;
   }

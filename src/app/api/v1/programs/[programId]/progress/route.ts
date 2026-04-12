@@ -4,7 +4,7 @@
  * Member progress in a perk program.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   ok,
   err,

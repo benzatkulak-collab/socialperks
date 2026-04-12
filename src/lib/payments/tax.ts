@@ -14,7 +14,7 @@ import type {
   TaxSummary,
   QuarterlyBreakdown,
 } from "./types";
-import { FinancialLedger } from "./ledger";
+import type { FinancialLedger } from "./ledger";
 import { round2, nowISO } from "./helpers";
 
 export class TaxReporter {

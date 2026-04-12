@@ -159,7 +159,7 @@ payoutQueue.process(async (job: Job<PayoutJobData>) => {
   // Placeholder: in production this would call Stripe Connect transfers.
   // For now, log and return success so the queue infrastructure is exercised.
   const { payoutId, amount, currency, recipientId } = job.data;
-  console.log(`[jobs:payout] Processing payout ${payoutId}: ${amount} ${currency} to ${recipientId}`);
+  console.warn(`[jobs:payout] Processing payout ${payoutId}: ${amount} ${currency} to ${recipientId}`);
   return { payoutId, status: "processed" };
 });
 
@@ -199,7 +199,7 @@ analyticsQueue.process(async (job: Job<AnalyticsJobData>) => {
     case "snapshot":
     case "report": {
       // Placeholder for future analytics computation
-      console.log(`[jobs:analytics] Computing ${type} for business=${businessId ?? "all"}`);
+      console.warn(`[jobs:analytics] Computing ${type} for business=${businessId ?? "all"}`);
       return { type, computed: true, timestamp: Date.now() };
     }
   }

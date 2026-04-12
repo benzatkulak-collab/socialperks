@@ -11,7 +11,7 @@
  * At least one parameter is required.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   ok,
   err,

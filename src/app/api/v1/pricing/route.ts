@@ -8,7 +8,7 @@
  * Query params: actionId?, platformId?, businessType?
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../_shared";
 import { withCache } from "@/lib/cache/middleware";
 import { setStaleWhileRevalidate, setETag } from "@/lib/api/edge-cache";
