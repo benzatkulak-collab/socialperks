@@ -408,6 +408,7 @@ export class PostgresConnection implements DatabaseConnection {
     params?: unknown[],
   ): Promise<QueryResult<T>> {
     const start = performance.now();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- postgres library requires any[] for unsafe params
     const result = await this.sql.unsafe(sql, params as any[]);
     return {
       rows: result as unknown as T[],
@@ -435,6 +436,7 @@ export class PostgresConnection implements DatabaseConnection {
         params?: unknown[],
       ): Promise<QueryResult<T>> => {
         const start = performance.now();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- postgres library requires any[] for unsafe params
         const result = await reserved.unsafe(sql, params as any[]);
         return {
           rows: result as unknown as T[],

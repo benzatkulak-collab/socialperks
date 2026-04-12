@@ -9,7 +9,7 @@
  *   setCacheHeaders(response, { maxAge: 300, sMaxAge: 600, staleWhileRevalidate: 3600 });
  */
 
-import { NextResponse } from "next/server";
+import type { NextResponse } from "next/server";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

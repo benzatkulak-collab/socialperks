@@ -12,7 +12,7 @@
  *   fuzzy   — Enable fuzzy matching (default: true)
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, getQuery, paginate, withTiming } from "../_shared";
 import { FullTextIndex } from "@/lib/search/full-text";
 import { createSeedData } from "@/lib/seed";
