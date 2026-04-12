@@ -1,128 +1,241 @@
 /**
- * GET /api/v1/search — Full-text search across campaigns, businesses, and influencers.
+ * GET /api/v1/search
+ *
+ * Full-text search across campaigns, influencers, and businesses.
+ * Auth not required for basic search. Rate limited (relaxed tier).
  *
  * Query params:
- *   q      — search query (required)
- *   type   — filter by document type (campaign, business, influencer, submission)
- *   limit  — max results (default 20, max 100)
- *   offset — pagination offset (default 0)
- *   fuzzy  — enable fuzzy matching (default true)
+ *   q       — Search term (required, min 1 char)
+ *   type    — Filter by type: campaigns | influencers | businesses | all (default: all)
+ *   page    — Page number (default: 1)
+ *   perPage — Results per page (default: 20, max: 100)
+ *   fuzzy   — Enable fuzzy matching (default: true)
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, rateLimit, getQuery, withTiming } from "../_shared";
-import { searchEngine } from "@/lib/search";
-import type { SearchDocument } from "@/lib/search";
-import { validateString, validateNumber, validateEnum } from "@/lib/security/validate";
+import { ok, err, rateLimit, getQuery, paginate, withTiming } from "../_shared";
+import { FullTextIndex } from "@/lib/search/full-text";
+import { createSeedData } from "@/lib/seed";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import type { CampaignLifecycle } from "@/lib/campaign-state-machine";
 
-// ─── Index seeding ──────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 
-let indexed = false;
-
-/**
- * Lazily index available data on first request.
- * Pulls from in-memory stores (campaigns, seed data).
- */
-function ensureIndexed(): void {
-  if (indexed) return;
-  indexed = true;
-
-  // Index campaigns from the campaign state machine
-  try {
-    const campaigns = campaignManager.listAll();
-    for (const campaign of campaigns) {
-      const doc: SearchDocument = {
-        id: campaign.id,
-        type: "campaign",
-        fields: {
-          name: (campaign as unknown as Record<string, unknown>).name as string ?? campaign.id,
-          businessId: campaign.businessId,
-          state: campaign.state,
-        },
-        metadata: {
-          state: campaign.state,
-          businessId: campaign.businessId,
-        },
-      };
-      searchEngine.addDocument(doc);
-    }
-  } catch {
-    // Campaign manager may not have data — that's fine
-  }
+interface CampaignDoc {
+  id: string;
+  name: string;
+  description: string;
+  platform: string;
+  state: string;
+  businessId: string;
 }
 
-// ─── GET ────────────────────────────────────────────────────────────────────
+interface InfluencerDoc {
+  id: string;
+  name: string;
+  bio: string;
+  niche: string;
+  location: string;
+  tier: string;
+  followerCount: number;
+}
+
+interface BusinessDoc {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  location: string;
+  industry: string;
+  size: string;
+}
+
+// ─── Indexes (lazy-initialized singletons) ──────────────────────────────────
+
+let campaignIndex: FullTextIndex<CampaignDoc> | null = null;
+let influencerIndex: FullTextIndex<InfluencerDoc> | null = null;
+let businessIndex: FullTextIndex<BusinessDoc> | null = null;
+let lastIndexTime = 0;
+
+const INDEX_REFRESH_MS = 60_000; // Rebuild indexes every 60 seconds
+
+function ensureIndexes(): void {
+  const now = Date.now();
+  if (campaignIndex && influencerIndex && businessIndex && now - lastIndexTime < INDEX_REFRESH_MS) {
+    return;
+  }
+
+  const seed = createSeedData();
+
+  // ── Campaign index ─────────────────────────────────────────────────────
+  campaignIndex = new FullTextIndex<CampaignDoc>();
+
+  // Index campaigns from the campaign manager (live state)
+  const allCampaigns: CampaignLifecycle[] = campaignManager.listAll();
+  for (const c of allCampaigns) {
+    const doc: CampaignDoc = {
+      id: c.id,
+      name: c.id,
+      description: `Campaign for business ${c.businessId}`,
+      platform: "",
+      state: c.state,
+      businessId: c.businessId,
+    };
+    campaignIndex.add(c.id, doc, ["name", "description", "platform", "state"]);
+  }
+
+  // Also index seed-generated campaigns as virtual entries
+  for (const biz of seed.businesses) {
+    const virtualId = `seed_${biz.id}`;
+    const doc: CampaignDoc = {
+      id: virtualId,
+      name: `${biz.name} Marketing Campaign`,
+      description: `Social marketing campaign for ${biz.name}, a ${biz.type} in ${biz.location}`,
+      platform: "multi-platform",
+      state: "active",
+      businessId: biz.id,
+    };
+    campaignIndex.add(virtualId, doc, ["name", "description", "platform"]);
+  }
+
+  // ── Influencer index ───────────────────────────────────────────────────
+  influencerIndex = new FullTextIndex<InfluencerDoc>();
+  for (const inf of seed.influencers) {
+    const doc: InfluencerDoc = {
+      id: inf.id,
+      name: inf.displayName,
+      bio: inf.bio,
+      niche: inf.niches.join(" "),
+      location: inf.location,
+      tier: inf.tier,
+      followerCount: inf.followerCount,
+    };
+    influencerIndex.add(inf.id, doc, ["name", "bio", "niche", "location"]);
+  }
+
+  // ── Business index ─────────────────────────────────────────────────────
+  businessIndex = new FullTextIndex<BusinessDoc>();
+  for (const biz of seed.businesses) {
+    const doc: BusinessDoc = {
+      id: biz.id,
+      name: biz.name,
+      type: biz.type,
+      description: `${biz.name} is a ${biz.type} located in ${biz.location}, serving the ${biz.industry} industry.`,
+      location: biz.location,
+      industry: biz.industry,
+      size: biz.size,
+    };
+    businessIndex.add(biz.id, doc, ["name", "type", "description", "location", "industry"]);
+  }
+
+  lastIndexTime = now;
+}
+
+// ─── Valid search types ─────────────────────────────────────────────────────
+
+const VALID_TYPES = ["campaigns", "influencers", "businesses", "all"] as const;
+type SearchType = (typeof VALID_TYPES)[number];
+
+// ─── GET Handler ────────────────────────────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest) => {
-  // Rate limit — relaxed for public search
+  // Rate limit — relaxed tier (public search)
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
   const params = getQuery(req);
-  const start = performance.now();
+  const { page, perPage } = paginate(params);
 
-  // Validate query param (required)
-  const qParam = params.get("q");
-  const qv = validateString(qParam, "q", { min: 1, max: 500 });
-  if (!qv.success) return err("MISSING_QUERY", "Query parameter 'q' is required", 400);
-
-  // Optional: type filter
-  let types: string[] | undefined;
-  const typeParam = params.get("type");
-  if (typeParam) {
-    const typeValues = typeParam.split(",").map((t) => t.trim());
-    for (const t of typeValues) {
-      const tv = validateEnum(t, "type", [
-        "campaign",
-        "business",
-        "influencer",
-        "submission",
-      ] as const);
-      if (!tv.success) return err("INVALID_TYPE", tv.error, 400);
-    }
-    types = typeValues;
+  // Validate query
+  const q = params.get("q")?.trim();
+  if (!q || q.length === 0) {
+    return err("MISSING_QUERY", "Query parameter 'q' is required", 400);
+  }
+  if (q.length > 200) {
+    return err("QUERY_TOO_LONG", "Query must be 200 characters or fewer", 400);
   }
 
-  // Optional: limit (default 20, max 100)
-  let limit = 20;
-  const limitParam = params.get("limit");
-  if (limitParam) {
-    const lv = validateNumber(limitParam, "limit", { min: 1, max: 100 });
-    if (!lv.success) return err("INVALID_LIMIT", lv.error, 400);
-    limit = lv.data;
+  // Validate type
+  const typeParam = (params.get("type") ?? "all") as string;
+  if (!VALID_TYPES.includes(typeParam as SearchType)) {
+    return err(
+      "INVALID_TYPE",
+      `Invalid type "${typeParam}". Valid types: ${VALID_TYPES.join(", ")}`,
+      400
+    );
+  }
+  const searchType = typeParam as SearchType;
+
+  // Fuzzy toggle
+  const fuzzy = params.get("fuzzy") !== "false";
+
+  // Ensure indexes are built
+  ensureIndexes();
+
+  // Perform searches based on type
+  const searchOpts = { limit: 100, fuzzy, fuzzyThreshold: 2 };
+
+  const results: {
+    campaigns?: Array<{ id: string; score: number; highlights: Record<string, string>; data: CampaignDoc }>;
+    influencers?: Array<{ id: string; score: number; highlights: Record<string, string>; data: InfluencerDoc }>;
+    businesses?: Array<{ id: string; score: number; highlights: Record<string, string>; data: BusinessDoc }>;
+  } = {};
+
+  let totalResults = 0;
+
+  if (searchType === "all" || searchType === "campaigns") {
+    const campaignResults = campaignIndex!.search(q, searchOpts);
+    results.campaigns = campaignResults.map((r) => ({
+      id: r.id,
+      score: r.score,
+      highlights: r.highlights,
+      data: r.doc,
+    }));
+    totalResults += campaignResults.length;
   }
 
-  // Optional: offset (default 0)
-  let offset = 0;
-  const offsetParam = params.get("offset");
-  if (offsetParam) {
-    const ov = validateNumber(offsetParam, "offset", { min: 0 });
-    if (!ov.success) return err("INVALID_OFFSET", ov.error, 400);
-    offset = ov.data;
+  if (searchType === "all" || searchType === "influencers") {
+    const influencerResults = influencerIndex!.search(q, searchOpts);
+    results.influencers = influencerResults.map((r) => ({
+      id: r.id,
+      score: r.score,
+      highlights: r.highlights,
+      data: r.doc,
+    }));
+    totalResults += influencerResults.length;
   }
 
-  // Optional: fuzzy matching (default true)
-  const fuzzyParam = params.get("fuzzy");
-  const fuzzyDistance = fuzzyParam === "false" ? 0 : 1;
+  if (searchType === "all" || searchType === "businesses") {
+    const businessResults = businessIndex!.search(q, searchOpts);
+    results.businesses = businessResults.map((r) => ({
+      id: r.id,
+      score: r.score,
+      highlights: r.highlights,
+      data: r.doc,
+    }));
+    totalResults += businessResults.length;
+  }
 
-  // Ensure data is indexed
-  ensureIndexed();
-
-  // Execute search
-  const results = searchEngine.search(qv.data, {
-    types,
-    limit,
-    offset,
-    fuzzyDistance,
-  });
-
-  const took = Math.round((performance.now() - start) * 100) / 100;
+  // Paginate each group
+  if (results.campaigns) {
+    const start = (page - 1) * perPage;
+    results.campaigns = results.campaigns.slice(start, start + perPage);
+  }
+  if (results.influencers) {
+    const start = (page - 1) * perPage;
+    results.influencers = results.influencers.slice(start, start + perPage);
+  }
+  if (results.businesses) {
+    const start = (page - 1) * perPage;
+    results.businesses = results.businesses.slice(start, start + perPage);
+  }
 
   return ok({
+    query: q,
+    type: searchType,
+    totalResults,
+    page,
+    perPage,
     results,
-    total: results.length,
-    query: qv.data,
-    took,
   });
 });

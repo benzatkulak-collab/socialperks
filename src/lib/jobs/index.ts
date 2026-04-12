@@ -15,13 +15,19 @@ export type {
   BackoffStrategy,
 } from "./queue";
 
+export { BullMQAdapter } from "./bullmq-adapter";
+
 export {
+  createQueue,
   emailQueue,
   verificationQueue,
   payoutQueue,
   analyticsQueue,
+  webhookQueue,
   allQueues,
   getQueueByName,
   startAllQueues,
   stopAllQueues,
+  registerWebhookQueue,
+  getWebhookRetryQueue,
 } from "./registry";

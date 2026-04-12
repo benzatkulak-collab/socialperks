@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { formatNumber, formatCurrencyPrecise as formatCurrency } from "@/lib/shared/formatters";
+import { useToast } from "@/lib/context/app-context";
 
 // ═══════════════ Types ═══════════════
 
@@ -141,6 +142,42 @@ const DEMO_EARNINGS: EarningEntry[] = [
 export default function InfluencerDashboard({ influencer, onNavigate }: InfluencerDashboardProps) {
   const [activeTab, setActiveTab] = useState<"campaigns" | "earnings" | "performance">("campaigns");
   const [appliedCampaignIds, setAppliedCampaignIds] = useState<Set<string>>(new Set());
+  const [applyingIds, setApplyingIds] = useState<Set<string>>(new Set());
+  const showToast = useToast();
+
+  const handleApply = useCallback(async (campaignId: string) => {
+    // Optimistic UI: mark as applied immediately
+    setAppliedCampaignIds(prev => { const next = new Set(prev); next.add(campaignId); return next; });
+    setApplyingIds(prev => { const next = new Set(prev); next.add(campaignId); return next; });
+
+    try {
+      const res = await fetch(`/api/v1/exchange/enroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          campaignId,
+          influencerId: influencer.id,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        // Revert optimistic update on failure
+        setAppliedCampaignIds(prev => { const next = new Set(prev); next.delete(campaignId); return next; });
+        showToast(json.error?.message ?? "Failed to apply to campaign", "error");
+      } else {
+        showToast("Successfully applied to campaign!", "success");
+      }
+    } catch {
+      // Revert optimistic update on network error
+      setAppliedCampaignIds(prev => { const next = new Set(prev); next.delete(campaignId); return next; });
+      showToast("Network error. Please try again.", "error");
+    } finally {
+      setApplyingIds(prev => { const next = new Set(prev); next.delete(campaignId); return next; });
+    }
+  }, [influencer.id, showToast]);
 
   const stats = {
     totalEarnings: 1247.5,
@@ -263,7 +300,8 @@ export default function InfluencerDashboard({ influencer, onNavigate }: Influenc
                   key={campaign.id}
                   campaign={campaign}
                   isApplied={appliedCampaignIds.has(campaign.id)}
-                  onApply={(id) => setAppliedCampaignIds((prev) => { const next = new Set(prev); next.add(id); return next; })}
+                  isApplying={applyingIds.has(campaign.id)}
+                  onApply={handleApply}
                 />
               ))}
               {DEMO_CAMPAIGNS.length === 0 && (
@@ -335,7 +373,7 @@ function StatCard({
   );
 }
 
-function CampaignCard({ campaign, isApplied, onApply }: { campaign: AvailableCampaign; isApplied: boolean; onApply: (id: string) => void }) {
+function CampaignCard({ campaign, isApplied, isApplying, onApply }: { campaign: AvailableCampaign; isApplied: boolean; isApplying?: boolean; onApply: (id: string) => void }) {
   return (
     <article className="card-hover rounded-xl border border-brand-border bg-brand-surface p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -380,10 +418,11 @@ function CampaignCard({ campaign, isApplied, onApply }: { campaign: AvailableCam
             <button
               type="button"
               onClick={() => onApply(campaign.id)}
-              className="mt-1 rounded-lg bg-brand-cyan px-4 py-1.5 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
+              disabled={isApplying}
+              className="mt-1 rounded-lg bg-brand-cyan px-4 py-1.5 text-sm font-semibold text-brand-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg disabled:opacity-50"
               aria-label={`Apply to ${campaign.campaignName} at ${campaign.businessName}`}
             >
-              Apply
+              {isApplying ? "Applying..." : "Apply"}
             </button>
           )}
         </div>

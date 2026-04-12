@@ -59,8 +59,8 @@ function createDemoDefaults() {
   const pendingReviews: PendingReview[] = [];
 
   const apiKeys: EntApiKey[] = [
-    { id: "ak1", name: "Production API", keyPrefix: "sk_live_****", environment: "production", createdAt: new Date().toISOString(), lastUsed: null, requestsToday: 0, status: "active" },
-    { id: "ak2", name: "Staging API", keyPrefix: "sk_test_****", environment: "sandbox", createdAt: new Date().toISOString(), lastUsed: null, requestsToday: 0, status: "active" },
+    { id: "ak1", name: "Production API", keyPrefix: "sk_live_****", environment: "production", scope: "admin", createdAt: new Date().toISOString(), lastUsed: null, requestsToday: 0, status: "active" },
+    { id: "ak2", name: "Staging API", keyPrefix: "sk_test_****", environment: "sandbox", scope: "read-write", createdAt: new Date().toISOString(), lastUsed: null, requestsToday: 0, status: "active" },
   ];
 
   const webhooks: EntWebhook[] = [];

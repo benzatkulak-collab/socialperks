@@ -37,12 +37,16 @@ export function generateSessionToken(): string {
 // ─── Session Types ───────────────────────────────────────────────────────────
 
 interface Session {
+  id: string;
   token: string;
   userId: string;
   userRole: "business" | "influencer" | "enterprise";
   businessId: string | null;
   email: string;
+  ipAddress: string | null;
+  userAgent: string | null;
   createdAt: number;
+  lastActiveAt: number;
   expiresAt: number;
 }
 
@@ -53,7 +57,14 @@ class SessionStore {
   private readonly maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
   private createCounter = 0;
 
-  create(userId: string, userRole: Session["userRole"], email: string, businessId: string | null): Session {
+  create(
+    userId: string,
+    userRole: Session["userRole"],
+    email: string,
+    businessId: string | null,
+    ipAddress: string | null = null,
+    userAgent: string | null = null,
+  ): Session {
     this.createCounter += 1;
     // Prune expired sessions every 100th create to avoid unbounded Map growth
     if (this.createCounter % 100 === 0) {
@@ -61,7 +72,19 @@ class SessionStore {
     }
     const token = generateSessionToken();
     const now = Date.now();
-    const session: Session = { token, userId, userRole, businessId, email, createdAt: now, expiresAt: now + this.maxAge };
+    const session: Session = {
+      id: crypto.randomUUID(),
+      token,
+      userId,
+      userRole,
+      businessId,
+      email,
+      ipAddress,
+      userAgent,
+      createdAt: now,
+      lastActiveAt: now,
+      expiresAt: now + this.maxAge,
+    };
     this.sessions.set(token, session);
     return session;
   }
@@ -88,9 +111,47 @@ class SessionStore {
       }
     }
     if (pruned > 0) {
-      console.info(`[SessionStore] Pruned ${pruned} expired session(s). Active: ${this.sessions.size}`);
+      console.warn(`[SessionStore] Pruned ${pruned} expired session(s). Active: ${this.sessions.size}`);
     }
     return pruned;
+  }
+
+  /** List all active (non-expired) sessions for a given user. */
+  listByUser(userId: string): Session[] {
+    const now = Date.now();
+    const result: Session[] = [];
+    for (const [token, session] of this.sessions) {
+      if (session.userId === userId && now <= session.expiresAt) {
+        result.push(session);
+      } else if (now > session.expiresAt) {
+        // Clean up expired sessions as we go
+        this.sessions.delete(token);
+      }
+    }
+    return result;
+  }
+
+  /** Revoke a specific session by session ID (not token). Returns true if found and revoked. */
+  revoke(sessionId: string, userId: string): boolean {
+    for (const [token, session] of this.sessions) {
+      if (session.id === sessionId && session.userId === userId) {
+        this.sessions.delete(token);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Revoke all sessions for a user, optionally keeping the session matching exceptToken. Returns count revoked. */
+  revokeAll(userId: string, exceptToken?: string): number {
+    let count = 0;
+    for (const [token, session] of this.sessions) {
+      if (session.userId === userId && token !== exceptToken) {
+        this.sessions.delete(token);
+        count += 1;
+      }
+    }
+    return count;
   }
 }
 
@@ -99,15 +160,22 @@ export type { Session };
 
 // ─── JWT Utilities ─────────────────────────────────────────────────────────
 
-const JWT_SECRET = (() => {
+let _jwtSecret: string | null = null;
+
+function getJwtSecret(): string {
+  if (_jwtSecret) return _jwtSecret;
   const secret = process.env.AUTH_SECRET;
-  if (secret) return secret;
+  if (secret) {
+    _jwtSecret = secret;
+    return _jwtSecret;
+  }
   if (process.env.NODE_ENV === "production") {
     throw new Error("FATAL: AUTH_SECRET environment variable must be set in production");
   }
   console.warn("[AUTH] WARNING: Using default dev secret. Set AUTH_SECRET for production.");
-  return "dev-only-unsafe-secret-do-not-use-in-prod";
-})();
+  _jwtSecret = "dev-only-unsafe-secret-do-not-use-in-prod";
+  return _jwtSecret;
+}
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes in seconds
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days in seconds
 
@@ -135,7 +203,7 @@ export function signJWT(payload: Omit<JWTPayload, "iat" | "exp">, expiresIn: num
   const fullPayload: JWTPayload = { ...payload, iat: now, exp: now + expiresIn };
   const body = base64urlEncode(JSON.stringify(fullPayload));
   const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", getJwtSecret())
     .update(`${header}.${body}`)
     .digest("base64url");
   return `${header}.${body}.${signature}`;
@@ -148,7 +216,7 @@ export function verifyJWT(token: string): JWTPayload | null {
 
     const [header, body, signature] = parts;
     const expectedSig = crypto
-      .createHmac("sha256", JWT_SECRET)
+      .createHmac("sha256", getJwtSecret())
       .update(`${header}.${body}`)
       .digest("base64url");
 
@@ -177,5 +245,5 @@ export function createTokenPair(userId: string, role: string, email: string, bus
   };
 }
 
-export { JWT_SECRET, ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY };
+export { getJwtSecret, ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY };
 export type { JWTPayload };

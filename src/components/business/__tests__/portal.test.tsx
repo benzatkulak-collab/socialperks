@@ -16,6 +16,10 @@ vi.mock("@/lib/hooks/use-realtime", () => ({
   useRealtime: () => ({ connected: false, lastEvent: null, subscribe: () => () => {} }),
 }));
 
+vi.mock("@/lib/context/app-context", () => ({
+  useToast: () => vi.fn(),
+}));
+
 vi.mock("@/lib/platforms", () => ({
   PLATFORMS: [
     { id: "ig", name: "Instagram", icon: "📸", color: "#E1306C", actions: [

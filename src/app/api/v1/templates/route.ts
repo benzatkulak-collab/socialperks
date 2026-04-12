@@ -8,7 +8,7 @@
  * Query params: industry?, platform?, difficulty?, page?, perPage?
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, paginate, withTiming } from "../_shared";
 import {
   CAMPAIGN_TEMPLATES,

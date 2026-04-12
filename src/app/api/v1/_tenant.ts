@@ -11,7 +11,7 @@
  */
 
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import type { NextResponse } from "next/server";
 import { getUser, err, type AuthUser } from "./_shared";
 import {
   getTenantContext,

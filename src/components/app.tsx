@@ -1,21 +1,36 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 
-// ── Portals ──────────────────────────────────────────────────────────────
+// ── Portals (lazy-loaded for code splitting) ─────────────────────────────
 import { AuthForm } from "@/components/auth/auth-form";
-import { BusinessPortal } from "@/components/business/portal";
-import { InfluencerPortal } from "@/components/influencer/portal";
-import { EnterprisePortal } from "@/components/enterprise/portal";
+import dynamic from "next/dynamic";
+import { DashboardSkeleton, InfluencerDashboardSkeleton, EnterpriseDashboardSkeleton } from "@/components/ui/portal-skeletons";
+
+const BusinessPortal = dynamic(
+  () => import("@/components/business/portal").then(m => ({ default: m.BusinessPortal })),
+  { loading: () => <DashboardSkeleton /> }
+);
+
+const InfluencerPortal = dynamic(
+  () => import("@/components/influencer/portal").then(m => ({ default: m.InfluencerPortal })),
+  { loading: () => <InfluencerDashboardSkeleton /> }
+);
+
+const EnterprisePortal = dynamic(
+  () => import("@/components/enterprise/portal").then(m => ({ default: m.EnterprisePortal })),
+  { loading: () => <EnterpriseDashboardSkeleton /> }
+);
 
 // ── Landing Components ───────────────────────────────────────────────────
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { Hero } from "@/components/landing/hero";
-import dynamic from "next/dynamic";
 
 const HowItWorks = dynamic(() => import("@/components/landing/how-it-works").then(m => m.HowItWorks));
 const AudienceSections = dynamic(() => import("@/components/landing/audience-sections").then(m => m.AudienceSections));
+const Testimonials = dynamic(() => import("@/components/landing/testimonials").then(m => m.Testimonials));
+const PricingTable = dynamic(() => import("@/components/landing/pricing-table").then(m => m.PricingTable));
 const PricingSection = dynamic(() => import("@/components/landing/pricing-section").then(m => m.PricingSection));
 const SocialProof = dynamic(() => import("@/components/landing/social-proof").then(m => m.SocialProof));
 const CtaSection = dynamic(() => import("@/components/landing/cta-section").then(m => m.CtaSection));
@@ -23,7 +38,11 @@ const CtaSection = dynamic(() => import("@/components/landing/cta-section").then
 // ── UI & Data ────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ToastContainer } from "@/components/ui/toast";
 import { useLocalStorage } from "@/lib/hooks/use-store";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { AppProvider, useAppContext } from "@/lib/context/app-context";
 import { createSeedData } from "@/lib/seed";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 
@@ -37,10 +56,6 @@ import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 // ─── Constant seed data (created once, outside component) ────────────────
 
 const INITIAL_SEED_DATA = createSeedData();
-
-// ─── Session restore timeout ─────────────────────────────────────────────
-
-const SESSION_RESTORE_TIMEOUT = 5000;
 
 // ═══════════════ Error Boundary ═══════════════
 
@@ -97,6 +112,8 @@ const Landing = React.memo(function Landing() {
         <HowItWorks />
         <AudienceSections />
         <SocialProof />
+        <Testimonials />
+        <PricingTable />
         <PricingSection />
         <CtaSection />
       </div>
@@ -105,17 +122,24 @@ const Landing = React.memo(function Landing() {
   );
 });
 
-// ═══════════════ Main App ═══════════════
+// ═══════════════ App Content (inside AppProvider) ═══════════════
 
-export function SocialPerksApp() {
+function SocialPerksAppContent() {
   const { value: data, setValue: setData, ready } = useLocalStorage<SeedData>(
     "sp-v2",
     INITIAL_SEED_DATA
   );
-  const [screen, setScreen] = useState<"landing" | "auth" | "business" | "influencer" | "enterprise">("landing");
-  const [currentUser, setCurrentUser] = useState<SeedBusiness | SeedInfluencer | null>(null);
-  const [userRole, setUserRole] = useState<"business" | "influencer" | null>(null);
-  const [restoring, setRestoring] = useState(true);
+
+  // Auth state managed by useAuth hook (handles session restore + API logout)
+  const { user: authUser, logout: authLogout, restoring } = useAuth();
+
+  // App-wide state from context (screen, userRole, theme)
+  const { state: appState, dispatch } = useAppContext();
+  const screen = appState.screen;
+  const userRole = appState.userRole;
+
+  // currentUser tracks the rich SeedBusiness/SeedInfluencer object for portals
+  const [currentUser, setCurrentUser] = React.useState<SeedBusiness | SeedInfluencer | null>(null);
 
   const save = useCallback(
     (next: SeedData) => {
@@ -124,40 +148,76 @@ export function SocialPerksApp() {
     [setData]
   );
 
-  // Session restoration — attempt to validate an existing session cookie
-  // on mount. 5-second timeout prevents slow networks from leaving users
-  // stuck on the loading screen.
+  // When the auth hook restores a session, update screen & role AND derive currentUser from seed data
   useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), SESSION_RESTORE_TIMEOUT);
-    async function restoreSession() {
+    if (restoring) return;
+    if (authUser && !currentUser) {
+      const role = authUser.role === "influencer" ? "influencer" as const : "business" as const;
+      dispatch({ type: 'SET_AUTH', payload: { screen: role, userRole: role } });
+
+      // Try to restore currentUser from localStorage first (persisted on login)
       try {
-        const res = await fetch("/api/v1/auth", {
-          method: "GET",
-          credentials: "include",
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (cancelled) return;
-        if (json.success && json.data?.user) {
-          const role = json.data.user.role === "influencer" ? "influencer" : "business";
-          setUserRole(role);
-          setScreen(role);
+        const stored = localStorage.getItem("sp-current-user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.email === authUser.email) {
+            setCurrentUser(parsed);
+            return;
+          }
         }
       } catch {
-        // Timeout or network error — fall through to landing page
-      } finally {
-        clearTimeout(timeout);
-        if (!cancelled) {
-          setRestoring(false);
+        // Ignore parse errors
+      }
+
+      // Fall back to deriving from seed data
+      if (role === "business") {
+        const biz = data.businesses.find(b => b.email === authUser.email || b.id === authUser.id);
+        if (biz) {
+          setCurrentUser(biz);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(biz)); } catch { /* ignore */ }
+        } else {
+          // User signed up (not in seed data) — construct a minimal SeedBusiness
+          const fallbackBiz: SeedBusiness = {
+            id: (authUser as unknown as Record<string, string>).businessId ?? authUser.id,
+            name: authUser.name,
+            type: "",
+            email: authUser.email,
+            pin: "",
+            avatar: "\uD83C\uDFEA",
+            size: "small",
+            location: "",
+            industry: "",
+          };
+          setCurrentUser(fallbackBiz);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(fallbackBiz)); } catch { /* ignore */ }
+        }
+      } else {
+        const inf = data.influencers.find(i => i.email === authUser.email || i.id === authUser.id);
+        if (inf) {
+          setCurrentUser(inf);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(inf)); } catch { /* ignore */ }
+        } else {
+          // User signed up (not in seed data) — construct a minimal SeedInfluencer
+          const fallbackInf: SeedInfluencer = {
+            id: authUser.id,
+            displayName: authUser.name,
+            email: authUser.email,
+            pin: "",
+            avatar: "\uD83C\uDFA4",
+            bio: "",
+            tier: "micro",
+            niches: [],
+            followerCount: 0,
+            engagementRate: 0,
+            platforms: [],
+            location: "",
+          };
+          setCurrentUser(fallbackInf);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(fallbackInf)); } catch { /* ignore */ }
         }
       }
     }
-    restoreSession();
-    return () => { cancelled = true; controller.abort(); };
-  }, []);
+  }, [restoring, authUser, currentUser, data, dispatch]);
 
   // Listen for hash-based navigation from landing page components
   // Nav, Hero, and CTA buttons use href="#login" / href="#signup"
@@ -165,7 +225,7 @@ export function SocialPerksApp() {
     function handleHashChange() {
       const hash = window.location.hash;
       if (hash === "#login" || hash === "#signup") {
-        setScreen("auth");
+        dispatch({ type: 'SET_SCREEN', payload: 'auth' });
         // Clear hash so back button works naturally
         window.history.replaceState(null, "", window.location.pathname);
       }
@@ -174,33 +234,46 @@ export function SocialPerksApp() {
     // Also check on mount in case the page loaded with a hash
     handleHashChange();
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [dispatch]);
 
   const handleAuth = useCallback((user: SeedBusiness | SeedInfluencer, role: "business" | "influencer") => {
     setCurrentUser(user);
-    setUserRole(role);
-    setScreen(role);
-  }, []);
+    dispatch({ type: 'SET_AUTH', payload: { screen: role, userRole: role } });
+    try { localStorage.setItem("sp-current-user", JSON.stringify(user)); } catch { /* ignore */ }
+  }, [dispatch]);
 
   const handleLogout = useCallback(async () => {
-    try {
-      await fetch("/api/v1/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ action: "logout" }),
-      });
-    } catch {
-      // Best-effort — clear local state regardless
-    }
+    await authLogout();
     setCurrentUser(null);
-    setUserRole(null);
-    setScreen("landing");
-  }, []);
+    dispatch({ type: 'LOGOUT' });
+    try { localStorage.removeItem("sp-current-user"); } catch { /* ignore */ }
+  }, [authLogout, dispatch]);
 
-  const handleBackToLanding = useCallback(() => setScreen("landing"), []);
+  const handleBackToLanding = useCallback(() => {
+    dispatch({ type: 'SET_SCREEN', payload: 'landing' });
+  }, [dispatch]);
 
-  const handleEnterpriseDemo = useCallback(() => setScreen("enterprise"), []);
+  const handleEnterpriseDemo = useCallback(() => {
+    dispatch({ type: 'SET_SCREEN', payload: 'enterprise' });
+  }, [dispatch]);
+
+  // ── Keyboard Shortcuts ───────────────────────────────────────────────────
+  // Escape: return to previous screen (auth -> landing, portal -> landing)
+  // Cmd+K / Ctrl+K: focus search (future) — placeholder for extensibility
+  const shortcutsRef = useRef(screen);
+  shortcutsRef.current = screen;
+  const shortcuts = useMemo(() => [
+    {
+      key: "Escape",
+      handler: () => {
+        const current = shortcutsRef.current;
+        if (current === "auth") {
+          dispatch({ type: 'SET_SCREEN', payload: 'landing' });
+        }
+      },
+    },
+  ], [dispatch]);
+  useKeyboardShortcuts(shortcuts);
 
   // Memoize the current business user cast to avoid re-casting every render
   const currentBusiness = useMemo(
@@ -231,7 +304,7 @@ export function SocialPerksApp() {
 
   return (
     <ErrorBoundary>
-      <main id="main-content">
+      <main id="main-content" role="main">
         {screen === "landing" && <Landing />}
         {screen === "auth" && (
           <AuthForm
@@ -265,6 +338,17 @@ export function SocialPerksApp() {
           />
         )}
       </main>
+      <ToastContainer />
     </ErrorBoundary>
+  );
+}
+
+// ═══════════════ Main App (wraps with AppProvider) ═══════════════
+
+export function SocialPerksApp() {
+  return (
+    <AppProvider>
+      <SocialPerksAppContent />
+    </AppProvider>
   );
 }

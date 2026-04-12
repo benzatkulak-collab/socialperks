@@ -37,7 +37,7 @@ export const stripeCircuit = new CircuitBreaker({
     if (to === "open") {
       console.warn(`[resilience] Stripe circuit OPENED after failures (was ${from})`);
     } else if (to === "closed") {
-      console.info(`[resilience] Stripe circuit recovered -> closed`);
+      console.warn(`[resilience] Stripe circuit recovered -> closed`);
     }
   },
 });
@@ -65,7 +65,7 @@ export const emailCircuit = new CircuitBreaker({
     if (to === "open") {
       console.warn(`[resilience] Email circuit OPENED after failures (was ${from})`);
     } else if (to === "closed") {
-      console.info(`[resilience] Email circuit recovered -> closed`);
+      console.warn(`[resilience] Email circuit recovered -> closed`);
     }
   },
 });
@@ -95,7 +95,7 @@ export const verificationCircuit = new CircuitBreaker({
     if (to === "open") {
       console.warn(`[resilience] Verification circuit OPENED after failures (was ${from})`);
     } else if (to === "closed") {
-      console.info(`[resilience] Verification circuit recovered -> closed`);
+      console.warn(`[resilience] Verification circuit recovered -> closed`);
     }
   },
 });

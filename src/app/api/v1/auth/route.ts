@@ -21,6 +21,7 @@ import { emailProvider, passwordResetEmail } from "@/lib/email";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import { trackReferralSignup } from "@/lib/referrals";
 import { emailQueue } from "@/lib/jobs/registry";
+import { logError } from "@/lib/logging";
 
 // ─── In-Memory User Store ───────────────────────────────────────────────────
 
@@ -213,6 +214,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const action = body.action ?? "login";
 
+  try {
   switch (action) {
     // ── Signup ──────────────────────────────────────────────────────────────
     case "signup": {
@@ -529,5 +531,9 @@ export const POST = withTiming(async (req: NextRequest) => {
         "INVALID_ACTION",
         "action must be 'login', 'signup', 'logout', 'refresh', 'session', 'reset-password', or 'confirm-reset'"
       );
+  }
+  } catch (error) {
+    logError(error, { method: "POST", path: "/api/v1/auth", action });
+    return err("INTERNAL_ERROR", "An unexpected error occurred", 500);
   }
 });

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useBusinessDashboard } from "@/lib/hooks/use-business-dashboard";
 import { useRealtime } from "@/lib/hooks/use-realtime";
+import { useToast } from "@/lib/context/app-context";
 import { PLATFORMS } from "@/lib/platforms";
 import { PortalHome } from "./portal-home";
 import { PortalCreate } from "./portal-create";
@@ -16,6 +18,20 @@ import { DashboardSkeleton } from "@/components/ui/portal-skeletons";
 import { NotificationCenter } from "@/components/shared/notification-center";
 import type { SeedData, SeedBusiness } from "@/lib/seed";
 import type { CampaignTemplate } from "@/lib/campaign-templates";
+
+// Lazy-loaded tabs for code splitting
+const AnalyticsDashboard = dynamic(
+  () => import("@/components/business/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })),
+);
+const BusinessSettings = dynamic(
+  () => import("@/components/business/settings").then(m => ({ default: m.BusinessSettings })),
+);
+const OnboardingChecklist = dynamic(
+  () => import("@/components/business/onboarding-checklist").then(m => ({ default: m.OnboardingChecklist })),
+);
+const CampaignDetail = dynamic(
+  () => import("@/components/business/campaign-detail").then(m => ({ default: m.CampaignDetail })),
+);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -73,8 +89,9 @@ const REWARD_OPTIONS = [
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProps) {
-  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics">("home");
+  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics" | "analytics-detail" | "settings" | "campaign-detail">("home");
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
   // Create campaign state
   const [step, setStep] = useState(1);
@@ -97,18 +114,11 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     return document.cookie.match(/sp-access-token=([^;]+)/)?.[1] ?? null;
   }, []);
 
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  // Toast notifications via AppContext
+  const contextShowToast = useToast();
   const showToast = useCallback((msg: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast(msg);
-    toastTimerRef.current = setTimeout(() => setToast(null), 4000);
-  }, []);
-
-  useEffect(() => {
-    return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
-  }, []);
+    contextShowToast(msg, "success", 4000);
+  }, [contextShowToast]);
 
   useEffect(() => {
     const unsub = subscribe("submission.created", () => {
@@ -275,6 +285,28 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const handleOnboardingComplete = useCallback(() => setShowOnboarding(false), []);
   const handleOnboardingSkip = useCallback(() => setShowOnboarding(false), []);
 
+  const handleViewCampaignDetail = useCallback((campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setPage("campaign-detail");
+  }, []);
+
+  const handleBackFromCampaignDetail = useCallback(() => {
+    setSelectedCampaignId(null);
+    setPage("home");
+  }, []);
+
+  const handleChecklistNavigate = useCallback((section: string) => {
+    if (section === "create") {
+      resetCreate();
+      setPage("create");
+    } else if (section === "analytics-detail" || section === "analytics") {
+      setPage("analytics");
+    } else if (section === "settings") {
+      setPage("settings");
+    }
+  }, [resetCreate]);
+
+
   const handleBackToHome = useCallback(() => setPage("home"), []);
   const handleGoToStep2 = useCallback(() => setStep(2), []);
   const handleGoToStep3 = useCallback(() => setStep(3), []);
@@ -352,6 +384,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     <div className="min-h-screen bg-brand-bg">
       {/* Onboarding wizard for new businesses with no campaigns */}
       {showOnboarding && myCampaigns.length === 0 && (
+        <SectionErrorBoundary section="Onboarding">
         <OnboardingWizard
           businessId={biz.id}
           businessName={biz.name}
@@ -359,46 +392,46 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
         />
+        </SectionErrorBoundary>
       )}
 
       {/* Top Bar — sticky with backdrop blur */}
-      <div className="sticky top-0 z-40 bg-brand-surface/90 backdrop-blur-xl border-b border-brand-border/50">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-40 bg-brand-surface/90 backdrop-blur-xl border-b border-brand-border/50 safe-top">
+        <div className="mx-auto max-w-5xl px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Logo size="sm" />
-            <nav className="flex items-center gap-1 ml-4">
-              {(["home", "analytics"] as const).map((tab) => (
+            <nav className="flex items-center gap-0.5 sm:gap-1 ml-2 sm:ml-4">
+              {([
+                { id: "home" as const, label: "Dashboard" },
+                { id: "analytics" as const, label: "Analytics" },
+                { id: "analytics-detail" as const, label: "Insights" },
+                { id: "settings" as const, label: "Settings" },
+              ]).map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setPage(tab)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
-                    page === tab
+                  key={tab.id}
+                  onClick={() => setPage(tab.id)}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 min-h-[36px] ${
+                    page === tab.id
                       ? "bg-brand-cyan/10 text-brand-cyan"
                       : "text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50"
                   }`}
                 >
-                  {tab === "home" ? "Dashboard" : "Analytics"}
+                  {tab.label}
                 </button>
               ))}
             </nav>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-brand-dim hidden sm:block">{biz.avatar} {biz.name}</span>
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <span className="text-xs text-brand-dim hidden sm:block truncate max-w-[140px]">{biz.avatar} {biz.name}</span>
             {connected && <span className="flex h-2 w-2 rounded-full bg-brand-green animate-pulse" title="Live" />}
             <NotificationCenter token={authToken} />
-            <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
+            <Button variant="ghost" size="sm" onClick={onLogout} className="hidden xs:inline-flex">Log Out</Button>
+            <button onClick={onLogout} className="xs:hidden text-xs text-brand-dim hover:text-brand-white p-1.5" aria-label="Log out">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10.5 11.5L14 8l-3.5-3.5M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="bg-brand-green/10 border border-brand-green/30 rounded-xl px-4 py-3 text-sm text-brand-green font-medium animate-fade-up" role="status" aria-live="polite">
-            {toast}
-          </div>
-        </div>
-      )}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
 
@@ -409,6 +442,18 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
           <div className="animate-fade-up">
             <h1 className="font-heading text-2xl italic text-brand-white mb-1 sm:text-3xl">{biz.name}</h1>
             <p className="text-sm text-brand-dim mb-8 sm:mb-10">{biz.type} &middot; {biz.location || "Your business"}</p>
+
+            {/* Onboarding Checklist — shown at top of dashboard until dismissed (self-managing via localStorage) */}
+            <SectionErrorBoundary section="Onboarding Checklist">
+              <OnboardingChecklist
+                hasProfile={Boolean(biz.type && biz.location)}
+                hasSocialConnection={false}
+                hasCampaign={myCampaigns.length > 0}
+                hasSharedLink={false}
+                hasReviewedSubmission={false}
+                onNavigate={handleChecklistNavigate}
+              />
+            </SectionErrorBoundary>
 
             <PortalHome
               myCampaigns={myCampaigns}
@@ -428,6 +473,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               onPauseCampaign={handlePauseCampaign}
               onResumeCampaign={handleResumeCampaign}
               onEndCampaign={handleEndCampaign}
+              onViewCampaignDetail={handleViewCampaignDetail}
             />
           </div>
           )}
@@ -476,15 +522,51 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
             <PortalAnalytics businessId={biz.id} />
           </SectionErrorBoundary>
         )}
+
+        {/* ════════════ ANALYTICS DETAIL (Insights) ════════════ */}
+        {page === "analytics-detail" && (
+          <SectionErrorBoundary section="Analytics Dashboard">
+            <AnalyticsDashboard businessId={biz.id} />
+          </SectionErrorBoundary>
+        )}
+
+        {/* ════════════ SETTINGS ════════════ */}
+        {page === "settings" && (
+          <SectionErrorBoundary section="Settings">
+            <BusinessSettings
+              businessId={biz.id}
+              businessName={biz.name}
+              businessEmail={biz.email}
+              businessType={biz.type}
+              businessIndustry={biz.industry || ""}
+            />
+          </SectionErrorBoundary>
+        )}
+
+        {/* ════════════ CAMPAIGN DETAIL ════════════ */}
+        {page === "campaign-detail" && selectedCampaignId && (
+          <SectionErrorBoundary section="Campaign Detail">
+            <CampaignDetail
+              campaignId={selectedCampaignId}
+              onBack={handleBackFromCampaignDetail}
+              onEdit={() => {
+                const campaign = myCampaigns.find(c => c.id === selectedCampaignId);
+                if (campaign) handleEditCampaign(campaign);
+              }}
+            />
+          </SectionErrorBoundary>
+        )}
       </div>
 
       {/* Campaign Edit Modal */}
       {editingCampaign && (
+        <SectionErrorBoundary section="Campaign Editor">
         <CampaignEditModal
           campaign={editingCampaign}
           onSave={handleEditSave}
           onClose={handleEditClose}
         />
+        </SectionErrorBoundary>
       )}
     </div>
   );

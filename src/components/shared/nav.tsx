@@ -1,7 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useTheme } from "@/lib/hooks/use-theme";
+
+const LanguageSelector = dynamic(
+  () => import("@/components/shared/language-selector").then(m => ({ default: m.LanguageSelector })),
+);
 
 interface NavLink {
   label: string;
@@ -15,10 +21,12 @@ const NAV_LINKS: NavLink[] = [
   { label: "Contact", href: "/contact" },
 ];
 
-export function Nav() {
+export const Nav = React.memo(function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState("");
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const { theme, toggle: toggleTheme } = useTheme();
 
   useEffect(() => {
     let ticking = false;
@@ -44,6 +52,16 @@ export function Nav() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Track current hash for aria-current
+  useEffect(() => {
+    function updateHash() {
+      setCurrentHash(window.location.hash);
+    }
+    updateHash();
+    window.addEventListener("hashchange", updateHash);
+    return () => window.removeEventListener("hashchange", updateHash);
+  }, []);
+
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (mobileOpen) {
@@ -61,6 +79,7 @@ export function Nav() {
       className={`
         fixed left-0 right-0 top-0 z-sticky
         transition-all duration-slow ease-smooth
+        safe-top
         ${
           scrolled
             ? "border-b border-brand-border/50 bg-brand-bg/80 backdrop-blur-xl shadow-sm"
@@ -77,6 +96,7 @@ export function Nav() {
       </a>
       <nav
         className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8"
+        role="navigation"
         aria-label="Main navigation"
       >
         {/* Logo */}
@@ -112,6 +132,7 @@ export function Nav() {
         {/* Desktop links */}
         <ul className="hidden items-center gap-1 lg:flex" role="list">
           {NAV_LINKS.map((link) => {
+            const isCurrent = link.href === currentHash || (link.href.startsWith("/") && typeof window !== "undefined" && window.location.pathname === link.href);
             const cls = `
               relative rounded-lg px-3 py-2 text-sm text-brand-dim
               transition-all duration-fast ease-smooth
@@ -122,11 +143,11 @@ export function Nav() {
             return (
               <li key={link.label}>
                 {link.href.startsWith("/") ? (
-                  <Link href={link.href} className={cls}>
+                  <Link href={link.href} className={cls} aria-current={isCurrent ? "page" : undefined}>
                     {link.label}
                   </Link>
                 ) : (
-                  <a href={link.href} className={cls}>
+                  <a href={link.href} className={cls} aria-current={isCurrent ? "page" : undefined}>
                     {link.label}
                   </a>
                 )}
@@ -137,6 +158,24 @@ export function Nav() {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-3 lg:flex">
+          <LanguageSelector />
+          <button
+            onClick={toggleTheme}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-brand-dim transition-all duration-fast ease-smooth hover:bg-brand-surface/60 hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M14 9.27A6.5 6.5 0 116.73 2 5 5 0 0014 9.27z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
           <a
             href="/dashboard#login"
             className="
@@ -162,11 +201,11 @@ export function Nav() {
           </a>
         </div>
 
-        {/* Mobile hamburger */}
+        {/* Mobile hamburger — 44px min touch target for accessibility */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="
-            flex h-10 w-10 items-center justify-center rounded-lg
+            flex h-11 w-11 items-center justify-center rounded-lg
             text-brand-dim
             transition-all duration-fast ease-smooth
             hover:bg-brand-surface/50 hover:text-brand-text
@@ -222,15 +261,17 @@ export function Nav() {
         aria-label={mobileOpen ? "Mobile navigation menu" : undefined}
         aria-hidden={!mobileOpen}
       >
-        <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8">
+        <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8 pb-safe">
           <ul className="space-y-1" role="list">
             {NAV_LINKS.map((link, i) => {
+              const isCurrent = link.href === currentHash || (link.href.startsWith("/") && typeof window !== "undefined" && window.location.pathname === link.href);
               const cls = `
-                block rounded-lg px-4 py-3 text-base text-brand-dim
+                block rounded-lg px-4 py-3.5 text-base text-brand-dim
                 transition-all duration-fast ease-smooth
                 hover:bg-brand-surface/50 hover:text-brand-text
                 active:bg-brand-elevated
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40
+                min-h-[44px] flex items-center
               `;
               return (
                 <li
@@ -243,6 +284,7 @@ export function Nav() {
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
                       className={cls}
+                      aria-current={isCurrent ? "page" : undefined}
                     >
                       {link.label}
                     </Link>
@@ -251,6 +293,7 @@ export function Nav() {
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
                       className={cls}
+                      aria-current={isCurrent ? "page" : undefined}
                     >
                       {link.label}
                     </a>
@@ -293,4 +336,4 @@ export function Nav() {
       </div>
     </header>
   );
-}
+});

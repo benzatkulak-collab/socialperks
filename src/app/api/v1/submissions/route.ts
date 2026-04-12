@@ -9,12 +9,14 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
   paginate,
   withTiming,
 } from "../_shared";
+import { withIdempotency } from "@/lib/api/idempotency";
 import { withTenant } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
 import { createSubmission, getSubmissions, getSubmissionById } from "@/lib/submissions";
@@ -25,6 +27,7 @@ import { checkProofUrl } from "@/lib/verification/url-checker";
 import { findAction } from "@/lib/platforms";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { logError } from "@/lib/logging";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
@@ -102,36 +105,54 @@ export const GET = withTiming(async (req: NextRequest) => {
     filters.actionId = v.data;
   }
 
-  let result = getSubmissions(filters, page, perPage);
+  let result;
 
-  // Post-filter: scope to tenant's campaigns if needed
   if (tenantCampaignIds) {
-    const filtered = result.submissions.filter((s) =>
+    // When tenant-scoping is needed, fetch ALL matching submissions first
+    // (without pagination), filter by tenant's campaigns, then paginate.
+    const allResults = getSubmissions(filters, 1, 50_000);
+    const filtered = allResults.submissions.filter((s) =>
       tenantCampaignIds!.has(s.campaignId)
     );
+
+    const total = filtered.length;
+    const safePage = Math.max(1, page);
+    const safePerPage = Math.min(100, Math.max(1, perPage));
+    const offset = (safePage - 1) * safePerPage;
+    const paginated = filtered.slice(offset, offset + safePerPage);
+
     result = {
-      ...result,
-      submissions: filtered,
-      total: filtered.length,
-      totalPages: Math.ceil(filtered.length / perPage),
+      submissions: paginated,
+      total,
+      page: safePage,
+      perPage: safePerPage,
+      totalPages: Math.ceil(total / safePerPage),
     };
+  } else {
+    result = getSubmissions(filters, page, perPage);
   }
 
   return ok({
     submissions: result.submissions,
-    total: result.total,
-    page: result.page,
-    perPage: result.perPage,
-    totalPages: result.totalPages,
+    pagination: {
+      total: result.total,
+      page: result.page,
+      perPage: result.perPage,
+      totalPages: result.totalPages,
+    },
   });
 });
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 
-export const POST = withTiming(async (req: NextRequest) => {
+export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // CSRF protection
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — standard for writes
   const limited = rateLimit(req, "standard");
@@ -201,8 +222,8 @@ export const POST = withTiming(async (req: NextRequest) => {
           };
         }
       })
-      .catch(() => {
-        // Silently swallow — URL check failure should never break submission flow
+      .catch((urlError) => {
+        logError(urlError, { method: "POST", path: "/api/v1/submissions", userId: user.id, submissionId, context: "url_verification" });
       });
   }
 
@@ -215,4 +236,4 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   return ok({ submission: result.data }, 201);
-});
+}));

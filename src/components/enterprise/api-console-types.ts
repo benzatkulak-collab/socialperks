@@ -1,10 +1,13 @@
 // ═══════════════ API Console Types ═══════════════
 
+export type ApiKeyScope = "read" | "read-write" | "admin";
+
 export interface ApiKey {
   id: string;
   name: string;
   keyPrefix: string;
   environment: "sandbox" | "production";
+  scope: ApiKeyScope;
   createdAt: string;
   lastUsed: string | null;
   requestsToday: number;
@@ -91,4 +94,16 @@ export const STATUS_STYLES: Record<string, { label: string; className: string }>
   revoked: { label: "Revoked", className: "bg-brand-red/10 text-brand-red" },
   inactive: { label: "Inactive", className: "bg-brand-muted/10 text-brand-muted" },
   failing: { label: "Failing", className: "bg-brand-red/10 text-brand-red" },
+};
+
+export const SCOPE_OPTIONS: { value: ApiKeyScope; label: string; description: string }[] = [
+  { value: "read", label: "Read Only", description: "Campaigns, submissions, analytics, programs, exchange (read)" },
+  { value: "read-write", label: "Read & Write", description: "All read permissions plus create/modify campaigns, submissions, programs, and orders" },
+  { value: "admin", label: "Full Access", description: "All permissions including billing and webhook management" },
+];
+
+export const SCOPE_STYLES: Record<ApiKeyScope, { label: string; className: string }> = {
+  read: { label: "Read Only", className: "bg-brand-cyan/10 text-brand-cyan" },
+  "read-write": { label: "Read & Write", className: "bg-brand-amber/10 text-brand-amber" },
+  admin: { label: "Full Access", className: "bg-brand-pink/10 text-brand-pink" },
 };

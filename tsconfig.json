@@ -42,9 +42,13 @@
   "exclude": [
     "node_modules",
     "api",
+    "prisma",
     "vitest.config.ts",
     "**/__tests__/**",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    ".storybook"
   ]
 }

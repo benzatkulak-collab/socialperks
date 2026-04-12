@@ -38,7 +38,7 @@ const paddingClasses: Record<string, string> = {
   lg: "p-8",
 };
 
-export function Card({
+export const Card = React.memo(function Card({
   children,
   className = "",
   onClick,
@@ -94,4 +94,4 @@ export function Card({
       {children}
     </div>
   );
-}
+});

@@ -4,7 +4,7 @@
  * Cash back payout management for perk programs.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   ok,
   err,

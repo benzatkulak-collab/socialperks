@@ -10,12 +10,14 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
   paginate,
   withTiming,
 } from "../_shared";
+import { withIdempotency } from "@/lib/api/idempotency";
 import { withTenant, checkResourceAccess } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
 import { campaignManager } from "@/lib/campaign-state-machine";
@@ -27,6 +29,7 @@ import {
   getBusinessPlan,
   buildPlanLimitError,
 } from "@/lib/billing/enforcement";
+import { logError } from "@/lib/logging";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
@@ -92,20 +95,21 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   return ok({
     campaigns: items,
-    total,
-    page,
-    perPage,
-    totalPages,
+    pagination: { total, page, perPage, totalPages },
   });
 });
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 
-export const POST = withTiming(async (req: NextRequest) => {
+export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
   // Auth + tenant isolation
   const tenantResult = withTenant(req);
   if (tenantResult instanceof NextResponse) return tenantResult;
-  const { tenant } = tenantResult;
+  const { user, tenant } = tenantResult;
+
+  // CSRF protection
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — standard for writes
   const limited = rateLimit(req, "standard");
@@ -210,10 +214,11 @@ export const POST = withTiming(async (req: NextRequest) => {
       201
     );
   } catch (error) {
+    logError(error, { method: "POST", path: "/api/v1/campaigns", userId: user.id, businessId: bv.data });
     const message = error instanceof Error ? error.message : "Failed to launch campaign";
     return err("LAUNCH_FAILED", message, 500);
   }
-});
+}));
 
 // ─── PUT ────────────────────────────────────────────────────────────────────
 
@@ -284,6 +289,7 @@ export const PUT = withTiming(async (req: NextRequest) => {
 
       return ok({ campaign: updated! });
     } catch (error) {
+      logError(error, { method: "PUT", path: "/api/v1/campaigns", userId: user.id, campaignId: cv.data, action: actionV.data });
       const message = error instanceof Error ? error.message : "Failed to update campaign state";
       return err("STATE_TRANSITION_FAILED", message, 409);
     }

@@ -8,7 +8,8 @@
  * Does NOT use withTiming — sets up a ReadableStream directly.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { err, getQuery } from "../_shared";
 import { verifyJWT, sessionStore } from "@/lib/auth";
 import { eventPublisher } from "@/lib/realtime/publisher";

@@ -7,7 +7,7 @@
  * Includes 5-minute replay protection.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, withTiming } from "../../_shared";
 import {
   subscriptions,
@@ -102,7 +102,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   switch (eventType) {
     case "checkout.session.completed": {
-      console.info(`[Billing Webhook] checkout.session.completed — event=${eventId}`);
+      console.warn(`[Billing Webhook] checkout.session.completed — event=${eventId}`);
 
       if (eventData) {
         const customerId = eventData.customer as string;
@@ -130,14 +130,14 @@ export const POST = withTiming(async (req: NextRequest) => {
             createdAt: now.toISOString(),
           };
           subscriptions.set(subscriptionId, sub);
-          console.info(`[Billing Webhook] Created subscription ${subscriptionId} for business ${businessId}`);
+          console.warn(`[Billing Webhook] Created subscription ${subscriptionId} for business ${businessId}`);
         }
       }
       break;
     }
 
     case "customer.subscription.updated": {
-      console.info(`[Billing Webhook] customer.subscription.updated — event=${eventId}`);
+      console.warn(`[Billing Webhook] customer.subscription.updated — event=${eventId}`);
 
       if (eventData) {
         const subscriptionId = eventData.id as string;
@@ -150,42 +150,42 @@ export const POST = withTiming(async (req: NextRequest) => {
             ...(status && { status }),
             ...(typeof cancelAtPeriodEnd === "boolean" && { cancelAtPeriodEnd }),
           });
-          console.info(`[Billing Webhook] Updated subscription ${subscriptionId}`);
+          console.warn(`[Billing Webhook] Updated subscription ${subscriptionId}`);
         }
       }
       break;
     }
 
     case "customer.subscription.deleted": {
-      console.info(`[Billing Webhook] customer.subscription.deleted — event=${eventId}`);
+      console.warn(`[Billing Webhook] customer.subscription.deleted — event=${eventId}`);
 
       if (eventData) {
         const subscriptionId = eventData.id as string;
         const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
         if (existing) {
           subscriptions.set(subscriptionId, { ...existing, status: "canceled" });
-          console.info(`[Billing Webhook] Canceled subscription ${subscriptionId}`);
+          console.warn(`[Billing Webhook] Canceled subscription ${subscriptionId}`);
         }
       }
       break;
     }
 
     case "invoice.payment_failed": {
-      console.info(`[Billing Webhook] invoice.payment_failed — event=${eventId}`);
+      console.warn(`[Billing Webhook] invoice.payment_failed — event=${eventId}`);
 
       if (eventData) {
         const subscriptionId = eventData.subscription as string;
         const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
         if (existing) {
           subscriptions.set(subscriptionId, { ...existing, status: "past_due" });
-          console.info(`[Billing Webhook] Marked subscription ${subscriptionId} as past_due`);
+          console.warn(`[Billing Webhook] Marked subscription ${subscriptionId} as past_due`);
         }
       }
       break;
     }
 
     default:
-      console.info(`[Billing Webhook] Unhandled event type: ${eventType} — event=${eventId}`);
+      console.warn(`[Billing Webhook] Unhandled event type: ${eventType} — event=${eventId}`);
   }
 
   return ok({ received: true });

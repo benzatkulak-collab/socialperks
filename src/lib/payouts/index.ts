@@ -94,7 +94,7 @@ export async function createConnectAccount(
       };
 
       payoutAccounts.set(influencerId, payoutAccount);
-      console.info(
+      console.warn(
         `[Payouts] Created Stripe Connect account ${account.id} for influencer ${influencerId}`
       );
 
@@ -118,7 +118,7 @@ export async function createConnectAccount(
   };
 
   payoutAccounts.set(influencerId, payoutAccount);
-  console.info(
+  console.warn(
     `[Payouts] Created mock Connect account ${mockAccountId} for influencer ${influencerId}`
   );
 
@@ -279,7 +279,7 @@ export async function requestPayout(
       payoutRequests.set(payoutId, payout);
       addPayoutToIndex(influencerId, payoutId);
 
-      console.info(
+      console.warn(
         `[Payouts] Created transfer ${transfer.id} for $${(amount / 100).toFixed(2)} to ${account.stripeAccountId}`
       );
 
@@ -325,7 +325,7 @@ export async function requestPayout(
   payoutRequests.set(payoutId, payout);
   addPayoutToIndex(influencerId, payoutId);
 
-  console.info(
+  console.warn(
     `[Payouts] Created mock transfer ${mockTransferId} for $${(amount / 100).toFixed(2)}`
   );
 
@@ -370,7 +370,7 @@ export function handleAccountUpdated(
         payoutsEnabled,
       });
 
-      console.info(
+      console.warn(
         `[Payouts] Account ${stripeAccountId} updated: status=${newStatus}, payoutsEnabled=${payoutsEnabled}`
       );
       break;
@@ -385,7 +385,7 @@ export function handleTransferCreated(stripeTransferId: string): void {
   for (const [id, payout] of payoutRequests) {
     if (payout.stripeTransferId === stripeTransferId) {
       payoutRequests.set(id, { ...payout, status: "processing" });
-      console.info(`[Payouts] Transfer ${stripeTransferId} created (processing)`);
+      console.warn(`[Payouts] Transfer ${stripeTransferId} created (processing)`);
       break;
     }
   }
@@ -402,7 +402,7 @@ export function handleTransferPaid(stripeTransferId: string): void {
         status: "completed",
         completedAt: new Date().toISOString(),
       });
-      console.info(`[Payouts] Transfer ${stripeTransferId} paid (completed)`);
+      console.warn(`[Payouts] Transfer ${stripeTransferId} paid (completed)`);
       break;
     }
   }
@@ -423,7 +423,7 @@ export function handleTransferFailed(
         completedAt: new Date().toISOString(),
         failureReason,
       });
-      console.info(
+      console.warn(
         `[Payouts] Transfer ${stripeTransferId} failed: ${failureReason}`
       );
       break;

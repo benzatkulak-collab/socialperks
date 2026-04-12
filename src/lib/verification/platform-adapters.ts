@@ -12,8 +12,8 @@
  * response formats, error codes, and pagination.
  */
 
-import { OAuthManager } from "./oauth-manager";
-import { PlatformRateLimiter } from "./rate-limiter";
+import type { OAuthManager } from "./oauth-manager";
+import type { PlatformRateLimiter } from "./rate-limiter";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

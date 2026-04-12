@@ -19,7 +19,7 @@ import type {
   PayoutResult,
   RefundResult,
 } from "./types";
-import { FinancialLedger } from "./ledger";
+import type { FinancialLedger } from "./ledger";
 import { generateId, round2, nowISO } from "./helpers";
 
 // ── Mock Stripe Client ────────────────────────────────────────────────────
@@ -161,7 +161,9 @@ export class PaymentProcessor {
 
   constructor(_config: StripeConfig, ledger: FinancialLedger) {
     this.ledger = ledger;
-    this.stripe = new MockStripeClient();
+    this.stripe = new MockStripeClient(
+      process.env.NODE_ENV === "test" ? 0 : 0.02
+    );
   }
 
   /**

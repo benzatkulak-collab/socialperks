@@ -1,3 +1,5 @@
+// TODO: Wire useFeatureFlag into components once a /api/v1/flags endpoint exists.
+// Currently unused by any component — kept because feature flags are core infrastructure.
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 

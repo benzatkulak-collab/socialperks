@@ -1,6 +1,7 @@
 "use client";
 
-import type { ApiKey } from "./api-console-types";
+import type { ApiKey, ApiKeyScope } from "./api-console-types";
+import { SCOPE_OPTIONS, SCOPE_STYLES } from "./api-console-types";
 
 // ═══════════════ Types ═══════════════
 
@@ -9,10 +10,12 @@ interface ApiKeysSectionProps {
   environment: "sandbox" | "production";
   showCreateKey: boolean;
   newKeyName: string;
+  newKeyScope: ApiKeyScope;
   copiedKeyId: string | null;
   statusStyles: Record<string, { label: string; className: string }>;
   onToggleCreateKey: () => void;
   onNewKeyNameChange: (name: string) => void;
+  onNewKeyScopeChange: (scope: ApiKeyScope) => void;
   onGenerateKey: () => void;
   onCopyKey: (keyId: string, keyPrefix: string) => void;
   onRevokeKey: (keyId: string) => void;
@@ -25,10 +28,12 @@ export function ApiKeysSection({
   environment,
   showCreateKey,
   newKeyName,
+  newKeyScope,
   copiedKeyId,
   statusStyles,
   onToggleCreateKey,
   onNewKeyNameChange,
+  onNewKeyScopeChange,
   onGenerateKey,
   onCopyKey,
   onRevokeKey,
@@ -70,6 +75,27 @@ export function ApiKeysSection({
               Generate
             </button>
           </div>
+          <div className="mt-3">
+            <label htmlFor="key-scope" className="block text-xs font-medium text-brand-muted mb-1.5">
+              Permissions Scope
+            </label>
+            <select
+              id="key-scope"
+              value={newKeyScope}
+              onChange={(e) => onNewKeyScopeChange(e.target.value as ApiKeyScope)}
+              className="w-full rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text focus:border-brand-cyan focus:outline-none focus:ring-1 focus:ring-brand-cyan"
+              aria-label="API key scope"
+            >
+              {SCOPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-brand-subtle">
+              {SCOPE_OPTIONS.find((o) => o.value === newKeyScope)?.description}
+            </p>
+          </div>
           <p className="mt-2 text-xs text-brand-muted">
             Environment: <span className="font-medium capitalize text-brand-text">{environment}</span>
           </p>
@@ -92,6 +118,11 @@ export function ApiKeysSection({
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusCfg.className}`}>
                       {statusCfg.label}
                     </span>
+                    {key.scope && (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${SCOPE_STYLES[key.scope].className}`}>
+                        {SCOPE_STYLES[key.scope].label}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <code className="font-mono text-xs text-brand-dim">{key.keyPrefix}...&bull;&bull;&bull;&bull;</code>

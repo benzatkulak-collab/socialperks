@@ -5,9 +5,17 @@
  * response format, auth, rate limiting, and request tracing.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
+import { validateCsrfToken } from "@/lib/security/csrf";
 import { verifyJWT, sessionStore } from "@/lib/auth";
+import {
+  detectVersion,
+  addVersionHeaders,
+  getVersionConfig,
+  type APIVersion,
+} from "@/lib/api/versioning";
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
 
@@ -106,6 +114,118 @@ export function requireAuth(req: NextRequest): AuthUser | NextResponse {
   return user;
 }
 
+// ─── CSRF Protection ─────────────────────────────────────────────────────
+
+/**
+ * Validate the CSRF token from the request.
+ * Checks X-CSRF-Token header first, then falls back to `_csrf` in the body.
+ * Requires an authenticated user (sessionId used to bind the token).
+ * Returns null if valid, or an error Response if invalid.
+ */
+export function requireCsrf(
+  req: NextRequest,
+  user: AuthUser,
+  body?: Record<string, unknown> | null
+): NextResponse | null {
+  const token =
+    req.headers.get("x-csrf-token") ??
+    (body && typeof body === "object" ? (body as Record<string, unknown>)._csrf as string : null) ??
+    null;
+
+  if (!token || typeof token !== "string") {
+    return err("CSRF_TOKEN_MISSING", "CSRF token is required. Include X-CSRF-Token header or _csrf in the request body.", 403);
+  }
+
+  if (!validateCsrfToken(token, user.id)) {
+    return err("CSRF_TOKEN_INVALID", "CSRF token is invalid or expired", 403);
+  }
+
+  return null; // valid
+}
+
+// ─── API Key Permissions & Scoping ───────────────────────────────────────
+
+export const API_PERMISSIONS = {
+  "campaigns:read": "Read campaign data",
+  "campaigns:write": "Create and modify campaigns",
+  "submissions:read": "Read submission data",
+  "submissions:write": "Create and review submissions",
+  "analytics:read": "Read analytics data",
+  "programs:read": "Read perk programs",
+  "programs:write": "Create and modify perk programs",
+  "billing:manage": "Manage billing and subscriptions",
+  "webhooks:manage": "Manage webhooks",
+  "exchange:read": "Read exchange data",
+  "exchange:write": "Place and manage orders",
+} as const;
+
+export type ApiPermission = keyof typeof API_PERMISSIONS;
+
+export const API_SCOPES: Record<string, ApiPermission[]> = {
+  read: [
+    "campaigns:read",
+    "submissions:read",
+    "analytics:read",
+    "programs:read",
+    "exchange:read",
+  ],
+  "read-write": [
+    "campaigns:read",
+    "campaigns:write",
+    "submissions:read",
+    "submissions:write",
+    "analytics:read",
+    "programs:read",
+    "programs:write",
+    "exchange:read",
+    "exchange:write",
+  ],
+  admin: Object.keys(API_PERMISSIONS) as ApiPermission[],
+};
+
+// In-memory API key permission store (production: DB-backed)
+const apiKeyPermissions = new Map<
+  string,
+  { permissions: ApiPermission[] }
+>();
+
+/**
+ * Register permissions for an API key (by key hash or prefix).
+ */
+export function registerApiKeyPermissions(
+  keyHash: string,
+  permissions: ApiPermission[]
+) {
+  apiKeyPermissions.set(keyHash, { permissions });
+}
+
+/**
+ * Check if the current request (authenticated via API key) has a specific permission.
+ * Returns a 403 NextResponse if permission is denied, or null if allowed.
+ *
+ * If the request is NOT authenticated via API key (e.g. JWT user),
+ * permission check passes — JWT users have full access.
+ */
+export function requirePermission(
+  req: NextRequest,
+  permission: ApiPermission
+): NextResponse | null {
+  const apiKey = req.headers.get("x-api-key");
+  if (!apiKey) return null; // Not using API key auth — JWT users have full access
+
+  const keyData = apiKeyPermissions.get(apiKey);
+  if (!keyData) return null; // Unknown key — let the auth layer handle it
+
+  if (!keyData.permissions.includes(permission)) {
+    return err(
+      "INSUFFICIENT_PERMISSIONS",
+      `API key lacks required permission: ${permission}`,
+      403
+    );
+  }
+  return null; // Permission granted
+}
+
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 
 export function rateLimit(
@@ -157,11 +277,90 @@ export function withTiming(handler: Handler): Handler {
   return async (req, ctx) => {
     const start = performance.now();
     const res = await handler(req, ctx);
-    const duration = (performance.now() - start).toFixed(1);
-    res.headers.set("X-Response-Time", `${duration}ms`);
+    const duration = performance.now() - start;
+    res.headers.set("X-Response-Time", `${duration.toFixed(1)}ms`);
     if (!res.headers.has("X-Request-Id")) {
       res.headers.set("X-Request-Id", crypto.randomUUID());
     }
+
+    // Add Server-Timing header for performance diagnostics
+    const existing = res.headers.get("Server-Timing");
+    const totalTiming = `total;dur=${duration.toFixed(1)}`;
+    res.headers.set(
+      "Server-Timing",
+      existing ? `${existing}, ${totalTiming}` : totalTiming
+    );
+
+    return res;
+  };
+}
+
+// ─── Content Negotiation ────────────────────────────────────────────────────
+
+/**
+ * Vendor media type pattern: `application/vnd.socialperks.v{N}+json`
+ * Extracts the version number from the Accept header.
+ */
+const VENDOR_MEDIA_RE = /application\/vnd\.socialperks\.v(\d)\+json/;
+
+/**
+ * Detect API version from the Accept header using content negotiation.
+ * Returns the version if found in vendor media type, otherwise null.
+ */
+export function detectVersionFromAccept(req: NextRequest): APIVersion | null {
+  const accept = req.headers.get("accept");
+  if (!accept) return null;
+
+  const match = accept.match(VENDOR_MEDIA_RE);
+  if (!match) return null;
+
+  const version = `v${match[1]}`;
+  if (version === "v1" || version === "v2") return version;
+  return null;
+}
+
+// ─── Versioning Wrapper ─────────────────────────────────────────────────────
+
+/**
+ * Add API versioning to a route handler.
+ *
+ * 1. Detects the requested API version from Accept header (content negotiation),
+ *    X-API-Version header, query param, or URL path.
+ * 2. Adds version headers to the response (X-API-Version, Deprecation, Sunset).
+ * 3. Adds deprecation warning header if using a deprecated version.
+ *
+ * Composable with `withTiming`: `withTiming(withVersioning(handler))`
+ */
+export function withVersioning(handler: Handler): Handler {
+  return async (req, ctx) => {
+    // Content negotiation takes priority over other detection methods
+    const acceptVersion = detectVersionFromAccept(req);
+    const version: APIVersion = acceptVersion ?? detectVersion(req);
+    const config = getVersionConfig(version);
+
+    // Extract endpoint from the URL path for Link header
+    const url = new URL(req.url);
+    const endpoint = url.pathname.replace(/^\/api\/v[12]\//, "");
+
+    // Run the inner handler
+    const res = await handler(req, ctx);
+
+    // Add version headers
+    addVersionHeaders(res, version, endpoint);
+
+    // Set Content-Type for vendor media type if the client used it
+    if (acceptVersion) {
+      res.headers.set(
+        "Content-Type",
+        `application/vnd.socialperks.${version}+json`
+      );
+    }
+
+    // Add deprecation warning as a structured header for easy parsing
+    if (config.status === "deprecated" && config.deprecationMessage) {
+      res.headers.set("Warning", `299 - "${config.deprecationMessage}"`);
+    }
+
     return res;
   };
 }

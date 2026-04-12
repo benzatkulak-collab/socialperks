@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
+import { SkipLinks } from "@/components/shared/skip-links";
+import { getRootSchemas } from "@/lib/seo/json-ld";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -48,6 +50,14 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Social Perks",
   },
 };
 
@@ -55,7 +65,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#0C0F1A",
+  themeColor: "#22D3EE",
 };
 
 export default function RootLayout({
@@ -66,32 +76,23 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth">
       <head>
+        <meta name="mobile-web-app-capable" content="yes" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              name: "Social Perks",
-              applicationCategory: "BusinessApplication",
-              description: "Turn customers into your marketing team. Offer perks in exchange for social media posts, reviews, and shares.",
-              operatingSystem: "Web",
-              offers: {
-                "@type": "Offer",
-                price: "0",
-                priceCurrency: "USD",
-              },
-            }),
-          }}
-        />
+        {getRootSchemas().map((schema, i) => (
+          <script
+            key={`ld-json-${i}`}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          />
+        ))}
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
+        <SkipLinks />
         <SWRegister />
         {children}
         <OfflineIndicator />

@@ -1,3 +1,5 @@
+import { recordHit, recordBlock } from './rate-limit-stats';
+
 type RateLimitTier = 'strict' | 'standard' | 'relaxed' | 'public';
 
 interface RateLimitConfig {
@@ -39,6 +41,9 @@ export function checkRateLimit(
   const now = Date.now();
   const entry = store.get(key);
 
+  // Track every rate limit check
+  recordHit(ip, tier);
+
   if (!entry || entry.resetAt <= now) {
     store.set(key, { count: 1, resetAt: now + config.windowMs });
     return { allowed: true, remaining: config.maxRequests - 1, resetAt: now + config.windowMs, limit: config.maxRequests };
@@ -46,6 +51,12 @@ export function checkRateLimit(
 
   entry.count++;
   const allowed = entry.count <= config.maxRequests;
+
+  // Track blocks
+  if (!allowed) {
+    recordBlock(ip, tier);
+  }
+
   return {
     allowed,
     remaining: Math.max(0, config.maxRequests - entry.count),

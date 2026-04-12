@@ -9,6 +9,8 @@
 
 import { createHmac } from "crypto";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { JobQueue } from "@/lib/jobs/queue";
+import type { Job } from "@/lib/jobs/queue";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -107,6 +109,74 @@ function generateDeliveryId(): string {
 
 function generateSecret(): string {
   return `whsec_${crypto.randomUUID().replace(/-/g, "")}`;
+}
+
+// ─── Webhook Retry Queue ────────────────────────────────────────────────────
+
+export interface WebhookRetryJobData {
+  deliveryId: string;
+}
+
+let _webhookQueue: JobQueue<WebhookRetryJobData> | null = null;
+
+/**
+ * Get or create the webhook retry queue.
+ * Lazily initialized to avoid circular imports and to allow
+ * the webhookStore singleton to be available when the processor runs.
+ */
+function getWebhookQueue(): JobQueue<WebhookRetryJobData> | null {
+  if (_webhookQueue) return _webhookQueue;
+
+  try {
+    _webhookQueue = new JobQueue<WebhookRetryJobData>("webhook-retry", {
+      concurrency: 5,
+      maxAttempts: 1, // The webhook system manages its own retry count
+      defaultTimeout: 60_000,
+      onDead: (job: Job) => {
+        console.error(
+          `[jobs:webhook-retry] Dead letter: job=${job.id} deliveryId=${(job.data as WebhookRetryJobData).deliveryId} error=${job.lastError}`
+        );
+      },
+    });
+
+    _webhookQueue.process(async (job: Job<WebhookRetryJobData>) => {
+      const { deliveryId } = job.data;
+      const result = await webhookStore.attemptDelivery(deliveryId);
+      if (!result) throw new Error(`Delivery ${deliveryId} not found`);
+      if (result.status === "failed" || result.status === "dead") {
+        // The webhook store already handles scheduling the next retry
+        // via handleDeliveryFailure, so just report the status
+        return { deliveryId, status: result.status };
+      }
+      return { deliveryId, status: result.status };
+    });
+
+    _webhookQueue.start();
+    return _webhookQueue;
+  } catch {
+    // If queue creation fails, return null to trigger setTimeout fallback
+    return null;
+  }
+}
+
+/**
+ * Schedule a retry for a failed webhook delivery using the job queue.
+ * Falls back to setTimeout if the job queue is unavailable.
+ */
+function scheduleRetry(deliveryId: string, delayMs: number): void {
+  const queue = getWebhookQueue();
+
+  if (queue) {
+    queue.add({ deliveryId }, { delay: delayMs });
+    return;
+  }
+
+  // Fallback: setTimeout-based retry
+  setTimeout(() => {
+    webhookStore.attemptDelivery(deliveryId).catch(() => {
+      // Errors are recorded on the delivery object itself
+    });
+  }, delayMs);
 }
 
 // ─── HMAC Signing ───────────────────────────────────────────────────────────
@@ -387,6 +457,9 @@ class WebhookStore {
       delivery.status = "failed";
       const delayMs = RETRY_DELAYS_MS[delivery.attempts - 1] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
       delivery.nextRetry = new Date(Date.now() + delayMs).toISOString();
+
+      // Enqueue the retry via the job queue (or setTimeout fallback)
+      scheduleRetry(delivery.id, delayMs);
     }
 
     // Update webhook status based on consecutive failure count

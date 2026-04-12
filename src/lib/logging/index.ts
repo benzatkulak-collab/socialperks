@@ -120,4 +120,68 @@ export class Logger {
 
 // -- Default Logger -----------------------------------------------------------
 
-export const logger = new Logger();
+const minLevel = (process.env.LOG_LEVEL as LogLevel) || "info";
+
+export const logger = new Logger({ minLevel });
+
+// -- Request Logging Helper ---------------------------------------------------
+
+/**
+ * Convenience method for logging HTTP request/response pairs.
+ * Selects log level based on HTTP status code.
+ */
+export function logRequest(
+  req: { method: string; url: string },
+  status: number,
+  durationMs: number,
+  extra?: Record<string, unknown>,
+): void {
+  const path = new URL(req.url, "http://localhost").pathname;
+  const level: LogLevel = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
+  logger[level](`${req.method} ${path} ${status}`, {
+    path,
+    method: req.method,
+    statusCode: status,
+    durationMs,
+    ...extra,
+  });
+}
+
+// -- Error Logging Helper -----------------------------------------------------
+
+export interface ErrorContext {
+  /** HTTP method (GET, POST, etc.) */
+  method?: string;
+  /** Request path */
+  path?: string;
+  /** Authenticated user ID, if available */
+  userId?: string;
+  /** Additional context fields */
+  [key: string]: unknown;
+}
+
+/**
+ * Structured error logging helper for API route catch blocks.
+ *
+ * Extracts error name, message, and stack trace from the error object
+ * and combines them with request context (method, path, userId).
+ *
+ * Usage:
+ *   catch (e) { logError(e, { method: "POST", path: "/api/v1/campaigns", userId: user?.id }); }
+ */
+export function logError(
+  error: unknown,
+  context: ErrorContext = {},
+): void {
+  const errorObj = error instanceof Error ? error : new Error(String(error));
+  const meta: Record<string, unknown> = {
+    ...context,
+    error: {
+      name: errorObj.name,
+      message: errorObj.message,
+      stack: errorObj.stack,
+    },
+  };
+
+  logger.error(`Error in ${context.method ?? "?"} ${context.path ?? "unknown"}`, undefined, meta);
+}

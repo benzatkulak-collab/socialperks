@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+Allow: /api/v1/docs
+Allow: /api/v1/docs/ui
+Allow: /api/v1/health
+Allow: /api/graphql
+Allow: /developers
+Allow: /campaign/
+Disallow: /api/v1/auth
+Disallow: /api/v1/billing
+Disallow: /api/v1/admin
+
+# AI Crawlers
+User-agent: GPTBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Anthropic
+Allow: /
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://socialperks.com/sitemap.xml

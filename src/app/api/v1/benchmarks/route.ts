@@ -7,11 +7,13 @@
  * Query params: businessType (required)
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../_shared";
+import { withCache } from "@/lib/cache/middleware";
+import { setStaleWhileRevalidate, setETag } from "@/lib/api/edge-cache";
 import { getBenchmarks } from "@/lib/ai-engine";
 
-export const GET = withTiming(async (req: NextRequest) => {
+export const GET = withCache(withTiming(async (req: NextRequest) => {
   const params = getQuery(req);
   const businessType = params.get("businessType");
 
@@ -20,10 +22,10 @@ export const GET = withTiming(async (req: NextRequest) => {
   }
 
   const benchmarks = getBenchmarks(businessType);
+  const data = { benchmarks };
 
-  return ok(
-    { benchmarks },
-    200,
-    { "Cache-Control": "public, max-age=1800, s-maxage=1800" }
-  );
-});
+  const res = ok(data, 200);
+  setStaleWhileRevalidate(res, 600, 7200); // 10 min CDN + 2 hour stale
+  setETag(res, data);
+  return res;
+}), { ttl: 600 });

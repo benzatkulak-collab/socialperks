@@ -9,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Users ──────────────────────────────────────────────────────────────────
@@ -35,11 +36,13 @@ model User {
   // Relations
   business      Business?   @relation(fields: [businessId], references: [id], onDelete: SetNull)
   influencer    Influencer?  @relation(fields: [influencerId], references: [id], onDelete: SetNull)
-  submissions   CampaignSubmission[] @relation("SubmissionUser")
-  reviews       CampaignSubmission[] @relation("SubmissionReviewer")
-  perkWallets   PerkWallet[]
-  notifications Notification[]
+  submissions     CampaignSubmission[] @relation("SubmissionUser")
+  reviews         CampaignSubmission[] @relation("SubmissionReviewer")
+  perkWallets     PerkWallet[]
+  notifications   Notification[]
   analyticsEvents AnalyticsEvent[]
+  oauthAccounts   OauthAccount[]
+  sessions        Session[]
 
   @@index([role], name: "users_role_idx")
   @@index([businessId], name: "users_business_id_idx")
@@ -500,4 +503,46 @@ model PlatformConnection {
   @@index([status], name: "platform_connections_status_idx")
   @@index([tokenExpiresAt], name: "platform_connections_token_expires_idx")
   @@map("platform_connections")
+}
+
+// ─── OAuth Accounts ──────────────────────────────────────────────────────
+
+model OauthAccount {
+  id                    String   @id @default(uuid())
+  userId                String   @map("user_id")
+  provider              String   @db.VarChar(50) // google, github
+  providerUserId        String   @map("provider_user_id")
+  email                 String
+  accessTokenEncrypted  String?  @map("access_token_encrypted")
+  refreshTokenEncrypted String?  @map("refresh_token_encrypted")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId], name: "oauth_accounts_provider_user_unique")
+  @@index([userId], name: "oauth_accounts_user_id_idx")
+  @@index([provider], name: "oauth_accounts_provider_idx")
+  @@map("oauth_accounts")
+}
+
+// ─── Sessions ────────────────────────────────────────────────────────────
+
+model Session {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  ipAddress String?   @map("ip_address") @db.VarChar(50)
+  userAgent String?   @map("user_agent")
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "sessions_user_id_idx")
+  @@index([tokenHash], name: "sessions_token_hash_idx")
+  @@index([expiresAt], name: "sessions_expires_at_idx")
+  @@map("sessions")
 }
