@@ -17,10 +17,13 @@ import { reviewSubmission, calculatePerkValue } from "@/lib/submissions";
 import { awardPerk } from "@/lib/perk-wallet";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
-import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
+import {
+  sendSubmissionApprovedEmail,
+  sendSubmissionRejectedEmail,
+  sendPerkEarnedEmail,
+} from "@/lib/email/triggers";
 import type { LaunchedCampaign } from "@/lib/types";
 import { eventPublisher } from "@/lib/realtime/publisher";
-import { logError } from "@/lib/logging";
 import {
   checkCompletionLimit,
   recordCompletion,
@@ -152,24 +155,44 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
   }
 
-  // Fire-and-forget notification email to submitter (if email available)
+  // Fire-and-forget notification emails to submitter (if email available)
   if (body.submitterEmail) {
-    const recipientName = body.submitterName || "there";
     const campaignName = body.campaign?.name || "your campaign";
+    const businessName = body.campaign?.businessId || "a business";
+
+    const submissionData = {
+      submissionId: sv.data,
+      submitterEmail: body.submitterEmail,
+      submitterName: body.submitterName || "there",
+    };
+    const campaignData = {
+      campaignId: submission.campaignId,
+      campaignName,
+      businessId: body.campaign?.businessId || "",
+      businessName,
+    };
 
     if (dv.data === "approve") {
       const perkDisplay = perk?.calculation
         ? `$${perk.calculation.totalValue.toFixed(2)}`
         : "a perk";
-      const template = submissionApprovedEmail(recipientName, campaignName, perkDisplay);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch((emailErr) => {
-        logError(emailErr, { method: "POST", path: "/api/v1/submissions/review", context: "email_send_approved", submissionId: sv.data });
-      });
+      const redemptionCode = perk?.id
+        ? perk.id.replace("perk_", "").slice(0, 8).toUpperCase()
+        : `SP${Date.now().toString(36).toUpperCase().slice(-6)}`;
+
+      // Send approval notification
+      sendSubmissionApprovedEmail(submissionData, campaignData, perkDisplay, redemptionCode);
+
+      // If a perk was awarded, also send the perk earned email
+      if (perk?.calculation) {
+        sendPerkEarnedEmail(body.submitterEmail, {
+          perkValue: perkDisplay,
+          businessName,
+          redemptionCode,
+        });
+      }
     } else {
-      const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch((emailErr) => {
-        logError(emailErr, { method: "POST", path: "/api/v1/submissions/review", context: "email_send_rejected", submissionId: sv.data });
-      });
+      sendSubmissionRejectedEmail(submissionData, campaignData, body.note ?? undefined);
     }
   }
 

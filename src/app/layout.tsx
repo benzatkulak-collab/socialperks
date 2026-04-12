@@ -49,6 +49,14 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Social Perks",
   },
 };
 
@@ -56,7 +64,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: "#0C0F1A",
+  themeColor: "#22D3EE",
 };
 
 export default function RootLayout({
@@ -67,6 +75,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth">
       <head>
+        <meta name="mobile-web-app-capable" content="yes" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

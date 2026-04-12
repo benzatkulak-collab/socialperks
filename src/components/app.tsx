@@ -29,6 +29,8 @@ import { Hero } from "@/components/landing/hero";
 
 const HowItWorks = dynamic(() => import("@/components/landing/how-it-works").then(m => m.HowItWorks));
 const AudienceSections = dynamic(() => import("@/components/landing/audience-sections").then(m => m.AudienceSections));
+const Testimonials = dynamic(() => import("@/components/landing/testimonials").then(m => m.Testimonials));
+const PricingTable = dynamic(() => import("@/components/landing/pricing-table").then(m => m.PricingTable));
 const PricingSection = dynamic(() => import("@/components/landing/pricing-section").then(m => m.PricingSection));
 const SocialProof = dynamic(() => import("@/components/landing/social-proof").then(m => m.SocialProof));
 const CtaSection = dynamic(() => import("@/components/landing/cta-section").then(m => m.CtaSection));
@@ -110,6 +112,8 @@ const Landing = React.memo(function Landing() {
         <HowItWorks />
         <AudienceSections />
         <SocialProof />
+        <Testimonials />
+        <PricingTable />
         <PricingSection />
         <CtaSection />
       </div>
