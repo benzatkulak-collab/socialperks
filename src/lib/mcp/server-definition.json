@@ -1,0 +1,572 @@
+{
+  "name": "social-perks",
+  "version": "1.0.0",
+  "description": "Social Perks - Turn customers into your marketing team. API for managing social media marketing campaigns, perk programs, submissions, and AI-powered recommendations.",
+  "tools": [
+    {
+      "name": "list_campaigns",
+      "description": "List all marketing campaigns with optional filters for state, business ID, and pagination.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["draft", "active", "paused", "ended", "expired"],
+            "description": "Filter by campaign state"
+          },
+          "businessId": {
+            "type": "string",
+            "description": "Filter by business ID"
+          },
+          "page": {
+            "type": "integer",
+            "default": 1,
+            "description": "Page number for pagination"
+          },
+          "perPage": {
+            "type": "integer",
+            "default": 20,
+            "description": "Items per page (max 100)"
+          }
+        }
+      },
+      "endpoint": "GET /api/v1/campaigns"
+    },
+    {
+      "name": "create_campaign",
+      "description": "Create a new social media marketing campaign with a platform, action type, and reward structure.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Campaign name"
+          },
+          "platform": {
+            "type": "string",
+            "description": "Target social media platform (e.g. instagram, google, tiktok)"
+          },
+          "actionType": {
+            "type": "string",
+            "description": "Type of marketing action (e.g. review, story, post, share)"
+          },
+          "reward": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["percentage", "fixed"],
+                "description": "Reward type"
+              },
+              "value": {
+                "type": "number",
+                "description": "Reward value (percentage or fixed dollar amount)"
+              }
+            },
+            "required": ["type", "value"],
+            "description": "Reward structure for the campaign"
+          },
+          "requirements": {
+            "type": "object",
+            "properties": {
+              "minFollowers": {
+                "type": "integer",
+                "description": "Minimum follower count required"
+              },
+              "hashtags": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Required hashtags"
+              }
+            },
+            "description": "Campaign requirements"
+          }
+        },
+        "required": ["name", "platform", "actionType", "reward"]
+      },
+      "endpoint": "POST /api/v1/campaigns"
+    },
+    {
+      "name": "update_campaign",
+      "description": "Update campaign fields or change lifecycle state (pause, resume, end).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Campaign ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Updated campaign name"
+          },
+          "state": {
+            "type": "string",
+            "enum": ["active", "paused", "ended"],
+            "description": "New lifecycle state"
+          }
+        },
+        "required": ["id"]
+      },
+      "endpoint": "PUT /api/v1/campaigns"
+    },
+    {
+      "name": "list_submissions",
+      "description": "List campaign submissions with optional filters for campaign ID, status, and pagination.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "description": "Filter by campaign ID"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected"],
+            "description": "Filter by submission status"
+          },
+          "page": {
+            "type": "integer",
+            "default": 1
+          },
+          "perPage": {
+            "type": "integer",
+            "default": 20
+          }
+        }
+      },
+      "endpoint": "GET /api/v1/submissions"
+    },
+    {
+      "name": "create_submission",
+      "description": "Submit proof of a completed marketing action for a campaign.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "campaignId": {
+            "type": "string",
+            "description": "Campaign ID to submit proof for"
+          },
+          "proofUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the proof (social media post, review, etc.)"
+          },
+          "proofType": {
+            "type": "string",
+            "enum": ["url", "screenshot", "text"],
+            "default": "url",
+            "description": "Type of proof being submitted"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional notes about the submission"
+          }
+        },
+        "required": ["campaignId", "proofUrl"]
+      },
+      "endpoint": "POST /api/v1/submissions"
+    },
+    {
+      "name": "review_submission",
+      "description": "Approve or reject a campaign submission.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "submissionId": {
+            "type": "string",
+            "description": "Submission ID to review"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["approve", "reject"],
+            "description": "Review action"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the review decision"
+          }
+        },
+        "required": ["submissionId", "action"]
+      },
+      "endpoint": "POST /api/v1/submissions/review"
+    },
+    {
+      "name": "ai_generate_campaigns",
+      "description": "Generate AI-powered campaign suggestions for a business based on industry, goals, and historical performance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "businessId": {
+            "type": "string",
+            "description": "Business ID to generate campaigns for"
+          },
+          "industry": {
+            "type": "string",
+            "description": "Business industry vertical"
+          },
+          "goals": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Marketing goals"
+          }
+        },
+        "required": ["businessId"]
+      },
+      "endpoint": "POST /api/v1/ai/generate"
+    },
+    {
+      "name": "ai_recommend",
+      "description": "Get AI-powered optimization recommendations for campaigns and marketing strategy.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "businessId": {
+            "type": "string",
+            "description": "Business ID"
+          },
+          "industry": {
+            "type": "string",
+            "description": "Business industry"
+          },
+          "goals": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Optimization goals"
+          }
+        },
+        "required": ["businessId"]
+      },
+      "endpoint": "POST /api/v1/ai/recommend"
+    },
+    {
+      "name": "ai_campaign_agent",
+      "description": "Generate a full AI marketing plan including campaigns, budget allocation, and timeline.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "businessId": {
+            "type": "string",
+            "description": "Business ID"
+          },
+          "budget": {
+            "type": "number",
+            "description": "Monthly marketing budget"
+          },
+          "goals": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Marketing goals"
+          }
+        },
+        "required": ["businessId"]
+      },
+      "endpoint": "POST /api/v1/ai/campaign-agent"
+    },
+    {
+      "name": "list_programs",
+      "description": "List perk programs with pagination.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "default": 1
+          },
+          "perPage": {
+            "type": "integer",
+            "default": 20
+          }
+        }
+      },
+      "endpoint": "GET /api/v1/programs"
+    },
+    {
+      "name": "create_program",
+      "description": "Create a new perk program.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Program name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Program description"
+          },
+          "rewards": {
+            "type": "object",
+            "description": "Reward structure"
+          }
+        },
+        "required": ["name"]
+      },
+      "endpoint": "POST /api/v1/programs"
+    },
+    {
+      "name": "get_program",
+      "description": "Get details of a specific perk program.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "programId": {
+            "type": "string",
+            "description": "Program ID"
+          }
+        },
+        "required": ["programId"]
+      },
+      "endpoint": "GET /api/v1/programs/:programId"
+    },
+    {
+      "name": "enroll_member",
+      "description": "Enroll a member in a perk program.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "programId": {
+            "type": "string",
+            "description": "Program ID"
+          },
+          "memberId": {
+            "type": "string",
+            "description": "Member ID to enroll"
+          }
+        },
+        "required": ["programId", "memberId"]
+      },
+      "endpoint": "POST /api/v1/programs/:programId/members"
+    },
+    {
+      "name": "list_opportunities",
+      "description": "List available market opportunities. Public endpoint, no auth required.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "endpoint": "GET /api/v1/exchange/opportunities"
+    },
+    {
+      "name": "get_market_data",
+      "description": "Get real-time perk market data. Public endpoint, no auth required.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "endpoint": "GET /api/v1/exchange/market"
+    },
+    {
+      "name": "place_order",
+      "description": "Place a buy or sell order on the perk exchange.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["buy", "sell"],
+            "description": "Order type"
+          },
+          "perkId": {
+            "type": "string",
+            "description": "Perk to trade"
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Number of perks"
+          },
+          "price": {
+            "type": "number",
+            "description": "Price per perk"
+          }
+        },
+        "required": ["type", "perkId", "quantity"]
+      },
+      "endpoint": "POST /api/v1/exchange/orders"
+    },
+    {
+      "name": "get_pricing",
+      "description": "Get pricing oracle data. Public endpoint, cached.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "endpoint": "GET /api/v1/pricing"
+    },
+    {
+      "name": "list_actions",
+      "description": "Get the full library of 107 marketing actions across 15 platforms.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "endpoint": "GET /api/v1/actions"
+    },
+    {
+      "name": "get_benchmarks",
+      "description": "Get industry benchmarks for marketing performance. Public, cached.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "industry": {
+            "type": "string",
+            "description": "Filter by industry"
+          }
+        }
+      },
+      "endpoint": "GET /api/v1/benchmarks"
+    },
+    {
+      "name": "search_influencers",
+      "description": "Search for influencers by platform, follower count, and other criteria.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "Filter by platform"
+          },
+          "minFollowers": {
+            "type": "integer",
+            "description": "Minimum follower count"
+          },
+          "page": {
+            "type": "integer",
+            "default": 1
+          },
+          "perPage": {
+            "type": "integer",
+            "default": 20
+          }
+        }
+      },
+      "endpoint": "GET /api/v1/influencers"
+    },
+    {
+      "name": "get_recommendations",
+      "description": "Get ML-powered marketing recommendations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "businessId": {
+            "type": "string",
+            "description": "Business ID for personalized recommendations"
+          }
+        }
+      },
+      "endpoint": "GET /api/v1/recommendations"
+    },
+    {
+      "name": "health_check",
+      "description": "Check API health status, uptime, and database connectivity.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "endpoint": "GET /api/v1/health"
+    }
+  ],
+  "resources": [
+    {
+      "name": "campaign",
+      "description": "A social media marketing campaign that defines a platform, action type, reward, and requirements for participants.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Unique campaign identifier" },
+          "name": { "type": "string", "description": "Campaign display name" },
+          "state": { "type": "string", "enum": ["draft", "active", "paused", "ended", "expired"] },
+          "platform": { "type": "string", "description": "Target social media platform" },
+          "actionType": { "type": "string", "description": "Type of marketing action required" },
+          "reward": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["percentage", "fixed"] },
+              "value": { "type": "number" }
+            }
+          },
+          "businessId": { "type": "string", "description": "Owning business ID" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    {
+      "name": "submission",
+      "description": "A proof submission for a campaign action, including the proof URL and review status.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Unique submission identifier" },
+          "campaignId": { "type": "string", "description": "Associated campaign ID" },
+          "userId": { "type": "string", "description": "Submitting user ID" },
+          "proofUrl": { "type": "string", "format": "uri", "description": "URL of proof" },
+          "proofType": { "type": "string", "enum": ["url", "screenshot", "text"] },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+          "notes": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    {
+      "name": "program",
+      "description": "A perk program that defines ongoing rewards for customer marketing actions.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "businessId": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "paused", "ended"] },
+          "memberCount": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    {
+      "name": "influencer",
+      "description": "An influencer or creator profile with platform presence and rate card.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "platform": { "type": "string" },
+                "handle": { "type": "string" },
+                "followers": { "type": "integer" }
+              }
+            }
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    {
+      "name": "action",
+      "description": "A marketing action from the library of 107 actions across 15 platforms.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "platform": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["content", "review", "engage", "share", "referral"] },
+          "effort": { "type": "integer", "minimum": 0, "maximum": 5 },
+          "value": { "type": "number", "description": "Estimated dollar value" }
+        }
+      }
+    }
+  ],
+  "authentication": {
+    "type": "bearer",
+    "description": "Pass a Bearer token (JWT or API key) in the Authorization header. Get a token via POST /api/v1/auth."
+  },
+  "baseUrl": "https://socialperks.io"
+}

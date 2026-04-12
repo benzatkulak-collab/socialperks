@@ -16,6 +16,7 @@ import {
   paginate,
   withTiming,
 } from "../_shared";
+import { withIdempotency } from "@/lib/api/idempotency";
 import { withTenant } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
 import { createSubmission, getSubmissions, getSubmissionById } from "@/lib/submissions";
@@ -144,7 +145,7 @@ export const GET = withTiming(async (req: NextRequest) => {
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 
-export const POST = withTiming(async (req: NextRequest) => {
+export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
@@ -235,4 +236,4 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   return ok({ submission: result.data }, 201);
-});
+}));

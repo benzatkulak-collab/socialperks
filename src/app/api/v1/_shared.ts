@@ -277,11 +277,20 @@ export function withTiming(handler: Handler): Handler {
   return async (req, ctx) => {
     const start = performance.now();
     const res = await handler(req, ctx);
-    const duration = (performance.now() - start).toFixed(1);
-    res.headers.set("X-Response-Time", `${duration}ms`);
+    const duration = performance.now() - start;
+    res.headers.set("X-Response-Time", `${duration.toFixed(1)}ms`);
     if (!res.headers.has("X-Request-Id")) {
       res.headers.set("X-Request-Id", crypto.randomUUID());
     }
+
+    // Add Server-Timing header for performance diagnostics
+    const existing = res.headers.get("Server-Timing");
+    const totalTiming = `total;dur=${duration.toFixed(1)}`;
+    res.headers.set(
+      "Server-Timing",
+      existing ? `${existing}, ${totalTiming}` : totalTiming
+    );
+
     return res;
   };
 }

@@ -17,6 +17,7 @@ import {
   paginate,
   withTiming,
 } from "../_shared";
+import { withIdempotency } from "@/lib/api/idempotency";
 import { withTenant, checkResourceAccess } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
 import { campaignManager } from "@/lib/campaign-state-machine";
@@ -100,7 +101,7 @@ export const GET = withTiming(async (req: NextRequest) => {
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 
-export const POST = withTiming(async (req: NextRequest) => {
+export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
   // Auth + tenant isolation
   const tenantResult = withTenant(req);
   if (tenantResult instanceof NextResponse) return tenantResult;
@@ -217,7 +218,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     const message = error instanceof Error ? error.message : "Failed to launch campaign";
     return err("LAUNCH_FAILED", message, 500);
   }
-});
+}));
 
 // ─── PUT ────────────────────────────────────────────────────────────────────
 

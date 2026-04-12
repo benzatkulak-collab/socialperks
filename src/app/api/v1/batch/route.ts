@@ -20,6 +20,7 @@ import {
   parseBody,
   withTiming,
 } from "../_shared";
+import { withIdempotency } from "@/lib/api/idempotency";
 import { reviewSubmission, getSubmissionById } from "@/lib/submissions";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
@@ -57,7 +58,7 @@ interface BatchResult {
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 
-export const POST = withTiming(async (req: NextRequest) => {
+export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
   // Auth required for all batch operations
   const user = requireAuth(req);
   if (user instanceof NextResponse) return user;
@@ -165,7 +166,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   }, user.businessId ?? undefined);
 
   return ok(result);
-});
+}));
 
 // ─── Submission Review Handler ──────────────────────────────────────────────
 
