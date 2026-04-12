@@ -160,15 +160,22 @@ export type { Session };
 
 // ─── JWT Utilities ─────────────────────────────────────────────────────────
 
-const JWT_SECRET = (() => {
+let _jwtSecret: string | null = null;
+
+function getJwtSecret(): string {
+  if (_jwtSecret) return _jwtSecret;
   const secret = process.env.AUTH_SECRET;
-  if (secret) return secret;
+  if (secret) {
+    _jwtSecret = secret;
+    return _jwtSecret;
+  }
   if (process.env.NODE_ENV === "production") {
     throw new Error("FATAL: AUTH_SECRET environment variable must be set in production");
   }
   console.warn("[AUTH] WARNING: Using default dev secret. Set AUTH_SECRET for production.");
-  return "dev-only-unsafe-secret-do-not-use-in-prod";
-})();
+  _jwtSecret = "dev-only-unsafe-secret-do-not-use-in-prod";
+  return _jwtSecret;
+}
 const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes in seconds
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days in seconds
 
@@ -196,7 +203,7 @@ export function signJWT(payload: Omit<JWTPayload, "iat" | "exp">, expiresIn: num
   const fullPayload: JWTPayload = { ...payload, iat: now, exp: now + expiresIn };
   const body = base64urlEncode(JSON.stringify(fullPayload));
   const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", getJwtSecret())
     .update(`${header}.${body}`)
     .digest("base64url");
   return `${header}.${body}.${signature}`;
@@ -209,7 +216,7 @@ export function verifyJWT(token: string): JWTPayload | null {
 
     const [header, body, signature] = parts;
     const expectedSig = crypto
-      .createHmac("sha256", JWT_SECRET)
+      .createHmac("sha256", getJwtSecret())
       .update(`${header}.${body}`)
       .digest("base64url");
 
@@ -238,5 +245,5 @@ export function createTokenPair(userId: string, role: string, email: string, bus
   };
 }
 
-export { JWT_SECRET, ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY };
+export { getJwtSecret, ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY };
 export type { JWTPayload };

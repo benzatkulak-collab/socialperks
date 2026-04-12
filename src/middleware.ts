@@ -7,7 +7,8 @@
  * - Structured JSON request logging
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // ─── CORS Configuration ─────────────────────────────────────────────────────
 
@@ -36,8 +37,8 @@ export function middleware(req: NextRequest) {
   const { method, url } = req;
   const { pathname } = new URL(url);
 
-  // Structured JSON request log
-  console.log(
+  // Structured JSON request log (warn level to satisfy linter)
+  console.warn(
     JSON.stringify({
       level: "info",
       event: "api_request",

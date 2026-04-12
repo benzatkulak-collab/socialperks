@@ -50,10 +50,10 @@ describe("Submissions API", () => {
     expect(data.success).toBe(true);
     expect(data.data).toBeDefined();
     expect(Array.isArray(data.data.submissions)).toBe(true);
-    expect(typeof data.data.total).toBe("number");
-    expect(typeof data.data.page).toBe("number");
-    expect(typeof data.data.perPage).toBe("number");
-    expect(typeof data.data.totalPages).toBe("number");
+    expect(typeof data.data.pagination.total).toBe("number");
+    expect(typeof data.data.pagination.page).toBe("number");
+    expect(typeof data.data.pagination.perPage).toBe("number");
+    expect(typeof data.data.pagination.totalPages).toBe("number");
   });
 
   it("GET /submissions — supports pagination params", async () => {
@@ -65,8 +65,8 @@ describe("Submissions API", () => {
     const data = await parseResponse(res);
 
     expect(data.status).toBe(200);
-    expect(data.data.page).toBe(1);
-    expect(data.data.perPage).toBe(5);
+    expect(data.data.pagination.page).toBe(1);
+    expect(data.data.pagination.perPage).toBe(5);
   });
 
   it("GET /submissions — filters by status", async () => {

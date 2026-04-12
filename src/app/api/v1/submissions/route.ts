@@ -133,10 +133,12 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   return ok({
     submissions: result.submissions,
-    total: result.total,
-    page: result.page,
-    perPage: result.perPage,
-    totalPages: result.totalPages,
+    pagination: {
+      total: result.total,
+      page: result.page,
+      perPage: result.perPage,
+      totalPages: result.totalPages,
+    },
   });
 });
 

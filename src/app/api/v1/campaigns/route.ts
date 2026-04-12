@@ -94,10 +94,7 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   return ok({
     campaigns: items,
-    total,
-    page,
-    perPage,
-    totalPages,
+    pagination: { total, page, perPage, totalPages },
   });
 });
 
