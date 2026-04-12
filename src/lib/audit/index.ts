@@ -356,3 +356,69 @@ export class AuditLog {
 // --- Singleton ---------------------------------------------------------------
 
 export const auditLog = new AuditLog();
+
+// --- Known Audit Actions -----------------------------------------------------
+
+export const AUDIT_ACTIONS = [
+  "login",
+  "logout",
+  "campaign_created",
+  "campaign_updated",
+  "campaign_deleted",
+  "submission_reviewed",
+  "settings_changed",
+  "api_key_created",
+  "api_key_revoked",
+  "export_requested",
+  "password_changed",
+] as const;
+
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+// --- Convenience Helper ------------------------------------------------------
+
+/**
+ * High-level helper for logging audit events with a simpler interface.
+ * Wraps `auditLog.log()` with sensible defaults.
+ */
+export interface AuditEventInput {
+  userId: string;
+  email?: string;
+  role?: string;
+  action: AuditAction | string;
+  entityType: string;
+  entityId: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  requestId?: string;
+}
+
+export function logAuditEvent(event: AuditEventInput): AuditEntry {
+  return auditLog.log({
+    actor: {
+      userId: event.userId,
+      email: event.email,
+      role: event.role ?? "unknown",
+      ip: event.ipAddress,
+    },
+    action: event.action,
+    resource: {
+      type: event.entityType,
+      id: event.entityId,
+    },
+    metadata: {
+      ...event.metadata,
+      ...(event.userAgent ? { userAgent: event.userAgent } : {}),
+    },
+    requestId: event.requestId,
+  });
+}
+
+/**
+ * Query the audit log with the same filter interface.
+ * Re-exported for convenience.
+ */
+export function getAuditLog(filters?: AuditQueryFilter) {
+  return auditLog.query(filters);
+}
