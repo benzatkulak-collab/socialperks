@@ -1,8 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTheme } from "@/lib/hooks/use-theme";
+
+const LanguageSelector = dynamic(
+  () => import("@/components/shared/language-selector").then(m => ({ default: m.LanguageSelector })),
+);
 
 interface NavLink {
   label: string;
@@ -153,6 +158,7 @@ export const Nav = React.memo(function Nav() {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-3 lg:flex">
+          <LanguageSelector />
           <button
             onClick={toggleTheme}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-brand-dim transition-all duration-fast ease-smooth hover:bg-brand-surface/60 hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"

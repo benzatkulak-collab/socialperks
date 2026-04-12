@@ -59,6 +59,7 @@ export interface PortalHomeProps {
   onPauseCampaign?: (campaignId: string) => void;
   onResumeCampaign?: (campaignId: string) => void;
   onEndCampaign?: (campaignId: string) => void;
+  onViewCampaignDetail?: (campaignId: string) => void;
   businessId?: string;
   businessName?: string;
   /** Business plan — widget shown for starter+ (not free/undefined) */
@@ -96,6 +97,7 @@ export function PortalHome({
   onPauseCampaign,
   onResumeCampaign,
   onEndCampaign,
+  onViewCampaignDetail,
   businessId,
   businessName,
   plan,
@@ -207,7 +209,17 @@ export function PortalHome({
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-xl shrink-0">{campaign.platformIcon}</span>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-brand-white truncate">{campaign.name}</p>
+                      {onViewCampaignDetail ? (
+                        <button
+                          type="button"
+                          onClick={() => onViewCampaignDetail(campaign.id)}
+                          className="text-sm font-semibold text-brand-white truncate hover:text-brand-cyan transition-colors text-left"
+                        >
+                          {campaign.name}
+                        </button>
+                      ) : (
+                        <p className="text-sm font-semibold text-brand-white truncate">{campaign.name}</p>
+                      )}
                       <p className="text-xs text-brand-muted truncate">
                         {campaign.action} &middot; Reward: {campaign.rewardValue} &middot; {campaign.completions} completions
                       </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,11 @@ import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
 import { DashboardSkeleton, EarningsSkeleton } from "@/components/ui/portal-skeletons";
 import { PerkWallet } from "@/components/influencer/perk-wallet";
 import { NotificationCenter } from "@/components/shared/notification-center";
+
+// Lazy-loaded tabs for code splitting
+const InfluencerSettings = dynamic(
+  () => import("@/components/influencer/settings").then(m => ({ default: m.InfluencerSettings })),
+);
 
 interface SubmissionEntry {
   id: string;
@@ -156,6 +162,7 @@ export function InfluencerPortal({
     { id: "earnings", label: "Earnings", count: submissions.length || undefined },
     { id: "wallet", label: "Wallet", count: walletAvailableBalance > 0 ? walletAvailableBalance : undefined },
     { id: "profile", label: "Profile" },
+    { id: "settings", label: "Settings" },
   ], [marketplaceCampaigns.length, submissions.length, walletAvailableBalance]);
 
   // Memoized computed stats
@@ -687,6 +694,20 @@ export function InfluencerPortal({
               </Card>
             </div>
           </div>
+          </SectionErrorBoundary>
+        )}
+
+        {page === "settings" && (
+          <SectionErrorBoundary section="Settings">
+            <InfluencerSettings
+              influencerId={influencer.id}
+              displayName={influencer.displayName}
+              email={influencer.email}
+              bio={influencer.bio || ""}
+              niches={influencer.niches}
+              location={influencer.location || ""}
+              platforms={influencer.platforms}
+            />
           </SectionErrorBoundary>
         )}
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useBusinessDashboard } from "@/lib/hooks/use-business-dashboard";
@@ -17,6 +18,20 @@ import { DashboardSkeleton } from "@/components/ui/portal-skeletons";
 import { NotificationCenter } from "@/components/shared/notification-center";
 import type { SeedData, SeedBusiness } from "@/lib/seed";
 import type { CampaignTemplate } from "@/lib/campaign-templates";
+
+// Lazy-loaded tabs for code splitting
+const AnalyticsDashboard = dynamic(
+  () => import("@/components/business/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })),
+);
+const BusinessSettings = dynamic(
+  () => import("@/components/business/settings").then(m => ({ default: m.BusinessSettings })),
+);
+const OnboardingChecklist = dynamic(
+  () => import("@/components/business/onboarding-checklist").then(m => ({ default: m.OnboardingChecklist })),
+);
+const CampaignDetail = dynamic(
+  () => import("@/components/business/campaign-detail").then(m => ({ default: m.CampaignDetail })),
+);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -74,8 +89,9 @@ const REWARD_OPTIONS = [
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProps) {
-  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics">("home");
+  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics" | "analytics-detail" | "settings" | "campaign-detail">("home");
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
 
   // Create campaign state
   const [step, setStep] = useState(1);
@@ -269,6 +285,28 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const handleOnboardingComplete = useCallback(() => setShowOnboarding(false), []);
   const handleOnboardingSkip = useCallback(() => setShowOnboarding(false), []);
 
+  const handleViewCampaignDetail = useCallback((campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setPage("campaign-detail");
+  }, []);
+
+  const handleBackFromCampaignDetail = useCallback(() => {
+    setSelectedCampaignId(null);
+    setPage("home");
+  }, []);
+
+  const handleChecklistNavigate = useCallback((section: string) => {
+    if (section === "create") {
+      resetCreate();
+      setPage("create");
+    } else if (section === "analytics-detail" || section === "analytics") {
+      setPage("analytics");
+    } else if (section === "settings") {
+      setPage("settings");
+    }
+  }, [resetCreate]);
+
+
   const handleBackToHome = useCallback(() => setPage("home"), []);
   const handleGoToStep2 = useCallback(() => setStep(2), []);
   const handleGoToStep3 = useCallback(() => setStep(3), []);
@@ -363,17 +401,22 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Logo size="sm" />
             <nav className="flex items-center gap-0.5 sm:gap-1 ml-2 sm:ml-4">
-              {(["home", "analytics"] as const).map((tab) => (
+              {([
+                { id: "home" as const, label: "Dashboard" },
+                { id: "analytics" as const, label: "Analytics" },
+                { id: "analytics-detail" as const, label: "Insights" },
+                { id: "settings" as const, label: "Settings" },
+              ]).map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setPage(tab)}
+                  key={tab.id}
+                  onClick={() => setPage(tab.id)}
                   className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 min-h-[36px] ${
-                    page === tab
+                    page === tab.id
                       ? "bg-brand-cyan/10 text-brand-cyan"
                       : "text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50"
                   }`}
                 >
-                  {tab === "home" ? "Dashboard" : "Analytics"}
+                  {tab.label}
                 </button>
               ))}
             </nav>
@@ -400,6 +443,18 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
             <h1 className="font-heading text-2xl italic text-brand-white mb-1 sm:text-3xl">{biz.name}</h1>
             <p className="text-sm text-brand-dim mb-8 sm:mb-10">{biz.type} &middot; {biz.location || "Your business"}</p>
 
+            {/* Onboarding Checklist — shown at top of dashboard until dismissed (self-managing via localStorage) */}
+            <SectionErrorBoundary section="Onboarding Checklist">
+              <OnboardingChecklist
+                hasProfile={Boolean(biz.type && biz.location)}
+                hasSocialConnection={false}
+                hasCampaign={myCampaigns.length > 0}
+                hasSharedLink={false}
+                hasReviewedSubmission={false}
+                onNavigate={handleChecklistNavigate}
+              />
+            </SectionErrorBoundary>
+
             <PortalHome
               myCampaigns={myCampaigns}
               showWelcome={showWelcome}
@@ -418,6 +473,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               onPauseCampaign={handlePauseCampaign}
               onResumeCampaign={handleResumeCampaign}
               onEndCampaign={handleEndCampaign}
+              onViewCampaignDetail={handleViewCampaignDetail}
             />
           </div>
           )}
@@ -464,6 +520,40 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
         {page === "analytics" && (
           <SectionErrorBoundary section="Analytics">
             <PortalAnalytics businessId={biz.id} />
+          </SectionErrorBoundary>
+        )}
+
+        {/* ════════════ ANALYTICS DETAIL (Insights) ════════════ */}
+        {page === "analytics-detail" && (
+          <SectionErrorBoundary section="Analytics Dashboard">
+            <AnalyticsDashboard businessId={biz.id} />
+          </SectionErrorBoundary>
+        )}
+
+        {/* ════════════ SETTINGS ════════════ */}
+        {page === "settings" && (
+          <SectionErrorBoundary section="Settings">
+            <BusinessSettings
+              businessId={biz.id}
+              businessName={biz.name}
+              businessEmail={biz.email}
+              businessType={biz.type}
+              businessIndustry={biz.industry || ""}
+            />
+          </SectionErrorBoundary>
+        )}
+
+        {/* ════════════ CAMPAIGN DETAIL ════════════ */}
+        {page === "campaign-detail" && selectedCampaignId && (
+          <SectionErrorBoundary section="Campaign Detail">
+            <CampaignDetail
+              campaignId={selectedCampaignId}
+              onBack={handleBackFromCampaignDetail}
+              onEdit={() => {
+                const campaign = myCampaigns.find(c => c.id === selectedCampaignId);
+                if (campaign) handleEditCampaign(campaign);
+              }}
+            />
           </SectionErrorBoundary>
         )}
       </div>

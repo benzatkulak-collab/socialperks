@@ -17,6 +17,7 @@ const BrandManager = dynamic(() => import("@/components/enterprise/brand-manager
 const ApiConsole = dynamic(() => import("@/components/enterprise/api-console"));
 const AuditLog = dynamic(() => import("@/components/enterprise/audit-log"));
 const WebhookDashboard = dynamic(() => import("@/components/enterprise/webhook-dashboard"));
+const FeatureFlagsPanel = dynamic(() => import("@/components/enterprise/feature-flags-panel").then(m => ({ default: m.FeatureFlagsPanel })));
 
 import type { DateRange } from "@/components/enterprise/report-types";
 import type { BrandGuidelines } from "@/components/enterprise/brand-manager";
@@ -126,6 +127,7 @@ export function EnterprisePortal({
     { id: "api", label: "API" },
     { id: "webhooks", label: "Webhooks" },
     { id: "audit", label: "Audit Log" },
+    { id: "flags", label: "Feature Flags" },
   ], []);
 
   const handleNavigate = useCallback((section: string) => {
@@ -258,6 +260,15 @@ export function EnterprisePortal({
         <SectionErrorBoundary section="Audit Log">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <AuditLog businessId={businessId} />
+        </div>
+        </SectionErrorBoundary>
+      )}
+
+      {/* Feature Flags */}
+      {page === "flags" && (
+        <SectionErrorBoundary section="Feature Flags">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <FeatureFlagsPanel />
         </div>
         </SectionErrorBoundary>
       )}
