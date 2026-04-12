@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { API_ENDPOINTS } from "@/lib/shared/constants";
 
-interface User { id: string; email: string; name: string; role: string; }
+interface User { id: string; email: string; name: string; role: string; businessId?: string | null; }
 
 const SESSION_RESTORE_TIMEOUT = 5000;
 
@@ -46,13 +46,14 @@ export function useAuth() {
     return () => { cancelled = true; controller.abort(); };
   }, []);
 
-  const login = useCallback(async (email: string, pin: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setLoading(true); setError(null);
     try {
       const res = await fetch(API_ENDPOINTS.auth, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, pin, action: "login" }),
+        credentials: "include",
+        body: JSON.stringify({ email, password, action: "login" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}: Authentication failed`);
       const json = await res.json();

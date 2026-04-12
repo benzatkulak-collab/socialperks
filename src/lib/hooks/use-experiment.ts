@@ -1,3 +1,6 @@
+// TODO: Wire useExperiment into a campaign experiments UI component, or remove
+// if A/B testing is handled entirely server-side. Currently unused by any component
+// — only re-exported from the hooks barrel.
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";

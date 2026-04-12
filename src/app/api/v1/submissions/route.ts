@@ -104,19 +104,31 @@ export const GET = withTiming(async (req: NextRequest) => {
     filters.actionId = v.data;
   }
 
-  let result = getSubmissions(filters, page, perPage);
+  let result;
 
-  // Post-filter: scope to tenant's campaigns if needed
   if (tenantCampaignIds) {
-    const filtered = result.submissions.filter((s) =>
+    // When tenant-scoping is needed, fetch ALL matching submissions first
+    // (without pagination), filter by tenant's campaigns, then paginate.
+    const allResults = getSubmissions(filters, 1, 50_000);
+    const filtered = allResults.submissions.filter((s) =>
       tenantCampaignIds!.has(s.campaignId)
     );
+
+    const total = filtered.length;
+    const safePage = Math.max(1, page);
+    const safePerPage = Math.min(100, Math.max(1, perPage));
+    const offset = (safePage - 1) * safePerPage;
+    const paginated = filtered.slice(offset, offset + safePerPage);
+
     result = {
-      ...result,
-      submissions: filtered,
-      total: filtered.length,
-      totalPages: Math.ceil(filtered.length / perPage),
+      submissions: paginated,
+      total,
+      page: safePage,
+      perPage: safePerPage,
+      totalPages: Math.ceil(total / safePerPage),
     };
+  } else {
+    result = getSubmissions(filters, page, perPage);
   }
 
   return ok({

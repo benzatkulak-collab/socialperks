@@ -26,3 +26,4 @@ export type { EnterpriseDataResult } from './use-enterprise-data';
 export { useOffline } from './use-offline';
 export type { UseOfflineResult } from './use-offline';
 export { useExperiment } from './use-experiment';
+export { useFeatureFlag, useFeatureVariant, clearFlagCache } from './use-feature-flag';

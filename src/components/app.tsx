@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 
 // ── Portals (lazy-loaded for code splitting) ─────────────────────────────
 import { AuthForm } from "@/components/auth/auth-form";
@@ -39,6 +39,7 @@ import { Card } from "@/components/ui/card";
 import { ToastContainer } from "@/components/ui/toast";
 import { useLocalStorage } from "@/lib/hooks/use-store";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { AppProvider, useAppContext } from "@/lib/context/app-context";
 import { createSeedData } from "@/lib/seed";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
@@ -143,14 +144,76 @@ function SocialPerksAppContent() {
     [setData]
   );
 
-  // When the auth hook restores a session, update screen & role via context
+  // When the auth hook restores a session, update screen & role AND derive currentUser from seed data
   useEffect(() => {
     if (restoring) return;
-    if (authUser) {
+    if (authUser && !currentUser) {
       const role = authUser.role === "influencer" ? "influencer" as const : "business" as const;
       dispatch({ type: 'SET_AUTH', payload: { screen: role, userRole: role } });
+
+      // Try to restore currentUser from localStorage first (persisted on login)
+      try {
+        const stored = localStorage.getItem("sp-current-user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.email === authUser.email) {
+            setCurrentUser(parsed);
+            return;
+          }
+        }
+      } catch {
+        // Ignore parse errors
+      }
+
+      // Fall back to deriving from seed data
+      if (role === "business") {
+        const biz = data.businesses.find(b => b.email === authUser.email || b.id === authUser.id);
+        if (biz) {
+          setCurrentUser(biz);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(biz)); } catch { /* ignore */ }
+        } else {
+          // User signed up (not in seed data) — construct a minimal SeedBusiness
+          const fallbackBiz: SeedBusiness = {
+            id: (authUser as unknown as Record<string, string>).businessId ?? authUser.id,
+            name: authUser.name,
+            type: "",
+            email: authUser.email,
+            pin: "",
+            avatar: "\uD83C\uDFEA",
+            size: "small",
+            location: "",
+            industry: "",
+          };
+          setCurrentUser(fallbackBiz);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(fallbackBiz)); } catch { /* ignore */ }
+        }
+      } else {
+        const inf = data.influencers.find(i => i.email === authUser.email || i.id === authUser.id);
+        if (inf) {
+          setCurrentUser(inf);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(inf)); } catch { /* ignore */ }
+        } else {
+          // User signed up (not in seed data) — construct a minimal SeedInfluencer
+          const fallbackInf: SeedInfluencer = {
+            id: authUser.id,
+            displayName: authUser.name,
+            email: authUser.email,
+            pin: "",
+            avatar: "\uD83C\uDFA4",
+            bio: "",
+            tier: "micro",
+            niches: [],
+            followerCount: 0,
+            engagementRate: 0,
+            platforms: [],
+            location: "",
+          };
+          setCurrentUser(fallbackInf);
+          try { localStorage.setItem("sp-current-user", JSON.stringify(fallbackInf)); } catch { /* ignore */ }
+        }
+      }
     }
-  }, [restoring, authUser, dispatch]);
+  }, [restoring, authUser, currentUser, data, dispatch]);
 
   // Listen for hash-based navigation from landing page components
   // Nav, Hero, and CTA buttons use href="#login" / href="#signup"
@@ -172,12 +235,14 @@ function SocialPerksAppContent() {
   const handleAuth = useCallback((user: SeedBusiness | SeedInfluencer, role: "business" | "influencer") => {
     setCurrentUser(user);
     dispatch({ type: 'SET_AUTH', payload: { screen: role, userRole: role } });
+    try { localStorage.setItem("sp-current-user", JSON.stringify(user)); } catch { /* ignore */ }
   }, [dispatch]);
 
   const handleLogout = useCallback(async () => {
     await authLogout();
     setCurrentUser(null);
     dispatch({ type: 'LOGOUT' });
+    try { localStorage.removeItem("sp-current-user"); } catch { /* ignore */ }
   }, [authLogout, dispatch]);
 
   const handleBackToLanding = useCallback(() => {
@@ -187,6 +252,24 @@ function SocialPerksAppContent() {
   const handleEnterpriseDemo = useCallback(() => {
     dispatch({ type: 'SET_SCREEN', payload: 'enterprise' });
   }, [dispatch]);
+
+  // ── Keyboard Shortcuts ───────────────────────────────────────────────────
+  // Escape: return to previous screen (auth -> landing, portal -> landing)
+  // Cmd+K / Ctrl+K: focus search (future) — placeholder for extensibility
+  const shortcutsRef = useRef(screen);
+  shortcutsRef.current = screen;
+  const shortcuts = useMemo(() => [
+    {
+      key: "Escape",
+      handler: () => {
+        const current = shortcutsRef.current;
+        if (current === "auth") {
+          dispatch({ type: 'SET_SCREEN', payload: 'landing' });
+        }
+      },
+    },
+  ], [dispatch]);
+  useKeyboardShortcuts(shortcuts);
 
   // Memoize the current business user cast to avoid re-casting every render
   const currentBusiness = useMemo(
