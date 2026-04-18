@@ -150,6 +150,23 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("BUSINESS_REQUIRED", "Buy orders require a business account", 400);
   }
 
+  // Idempotency: check for recent duplicate open order (same user, side, platform, action, quantity, price)
+  const userId = user.id;
+  for (const existing of ordersStore.values()) {
+    if (
+      existing.status === "open" &&
+      existing.side === side &&
+      existing.platformId === platformId &&
+      existing.actionId === actionId &&
+      existing.quantity === Math.round(quantity) &&
+      existing.pricePerUnit === Math.round(pricePerUnit * 100) / 100 &&
+      ((side === "buy" && existing.businessId === (user.businessId ?? userId)) ||
+       (side === "sell" && existing.agentId === userId))
+    ) {
+      return ok({ order: existing, duplicate: true });
+    }
+  }
+
   const now = new Date().toISOString();
   const order: Order = {
     id: crypto.randomUUID(),

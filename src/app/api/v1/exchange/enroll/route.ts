@@ -104,6 +104,14 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("MISSING_NICHES", "At least one niche is required", 400);
   }
 
+  // Idempotency: check if user already has an agent with the same name
+  for (const existing of agentsStore.values()) {
+    const a = existing as unknown as Agent;
+    if (a.userId === user.id && a.agentName === agentName) {
+      return ok({ agentId: a.id, agent: a, duplicate: true, generatedOrders: 0, matchedCampaigns: [], projections: null });
+    }
+  }
+
   // Create agent
   const agentId = crypto.randomUUID();
   const now = new Date().toISOString();

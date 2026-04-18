@@ -19,6 +19,7 @@ import {
   programSubmissions,
   type ProgramSubmission,
 } from "@/lib/programs/store";
+import { validateString, validateEnum } from "@/lib/security/validate";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
 
@@ -68,8 +69,20 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (!memberId) return err("MISSING_MEMBER_ID", "memberId is required", 400);
   if (!actionId) return err("MISSING_ACTION_ID", "actionId is required", 400);
   if (!platformId) return err("MISSING_PLATFORM_ID", "platformId is required", 400);
-  if (!proofUrl) return err("MISSING_PROOF_URL", "proofUrl is required", 400);
-  if (!proofType) return err("MISSING_PROOF_TYPE", "proofType is required", 400);
+
+  // Validate proofUrl as a URL
+  const urlResult = validateString(proofUrl, "proofUrl", { min: 1, max: 2048 });
+  if (!urlResult.success) return err("INVALID_PROOF_URL", urlResult.error, 400);
+  try {
+    new URL(urlResult.data);
+  } catch {
+    return err("INVALID_PROOF_URL", "proofUrl must be a valid URL", 400);
+  }
+
+  // Validate proofType against allowed types
+  const validProofTypes = ["screenshot", "video", "link", "text", "image", "document"] as const;
+  const proofTypeResult = validateEnum(proofType, "proofType", validProofTypes);
+  if (!proofTypeResult.success) return err("INVALID_PROOF_TYPE", proofTypeResult.error, 400);
 
   // Verify member is enrolled
   let enrolled = false;
@@ -82,6 +95,19 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   if (!enrolled) {
     return err("NOT_ENROLLED", `Member '${memberId}' is not enrolled in this program`, 403);
+  }
+
+  // Idempotency: check for existing pending/approved submission with same member + action + platform
+  for (const existing of programSubmissions.values()) {
+    if (
+      existing.programId === programId &&
+      existing.memberId === memberId &&
+      existing.actionId === actionId &&
+      existing.platformId === platformId &&
+      existing.status === "pending"
+    ) {
+      return ok({ submission: existing, duplicate: true });
+    }
   }
 
   // Find matching rule for points calculation

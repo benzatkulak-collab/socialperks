@@ -20,6 +20,7 @@ import {
   programMembers,
   type ProgramMember,
 } from "@/lib/programs/store";
+import { validateEmail, validateString } from "@/lib/security/validate";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
 
@@ -113,12 +114,12 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   const { memberId, name, email } = body;
 
   if (!memberId) return err("MISSING_MEMBER_ID", "memberId is required", 400);
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return err("MISSING_NAME", "Member name is required", 400);
-  }
-  if (!email || typeof email !== "string" || !email.includes("@")) {
-    return err("INVALID_EMAIL", "A valid email is required", 400);
-  }
+
+  const nameResult = validateString(name, "name", { min: 1, max: 200 });
+  if (!nameResult.success) return err("INVALID_NAME", nameResult.error, 400);
+
+  const emailResult = validateEmail(email);
+  if (!emailResult.success) return err("INVALID_EMAIL", emailResult.error, 400);
 
   // Check for duplicate enrollment
   for (const m of programMembers.values()) {
@@ -135,8 +136,8 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     id: crypto.randomUUID(),
     programId,
     memberId,
-    name: name.trim(),
-    email: email.trim().toLowerCase(),
+    name: nameResult.data,
+    email: emailResult.data,
     enrolledAt: new Date().toISOString(),
     totalPoints: 0,
     currentTier: null,

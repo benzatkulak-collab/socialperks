@@ -21,6 +21,7 @@ import {
   type ProgramRule,
   type ProgramTier,
 } from "@/lib/programs/store";
+import { validateString, validateNumber, validateEnum } from "@/lib/security/validate";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
@@ -97,15 +98,56 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (!businessId) {
     return err("MISSING_BUSINESS_ID", "businessId is required", 400);
   }
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return err("MISSING_NAME", "Program name is required", 400);
+
+  // Tenant isolation: users can only create programs for their own business
+  if (user.businessId && user.businessId !== businessId) {
+    return err("FORBIDDEN", "You can only create programs for your own business", 403);
+  }
+
+  const nameResult = validateString(name, "name", { min: 1, max: 200 });
+  if (!nameResult.success) return err("INVALID_NAME", nameResult.error, 400);
+
+  if (description !== undefined) {
+    const descResult = validateString(description, "description", { max: 2000 });
+    if (!descResult.success) return err("INVALID_DESCRIPTION", descResult.error, 400);
+  }
+
+  const validCycles = ["daily", "weekly", "monthly", "quarterly", "annual"] as const;
+  if (cycle !== undefined) {
+    const cycleResult = validateEnum(cycle, "cycle", validCycles);
+    if (!cycleResult.success) return err("INVALID_CYCLE", cycleResult.error, 400);
+  }
+
+  if (cycleStartDay !== undefined) {
+    const dayResult = validateNumber(cycleStartDay, "cycleStartDay", { min: 1, max: 31 });
+    if (!dayResult.success) return err("INVALID_CYCLE_START_DAY", dayResult.error, 400);
+  }
+
+  // Validate rules array structure
+  if (rules !== undefined) {
+    if (!Array.isArray(rules)) return err("INVALID_RULES", "rules must be an array", 400);
+    if (rules.length > 100) return err("INVALID_RULES", "rules must have at most 100 entries", 400);
+    for (const rule of rules) {
+      if (!rule || typeof rule !== "object") return err("INVALID_RULES", "Each rule must be an object", 400);
+      if (!rule.actionId || !rule.platformId) return err("INVALID_RULES", "Each rule must have actionId and platformId", 400);
+    }
+  }
+
+  // Validate tiers array structure
+  if (tiers !== undefined) {
+    if (!Array.isArray(tiers)) return err("INVALID_TIERS", "tiers must be an array", 400);
+    if (tiers.length > 20) return err("INVALID_TIERS", "tiers must have at most 20 entries", 400);
+    for (const tier of tiers) {
+      if (!tier || typeof tier !== "object") return err("INVALID_TIERS", "Each tier must be an object", 400);
+      if (!tier.name) return err("INVALID_TIERS", "Each tier must have a name", 400);
+    }
   }
 
   const now = new Date().toISOString();
   const program: PerkProgram = {
     id: crypto.randomUUID(),
     businessId,
-    name: name.trim(),
+    name: nameResult.data,
     description: description?.trim() ?? "",
     status: "active",
     rules: rules ?? [],

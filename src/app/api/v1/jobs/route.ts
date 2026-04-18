@@ -31,7 +31,7 @@ export const GET = withTiming(async (req: NextRequest) => {
   if (IS_PRODUCTION) {
     const user = requireAuth(req);
     if (user instanceof Response) return user;
-    if (user.role !== "enterprise") {
+    if (user.role !== "enterprise" && user.role !== "admin") {
       return err("FORBIDDEN", "Admin access required", 403);
     }
   }
@@ -85,7 +85,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (IS_PRODUCTION) {
     const user = requireAuth(req);
     if (user instanceof Response) return user;
-    if (user.role !== "enterprise") {
+    if (user.role !== "enterprise" && user.role !== "admin") {
       return err("FORBIDDEN", "Admin access required", 403);
     }
   }

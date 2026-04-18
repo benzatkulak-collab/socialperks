@@ -22,8 +22,8 @@ export const GET = withTiming(async (req: NextRequest) => {
   if (authResult instanceof NextResponse) return authResult;
   const user = authResult as AuthUser;
 
-  if (user.role !== "admin") {
-    return err("FORBIDDEN", "Audit log access requires admin role", 403);
+  if (user.role !== "admin" && user.role !== "enterprise") {
+    return err("FORBIDDEN", "Audit log access requires admin or enterprise role", 403);
   }
 
   const params = getQuery(req);

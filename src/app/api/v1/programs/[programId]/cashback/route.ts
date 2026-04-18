@@ -21,6 +21,7 @@ import {
   payouts,
   type Payout,
 } from "@/lib/programs/store";
+import { validateEnum, validateNumber, validateString } from "@/lib/security/validate";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
 
@@ -114,15 +115,32 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   }>(req);
   if (body instanceof Response) return body;
 
-  const { action } = body;
+  // Validate action
+  const validActions = ["request", "approve", "reject", "mark_paid"] as const;
+  const actionResult = validateEnum(body.action, "action", validActions);
+  if (!actionResult.success) return err("INVALID_ACTION", actionResult.error, 400);
+  const action = actionResult.data;
+
+  // Validate note length if provided
+  if (body.note !== undefined) {
+    const noteResult = validateString(body.note, "note", { max: 1000 });
+    if (!noteResult.success) return err("INVALID_NOTE", noteResult.error, 400);
+  }
 
   // ── Request cashback ──────────────────────────────────────────────────
   if (action === "request") {
     const { memberId, amount, currency } = body;
 
     if (!memberId) return err("MISSING_MEMBER_ID", "memberId is required", 400);
-    if (!amount || typeof amount !== "number" || amount <= 0) {
-      return err("INVALID_AMOUNT", "amount must be a positive number", 400);
+
+    const amountResult = validateNumber(amount, "amount", { min: 0.01, max: 100000 });
+    if (!amountResult.success) return err("INVALID_AMOUNT", amountResult.error, 400);
+
+    // Validate currency if provided
+    if (currency !== undefined) {
+      const validCurrencies = ["USD", "EUR", "GBP", "CAD", "AUD"] as const;
+      const currencyResult = validateEnum(currency, "currency", validCurrencies);
+      if (!currencyResult.success) return err("INVALID_CURRENCY", currencyResult.error, 400);
     }
 
     // Verify member is enrolled
@@ -138,11 +156,23 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
       return err("NOT_ENROLLED", `Member '${memberId}' is not enrolled in this program`, 403);
     }
 
+    // Idempotency: check for existing pending payout with same member and amount
+    for (const existing of payouts.values()) {
+      if (
+        existing.programId === programId &&
+        existing.memberId === memberId &&
+        existing.status === "pending" &&
+        existing.amount === Math.round(amountResult.data * 100) / 100
+      ) {
+        return ok({ payout: existing, duplicate: true });
+      }
+    }
+
     const payout: Payout = {
       id: crypto.randomUUID(),
       programId,
       memberId,
-      amount: Math.round(amount * 100) / 100,
+      amount: Math.round(amountResult.data * 100) / 100,
       currency: currency ?? "USD",
       status: "pending",
       requestedAt: new Date().toISOString(),
@@ -226,9 +256,6 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return ok({ payout: updated });
   }
 
-  return err(
-    "INVALID_ACTION",
-    `Unknown action: '${action}'. Valid actions: request, approve, reject, mark_paid`,
-    400
-  );
+  // Unreachable due to enum validation above, but kept as safety net
+  return err("INVALID_ACTION", `Unknown action: '${action}'`, 400);
 });
