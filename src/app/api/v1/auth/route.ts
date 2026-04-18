@@ -9,6 +9,7 @@
 
 import type { NextRequest } from "next/server";
 import { ok, err, getUser, rateLimit, parseBody, withTiming } from "../_shared";
+import { metrics, METRIC } from "@/lib/reliability/metrics";
 import {
   hashPassword,
   verifyPassword,
@@ -317,6 +318,7 @@ export const POST = withTiming(async (req: NextRequest) => {
         if (storedUser) {
           const valid = await verifyPassword(password, storedUser.passwordHash);
           if (valid) {
+            metrics.increment(METRIC.AUTH_SUCCESS, 1, { method: "password" });
             const session = sessionStore.create(storedUser.id, storedUser.role, storedUser.email, storedUser.businessId);
             const { tokens, headers } = buildCookieHeaders(storedUser.id, storedUser.role, storedUser.email, storedUser.businessId);
             return ok(
@@ -331,6 +333,7 @@ export const POST = withTiming(async (req: NextRequest) => {
             );
           }
         }
+        metrics.increment(METRIC.AUTH_FAILURE, 1, { method: "password" });
         return err("INVALID_CREDENTIALS", "Invalid email or password", 401);
       }
 
@@ -379,6 +382,7 @@ export const POST = withTiming(async (req: NextRequest) => {
           );
         }
 
+        metrics.increment(METRIC.AUTH_FAILURE, 1, { method: "pin" });
         return err("INVALID_CREDENTIALS", "Invalid email or PIN", 401);
       }
 

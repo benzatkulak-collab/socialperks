@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { verifyJWT, sessionStore } from "@/lib/auth";
+import { metrics, METRIC } from "@/lib/reliability/metrics";
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
 
@@ -120,6 +121,7 @@ export function rateLimit(
   const result = checkRateLimit(ip, endpoint, tier);
 
   if (!result.allowed) {
+    metrics.increment(METRIC.RATE_LIMIT_HIT, 1, { endpoint, tier });
     return err("RATE_LIMIT_EXCEEDED", "Too many requests", 429, rateLimitHeaders(result));
   }
   return null; // allowed
@@ -156,12 +158,23 @@ type Handler = (req: NextRequest, ctx?: unknown) => Promise<NextResponse>;
 export function withTiming(handler: Handler): Handler {
   return async (req, ctx) => {
     const start = performance.now();
+    const path = new URL(req.url).pathname;
+
+    metrics.increment(METRIC.API_REQUEST, 1, { path, method: req.method });
+
     const res = await handler(req, ctx);
-    const duration = (performance.now() - start).toFixed(1);
-    res.headers.set("X-Response-Time", `${duration}ms`);
+    const durationMs = performance.now() - start;
+    res.headers.set("X-Response-Time", `${durationMs.toFixed(1)}ms`);
     if (!res.headers.has("X-Request-Id")) {
       res.headers.set("X-Request-Id", crypto.randomUUID());
     }
+
+    // Record latency and errors
+    metrics.observe(METRIC.API_LATENCY, durationMs, { path });
+    if (res.status >= 400) {
+      metrics.increment(METRIC.API_ERROR, 1, { path, status: String(res.status) });
+    }
+
     return res;
   };
 }
