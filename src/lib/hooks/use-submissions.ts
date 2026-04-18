@@ -18,6 +18,7 @@ export interface Submission {
 export function useSubmissions(userId: string) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
@@ -25,16 +26,18 @@ export function useSubmissions(userId: string) {
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(`/api/v1/submissions?userId=${encodeURIComponent(userId)}`, { signal: controller.signal, credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.ok) throw new Error(`Failed to fetch submissions (${res.status})`);
       const json = await res.json();
       if (controller.signal.aborted) return;
       setSubmissions(json.data?.submissions ?? []);
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== "AbortError") {
-        console.warn("[useSubmissions] Fetch failed, keeping existing data:", e.message);
+        console.error("[useSubmissions] Fetch failed:", e.message);
+        setError(e.message);
       }
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -46,9 +49,13 @@ export function useSubmissions(userId: string) {
     return () => { abortRef.current?.abort(); };
   }, [refresh]);
 
+  /** Add a submission optimistically. Returns a rollback function to undo if server rejects. */
   const addOptimistic = useCallback((sub: Submission) => {
     setSubmissions(prev => [sub, ...prev]);
+    return () => {
+      setSubmissions(prev => prev.filter(s => s.id !== sub.id));
+    };
   }, []);
 
-  return { submissions, loading, refresh, addOptimistic };
+  return { submissions, loading, error, refresh, addOptimistic };
 }

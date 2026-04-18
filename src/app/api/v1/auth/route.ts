@@ -216,7 +216,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   switch (action) {
     // ── Signup ──────────────────────────────────────────────────────────────
     case "signup": {
-      const { email, password, name, role = "business" } = body;
+      const { email, password, name, role: requestedRole } = body;
 
       if (!email || !password || !name) {
         return err("MISSING_FIELDS", "email, password, and name are required");
@@ -238,10 +238,12 @@ export const POST = withTiming(async (req: NextRequest) => {
         return err("INVALID_INPUT", "Password must be 128 characters or less");
       }
 
-      const validRoles = ["business", "influencer", "enterprise"];
-      if (!validRoles.includes(role as string)) {
-        return err("INVALID_ROLE", `role must be one of: ${validRoles.join(", ")}`);
-      }
+      // SECURITY: Only allow "business" or "influencer" on self-signup.
+      // "enterprise" requires admin action — never trust client-supplied role escalation.
+      const allowedSignupRoles = ["business", "influencer"] as const;
+      const role = allowedSignupRoles.includes(requestedRole as typeof allowedSignupRoles[number])
+        ? (requestedRole as "business" | "influencer")
+        : "business";
 
       await ensureSeeded();
 
@@ -251,8 +253,8 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       const passwordHash = await hashPassword(password);
       const userId = `usr_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
-      const userRole = role as UserRecord["role"];
-      const businessId = userRole === "business" || userRole === "enterprise" ? `biz_${userId}` : null;
+      const userRole: UserRecord["role"] = role;
+      const businessId = userRole === "business" ? `biz_${userId}` : null;
 
       const record: UserRecord = {
         id: userId,
@@ -478,7 +480,7 @@ export const POST = withTiming(async (req: NextRequest) => {
         // Fire-and-forget password reset email
         const resetLink = `https://socialperks.app/reset-password?token=${token}`;
         const resetEmail = passwordResetEmail(storedUser.name, resetLink);
-        emailProvider.send({ to: sanitizedEmail, ...resetEmail }).catch(() => {});
+        emailProvider.send({ to: sanitizedEmail, ...resetEmail }).catch((e: unknown) => console.error("[Email] Password reset email failed:", e instanceof Error ? e.message : e));
       }
 
       return ok({

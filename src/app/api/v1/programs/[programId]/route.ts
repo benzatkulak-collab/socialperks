@@ -24,8 +24,11 @@ interface RouteContext {
 // ─── GET ────────────────────────────────────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
-  // Relaxed rate limit
-  const limited = rateLimit(req, "relaxed");
+  // Auth required — program details are business-specific
+  const user = requireAuth(req);
+  if (user instanceof Response) return user;
+
+  const limited = rateLimit(req, "standard");
   if (limited) return limited;
 
   const { programId } = await (ctx as RouteContext).params;
@@ -33,6 +36,11 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
+  }
+
+  // Tenant isolation: only the program owner can view details
+  if (user.businessId && program.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You do not have access to this program", 403);
   }
 
   return ok({ program });

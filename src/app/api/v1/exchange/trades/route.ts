@@ -46,12 +46,21 @@ interface Trade {
 // ─── GET ────────────────────────────────────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest) => {
+  // Auth required
+  const user = requireAuth(req);
+  if (user instanceof Response) return user;
+
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
   const q = getQuery(req);
   const agentId = q.get("agentId");
   const businessId = q.get("businessId");
+
+  // Tenant isolation: users can only view their own business's trades
+  if (user.businessId && businessId && businessId !== user.businessId) {
+    return err("FORBIDDEN", "You can only view your own business's trades", 403);
+  }
   const status = q.get("status");
   const actionId = q.get("actionId");
   const platformId = q.get("platformId");
@@ -122,6 +131,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   const trade = tradesStore.get(tradeId);
   if (!trade) {
     return err("TRADE_NOT_FOUND", `Trade '${tradeId}' not found`, 404);
+  }
+
+  // Tenant isolation: only the buyer's business can manage this trade
+  if (user.businessId && trade.buyerBusinessId !== user.businessId) {
+    return err("FORBIDDEN", "You do not have permission to manage this trade", 403);
   }
 
   const now = new Date().toISOString();

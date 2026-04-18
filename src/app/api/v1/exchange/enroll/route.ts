@@ -58,6 +58,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
 
+  // Tenant isolation: business users cannot enroll as exchange agents
+  if (user.businessId) {
+    return err("FORBIDDEN", "Business accounts cannot enroll as exchange agents", 403);
+  }
+
   const body = await parseBody<{
     agentName: string;
     agentType: "influencer" | "creator" | "ambassador" | "agency";

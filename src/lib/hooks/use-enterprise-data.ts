@@ -441,13 +441,15 @@ export function useEnterpriseData(businessId: string | null | undefined): Enterp
   }, [refresh, businessId]);
 
   // Compute derived data from API responses
+  // SECURITY: Only use demo fallback when there's no businessId (not logged in).
+  // Empty API data for a real business should show empty state, not demo data.
   const computed = useMemo(() => {
-    if (!businessId || (campaigns.length === 0 && submissions.length === 0 && !loading)) {
-      // No real data -- return null to signal "use demo fallback"
-      return null;
+    if (!businessId) {
+      return null; // No business context — use demo fallback
     }
+    // Real business: always compute from API data, even if empty
     return computeEnterpriseData(campaigns, submissions, "Enterprise Account");
-  }, [businessId, campaigns, submissions, loading]);
+  }, [businessId, campaigns, submissions]);
 
   // Build the final result, merging computed data with demo defaults
   return useMemo(() => {

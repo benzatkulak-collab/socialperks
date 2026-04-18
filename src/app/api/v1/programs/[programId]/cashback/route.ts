@@ -46,6 +46,11 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
+  // Tenant isolation: only the program owner can view payouts
+  if (user.businessId && program.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You do not have access to this program's payouts", 403);
+  }
+
   const params = getQuery(req);
   const statusFilter = params.get("status");
   const { page, perPage } = paginate(params);
@@ -92,6 +97,11 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
+  }
+
+  // Tenant isolation: only the program owner can manage payouts
+  if (user.businessId && program.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You do not have access to this program's payouts", 403);
   }
 
   const body = await parseBody<{

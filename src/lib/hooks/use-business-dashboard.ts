@@ -12,6 +12,7 @@ interface DashboardStats {
 export function useBusinessDashboard(businessId: string) {
   const [stats, setStats] = useState<DashboardStats>({ activeCampaigns: 0, completions: 0, reviews: 0, marketingValue: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
@@ -19,10 +20,11 @@ export function useBusinessDashboard(businessId: string) {
     const controller = new AbortController();
     abortRef.current = controller;
     setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(`/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`, { signal: controller.signal, credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.ok) throw new Error(`Failed to fetch dashboard stats (${res.status})`);
       const json = await res.json();
       if (controller.signal.aborted) return;
 
@@ -37,7 +39,8 @@ export function useBusinessDashboard(businessId: string) {
       });
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== "AbortError") {
-        console.warn("[useBusinessDashboard] Stats fetch failed, keeping defaults:", e.message);
+        console.error("[useBusinessDashboard] Stats fetch failed:", e.message);
+        setError(e.message);
       }
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -49,5 +52,5 @@ export function useBusinessDashboard(businessId: string) {
     return () => { abortRef.current?.abort(); };
   }, [refresh]);
 
-  return { stats, loading, refresh };
+  return { stats, loading, error, refresh };
 }

@@ -44,6 +44,11 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
+  // Tenant isolation: only the program owner can view progress
+  if (user.businessId && program.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You do not have access to this program's progress", 403);
+  }
+
   const params = getQuery(req);
   const memberId = params.get("memberId");
 

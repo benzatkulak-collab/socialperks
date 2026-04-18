@@ -65,6 +65,11 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
   }
 
+  // Tenant isolation: reviewer must belong to a business
+  if (!user.businessId) {
+    return err("FORBIDDEN", "Only business users can review submissions", 403);
+  }
+
   const validProofTypes = ["screenshot", "url", "video", "api_verified"];
   if (!validProofTypes.includes(body.proofType!)) {
     return err(

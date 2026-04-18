@@ -112,7 +112,18 @@ export const POST = withTiming(async (req: NextRequest) => {
         const plan = metadata?.plan ?? "starter";
         const billingPeriod = (metadata?.billingPeriod ?? "monthly") as "monthly" | "annual";
 
-        if (businessId && subscriptionId) {
+        if (!businessId || !subscriptionId) {
+          console.error(`[Billing Webhook] Missing required metadata — businessId=${businessId}, subscriptionId=${subscriptionId}, event=${eventId}`);
+          break;
+        }
+
+        // Idempotency: skip if subscription already exists
+        if (subscriptions.has(subscriptionId)) {
+          console.info(`[Billing Webhook] Subscription ${subscriptionId} already exists — skipping`);
+          break;
+        }
+
+        try {
           const now = new Date();
           const periodEnd = new Date(now);
           periodEnd.setMonth(periodEnd.getMonth() + (billingPeriod === "annual" ? 12 : 1));
@@ -131,6 +142,11 @@ export const POST = withTiming(async (req: NextRequest) => {
           };
           subscriptions.set(subscriptionId, sub);
           console.info(`[Billing Webhook] Created subscription ${subscriptionId} for business ${businessId}`);
+        } catch (e) {
+          // If subscription creation fails, remove from processed events so Stripe can retry
+          processedEvents.delete(eventId);
+          console.error(`[Billing Webhook] Failed to create subscription — event=${eventId}`, e);
+          return err("PROCESSING_FAILED", "Failed to process checkout event", 500);
         }
       }
       break;

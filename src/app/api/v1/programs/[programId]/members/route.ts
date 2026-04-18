@@ -30,8 +30,11 @@ interface RouteContext {
 // ─── GET ────────────────────────────────────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
-  // Relaxed rate limit (no auth required for listing)
-  const limited = rateLimit(req, "relaxed");
+  // Auth required — member data contains PII
+  const user = requireAuth(req);
+  if (user instanceof Response) return user;
+
+  const limited = rateLimit(req, "standard");
   if (limited) return limited;
 
   const { programId } = await (ctx as RouteContext).params;
@@ -39,6 +42,11 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
+  }
+
+  // Tenant isolation: only the program owner can list members
+  if (user.businessId && program.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You do not have access to this program's members", 403);
   }
 
   const params = getQuery(req);
@@ -84,6 +92,11 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
+  }
+
+  // Tenant isolation: only the program owner can enroll members
+  if (user.businessId && program.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You cannot enroll members in another business's program", 403);
   }
 
   if (program.status !== "active") {

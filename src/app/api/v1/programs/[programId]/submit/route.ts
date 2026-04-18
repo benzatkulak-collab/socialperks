@@ -44,6 +44,11 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
+  // Tenant isolation: only the program owner can accept submissions
+  if (user.businessId && program.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You do not have access to this program", 403);
+  }
+
   if (program.status !== "active") {
     return err("PROGRAM_NOT_ACTIVE", `Program is currently '${program.status}'`, 400);
   }

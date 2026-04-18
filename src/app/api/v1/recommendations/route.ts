@@ -11,7 +11,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { ok, err, getQuery, rateLimit, withTiming } from "../_shared";
+import { ok, err, getQuery, rateLimit, requireAuth, withTiming } from "../_shared";
 import { createSeedData } from "@/lib/seed";
 import { generateCampaigns } from "@/lib/ai-engine";
 import { getNicheAffinity } from "@/lib/matching-engine";
@@ -21,8 +21,11 @@ import { getRecommendedCampaigns, ensureIndexed } from "@/lib/search/semantic-se
 const seedData = createSeedData();
 
 export const GET = withTiming(async (req: NextRequest) => {
-  // Relaxed rate limit
-  const rl = rateLimit(req, "relaxed");
+  // Auth required — recommendation data exposes matching strategy
+  const user = requireAuth(req);
+  if (user instanceof Response) return user;
+
+  const rl = rateLimit(req, "standard");
   if (rl) return rl;
 
   const params = getQuery(req);

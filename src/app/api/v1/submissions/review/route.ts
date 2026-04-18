@@ -120,8 +120,8 @@ export const POST = withTiming(async (req: NextRequest) => {
     if (lifecycle && lifecycle.state === "active") {
       try {
         campaignManager.recordCompletion(submission.campaignId);
-      } catch {
-        // Campaign may not be in a state to record completions — continue
+      } catch (e) {
+        console.warn(`[Campaign] Failed to record completion for campaign ${submission.campaignId}:`, e instanceof Error ? e.message : e);
       }
     }
 
@@ -156,10 +156,10 @@ export const POST = withTiming(async (req: NextRequest) => {
         ? `$${perk.calculation.totalValue.toFixed(2)}`
         : "a perk";
       const template = submissionApprovedEmail(recipientName, campaignName, perkDisplay);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch(() => {});
+      emailProvider.send({ to: body.submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     } else {
       const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch(() => {});
+      emailProvider.send({ to: body.submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     }
   }
 

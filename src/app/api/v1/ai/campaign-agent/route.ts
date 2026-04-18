@@ -62,6 +62,11 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("MISSING_FIELD", "type is required", 400);
   }
 
+  // Tenant isolation: user can only generate plans for their own business
+  if (user.businessId && body.businessId !== user.businessId) {
+    return err("FORBIDDEN", "You can only generate plans for your own business", 403);
+  }
+
   if (
     body.size &&
     !["solo", "small", "medium", "large"].includes(body.size)

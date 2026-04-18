@@ -81,7 +81,11 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   if (mode === "subscribe" && challenge) {
     // Verify the token matches our expected value
-    const expectedToken = process.env.WEBHOOK_VERIFY_TOKEN ?? "social-perks-verify";
+    const expectedToken = process.env.WEBHOOK_VERIFY_TOKEN;
+    if (!expectedToken) {
+      console.error("[WEBHOOK] WEBHOOK_VERIFY_TOKEN not configured — rejecting challenge");
+      return err("WEBHOOK_NOT_CONFIGURED", "Webhook verification is not configured", 500);
+    }
     if (verifyToken !== expectedToken) {
       return err("INVALID_VERIFY_TOKEN", "Verification token mismatch", 403);
     }

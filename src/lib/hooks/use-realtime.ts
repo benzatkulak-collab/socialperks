@@ -35,12 +35,11 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
 
     function connect() {
       const params = new URLSearchParams();
-      // Use demo token for now — in production this would use the access token
+      // Pass identity context — the access token cookie is sent automatically via withCredentials
       if (businessId) {
-        params.set("token", `demo-token-${businessId}`);
         params.set("businessId", businessId);
       } else if (userId) {
-        params.set("token", `demo-token-${userId}`);
+        params.set("userId", userId);
       } else {
         return; // No identity, can't connect
       }

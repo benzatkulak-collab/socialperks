@@ -25,8 +25,11 @@ import {
 // ─── GET ────────────────────────────────────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest) => {
-  // Relaxed rate limit
-  const limited = rateLimit(req, "relaxed");
+  // Auth required — program data is business-specific
+  const user = requireAuth(req);
+  if (user instanceof Response) return user;
+
+  const limited = rateLimit(req, "standard");
   if (limited) return limited;
 
   const params = getQuery(req);
@@ -34,6 +37,11 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   if (!businessId) {
     return err("MISSING_BUSINESS_ID", "businessId query parameter is required", 400);
+  }
+
+  // Tenant isolation: users can only list their own business's programs
+  if (user.businessId && user.businessId !== businessId) {
+    return err("FORBIDDEN", "You can only view your own business's programs", 403);
   }
 
   const { page, perPage } = paginate(params);
