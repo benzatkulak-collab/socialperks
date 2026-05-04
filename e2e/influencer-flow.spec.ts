@@ -115,10 +115,9 @@ test.describe("Influencer Portal Flow", () => {
         page.getByRole("heading", { name: /Discover Campaigns/i })
       ).toBeVisible({ timeout: 10000 });
 
-      // Should have at least one campaign card visible
-      // Campaign cards contain business names and perk values
+      // Should show non-zero campaigns from local businesses
       await expect(
-        page.getByText(/off|dollars|perk/i).first()
+        page.getByText(/[1-9]\d* campaigns? from local businesses/i)
       ).toBeVisible({ timeout: 10000 });
     });
 

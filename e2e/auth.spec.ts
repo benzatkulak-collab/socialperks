@@ -217,16 +217,18 @@ test.describe("Authentication", () => {
       await page.getByPlaceholder(/your password/i).fill("1234");
       await page.getByRole("button", { name: /Log In/i }).click();
 
-      // Skip the onboarding wizard if it appears (covers Log Out button)
-      const skipBtn = page.getByRole("button", { name: /Skip for now/i });
-      if (await skipBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await skipBtn.click();
-      }
-
-      // Wait for portal to load
+      // Wait for portal — Log Out button exists once authed (may be covered
+      // by the onboarding wizard modal, but it is in the DOM)
       await expect(
         page.getByRole("button", { name: /Log Out/i })
       ).toBeVisible({ timeout: 15000 });
+
+      // Dismiss the onboarding wizard if it's blocking interaction
+      const wizard = page.getByRole("dialog", { name: /Onboarding wizard/i });
+      if (await wizard.isVisible().catch(() => false)) {
+        await page.getByRole("button", { name: /Skip for now/i }).click();
+        await expect(wizard).not.toBeVisible();
+      }
 
       // Click logout
       await page.getByRole("button", { name: /Log Out/i }).click();

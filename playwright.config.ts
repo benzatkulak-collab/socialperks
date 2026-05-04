@@ -24,6 +24,10 @@ export default defineConfig({
       command: "npx next dev",
       port: 3000,
       reuseExistingServer: true,
+      // Disable rate limiting for e2e tests so the auth suite (which makes
+      // many login/signup attempts) doesn't trip the strict 5-req/60s tier.
+      // Bypass is gated on NODE_ENV !== 'production' in rate-limiter.ts.
+      env: { RATE_LIMIT_BYPASS: "1" },
     },
   ],
 });

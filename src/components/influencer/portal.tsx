@@ -143,7 +143,9 @@ export function InfluencerPortal({
       if (effortFilter !== "all" && String(c.effortLevel) !== effortFilter) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        if (!c.campaignName.toLowerCase().includes(q) && !c.businessName.toLowerCase().includes(q)) return false;
+        const name = c.campaignName?.toLowerCase() ?? "";
+        const business = c.businessName?.toLowerCase() ?? "";
+        if (!name.includes(q) && !business.includes(q)) return false;
       }
       return true;
     });

@@ -27,11 +27,23 @@ function pruneExpired(): void {
   }
 }
 
+// Test-only bypass: when RATE_LIMIT_BYPASS=1 in non-production, all requests
+// are allowed. This is gated on NODE_ENV !== 'production' so it physically
+// cannot be enabled in a production build.
+const BYPASS_ENABLED =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.RATE_LIMIT_BYPASS === '1';
+
 export function checkRateLimit(
   ip: string,
   endpoint: string,
   tier: RateLimitTier = 'standard'
 ): { allowed: boolean; remaining: number; resetAt: number; limit: number } {
+  if (BYPASS_ENABLED) {
+    const config = TIER_CONFIGS[tier];
+    return { allowed: true, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs, limit: config.maxRequests };
+  }
+
   if (++pruneCounter % 100 === 0) pruneExpired();
 
   const config = TIER_CONFIGS[tier];

@@ -9,13 +9,13 @@ test.describe("Landing Page", () => {
     ).toContainText("Your customers love you");
     // Gradient subtext
     await expect(page.getByText("Pay them to say it online")).toBeVisible();
-    // Primary CTA
+    // Primary CTA (appears in hero + bottom CTA section, take first)
     await expect(
-      page.getByRole("link", { name: /Create Your First Campaign/i })
+      page.getByRole("link", { name: /Create Your First Campaign/i }).first()
     ).toBeVisible();
     // Secondary CTA
     await expect(
-      page.getByRole("link", { name: /See How It Works/i })
+      page.getByRole("link", { name: /See How It Works/i }).first()
     ).toBeVisible();
   });
 
@@ -23,9 +23,9 @@ test.describe("Landing Page", () => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: /main navigation/i });
     await expect(nav).toBeVisible();
-    // Logo link
+    // Logo link (appears in nav + footer, take first)
     await expect(
-      page.getByRole("link", { name: /Social Perks home/i })
+      page.getByRole("link", { name: /Social Perks home/i }).first()
     ).toBeVisible();
     // Nav links (visible on desktop viewport)
     await expect(page.getByRole("link", { name: /How It Works/i }).first()).toBeVisible();
@@ -43,7 +43,7 @@ test.describe("Landing Page", () => {
 
   test("Create Your First Campaign CTA navigates to /dashboard with signup hash", async ({ page }) => {
     await page.goto("/");
-    const ctaLink = page.getByRole("link", { name: /Create Your First Campaign/i });
+    const ctaLink = page.getByRole("link", { name: /Create Your First Campaign/i }).first();
     await expect(ctaLink).toHaveAttribute("href", "/dashboard#signup");
   });
 

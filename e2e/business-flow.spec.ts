@@ -17,6 +17,13 @@ async function loginAsBusiness(page: Page) {
   await expect(
     page.getByRole("button", { name: /Log Out/i })
   ).toBeVisible({ timeout: 15000 });
+
+  // Dismiss the onboarding wizard if it pops up — it covers portal interaction
+  const wizard = page.getByRole("dialog", { name: /Onboarding wizard/i });
+  if (await wizard.isVisible().catch(() => false)) {
+    await page.getByRole("button", { name: /Skip for now/i }).click();
+    await expect(wizard).not.toBeVisible();
+  }
 }
 
 test.describe("Business Portal Flow", () => {
@@ -77,7 +84,8 @@ test.describe("Business Portal Flow", () => {
       ).toBeVisible();
 
       // Select the first available action (e.g., "Leave a Review")
-      const actionButtons = page.locator("button").filter({ hasText: /review|check.in|post/i });
+      // Action buttons all show an effort-dot indicator like "Effort: ●○○○○"
+      const actionButtons = page.locator("button").filter({ hasText: /Effort:/i });
       await actionButtons.first().click();
 
       // Click Next to go to step 2
@@ -89,9 +97,9 @@ test.describe("Business Portal Flow", () => {
       ).toBeVisible();
 
       // Reward type options should be visible
-      await expect(page.getByText("% Off")).toBeVisible();
-      await expect(page.getByText("$ Off")).toBeVisible();
-      await expect(page.getByText("Free Item")).toBeVisible();
+      await expect(page.getByText("% Off").first()).toBeVisible();
+      await expect(page.getByText("$ Off").first()).toBeVisible();
+      await expect(page.getByText("Free Item").first()).toBeVisible();
 
       // Select % Off (default) and enter a value
       await page.locator("#reward-value").fill("15");
@@ -155,7 +163,7 @@ test.describe("Business Portal Flow", () => {
 
       // Select a platform and action
       await page.getByText("Google").click();
-      const actionButton = page.locator("button").filter({ hasText: /review|check.in|post/i });
+      const actionButton = page.locator("button").filter({ hasText: /Effort:/i });
       await actionButton.first().click();
       await page.getByRole("button", { name: /Next: Set the reward/i }).click();
 
@@ -164,8 +172,10 @@ test.describe("Business Portal Flow", () => {
         page.getByRole("heading", { name: /What do they get in return/i })
       ).toBeVisible();
 
-      // Go back to step 1
-      await page.getByRole("button", { name: /Back/i }).first().click();
+      // Go back to step 1 — there's also a "Back to dashboard" button at the
+      // top, so target the step back button explicitly (exact match, not the
+      // dashboard one)
+      await page.getByRole("button", { name: /^← Back$|^Back$/ }).click();
 
       // Should be back on step 1
       await expect(

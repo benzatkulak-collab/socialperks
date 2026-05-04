@@ -92,15 +92,16 @@ export default function CampaignDiscovery({ campaigns, influencer: _influencer }
   const filteredCampaigns = useMemo(() => {
     let result = [...campaigns];
 
-    // Search
+    // Search — defensive against campaigns with missing fields (which can
+    // happen if data is incomplete or from older schemas)
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(
-        (c) =>
-          c.campaignName.toLowerCase().includes(q) ||
-          c.businessName.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q)
-      );
+      result = result.filter((c) => {
+        const name = c.campaignName?.toLowerCase() ?? "";
+        const business = c.businessName?.toLowerCase() ?? "";
+        const desc = c.description?.toLowerCase() ?? "";
+        return name.includes(q) || business.includes(q) || desc.includes(q);
+      });
     }
 
     // Business type
