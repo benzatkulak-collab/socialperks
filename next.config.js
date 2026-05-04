@@ -15,6 +15,26 @@ const nextConfig = {
     ];
   },
   async headers() {
+    const isDev = process.env.NODE_ENV !== "production";
+    // Dev needs 'unsafe-eval' for React Fast Refresh; prod stays locked down.
+    // Google Fonts CSS is loaded from layout.tsx, so allow fonts.googleapis.com in style-src.
+    const scriptSrc = isDev
+      ? "'self' 'unsafe-inline' 'unsafe-eval'"
+      : "'self' 'unsafe-inline'";
+    const styleSrc = "'self' 'unsafe-inline' https://fonts.googleapis.com";
+    const csp = [
+      "default-src 'self'",
+      `script-src ${scriptSrc}`,
+      `style-src ${styleSrc}`,
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "report-uri /api/v1/csp-report",
+      "report-to csp-endpoint",
+    ].join("; ");
     return [
       {
         source: "/(.*)",
@@ -35,11 +55,7 @@ const nextConfig = {
             key: "Report-To",
             value: '{"group":"csp-endpoint","max_age":86400,"endpoints":[{"url":"/api/v1/csp-report"}]}',
           },
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/v1/csp-report; report-to csp-endpoint",
-          },
+          { key: "Content-Security-Policy", value: csp },
         ],
       },
     ];

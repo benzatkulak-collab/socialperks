@@ -17,10 +17,10 @@ test.describe("Authentication", () => {
   test.describe("Login", () => {
     test("login form displays email and password fields", async ({ page }) => {
       await goToLoginForm(page);
-      await expect(page.getByText("Email")).toBeVisible();
-      await expect(page.getByText("Password")).toBeVisible();
+      await expect(page.getByLabel("Email")).toBeVisible();
+      await expect(page.getByLabel("Password")).toBeVisible();
       await expect(
-        page.getByRole("button", { name: /Log In/i })
+        page.getByRole("button", { name: /^Log In$/i })
       ).toBeVisible();
     });
 
@@ -216,6 +216,12 @@ test.describe("Authentication", () => {
       await page.getByPlaceholder(/you@yourbusiness\.com/i).fill("yoga@demo.com");
       await page.getByPlaceholder(/your password/i).fill("1234");
       await page.getByRole("button", { name: /Log In/i }).click();
+
+      // Skip the onboarding wizard if it appears (covers Log Out button)
+      const skipBtn = page.getByRole("button", { name: /Skip for now/i });
+      if (await skipBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await skipBtn.click();
+      }
 
       // Wait for portal to load
       await expect(
