@@ -1,0 +1,4 @@
+# Exclude the standalone Hono API backend from Vercel deploys.
+# It has its own Dockerfile and is deployed separately (Cloud Run / Render / etc).
+# Next.js routes in src/app/api/v1/* serve the production API for this Vercel project.
+api/
