@@ -18,8 +18,19 @@ app.get("/", rateLimit("relaxed"), requireAuth, (c) => {
   const minScore = isNaN(rawMinScore) || !isFinite(rawMinScore) ? 0.3 : rawMinScore;
 
   try {
-    const recommendations = matchingService.getRecommendations({
-      userId: userId ?? "anonymous",
+    // TODO: when user profiles are persisted, look up the full influencer
+    // profile (niches, follower count, platforms, etc.) by userId. Until
+    // then, build a minimal valid InfluencerEmbeddingInput so the matching
+    // service can score against generic priors.
+    const influencer = {
+      id: userId ?? "anonymous",
+      niches: [] as string[],
+      followerCount: 0,
+      engagementRate: 0,
+      platforms: [] as Array<{ platformId: string; followers: number }>,
+      tier: "micro" as const,
+    };
+    const recommendations = matchingService.getRecommendations(influencer, {
       maxCampaigns: Math.min(50, Math.max(1, maxCampaigns)),
       maxBusinesses: Math.min(20, Math.max(1, maxBusinesses)),
       minScore: Math.min(1, Math.max(0, minScore)),

@@ -100,7 +100,7 @@ app.post("/", rateLimit("standard"), requireAuth, async (c) => {
       const sr = fraudPipeline.scoreAndDecide({ submissionId: submission.id, userId: String(body.userId), campaignId: String(body.campaignId), platformId: metadata.platformId ? String(metadata.platformId) : "unknown", proofUrl: String(body.proofUrl), proofType: body.proofType as string, metadata: metadata as Record<string, unknown> }, uc);
       fraudScore = { score: sr.prediction.fraudScore, riskLevel: sr.prediction.riskLevel, decision: sr.decision, confidence: sr.prediction.confidence };
       // Block submissions flagged as high risk by the fraud pipeline
-      if (sr.decision === "block" || (sr.prediction.fraudScore > 0.85 && sr.prediction.confidence > 0.7)) {
+      if (sr.decision === "auto_reject" || (sr.prediction.fraudScore > 0.85 && sr.prediction.confidence > 0.7)) {
         logger.warn("Submission blocked by fraud detection", { submissionId: submission.id, fraudScore: sr.prediction.fraudScore, riskLevel: sr.prediction.riskLevel });
         return apiError(c, "FRAUD_DETECTED", "Submission flagged for suspicious activity. Please contact support if you believe this is an error.", 403);
       }

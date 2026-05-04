@@ -121,15 +121,15 @@ describe("PlatformRateLimiter", () => {
   it("multiple acquires track concurrent requests", async () => {
     const r1 = await limiter.acquire("yt"); // YouTube has high limits
     const r2 = await limiter.acquire("yt");
-    const state = limiter.getState("yt");
+    const state = limiter.getStats("yt");
     expect(state!.activeConcurrent).toBe(2);
 
     r1();
-    const state2 = limiter.getState("yt");
+    const state2 = limiter.getStats("yt");
     expect(state2!.activeConcurrent).toBe(1);
 
     r2();
-    const state3 = limiter.getState("yt");
+    const state3 = limiter.getStats("yt");
     expect(state3!.activeConcurrent).toBe(0);
   });
 });

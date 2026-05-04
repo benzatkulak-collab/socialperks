@@ -21,19 +21,25 @@ app.get("/", rateLimit("public"), (c) => {
   const { page, perPage } = parsePagination(new URLSearchParams(params));
 
   const seed = createSeedData();
-  let influencers = [...seed.influencers, ...Array.from(registeredInfluencers.values())];
+  // Coerce both sources to a uniform shape so filter callbacks have a single
+  // type. SeedInfluencer is a typed interface; registeredInfluencers stores
+  // plain records — both are normalized to Record<string, unknown> here.
+  let influencers: Record<string, unknown>[] = [
+    ...seed.influencers.map((i) => ({ ...i }) as Record<string, unknown>),
+    ...Array.from(registeredInfluencers.values()),
+  ];
 
-  if (niche) influencers = influencers.filter((i: Record<string, unknown>) => {
+  if (niche) influencers = influencers.filter((i) => {
     const niches = (i.niches ?? i.niche) as string[] | string | undefined;
     return Array.isArray(niches) ? niches.some((n) => n.toLowerCase().includes(niche.toLowerCase())) : typeof niches === "string" && niches.toLowerCase().includes(niche.toLowerCase());
   });
-  if (tier) influencers = influencers.filter((i: Record<string, unknown>) => (i.tier as string) === tier);
-  if (minFollowers) influencers = influencers.filter((i: Record<string, unknown>) => ((i.followers as number) ?? 0) >= minFollowers);
-  if (platformId) influencers = influencers.filter((i: Record<string, unknown>) => {
+  if (tier) influencers = influencers.filter((i) => (i.tier as string) === tier);
+  if (minFollowers) influencers = influencers.filter((i) => ((i.followers as number) ?? 0) >= minFollowers);
+  if (platformId) influencers = influencers.filter((i) => {
     const platforms = i.platforms as string[] | undefined;
-    return platforms && platforms.includes(platformId);
+    return platforms ? platforms.includes(platformId) : false;
   });
-  if (location) influencers = influencers.filter((i: Record<string, unknown>) => ((i.location as string) ?? "").toLowerCase().includes(location.toLowerCase()));
+  if (location) influencers = influencers.filter((i) => ((i.location as string) ?? "").toLowerCase().includes(location.toLowerCase()));
 
   const total = influencers.length;
   const paginated = influencers.slice((page - 1) * perPage, page * perPage);
@@ -60,7 +66,25 @@ app.post("/", rateLimit("standard"), requireAuth, async (c) => {
     };
 
     registeredInfluencers.set(id, influencer);
-    try { matchingService.indexInfluencer({ id, niches: influencer.niches, platforms: influencer.platforms, followers: influencer.followers, location: influencer.location }); } catch { /* non-blocking */ }
+    try {
+      // Map the registration shape to InfluencerEmbeddingInput. The route's
+      // platforms are string IDs; the embedding system needs structured
+      // {platformId, followers} entries — assume the headline follower count
+      // applies to all platforms here (refinable later).
+      const tier: "micro" | "mid" | "macro" | "mega" =
+        influencer.followers >= 1_000_000 ? "mega" :
+        influencer.followers >= 100_000 ? "macro" :
+        influencer.followers >= 10_000 ? "mid" : "micro";
+      matchingService.indexInfluencer({
+        id,
+        niches: influencer.niches,
+        followerCount: influencer.followers,
+        engagementRate: 0,
+        platforms: influencer.platforms.map((platformId: string) => ({ platformId, followers: influencer.followers })),
+        tier,
+        location: influencer.location,
+      });
+    } catch { /* non-blocking */ }
     logger.info("Influencer registered", { id, email: influencer.email });
     return apiResponse(c, influencer, 201);
   } catch (err) {

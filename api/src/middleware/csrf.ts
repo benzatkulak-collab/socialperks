@@ -26,7 +26,18 @@ function isExempt(path: string): boolean {
   return EXEMPT_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
+// Test-only bypass: when CSRF_BYPASS=1 in non-production, the middleware is
+// a no-op. Same pattern as RATE_LIMIT_BYPASS — physically impossible to
+// enable in a production build because of the NODE_ENV gate.
+const BYPASS_ENABLED =
+  process.env.NODE_ENV !== "production" && process.env.CSRF_BYPASS === "1";
+
 export const csrfProtection = createMiddleware<AppEnv>(async (c, next) => {
+  if (BYPASS_ENABLED) {
+    await next();
+    return;
+  }
+
   const method = c.req.method.toUpperCase();
   const path = c.req.path;
 

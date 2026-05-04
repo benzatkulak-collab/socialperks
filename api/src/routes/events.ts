@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import type { AppEnv } from "@api/env.js";
 import { eventBus } from "@lib/realtime";
+import type { RealtimeEvent } from "@lib/realtime";
 import { sessionStore } from "@lib/auth";
 
 const app = new Hono<AppEnv>();
@@ -49,22 +50,26 @@ app.get("/", (c) => {
     await stream.writeSSE({ data: JSON.stringify({ type: "connected", userId: session.userId, timestamp: new Date().toISOString() }), event: "connected" });
 
     // Subscribe to events for this user
-    const handler = (event: Record<string, unknown>) => {
+    const handler = (event: RealtimeEvent) => {
       try {
-        void stream.writeSSE({ data: JSON.stringify(event), event: (event.type as string) ?? "message" });
+        void stream.writeSSE({ data: JSON.stringify(event), event: event.type ?? "message" });
       } catch {
         // Stream closed
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const unsubscribe = eventBus.subscribe(session.userId, session.businessId as any, handler as any);
+    // Subscribe with userId/businessId scoping. EventBus.subscribe returns
+    // a subscription id; we tear down via unsubscribe(id) in cleanup.
+    const subscriptionId = eventBus.subscribe("*", handler, {
+      userId: session.userId,
+      businessId: session.businessId ?? undefined,
+    });
 
     const cleanup = () => {
       if (cleaned) return;
       cleaned = true;
       if (heartbeatTimer) clearInterval(heartbeatTimer);
-      if (typeof unsubscribe === "function") unsubscribe();
+      eventBus.unsubscribe(subscriptionId);
       const current = activeConnections.get(session.userId) ?? 1;
       if (current <= 1) activeConnections.delete(session.userId);
       else activeConnections.set(session.userId, current - 1);

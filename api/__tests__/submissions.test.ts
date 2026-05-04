@@ -57,8 +57,9 @@ describe("POST /v1/submissions/review", () => {
   });
 
   it("returns 404 for non-existent submission", async () => {
+    // reviewerId must match the authenticated user (demo-token-test → "test")
     const res = await post("/v1/submissions/review", {
-      submissionId: "nonexistent", reviewerId: "r1", decision: "approve",
+      submissionId: "nonexistent", reviewerId: "test", decision: "approve",
     });
     expect(res.status).toBe(404);
   });

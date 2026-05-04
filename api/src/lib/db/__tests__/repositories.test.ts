@@ -10,12 +10,7 @@ import { db, InMemoryConnection } from "../connection";
 // Reset the in-memory store before each test to ensure isolation
 beforeEach(() => {
   if (db instanceof InMemoryConnection) {
-    db.store._reset?.() ?? (() => {
-      // fallback: clear known tables
-      for (const table of ["businesses", "influencers", "launched_campaigns", "campaign_submissions", "users"]) {
-        try { (db.store as any).tables?.delete?.(table); } catch {}
-      }
-    })();
+    db.store.clear();
   }
 });
 
@@ -187,7 +182,7 @@ describe("CampaignRepository", () => {
       description: "Get 10% off",
       actions: ["ig_rl"],
       discount_value: 10,
-      discount_type: "percent",
+      discount_type: "pct",
       expires_in_days: 30,
     });
     expect(campaign.id).toBeDefined();
@@ -204,7 +199,7 @@ describe("CampaignRepository", () => {
       description: "desc",
       actions: [],
       discount_value: 5,
-      discount_type: "dollar",
+      discount_type: "dol",
       expires_in_days: 7,
     });
     const found = await repo.findById(created.id);
@@ -219,7 +214,7 @@ describe("CampaignRepository", () => {
       description: "d",
       actions: [],
       discount_value: 5,
-      discount_type: "dollar",
+      discount_type: "dol",
       expires_in_days: 7,
     });
     await repo.create({
@@ -228,7 +223,7 @@ describe("CampaignRepository", () => {
       description: "d",
       actions: [],
       discount_value: 5,
-      discount_type: "dollar",
+      discount_type: "dol",
       expires_in_days: 7,
     });
     await repo.create({
@@ -237,7 +232,7 @@ describe("CampaignRepository", () => {
       description: "d",
       actions: [],
       discount_value: 5,
-      discount_type: "dollar",
+      discount_type: "dol",
       expires_in_days: 7,
     });
     const result = await repo.findByBusinessId("bx");
@@ -251,7 +246,7 @@ describe("CampaignRepository", () => {
       description: "d",
       actions: [],
       discount_value: 5,
-      discount_type: "dollar",
+      discount_type: "dol",
       expires_in_days: 7,
     });
     await repo.update(c.id, { status: "paused" });
@@ -268,7 +263,7 @@ describe("CampaignRepository", () => {
       description: "d",
       actions: [],
       discount_value: 5,
-      discount_type: "dollar",
+      discount_type: "dol",
       expires_in_days: 7,
     });
     const updated = await repo.incrementCompletions(c.id, 10);
@@ -287,7 +282,7 @@ describe("CampaignRepository", () => {
       description: "d",
       actions: [],
       discount_value: 5,
-      discount_type: "dollar",
+      discount_type: "dol",
       expires_in_days: 7,
     });
     await repo.delete(c.id);

@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
+import type { Context } from "hono";
 import type { AppEnv } from "@api/env.js";
 import { sessionStore, verifyJWT } from "@lib/auth/index.js";
 
@@ -38,11 +39,9 @@ interface AuthResult {
   status?: number;
 }
 
-async function authenticate(c: { req: { header: (name: string) => string | undefined }; [key: string]: unknown }): Promise<AuthResult> {
+async function authenticate(c: Context<AppEnv>): Promise<AuthResult> {
   // 1. JWT from httpOnly cookie
-  const jwtCookie = typeof (c as Record<string, unknown>).req === "object"
-    ? getCookie(c as never, "sp-access-token")
-    : undefined;
+  const jwtCookie = getCookie(c, "sp-access-token");
   if (jwtCookie) {
     const payload = verifyJWT(jwtCookie);
     if (payload && payload.type === "access") {

@@ -18,7 +18,7 @@ app.get("/", rateLimit("relaxed"), requireAuth, (c) => {
   }
 
   if (businessType) {
-    const briefing = legalGuard.getBriefing(businessType);
+    const briefing = legalGuard.getLegalBriefing(businessType);
     return apiResponse(c, { briefing });
   }
 

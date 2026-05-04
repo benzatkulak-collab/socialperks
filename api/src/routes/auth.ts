@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { setCookie, getCookie } from "hono/cookie";
 import type { AppEnv } from "@api/env.js";
 import { apiResponse, apiError } from "../helpers.js";
@@ -67,7 +68,7 @@ async function ensureAuthSeeded(): Promise<void> {
   }
 }
 
-function setJWTCookies(c: Parameters<Parameters<typeof app.get>[1]>[0], userId: string, role: string, email: string, businessId: string | null) {
+function setJWTCookies(c: Context<AppEnv>, userId: string, role: string, email: string, businessId: string | null) {
   const tokens = createTokenPair(userId, role, email, businessId);
   // Always set secure flag unless explicitly in development mode
   const secureCookies = process.env.NODE_ENV !== "development";

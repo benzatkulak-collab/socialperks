@@ -10,10 +10,12 @@ const app = new Hono<AppEnv>();
 app.get("/", rateLimit("public"), (c) => {
   try {
     const actionId = c.req.query("actionId");
-    const platformId = c.req.query("platformId");
     const businessType = c.req.query("businessType");
 
-    const pricing = estimatePricing({ actionId, platformId, businessType });
+    if (!actionId) return apiError(c, "MISSING_PARAM", "actionId query parameter is required");
+    if (!businessType) return apiError(c, "MISSING_PARAM", "businessType query parameter is required");
+
+    const pricing = estimatePricing(actionId, businessType);
 
     return apiResponse(c, { pricing, generatedAt: new Date().toISOString() }, 200, {
       "Cache-Control": "public, max-age=3600",

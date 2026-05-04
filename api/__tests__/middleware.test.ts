@@ -41,13 +41,19 @@ describe("Auth middleware", () => {
     expect(res.status).toBe(200);
   });
 
-  it("accepts API key with sk_ prefix", async () => {
+  it("rejects sk_-prefixed key not in the session store", async () => {
+    // API keys with the sk_ prefix must (a) be at least 32 chars and (b) exist
+    // in the session store. A well-formed-looking but unregistered key must
+    // still be rejected — the prefix alone is not authentication.
     const res = await app.request("/v1/ai/generate", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-Key": "sk_test_longkey123" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": "sk_test_" + "a".repeat(32),
+      },
       body: JSON.stringify({ businessType: "yoga" }),
     });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(401);
   });
 
   it("rejects short API keys", async () => {
