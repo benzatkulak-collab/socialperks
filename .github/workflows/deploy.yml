@@ -43,7 +43,7 @@ jobs:
       image-digest: ${{ steps.push.outputs.digest }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # workflow_run events default github.sha to the workflow file's
           # ref (default branch HEAD at trigger time), not the commit that
