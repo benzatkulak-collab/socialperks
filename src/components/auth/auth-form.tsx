@@ -77,8 +77,11 @@ export function AuthForm({
       try {
         window.localStorage.setItem("sp:planIntent", JSON.stringify(intent));
       } catch { /* ignore */ }
-      // Auto-advance to signup since the user clearly wants to subscribe.
-      setScreen("signup");
+      // 30-second fast path: when plan intent is present, the user has
+      // already self-identified as a business buyer. Skip the role
+      // picker entirely and drop them on the business signup form.
+      setSignupRole("business");
+      setScreen("signup-form");
     }
   }, []);
 

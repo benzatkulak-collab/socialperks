@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { TrackingPixels } from "@/components/shared/tracking-pixels";
+import { RefCapture } from "@/components/shared/ref-capture";
 import "./globals.css";
 
 // metadataBase prefers an explicit NEXT_PUBLIC_SITE_URL env var so OG image
@@ -119,6 +120,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
         <SWRegister />
+        <RefCapture />
         {children}
         <OfflineIndicator />
         <Analytics />

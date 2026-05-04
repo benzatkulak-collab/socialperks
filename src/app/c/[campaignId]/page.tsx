@@ -5,6 +5,7 @@ import { campaignManager } from "@/lib/campaign-state-machine";
 import { createSeedData } from "@/lib/seed";
 import { PLATFORMS } from "@/lib/platforms";
 import { SubmitForm } from "./submit-form";
+import { InviteUnlock } from "@/components/campaign/invite-unlock";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -206,6 +207,20 @@ export default async function CampaignPage({ params }: PageProps) {
                 actions={popularActions}
               />
             </div>
+
+            {/* Viral loop: share with N friends to unlock a bigger perk.
+                Computes the upgraded perk as +5 (pct) or +$2 (dol) on
+                top of the base — generous enough to motivate sharing,
+                cheap enough that the business can absorb it. */}
+            <InviteUnlock
+              campaignId={campaignId}
+              basePerkText={budgetLabel}
+              upgradedPerkText={
+                campaign.budget.type === "pct"
+                  ? `${campaign.budget.allocated + 5}% off`
+                  : `$${campaign.budget.allocated + 2} off`
+              }
+            />
 
             {/* FTC Disclosure */}
             <div className="mt-6 rounded-lg border border-brand-border/50 bg-brand-elevated/30 px-4 py-3 animate-fade-up">

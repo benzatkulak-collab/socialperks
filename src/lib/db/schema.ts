@@ -758,6 +758,71 @@ export const SCHEMA = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // REFERRALS — businesses + influencers can share invite codes
+  // Part of the viral-loop platform layer.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  referral_codes: {
+    columns: {
+      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
+      // The actor who owns this code. Either business_id OR influencer_id is set, never both.
+      business_id: {
+        type: "uuid",
+        nullable: true,
+        references: { table: "businesses", column: "id", onDelete: "CASCADE" },
+      },
+      influencer_id: {
+        type: "uuid",
+        nullable: true,
+        references: { table: "influencers", column: "id", onDelete: "CASCADE" },
+      },
+      code: { type: "varchar(50)", nullable: false },
+      // Lifecycle metrics surfaced in the owner's dashboard.
+      uses_count: { type: "int", nullable: false, default: "0" },
+      conversions_count: { type: "int", nullable: false, default: "0" },
+      reward_unlocked: { type: "boolean", nullable: false, default: "false" },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "referral_codes_pkey" },
+      { columns: ["code"], unique: true, name: "referral_codes_code_unique" },
+      { columns: ["business_id"], unique: false, name: "referral_codes_business_idx" },
+      { columns: ["influencer_id"], unique: false, name: "referral_codes_influencer_idx" },
+    ],
+    relations: [
+      { type: "many-to-one", table: "businesses", foreignKey: "business_id", description: "Code belongs to a business" },
+      { type: "many-to-one", table: "influencers", foreignKey: "influencer_id", description: "Code belongs to an influencer" },
+    ],
+  },
+
+  referral_attributions: {
+    columns: {
+      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
+      code: { type: "varchar(50)", nullable: false },
+      // The thing that got created via this code (one is set).
+      attributed_business_id: {
+        type: "uuid",
+        nullable: true,
+        references: { table: "businesses", column: "id", onDelete: "CASCADE" },
+      },
+      attributed_influencer_id: {
+        type: "uuid",
+        nullable: true,
+        references: { table: "influencers", column: "id", onDelete: "CASCADE" },
+      },
+      attributed_email: { type: "varchar(255)", nullable: true },
+      attributed_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "referral_attributions_pkey" },
+      { columns: ["code"], unique: false, name: "referral_attrs_code_idx" },
+      { columns: ["attributed_business_id"], unique: false, name: "referral_attrs_business_idx" },
+      { columns: ["attributed_influencer_id"], unique: false, name: "referral_attrs_influencer_idx" },
+    ],
+    relations: [],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // BUSINESS SUBSCRIPTIONS — durable Stripe subscription state
   // (was an in-memory Map in src/lib/billing/store.ts)
   // ═══════════════════════════════════════════════════════════════════════════
