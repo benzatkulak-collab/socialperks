@@ -61,7 +61,7 @@ export async function heal(detectorName: string, affectedIds: string[]): Promise
 
         if (result.success) {
           metrics.increment(METRIC.RECONCILIATION_FIX, result.affectedIds.length);
-          console.info(`[self-heal] ${handler.name}: fixed ${result.affectedIds.length} items`);
+          console.warn(`[self-heal] ${handler.name}: fixed ${result.affectedIds.length} items`);
         } else {
           console.warn(`[self-heal] ${handler.name}: failed — ${result.message}`);
         }

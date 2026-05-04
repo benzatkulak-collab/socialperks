@@ -7,7 +7,7 @@
  * credentials are not configured.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../../_shared";
 import { findPlatform } from "@/lib/platforms";
 import { validateCsrfToken } from "@/lib/security/csrf";

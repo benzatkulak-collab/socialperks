@@ -8,7 +8,7 @@
  * No rate limiting — webhooks must always be accepted.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../../_shared";
 import { createHmac, timingSafeEqual } from "crypto";
 
@@ -149,12 +149,12 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   // Replay protection
   if (!trackEventId(eventId)) {
-    console.info("[WEBHOOK] Duplicate event rejected", { eventId, eventType });
+    console.warn("[WEBHOOK] Duplicate event rejected", { eventId, eventType });
     return ok({ received: true, duplicate: true });
   }
 
   // Log the event (structured JSON logging)
-  console.info(
+  console.warn(
     JSON.stringify({
       level: "info",
       component: "webhook",

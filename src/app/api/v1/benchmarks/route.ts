@@ -7,7 +7,7 @@
  * Query params: businessType (required)
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../_shared";
 import { getBenchmarks } from "@/lib/ai-engine";
 

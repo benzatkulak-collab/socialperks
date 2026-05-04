@@ -6,7 +6,7 @@
  * POST: Handle trade actions — submit_proof, verify, settle, dispute (auth required).
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   ok,
   err,

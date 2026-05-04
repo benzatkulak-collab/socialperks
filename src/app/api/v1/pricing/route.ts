@@ -8,7 +8,7 @@
  * Query params: actionId?, platformId?, businessType?
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../_shared";
 import { estimatePricing } from "@/lib/ai-engine";
 import { PLATFORMS, ALL_ACTIONS } from "@/lib/platforms";

@@ -279,6 +279,6 @@ export class CircuitBreaker {
       this.stateChangeLog = this.stateChangeLog.slice(-50);
     }
     this.onStateChange?.(from, to);
-    console.info(`[circuit-breaker:${this.name}] ${from} -> ${to}`);
+    console.warn(`[circuit-breaker:${this.name}] ${from} -> ${to}`);
   }
 }

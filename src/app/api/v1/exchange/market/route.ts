@@ -6,7 +6,7 @@
  * Cached for 60 seconds.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, getQuery, withTiming } from "../../_shared";
 import { ALL_ACTIONS, findAction, findPlatform } from "@/lib/platforms";
 

@@ -112,7 +112,7 @@ export function stopExperiment(id: string): boolean {
   if (!exp) return false;
   exp.active = false;
   experiments.delete(id);
-  console.info(`[chaos] Stopped experiment ${id}`);
+  console.warn(`[chaos] Stopped experiment ${id}`);
   return true;
 }
 
@@ -123,7 +123,7 @@ export function stopAll(): number {
   const count = experiments.size;
   experiments.clear();
   if (count > 0) {
-    console.info(`[chaos] Emergency stop: cleared ${count} experiments`);
+    console.warn(`[chaos] Emergency stop: cleared ${count} experiments`);
   }
   return count;
 }

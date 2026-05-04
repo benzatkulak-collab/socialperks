@@ -8,7 +8,7 @@
  * Query params: platformId?, type?, maxEffort?, page?, perPage?
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, getQuery, paginate, withTiming } from "../_shared";
 import { PLATFORMS, ALL_ACTIONS } from "@/lib/platforms";
 

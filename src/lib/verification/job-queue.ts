@@ -10,7 +10,7 @@
  * Production: Replace in-memory queue with BullMQ + Redis or SQS.
  */
 
-import { PlatformRateLimiter } from "./rate-limiter";
+import type { PlatformRateLimiter } from "./rate-limiter";
 import type { VerificationSubmission, VerificationResult } from "../verification-engine";
 
 // ─── Types ──────────────────────────────────────────────────────────────────

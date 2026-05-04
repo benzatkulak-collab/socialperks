@@ -9,7 +9,7 @@
  * Storage: in-memory with TTL (swappable to Redis for multi-instance).
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

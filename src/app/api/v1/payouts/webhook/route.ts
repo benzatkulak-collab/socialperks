@@ -8,7 +8,7 @@
  * Uses the same signature verification pattern as the billing webhook.
  */
 
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ok, err, withTiming } from "../../_shared";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
 import {
@@ -116,7 +116,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   switch (eventType) {
     case "account.updated": {
-      console.info(
+      console.warn(
         `[Payouts Webhook] account.updated — event=${eventId}`
       );
 
@@ -137,7 +137,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
 
     case "transfer.created": {
-      console.info(
+      console.warn(
         `[Payouts Webhook] transfer.created — event=${eventId}`
       );
 
@@ -151,7 +151,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
 
     case "transfer.paid": {
-      console.info(
+      console.warn(
         `[Payouts Webhook] transfer.paid — event=${eventId}`
       );
 
@@ -165,7 +165,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
 
     case "transfer.failed": {
-      console.info(
+      console.warn(
         `[Payouts Webhook] transfer.failed — event=${eventId}`
       );
 
@@ -182,7 +182,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
 
     default:
-      console.info(
+      console.warn(
         `[Payouts Webhook] Unhandled event type: ${eventType} — event=${eventId}`
       );
   }
