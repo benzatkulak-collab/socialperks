@@ -73,6 +73,14 @@ export default function ContactPage() {
                   </a>
                 </div>
                 <div>
+                  <p className="text-brand-muted">Talk to the founder</p>
+                  <p className="text-brand-text">
+                    We&apos;re early — if you want a real conversation before
+                    signing up, reply &quot;founder&quot; on the form and
+                    you&apos;ll get a direct response.
+                  </p>
+                </div>
+                <div>
                   <p className="text-brand-muted">Response Time</p>
                   <p className="text-brand-text">Within 24 hours</p>
                 </div>

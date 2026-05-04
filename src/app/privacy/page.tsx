@@ -79,6 +79,33 @@ export default function PrivacyPage() {
               <li>Communications with our support team</li>
             </ul>
             <h3 className="mb-1 font-semibold text-brand-text">
+              Third-Party Service Providers
+            </h3>
+            <p className="mb-2 text-brand-muted">
+              We rely on the following processors to deliver the service. Each
+              one only receives the data needed for its function.
+            </p>
+            <ul className="list-inside list-disc space-y-1 text-brand-muted">
+              <li>
+                <strong className="text-brand-text">Stripe</strong> —
+                payment processing, billing, subscriptions
+              </li>
+              <li>
+                <strong className="text-brand-text">Resend</strong> —
+                transactional email (waitlist confirmations, password resets,
+                campaign notifications)
+              </li>
+              <li>
+                <strong className="text-brand-text">Vercel</strong> —
+                hosting, analytics (aggregate, no cross-site tracking)
+              </li>
+              <li>
+                <strong className="text-brand-text">Platform APIs</strong> —
+                Instagram, TikTok, Facebook, etc. (only when you connect an
+                account; we receive only the OAuth scopes you grant)
+              </li>
+            </ul>
+            <h3 className="mb-1 font-semibold text-brand-text">
               Information Collected Automatically
             </h3>
             <ul className="list-inside list-disc space-y-1 text-brand-muted">

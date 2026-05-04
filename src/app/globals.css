@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Anchor jumps land below the nav, not behind it. Set on html so it
+   applies everywhere (#waitlist, #pricing, #how-it-works, etc.). */
+html {
+  scroll-padding-top: 5rem;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    SOCIAL PERKS — Design System Foundation
    Aesthetic: Infrastructure Luxury (Stripe x Bloomberg x Linear)

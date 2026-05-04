@@ -124,9 +124,19 @@ export const POST = withTiming(async (req: NextRequest) => {
       }
     }
 
-    // Mock checkout session — Stripe not configured.
-    // Frontend should surface this as a "demo mode" notice; no money will
-    // move when the user clicks the URL.
+    // Stripe not configured. In production this is a hard error —
+    // returning a fake checkout URL would silently fail at payment time
+    // and burn a real customer. Refuse to pretend.
+    if (process.env.NODE_ENV === "production") {
+      return err(
+        "BILLING_UNAVAILABLE",
+        "Billing isn't configured on this server yet. Email us if you'd like to be one of the first paying customers.",
+        503,
+      );
+    }
+
+    // Dev/staging only: return a clearly-labeled mock URL so local UX
+    // testing isn't blocked. Frontend renders a "demo mode" notice.
     const sessionId = generateStripeId("cs");
     const checkoutUrl = `https://checkout.stripe.com/c/pay/${sessionId}#fidkd2F0YHwnPyd1blpxYHZxWjA0T` +
       `&plan=${plan}&period=${billingPeriod}&price=${priceId}`;

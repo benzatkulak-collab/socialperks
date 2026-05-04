@@ -29,7 +29,7 @@ test.describe("Authentication", () => {
 
       // Fill credentials
       await page.getByPlaceholder(/you@yourbusiness\.com/i).fill("yoga@demo.com");
-      await page.getByPlaceholder(/your password/i).fill("1234");
+      await page.getByPlaceholder(/at least 8 characters/i).fill("1234");
 
       // Submit
       await page.getByRole("button", { name: /Log In/i }).click();
@@ -49,7 +49,7 @@ test.describe("Authentication", () => {
       await goToLoginForm(page);
 
       await page.getByPlaceholder(/you@yourbusiness\.com/i).fill("priya@demo.com");
-      await page.getByPlaceholder(/your password/i).fill("1234");
+      await page.getByPlaceholder(/at least 8 characters/i).fill("1234");
 
       await page.getByRole("button", { name: /Log In/i }).click();
 
@@ -67,7 +67,7 @@ test.describe("Authentication", () => {
       await goToLoginForm(page);
 
       await page.getByPlaceholder(/you@yourbusiness\.com/i).fill("wrong@email.com");
-      await page.getByPlaceholder(/your password/i).fill("wrongpass");
+      await page.getByPlaceholder(/at least 8 characters/i).fill("wrongpass");
 
       await page.getByRole("button", { name: /Log In/i }).click();
 
@@ -84,7 +84,7 @@ test.describe("Authentication", () => {
       await goToLoginForm(page);
 
       // Leave email empty, fill password
-      await page.getByPlaceholder(/your password/i).fill("1234");
+      await page.getByPlaceholder(/at least 8 characters/i).fill("1234");
       await page.getByRole("button", { name: /Log In/i }).click();
 
       await expect(
@@ -214,7 +214,7 @@ test.describe("Authentication", () => {
       // First login
       await goToLoginForm(page);
       await page.getByPlaceholder(/you@yourbusiness\.com/i).fill("yoga@demo.com");
-      await page.getByPlaceholder(/your password/i).fill("1234");
+      await page.getByPlaceholder(/at least 8 characters/i).fill("1234");
       await page.getByRole("button", { name: /Log In/i }).click();
 
       // Wait for portal — Log Out button exists once authed (may be covered

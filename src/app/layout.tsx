@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
+import { TrackingPixels } from "@/components/shared/tracking-pixels";
 import "./globals.css";
 
 // metadataBase prefers an explicit NEXT_PUBLIC_SITE_URL env var so OG image
@@ -69,6 +70,10 @@ export const metadata: Metadata = {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
+    // SVG favicon doubles as the apple-touch source. iOS will scale it
+    // and fall back gracefully. A bespoke 180×180 PNG can be added at
+    // /public/apple-touch-icon.png to override.
+    apple: [{ url: "/favicon.svg" }],
   },
 };
 
@@ -117,6 +122,7 @@ export default function RootLayout({
         {children}
         <OfflineIndicator />
         <Analytics />
+        <TrackingPixels />
       </body>
     </html>
   );

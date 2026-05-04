@@ -28,7 +28,11 @@ interface WizardPlatform {
 
 // ─── Top 6 platforms for onboarding ─────────────────────────────────────────
 
-const TARGET_IDS = ["ig", "tt", "go", "fb", "yt", "yp"];
+// Onboarding platform shortlist. Google and Yelp are intentionally
+// excluded: their review actions are all incentivizable=false (banned
+// by ToS), so showing them in the wizard would mislead users into
+// thinking those are valid paths.
+const TARGET_IDS = ["ig", "tt", "fb", "yt"];
 
 const ONBOARDING_PLATFORMS: WizardPlatform[] = TARGET_IDS
   .map((tid) => {
@@ -219,14 +223,18 @@ export function OnboardingWizard({
         className="relative w-full max-w-xl mx-4 max-h-[90vh] flex flex-col rounded-2xl border border-brand-border/60 bg-brand-surface shadow-2xl shadow-brand-cyan/5"
         style={{ animation: "contentScaleIn 0.5s ease-out both" }}
       >
-        {/* Skip link */}
+        {/* Skip link — escape hatch for users who already know what
+            they want to do. Made more prominent (border + readable
+            color) because user testing surfaced the wizard as a friction
+            point and the previous muted color hid the way out. */}
         {!launched && (
           <button
             type="button"
             onClick={onSkip}
-            className="absolute top-4 right-4 z-10 text-xs text-brand-muted hover:text-brand-dim transition-colors py-1 px-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+            className="absolute top-4 right-4 z-10 text-xs font-medium text-brand-dim hover:text-brand-text border border-brand-border hover:border-brand-subtle bg-brand-surface/40 transition-colors py-1.5 px-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+            aria-label="Skip onboarding and go to dashboard"
           >
-            Skip for now
+            Skip for now ✕
           </button>
         )}
 

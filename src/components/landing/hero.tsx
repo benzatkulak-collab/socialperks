@@ -54,7 +54,13 @@ export function Hero() {
         </div>
 
         <p className="mt-6 animate-fade-up text-sm text-brand-muted animate-delay-300 sm:mt-8">
-          Free to start. No credit card. Takes 5 minutes.
+          Free to start. No credit card. Takes 5 minutes. Or{" "}
+          <a
+            href="#waitlist"
+            className="text-brand-cyan underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded-sm"
+          >
+            join the early-access list →
+          </a>
         </p>
 
         {/* Concrete Example */}

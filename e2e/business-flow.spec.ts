@@ -10,7 +10,7 @@ async function loginAsBusiness(page: Page) {
   ).toBeVisible({ timeout: 15000 });
 
   await page.getByPlaceholder(/you@yourbusiness\.com/i).fill("yoga@demo.com");
-  await page.getByPlaceholder(/your password/i).fill("1234");
+  await page.getByPlaceholder(/at least 8 characters/i).fill("1234");
   await page.getByRole("button", { name: /Log In/i }).click();
 
   // Wait for business portal to load (business name or log out button)

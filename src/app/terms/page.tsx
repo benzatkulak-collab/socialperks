@@ -150,9 +150,17 @@ export default function TermsPage() {
               stated in US Dollars. Payments are processed through our
               third-party payment provider (Stripe). By providing payment
               information, you authorize us to charge the applicable fees.
-              Refunds are handled on a case-by-case basis at our discretion.
               Subscription fees are billed in advance on a monthly or annual
-              basis and are non-refundable except where required by law.
+              basis.
+            </p>
+            <p className="mt-3">
+              <strong className="text-brand-text">30-day money-back guarantee.</strong>{" "}
+              If you sign up for a paid plan and decide it isn&apos;t for you,
+              email us within 30 days of your first paid month and we will
+              refund the most recent charge in full. After 30 days,
+              subscription fees are non-refundable except where required by
+              law. You can cancel anytime from your dashboard; no phone calls
+              and no retention scripts.
             </p>
           </section>
 

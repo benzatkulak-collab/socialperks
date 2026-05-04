@@ -27,6 +27,22 @@ function pruneExpired(): void {
   }
 }
 
+// Periodic prune so a low-traffic instance doesn't grow the store
+// indefinitely (the every-100-requests prune below only fires under
+// load). 60s cadence is well under any meaningful memory pressure.
+// Skip in test environments to avoid leaking timers between vitest runs.
+if (
+  typeof globalThis.setInterval === "function" &&
+  process.env.NODE_ENV !== "test" &&
+  process.env.VITEST !== "true"
+) {
+  const interval = setInterval(pruneExpired, 60_000);
+  // Don't keep the Node process alive just for this timer.
+  if (typeof interval === "object" && interval && "unref" in interval) {
+    (interval as { unref: () => void }).unref();
+  }
+}
+
 // Test-only bypass: when RATE_LIMIT_BYPASS=1 in non-production, all requests
 // are allowed. This is gated on NODE_ENV !== 'production' so it physically
 // cannot be enabled in a production build.

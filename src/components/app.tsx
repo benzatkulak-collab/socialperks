@@ -127,7 +127,20 @@ export function SocialPerksApp() {
   // Session restoration — attempt to validate an existing session cookie
   // on mount. 5-second timeout prevents slow networks from leaving users
   // stuck on the loading screen.
+  //
+  // Fast-path: cold visitors arriving from marketing have no auth cookie.
+  // Skip the network round-trip entirely so they see the landing screen
+  // immediately instead of waiting for the timeout.
   useEffect(() => {
+    const hasAuthCookie =
+      typeof document !== "undefined" &&
+      /(^|;\s*)sp-access-token=/.test(document.cookie);
+
+    if (!hasAuthCookie) {
+      setRestoring(false);
+      return;
+    }
+
     let cancelled = false;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), SESSION_RESTORE_TIMEOUT);

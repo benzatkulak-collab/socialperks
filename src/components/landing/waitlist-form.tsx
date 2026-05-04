@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { humanizeApiError } from "@/lib/api/error-messages";
 
 type Status =
   | { kind: "idle" }
@@ -40,7 +41,10 @@ export function WaitlistForm({ vertical = "coffee_shops", variant = "stacked" }:
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        const message = json?.error?.message ?? `Request failed (${res.status})`;
+        const message = humanizeApiError(
+          json?.error,
+          `Request failed (${res.status})`,
+        );
         setStatus({ kind: "error", message });
         return;
       }

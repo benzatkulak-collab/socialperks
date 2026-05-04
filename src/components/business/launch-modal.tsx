@@ -52,7 +52,10 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
     campaign.discountType
   );
   const [maxCompletions, setMaxCompletions] = useState("");
-  const [expiresInDays, setExpiresInDays] = useState("30");
+  // Default 60 days: a small coffee shop with ~50 customers/day needs
+  // longer than a month to see meaningful campaign throughput. Users can
+  // shorten it to 30 if they want, but defaults should reflect reality.
+  const [expiresInDays, setExpiresInDays] = useState("60");
   const [selectedActions, setSelectedActions] = useState<string[]>([
     ...campaign.actions,
   ]);
@@ -125,7 +128,7 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
       discountValue: parsedPerkValue,
       discountType: perkType,
       maxCompletions: parsedMaxCompletions || null,
-      expiresInDays: parsedExpiresInDays || 30,
+      expiresInDays: parsedExpiresInDays || 60,
       category: campaign.category,
       tier: campaign.tier,
     });

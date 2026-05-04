@@ -25,7 +25,7 @@ describe("AuthForm", () => {
     renderAuth();
     expect(screen.getByText("Welcome back")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("you@yourbusiness.com")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Your password")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("At least 8 characters")).toBeInTheDocument();
   });
 
   it("shows validation error when email is empty", async () => {
@@ -78,7 +78,7 @@ describe("AuthForm", () => {
 
     renderAuth({ onAuth });
     fireEvent.change(screen.getByPlaceholderText("you@yourbusiness.com"), { target: { value: "test@test.com" } });
-    fireEvent.change(screen.getByPlaceholderText("Your password"), { target: { value: "password123" } });
+    fireEvent.change(screen.getByPlaceholderText("At least 8 characters"), { target: { value: "password123" } });
     fireEvent.click(screen.getByText("Log In"));
 
     await waitFor(() => {
@@ -96,7 +96,7 @@ describe("AuthForm", () => {
 
     renderAuth();
     fireEvent.change(screen.getByPlaceholderText("you@yourbusiness.com"), { target: { value: "bad@test.com" } });
-    fireEvent.change(screen.getByPlaceholderText("Your password"), { target: { value: "wrong" } });
+    fireEvent.change(screen.getByPlaceholderText("At least 8 characters"), { target: { value: "wrong" } });
     fireEvent.click(screen.getByText("Log In"));
 
     await waitFor(() => {

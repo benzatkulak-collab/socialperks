@@ -197,8 +197,9 @@ export const POST = withTiming(async (req: NextRequest) => {
     maxCompletions = mc.data;
   }
 
-  // Optional: expiresInDays (default 30)
-  let expiresInDays = 30;
+  // Optional: expiresInDays — default 60 (low-traffic shops need
+  // more than a month to accumulate meaningful completion volume)
+  let expiresInDays = 60;
   if (body.expiresInDays !== undefined) {
     const ed = validateNumber(body.expiresInDays, "expiresInDays", { min: 1, max: 365 });
     if (!ed.success) return err("INVALID_EXPIRES_IN_DAYS", ed.error, 400);

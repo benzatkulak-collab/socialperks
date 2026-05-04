@@ -55,7 +55,10 @@ const PRICING_TIERS: PricingTier[] = [
       "Priority verification",
       "API access",
     ],
-    cta: "Start Free Trial",
+    // CTA reflects actual product policy: there's no time-bombed trial,
+    // just a free tier. Saying "Start Free Trial" sets up an expectation
+    // we don't meet. "Start Free" is honest and matches the Free card.
+    cta: "Start Free",
     popular: true,
     accent: "text-brand-cyan",
     accentBorder: "border-brand-cyan/40",
@@ -153,13 +156,42 @@ export function PricingSection() {
           </div>
         </AnimateOnScroll>
 
+        {/* Honest "we're early" strip — until there are real customer
+            logos, social proof here is a transparent statement of where
+            the company actually is. Prospects respond well to honesty;
+            fake testimonials erode trust. */}
+        <div className="mb-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-brand-muted">
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-green" aria-hidden="true" />
+            FTC-compliant by default
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan" aria-hidden="true" />
+            30-day money-back on Pro
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-amber" aria-hidden="true" />
+            Onboarding the first 10 coffee shops by hand
+          </span>
+        </div>
+
         {/* Pricing cards */}
         <AnimateOnScroll animation="fade-up" stagger staggerDelay={120} className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-5 lg:gap-6 items-start">
           {PRICING_TIERS.map((tier) => {
+            const monthlyAmount =
+              tier.price !== "$0" && tier.price !== "Custom"
+                ? parseInt(tier.price.replace("$", ""))
+                : null;
+            const annualMonthlyAmount =
+              monthlyAmount !== null ? Math.round(monthlyAmount * 0.8) : null;
             const displayPrice =
-              annual && tier.price !== "$0" && tier.price !== "Custom"
-                ? `$${Math.round(parseInt(tier.price.replace("$", "")) * 0.8)}`
+              annual && annualMonthlyAmount !== null
+                ? `$${annualMonthlyAmount}`
                 : tier.price;
+            const annualSavings =
+              annual && monthlyAmount !== null && annualMonthlyAmount !== null
+                ? (monthlyAmount - annualMonthlyAmount) * 12
+                : 0;
 
             return (
               <div
@@ -195,6 +227,15 @@ export function PricingSection() {
                     </span>
                   )}
                 </div>
+
+                {/* Concrete annual savings — converts the abstract "20%
+                    off" into a real-dollar number, which is more
+                    persuasive at the moment of choice. */}
+                {annualSavings > 0 && (
+                  <p className="mb-3 text-xs font-medium text-brand-green">
+                    Save ${annualSavings}/yr vs. monthly
+                  </p>
+                )}
 
                 {/* Description */}
                 <p className="mb-6 text-sm text-brand-dim leading-relaxed">{tier.description}</p>
@@ -247,6 +288,20 @@ export function PricingSection() {
         {/* Bottom note */}
         <p className="mt-12 text-center text-sm text-brand-muted">
           All plans include FTC-compliant disclosures, SSL encryption, and 99.9% uptime.
+        </p>
+
+        {/* Talk-to-founder track for high-intent prospects who want a real
+            conversation before buying. Lower friction than the signup form
+            and signals "we're early — talk to a human" which is a feature
+            for the first 10 customers. */}
+        <p className="mt-4 text-center text-sm text-brand-dim">
+          Have questions before you sign up?{" "}
+          <a
+            href="/contact?intent=questions"
+            className="text-brand-cyan underline-offset-2 hover:underline"
+          >
+            Talk to the founder →
+          </a>
         </p>
 
         {/* FAQ — addresses the most common objection points blocking signup.

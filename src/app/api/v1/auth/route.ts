@@ -107,12 +107,20 @@ function buildCookieHeaders(
     .filter(Boolean)
     .join("; ");
 
+  // Refresh token cookie:
+  //   - Path scoped to /api/v1/auth (good — limits exposure)
+  //   - SameSite=Lax (was Strict, but Strict broke the post-Stripe
+  //     redirect flow: when Stripe redirects back to /dashboard the
+  //     browser treats it as a cross-site nav and won't send Strict
+  //     cookies, so token refresh would fail. Lax is the correct
+  //     middle ground given the Path restriction already limits
+  //     exposure to our auth endpoints.)
   const refreshCookie = [
     `sp-refresh-token=${tokens.refreshToken}`,
     "HttpOnly",
     "Path=/api/v1/auth",
     `Max-Age=604800`,
-    `SameSite=Strict`,
+    `SameSite=Lax`,
     secure ? "Secure" : "",
   ]
     .filter(Boolean)
@@ -464,6 +472,20 @@ export const POST = withTiming(async (req: NextRequest) => {
         return err("MISSING_FIELDS", "email is required");
       }
 
+      // In production, refuse to silently fall back to ConsoleEmailProvider
+      // — that would leave users stuck (request looks successful, no email
+      // ever arrives). Better to tell them email isn't configured.
+      if (
+        process.env.NODE_ENV === "production" &&
+        !process.env.RESEND_API_KEY
+      ) {
+        return err(
+          "EMAIL_UNAVAILABLE",
+          "Password reset emails aren't configured on this server. Contact support to recover your account.",
+          503,
+        );
+      }
+
       // Always return success to prevent email enumeration
       const sanitizedEmail = email.slice(0, 254).toLowerCase().trim();
 
@@ -481,8 +503,15 @@ export const POST = withTiming(async (req: NextRequest) => {
           expiresAt: Date.now() + RESET_TOKEN_EXPIRY_MS,
         });
 
-        // Fire-and-forget password reset email
-        const resetLink = `https://socialperks.app/reset-password?token=${token}`;
+        // Fire-and-forget password reset email. Use the configured site URL
+        // (env-driven) instead of the hardcoded socialperks.app domain so
+        // the link works on whatever host this is actually deployed to.
+        const siteUrl =
+          process.env.NEXT_PUBLIC_SITE_URL ??
+          (process.env.VERCEL_PROJECT_PRODUCTION_URL
+            ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+            : "https://socialperks.app");
+        const resetLink = `${siteUrl}/reset-password?token=${token}`;
         const resetEmail = passwordResetEmail(storedUser.name, resetLink);
         emailProvider.send({ to: sanitizedEmail, ...resetEmail }).catch((e: unknown) => console.error("[Email] Password reset email failed:", e instanceof Error ? e.message : e));
       }

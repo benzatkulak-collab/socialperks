@@ -231,7 +231,7 @@ export function AuthForm({
 
             <div className="space-y-4">
               <Field label="Email" value={email} onChange={setEmail} placeholder="you@yourbusiness.com" type="email" required />
-              <Field label="Password" value={password} onChange={setPassword} type="password" placeholder="Your password" required />
+              <Field label="Password" value={password} onChange={setPassword} type="password" placeholder="At least 8 characters" required />
             </div>
 
             <div className="flex justify-end mt-2">

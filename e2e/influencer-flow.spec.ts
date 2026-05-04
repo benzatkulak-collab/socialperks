@@ -10,7 +10,7 @@ async function loginAsInfluencer(page: Page) {
   ).toBeVisible({ timeout: 15000 });
 
   await page.getByPlaceholder(/you@yourbusiness\.com/i).fill("priya@demo.com");
-  await page.getByPlaceholder(/your password/i).fill("1234");
+  await page.getByPlaceholder(/at least 8 characters/i).fill("1234");
   await page.getByRole("button", { name: /Log In/i }).click();
 
   // Wait for influencer portal to load
