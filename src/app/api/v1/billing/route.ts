@@ -105,12 +105,18 @@ export const POST = withTiming(async (req: NextRequest) => {
           metadata: { businessId, plan, billingPeriod },
         });
 
+        // mode is derived from the secret key prefix so the frontend can
+        // surface a clear test/live indicator without reading env vars.
+        const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+        const mode: "live" | "test" =
+          stripeKey.startsWith("sk_live_") ? "live" : "test";
         return ok({
           sessionId: session.id,
           url: session.url,
           plan,
           billingPeriod,
           customerId: stripeCustomerId,
+          mode,
         });
       } catch (e) {
         const message = e instanceof Error ? e.message : "Stripe checkout failed";
@@ -118,7 +124,9 @@ export const POST = withTiming(async (req: NextRequest) => {
       }
     }
 
-    // Mock checkout session
+    // Mock checkout session — Stripe not configured.
+    // Frontend should surface this as a "demo mode" notice; no money will
+    // move when the user clicks the URL.
     const sessionId = generateStripeId("cs");
     const checkoutUrl = `https://checkout.stripe.com/c/pay/${sessionId}#fidkd2F0YHwnPyd1blpxYHZxWjA0T` +
       `&plan=${plan}&period=${billingPeriod}&price=${priceId}`;
@@ -130,6 +138,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       billingPeriod,
       customerId,
       mock: true,
+      mode: "demo" as const,
     });
   }
 

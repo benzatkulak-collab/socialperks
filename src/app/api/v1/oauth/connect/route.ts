@@ -18,6 +18,7 @@ import {
 } from "../../_shared";
 import { findPlatform } from "@/lib/platforms";
 import { generateCsrfToken } from "@/lib/security/csrf";
+import { getOAuthClientId } from "@/lib/oauth/env";
 
 // ─── OAuth URL templates per platform ───────────────────────────────────────
 
@@ -133,8 +134,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Generate state token using CSRF (binds to user session)
   const state = generateCsrfToken(user.id);
 
-  // Build the OAuth authorization URL
-  const clientId = process.env[`OAUTH_${platformId.toUpperCase()}_CLIENT_ID`] ?? "demo-client-id";
+  // Build the OAuth authorization URL. Reads from canonical
+  // OAUTH_<ID>_CLIENT_ID, falls back to legacy long-form names
+  // (INSTAGRAM_CLIENT_ID, etc.). Returns "demo-client-id" if nothing set.
+  const clientId = getOAuthClientId(platformId);
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,

@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
+import { WaitlistForm } from "@/components/landing/waitlist-form";
 
 export function CtaSection() {
   return (
@@ -49,6 +50,21 @@ export function CtaSection() {
             >
               Create Your First Campaign
             </a>
+          </div>
+        </AnimateOnScroll>
+
+        {/* Early-access waitlist — captures email when the user isn't ready
+            to fully sign up yet. We're starting with independent coffee
+            shops so the form preselects that vertical. */}
+        <AnimateOnScroll animation="fade-up" delay={250}>
+          <div id="waitlist" className="mx-auto mt-12 max-w-md text-left sm:mt-16">
+            <p className="mb-3 text-center font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">
+              or — early access for coffee shops
+            </p>
+            <p className="mb-5 text-center text-sm text-brand-dim">
+              We&apos;re onboarding the first 10 independent coffee shops by hand. Drop your email and we&apos;ll reach out when there&apos;s a slot.
+            </p>
+            <WaitlistForm vertical="coffee_shops" />
           </div>
         </AnimateOnScroll>
 

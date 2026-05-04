@@ -1,12 +1,22 @@
 /**
  * Payment Processing System — Stripe Connect Integration Layer
  *
- * Mock Stripe client that simulates real API behavior with realistic
- * delays and occasional failures. In production, replace mock calls
- * with actual Stripe SDK calls.
+ * ⚠️  IMPORTANT — TWO STRIPE CODE PATHS EXIST IN THIS REPO. Don't mix them up.
  *
- * Also contains the PaymentProcessor class that wraps Stripe Connect
- * operations and records financial transactions in the ledger.
+ *   1. THIS FILE (`src/lib/payments/stripe.ts`)
+ *      - Uses an in-process MockStripeClient. ALL calls are simulated.
+ *      - Used by the `paymentProcessor` singleton in `./index.ts`.
+ *      - Wraps the financial ledger. Internal accounting layer.
+ *      - Does NOT talk to Stripe even with STRIPE_SECRET_KEY set.
+ *
+ *   2. `src/lib/stripe.ts` + `/api/v1/billing/route.ts`
+ *      - The REAL Stripe SDK path. Lazily instantiates `new Stripe(...)`.
+ *      - This is what processes customer-facing checkout, portal, webhooks.
+ *      - When STRIPE_SECRET_KEY is unset, returns mock URLs.
+ *
+ * If you're wiring up actual paying customers, work on #2. #1 is the
+ * internal payouts/ledger plumbing that will be migrated when we
+ * stand up Stripe Connect for creator payouts (months out).
  *
  * Storage: in-memory Maps (ready for Postgres + Prisma migration).
  */

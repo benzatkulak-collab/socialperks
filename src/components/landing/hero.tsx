@@ -33,7 +33,7 @@ export function Hero() {
         {/* Subline */}
         <p className="mt-6 max-w-[42rem] animate-fade-up text-base leading-relaxed text-brand-dim animate-delay-100 sm:mt-8 sm:text-lg md:text-xl">
           Give customers a small discount. They post on Instagram,
-          share on TikTok, or check in on Google. You get real marketing
+          share on TikTok, tag you on Facebook. You get real marketing
           from real people — not ads nobody trusts.
         </p>
 
@@ -74,7 +74,7 @@ export function Hero() {
               <div className="flex gap-6 text-center sm:gap-8">
                 <div>
                   <p className="font-mono text-2xl font-semibold text-brand-white sm:text-3xl">89</p>
-                  <p className="mt-1 text-xs text-brand-muted">new reviews</p>
+                  <p className="mt-1 text-xs text-brand-muted">customer posts</p>
                 </div>
                 <div>
                   <p className="font-mono text-2xl font-semibold text-brand-green sm:text-3xl">$0</p>

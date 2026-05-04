@@ -79,6 +79,25 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
     setValidationError("");
     if (!name || !selectedActions.length) return;
 
+    // Defense in depth: even if the picker UI lets a prohibited action
+    // through (bug, future regression, programmatic injection), block
+    // launch. Prohibited = action.incentivizable === false in the
+    // platforms catalog (e.g. Google/Yelp/Tripadvisor reviews).
+    const prohibitedSelections: string[] = [];
+    for (const platform of PLATFORMS) {
+      for (const action of platform.actions) {
+        if (selectedActions.includes(action.id) && action.incentivizable === false) {
+          prohibitedSelections.push(`${platform.name} ${action.label}`);
+        }
+      }
+    }
+    if (prohibitedSelections.length > 0) {
+      setValidationError(
+        `Cannot launch: ${prohibitedSelections.join(", ")} — these platforms ban incentivized reviews under their ToS.`
+      );
+      return;
+    }
+
     const parsedPerkValue = parseInt(perkValue);
     if (!parsedPerkValue || parsedPerkValue <= 0) {
       setValidationError("Perk value must be greater than 0.");
@@ -288,6 +307,26 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
                     <div className="flex flex-wrap gap-1 pl-4">
                       {platform.actions.map((action) => {
                         const selected = selectedActions.includes(action.id);
+                        // Prohibited actions: Google reviews, Yelp reviews,
+                        // TripAdvisor reviews etc. are flagged via
+                        // incentivizable=false in the platforms catalog.
+                        // Render them disabled with a tooltip so users know
+                        // why — this is a hard ToS line, not a soft warning.
+                        const prohibited = action.incentivizable === false;
+                        if (prohibited) {
+                          return (
+                            <button
+                              key={action.id}
+                              type="button"
+                              disabled
+                              title={`${platform.name}'s policy prohibits incentivized ${action.label.toLowerCase()}s. Use a content action like a post or story instead.`}
+                              className="font-body text-3xs font-semibold px-2 py-1 rounded border border-brand-red/30 bg-brand-red/5 text-brand-red/70 line-through cursor-not-allowed"
+                              aria-label={`${action.label} — banned by ${platform.name} policy`}
+                            >
+                              ⛔ {action.label}
+                            </button>
+                          );
+                        }
                         return (
                           <button
                             key={action.id}

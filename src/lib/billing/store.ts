@@ -65,7 +65,32 @@ export interface Subscription {
   createdAt: string;
 }
 
-// ─── In-Memory Store (mock — production uses Stripe + DB) ───────────────────
+// ─── In-Memory Store ────────────────────────────────────────────────────────
+//
+// IMPORTANT: This is a write-through cache, NOT durable storage.
+// A redeploy or restart drops all entries.
+//
+// For the first ~10 paying customers this is acceptable because:
+//   1. Stripe is the source of truth for every subscription state.
+//   2. The webhook handler rehydrates the cache on the next event.
+//   3. `rehydrateFromStripe(businessId)` below provides on-demand recovery.
+//
+// Before scaling beyond a handful of subscriptions: replace this Map with
+// a Postgres-backed repository. Schema sketch:
+//   CREATE TABLE business_subscriptions (
+//     id UUID PRIMARY KEY,
+//     business_id UUID NOT NULL REFERENCES businesses(id),
+//     stripe_customer_id TEXT NOT NULL,
+//     stripe_subscription_id TEXT NOT NULL UNIQUE,
+//     plan VARCHAR(50) NOT NULL,
+//     billing_period VARCHAR(20) NOT NULL,
+//     status VARCHAR(20) NOT NULL,
+//     current_period_start TIMESTAMPTZ NOT NULL,
+//     current_period_end TIMESTAMPTZ NOT NULL,
+//     cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+//     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+//   );
+// Then wire it into src/lib/db/schema.ts and migrate.
 
 export const subscriptions = new Map<string, Subscription>();
 

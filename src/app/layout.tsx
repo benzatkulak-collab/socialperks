@@ -7,21 +7,21 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://socialperks.io"),
   title: "Social Perks — Turn Customers Into Your Marketing Team",
   description:
-    "Offer perks. Customers post, review, and share. You grow. From neighborhood coffee shops to national brands. 25 platforms, 125 marketing actions, one simple dashboard.",
+    "Independent coffee shops: turn regulars into your marketing team. Offer a perk, they post on Instagram, TikTok or Facebook. You get real word-of-mouth — not ads.",
   keywords: [
-    "social media marketing",
+    "social media marketing for coffee shops",
+    "coffee shop marketing",
+    "small business marketing",
     "customer referrals",
-    "review generation",
+    "instagram marketing for cafes",
     "local business marketing",
-    "influencer platform",
     "word of mouth marketing",
     "customer perks",
-    "loyalty marketing",
   ],
   openGraph: {
-    title: "Social Perks — Turn Customers Into Your Marketing Team",
+    title: "Social Perks — Turn Coffee Shop Regulars Into Marketing",
     description:
-      "Offer perks. Customers post, review, and share. You grow. Works for any business.",
+      "Offer a perk. Customers post on Instagram, TikTok, Facebook. You get real word-of-mouth — not ads.",
     type: "website",
     siteName: "Social Perks",
     url: "https://socialperks.io",

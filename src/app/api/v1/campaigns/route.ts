@@ -22,6 +22,8 @@ import { campaignManager } from "@/lib/campaign-state-machine";
 import type { CampaignState, CampaignLifecycle } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateNumber, validateEnum } from "@/lib/security/validate";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { findAction, findPlatform } from "@/lib/platforms";
+import { pluginManager } from "@/lib/plugin-system";
 import {
   checkCampaignLimit,
   getBusinessPlan,
@@ -158,6 +160,27 @@ export const POST = withTiming(async (req: NextRequest) => {
     if (!av.success) return err("INVALID_ACTION_ID", `Invalid action ID: ${av.error}`, 400);
   }
 
+  // Compliance gate: reject any action whose platform's ToS prohibits
+  // incentivization (Google reviews, Yelp reviews, Tripadvisor reviews,
+  // etc.). Even if the UI lets the user select these, the API must refuse.
+  // Single source of truth: action.incentivizable === false.
+  const prohibited: string[] = [];
+  for (const actionId of body.actions) {
+    const action = findAction(actionId);
+    if (!action) continue; // unknown IDs handled by state machine
+    if (action.incentivizable === false) {
+      const platform = action.platformId ? findPlatform(action.platformId) : null;
+      prohibited.push(`${platform?.name ?? action.platformId ?? "platform"} ${action.label}`);
+    }
+  }
+  if (prohibited.length > 0) {
+    return err(
+      "PROHIBITED_ACTION",
+      `Cannot launch campaign: ${prohibited.join(", ")}. These platforms prohibit incentivized reviews under their Terms of Service.`,
+      422,
+    );
+  }
+
   // Validate discountValue
   const dv = validateNumber(body.discountValue, "discountValue", { min: 0.01 });
   if (!dv.success) return err("INVALID_DISCOUNT_VALUE", dv.error, 400);
@@ -186,6 +209,34 @@ export const POST = withTiming(async (req: NextRequest) => {
   const campaignId = `camp_${crypto.randomUUID()}`;
 
   try {
+    // Run the campaign.beforeLaunch hook chain. The FTC compliance plugin
+    // (src/lib/plugin-system.ts) is registered here and injects the
+    // mandatory disclosures (#ad, #sponsored, "free product received", etc.)
+    // per platform. This used to be dead code — registered but never
+    // invoked. The launch modal explicitly promises these disclosures are
+    // auto-injected, so we have to actually run them.
+    const hookResult = await pluginManager.executeHook(
+      "campaign.beforeLaunch",
+      {
+        campaignId,
+        businessId: bv.data,
+        name: nv.data,
+        actions: body.actions,
+        discountValue: dv.data,
+        discountType: dt.data,
+      },
+      { actorId: tenant.tenantId, actorType: "business" },
+    );
+    if (hookResult.aborted) {
+      return err(
+        "LAUNCH_BLOCKED",
+        hookResult.abortReason ?? "Campaign blocked by a compliance check",
+        422,
+      );
+    }
+    const ftcDisclosures = hookResult.data.ftcDisclosures;
+    const guidelines = hookResult.data.guidelines;
+
     const lifecycle = campaignManager.launch(campaignId, bv.data, {
       name: nv.data,
       budgetAllocated: dv.data,
@@ -205,6 +256,10 @@ export const POST = withTiming(async (req: NextRequest) => {
           actions: body.actions,
           discountValue: dv.data,
           discountType: dt.data,
+          // Surface the FTC disclosures and guidelines that were merged in
+          // by the compliance plugin so clients can render them.
+          ftcDisclosures,
+          guidelines,
         },
       },
       201
