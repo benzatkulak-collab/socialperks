@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Social Perks — Turn customers into your marketing team">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0C0F1A"/>
+      <stop offset="100%" stop-color="#0F1424"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="50%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="20%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#22D3EE" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- Diamond mark -->
+  <g transform="translate(80,80)">
+    <rect x="0" y="0" width="56" height="56" rx="14" fill="#22D3EE"/>
+    <path d="M28 12 L44 28 L28 44 L12 28 Z" fill="#0C0F1A"/>
+  </g>
+
+  <text x="156" y="120" font-family="-apple-system,BlinkMacSystemFont,'DM Sans',sans-serif" font-size="28" font-weight="600" fill="#E2E8F0" letter-spacing="-0.5">Social Perks</text>
+
+  <!-- Headline -->
+  <text x="80" y="290" font-family="Georgia,'Instrument Serif',serif" font-style="italic" font-size="76" font-weight="400" fill="#E2E8F0" letter-spacing="-1.5">Your customers love you.</text>
+  <text x="80" y="380" font-family="Georgia,'Instrument Serif',serif" font-style="italic" font-size="76" font-weight="400" fill="url(#accent)" letter-spacing="-1.5">Pay them to say it online.</text>
+
+  <!-- Subline -->
+  <text x="80" y="455" font-family="-apple-system,BlinkMacSystemFont,'DM Sans',sans-serif" font-size="26" fill="#94A3B8">Coffee shops: turn regulars into marketing — without paying for ads.</text>
+
+  <!-- Bottom strip -->
+  <rect x="80" y="525" width="1040" height="1" fill="#2D3348"/>
+  <text x="80" y="572" font-family="ui-monospace,'JetBrains Mono',monospace" font-size="16" font-weight="600" fill="#22D3EE" letter-spacing="2">FREE TO START · NO CREDIT CARD · 5-MINUTE SETUP</text>
+</svg>

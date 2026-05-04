@@ -11,7 +11,7 @@
 import type { NextRequest } from "next/server";
 import { ok, err, getQuery, paginate, withTiming } from "../_shared";
 import {
-  CAMPAIGN_TEMPLATES,
+  getAllCompliantTemplates,
   INDUSTRY_MAP,
   type CampaignTemplate,
 } from "@/lib/campaign-templates";
@@ -43,8 +43,9 @@ export const GET = withTiming(async (req: NextRequest) => {
     );
   }
 
-  // Filter templates
-  let templates: CampaignTemplate[] = CAMPAIGN_TEMPLATES;
+  // Filter templates — start from the compliance-filtered set so prohibited
+  // actions (Google/Yelp/Tripadvisor reviews) never reach the client.
+  let templates: CampaignTemplate[] = getAllCompliantTemplates();
 
   if (industry) {
     templates = templates.filter((t) => t.industry === industry);

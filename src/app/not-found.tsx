@@ -1,0 +1,40 @@
+import Link from "next/link";
+
+export const metadata = {
+  title: "Not Found — Social Perks",
+  robots: { index: false, follow: false },
+};
+
+export default function NotFound() {
+  return (
+    <main
+      className="flex min-h-screen flex-col items-center justify-center bg-brand-bg px-4 text-center"
+      role="main"
+    >
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-cyan">
+        404
+      </p>
+      <h1 className="mt-4 font-heading text-4xl italic text-brand-white sm:text-5xl">
+        We don&apos;t have a page there.
+      </h1>
+      <p className="mt-4 max-w-md text-base text-brand-dim">
+        The link might be old or mistyped. Head back home or jump straight into
+        starting a campaign.
+      </p>
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <Link
+          href="/"
+          className="rounded-xl bg-brand-cyan px-6 py-3 font-body text-sm font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
+        >
+          Back to home
+        </Link>
+        <Link
+          href="/pricing"
+          className="rounded-xl border border-brand-border bg-brand-surface/50 px-6 py-3 font-body text-sm font-medium text-brand-text transition-all hover:border-brand-subtle hover:bg-brand-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/30"
+        >
+          See pricing
+        </Link>
+      </div>
+    </main>
+  );
+}

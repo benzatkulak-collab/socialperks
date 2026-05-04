@@ -16,16 +16,28 @@ vi.mock("@/lib/hooks/use-realtime", () => ({
   useRealtime: () => ({ connected: false, lastEvent: null, subscribe: () => () => {} }),
 }));
 
-vi.mock("@/lib/platforms", () => ({
-  PLATFORMS: [
+vi.mock("@/lib/platforms", () => {
+  const PLATFORMS = [
     { id: "ig", name: "Instagram", icon: "📸", color: "#E1306C", actions: [
-      { id: "ig_st", label: "Story Tag", type: "content", effort: 1, value: 1.5, incentivizable: true },
+      { id: "ig_st", label: "Story Tag", type: "content", effort: 1, value: 1.5, incentivizable: true, platformId: "ig" },
+      { id: "ig_fp", label: "Feed Photo", type: "content", effort: 2, value: 2, incentivizable: true, platformId: "ig" },
+    ]},
+    { id: "tt", name: "TikTok", icon: "🎬", color: "#000000", actions: [
+      { id: "tt_vd", label: "Video", type: "content", effort: 3, value: 5, incentivizable: true, platformId: "tt" },
     ]},
     { id: "go", name: "Google", icon: "⭐", color: "#FBBC04", actions: [
-      { id: "go_rv", label: "Review", type: "review", effort: 2, value: 5, incentivizable: false },
+      { id: "go_rv", label: "Review", type: "review", effort: 2, value: 5, incentivizable: false, platformId: "go" },
     ]},
-  ],
-}));
+  ];
+  const ALL_ACTIONS = PLATFORMS.flatMap((p) => p.actions);
+  return {
+    PLATFORMS,
+    ALL_ACTIONS,
+    FOLLOWER_TIERS: [{ label: "Anyone", min: 0, bonus: 0, color: "#94A3B8" }],
+    findAction: (id: string) => ALL_ACTIONS.find((a) => a.id === id),
+    findPlatform: (id: string) => PLATFORMS.find((p) => p.id === id),
+  };
+});
 
 const mockBiz: SeedBusiness = {
   id: "b1",

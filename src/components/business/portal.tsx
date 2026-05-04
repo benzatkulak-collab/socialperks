@@ -53,11 +53,15 @@ const PLATFORM_OPTIONS = PLATFORMS.slice(0, 8).map((p) => ({
 })).filter((p) => p.actions.length > 0);
 
 // ─── Campaign Templates ─────────────────────────────────────────────────────
+// All template actions point at platforms where incentivization is allowed
+// with FTC disclosure. Google/Yelp/Tripadvisor reviews are intentionally
+// excluded — their ToS prohibits incentivized reviews and the launch API
+// will reject those campaigns with PROHIBITED_ACTION (422).
 
 const CAMPAIGN_TEMPLATES = [
-  { id: "t-review", label: "Google Review Campaign", platformId: "ggl", actionId: "ggl_rv", rewardType: "pct" as const, rewardValue: "15", name: "Google Review for Discount" },
   { id: "t-ig-story", label: "Instagram Story Mention", platformId: "ig", actionId: "ig_st", rewardType: "pct" as const, rewardValue: "10", name: "Tag Us in Your Story" },
-  { id: "t-tt-video", label: "TikTok Video Feature", platformId: "tt", actionId: "tt_vd", rewardType: "dol" as const, rewardValue: "5", name: "TikTok Video Review" },
+  { id: "t-ig-photo", label: "Instagram Feed Photo", platformId: "ig", actionId: "ig_fp", rewardType: "pct" as const, rewardValue: "15", name: "Share Your Visit on Instagram" },
+  { id: "t-tt-video", label: "TikTok Video Feature", platformId: "tt", actionId: "tt_vd", rewardType: "dol" as const, rewardValue: "5", name: "TikTok Video Feature" },
 ];
 
 // ─── Constant arrays/objects used in rendering ──────────────────────────────

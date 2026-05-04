@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  CAMPAIGN_TEMPLATES,
+  getAllCompliantTemplates,
   INDUSTRY_MAP,
   getTemplatesByIndustry,
   getPopularTemplates,
@@ -117,7 +117,7 @@ export function TemplatePicker({ businessType, onSelectTemplate }: TemplatePicke
 
   // Which templates to display
   const baseTemplates = useMemo(() => {
-    if (showAll) return CAMPAIGN_TEMPLATES;
+    if (showAll) return getAllCompliantTemplates();
     if (industryTemplates.length > 0) return industryTemplates;
     return popularTemplates;
   }, [showAll, industryTemplates, popularTemplates]);

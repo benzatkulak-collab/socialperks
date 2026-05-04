@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
+import { WaitlistForm } from "@/components/landing/waitlist-form";
 import {
   INDUSTRY_MAP,
   INDUSTRY_SLUGS,
@@ -507,6 +508,38 @@ export default async function IndustryPage({ params }: PageProps) {
               Built for {industry.name.toLowerCase()}
             </span>
           </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          WAITLIST CAPTURE — industry-tagged
+          Industry pages get organic SEO traffic; this gives that traffic
+          somewhere to convert besides /dashboard#signup (which is too
+          much commitment for cold visitors).
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section
+        id="waitlist"
+        className="relative bg-brand-bg pb-20 pt-12 sm:pb-28"
+        aria-labelledby="waitlist-heading"
+      >
+        <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8">
+          <p className="mb-3 text-center font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">
+            Early access for {industry.name}
+          </p>
+          <h2
+            id="waitlist-heading"
+            className="mb-3 text-center font-heading text-2xl italic text-brand-white sm:text-3xl"
+          >
+            Not ready to sign up?
+          </h2>
+          <p className="mb-6 text-center text-sm text-brand-dim">
+            Drop your email — we&apos;ll reach out when we&apos;re onboarding {industry.name.toLowerCase()} in your area.
+          </p>
+          <WaitlistForm
+            // Map known industries to recognized verticals; everything
+            // else falls through to "other" but still gets captured.
+            vertical={industry.slug === "coffee-shops" ? "coffee_shops" : "other"}
+          />
         </div>
       </section>
 

@@ -753,39 +753,65 @@ export const INDUSTRY_MAP: Record<string, string> = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Get templates filtered by industry slug */
-export function getTemplatesByIndustry(industry: string): CampaignTemplate[] {
-  const normalized = industry.toLowerCase().replace(/[\s/&]+/g, "_");
-  return CAMPAIGN_TEMPLATES.filter((t) => t.industry === normalized);
+import { findAction } from "./platforms";
+
+/**
+ * Filter templates that point at actions banned by platform ToS
+ * (Google reviews, Yelp reviews, Tripadvisor reviews). Without this,
+ * users see a quick-start template, click it, and the campaign launch
+ * route 422s. Worse, they may not understand why and bounce.
+ *
+ * Single source of truth is `findAction(actionId).incentivizable`.
+ */
+function isCompliantTemplate(template: CampaignTemplate): boolean {
+  const action = findAction(template.actionId);
+  if (!action) return false;
+  return action.incentivizable !== false;
 }
 
-/** Get the most popular/versatile templates (Google Reviews, IG Stories, TikTok Videos) */
+/** Get templates filtered by industry slug, with prohibited actions removed. */
+export function getTemplatesByIndustry(industry: string): CampaignTemplate[] {
+  const normalized = industry.toLowerCase().replace(/[\s/&]+/g, "_");
+  return CAMPAIGN_TEMPLATES
+    .filter((t) => t.industry === normalized)
+    .filter(isCompliantTemplate);
+}
+
+/**
+ * Get the most popular/versatile compliant templates.
+ * The previous popular list led with `rest-google-review`,
+ * `dentist-google-review`, `auto-google-review`, `hotel-tripadvisor-review` —
+ * all banned. Those have been removed and replaced with safe alternatives
+ * (Instagram, TikTok, Facebook).
+ */
 export function getPopularTemplates(limit = 6): CampaignTemplate[] {
-  // Prioritize high-ROI, easy templates across varied platforms
   const popularIds = [
-    "rest-google-review",
     "rest-ig-story",
     "salon-ig-before-after",
     "coffee-ig-photo",
     "gym-tiktok-workout",
     "retail-tiktok-haul",
     "bakery-ig-photo",
-    "hotel-tripadvisor-review",
-    "dentist-google-review",
     "vet-ig-pet-photo",
     "brewery-ig-story",
-    "auto-google-review",
   ];
   const result: CampaignTemplate[] = [];
   for (const id of popularIds) {
     if (result.length >= limit) break;
     const tpl = CAMPAIGN_TEMPLATES.find((t) => t.id === id);
-    if (tpl) result.push(tpl);
+    if (tpl && isCompliantTemplate(tpl)) result.push(tpl);
   }
   return result;
 }
 
-/** Get a single template by ID */
+/** Get a single template by ID — returns null if it's not compliant. */
 export function getTemplateById(id: string): CampaignTemplate | null {
-  return CAMPAIGN_TEMPLATES.find((t) => t.id === id) ?? null;
+  const tpl = CAMPAIGN_TEMPLATES.find((t) => t.id === id);
+  if (!tpl) return null;
+  return isCompliantTemplate(tpl) ? tpl : null;
+}
+
+/** Full list, prohibited actions removed. Use this when you need everything. */
+export function getAllCompliantTemplates(): CampaignTemplate[] {
+  return CAMPAIGN_TEMPLATES.filter(isCompliantTemplate);
 }

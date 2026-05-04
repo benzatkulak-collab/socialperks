@@ -1,10 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import "./globals.css";
 
+// metadataBase prefers an explicit NEXT_PUBLIC_SITE_URL env var so OG image
+// URLs resolve correctly on whatever host you're actually deployed to
+// (vercel.app preview, custom domain, local dev). Falls back to the
+// canonical socialperks.io for the configured prod domain.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://socialperks.io");
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://socialperks.io"),
+  metadataBase: new URL(SITE_URL),
   title: "Social Perks — Turn Customers Into Your Marketing Team",
   description:
     "Independent coffee shops: turn regulars into your marketing team. Offer a perk, they post on Instagram, TikTok or Facebook. You get real word-of-mouth — not ads.",
@@ -24,13 +35,23 @@ export const metadata: Metadata = {
       "Offer a perk. Customers post on Instagram, TikTok, Facebook. You get real word-of-mouth — not ads.",
     type: "website",
     siteName: "Social Perks",
-    url: "https://socialperks.io",
+    url: SITE_URL,
     locale: "en_US",
+    images: [
+      {
+        url: "/og-image.svg",
+        width: 1200,
+        height: 630,
+        alt: "Social Perks — Turn customers into your marketing team",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    site: "@socialperks",
     title: "Social Perks",
     description: "Turn customers into your marketing team. Start free.",
+    images: ["/og-image.svg"],
   },
   robots: {
     index: true,
@@ -95,6 +116,7 @@ export default function RootLayout({
         <SWRegister />
         {children}
         <OfflineIndicator />
+        <Analytics />
       </body>
     </html>
   );

@@ -26,6 +26,7 @@
     "db:migrate:dry": "npx tsx scripts/db-migrate.ts --dry-run"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@vitest/coverage-v8": "^3.2.4",
     "next": "^15.1.0",
     "postgres": "^3.4.8",

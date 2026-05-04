@@ -1,9 +1,12 @@
 import Link from "next/link";
 
+// Footer link order. /agents is intentionally omitted from the public
+// footer for the coffee-shop pivot — the page still exists for AI-agent
+// developers who land via direct link, but it isn't surfaced to local
+// businesses (the wrong audience for that page).
 const FOOTER_LINKS = [
   { label: "How It Works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Agents", href: "/agents" },
+  { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Privacy", href: "/privacy" },
