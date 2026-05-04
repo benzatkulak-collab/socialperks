@@ -12,9 +12,17 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        // App and admin surfaces shouldn't be crawled — they're behind
-        // auth and contain no public content. Same for API routes.
-        disallow: ["/dashboard", "/api/", "/admin", "/c/"],
+        // App + admin surfaces (auth-gated, no public content) and any
+        // path that carries a one-time token in the URL — those must
+        // never be indexed even if a user accidentally shares the link.
+        disallow: [
+          "/dashboard",
+          "/api/",
+          "/admin",
+          "/c/",
+          "/reset-password",
+          "/confirm-reset",
+        ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

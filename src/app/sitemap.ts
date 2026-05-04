@@ -8,13 +8,16 @@ const SITE_URL =
     : "https://socialperks.io");
 
 const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
-  { path: "/",          changeFrequency: "weekly",  priority: 1.0 },
-  { path: "/pricing",   changeFrequency: "weekly",  priority: 0.9 },
-  { path: "/for",       changeFrequency: "monthly", priority: 0.8 },
-  { path: "/contact",   changeFrequency: "monthly", priority: 0.5 },
-  { path: "/about",     changeFrequency: "monthly", priority: 0.4 },
-  { path: "/privacy",   changeFrequency: "yearly",  priority: 0.3 },
-  { path: "/terms",     changeFrequency: "yearly",  priority: 0.3 },
+  { path: "/",              changeFrequency: "weekly",  priority: 1.0 },
+  { path: "/pricing",       changeFrequency: "weekly",  priority: 0.9 },
+  { path: "/for",           changeFrequency: "monthly", priority: 0.8 },
+  { path: "/case-studies",  changeFrequency: "weekly",  priority: 0.7 },
+  { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
+  { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
+  { path: "/about",         changeFrequency: "monthly", priority: 0.4 },
+  { path: "/accessibility", changeFrequency: "yearly",  priority: 0.3 },
+  { path: "/privacy",       changeFrequency: "yearly",  priority: 0.3 },
+  { path: "/terms",         changeFrequency: "yearly",  priority: 0.3 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { db, InMemoryConnection } from "@/lib/db/connection";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Social Perks — Billing Store
@@ -98,6 +99,54 @@ export const subscriptions = new Map<string, Subscription>();
 
 export function generateStripeId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
+}
+
+const usingDb = !(db instanceof InMemoryConnection);
+
+/**
+ * Write-through persistence for a subscription.
+ * Updates the in-memory cache AND the DB (when available).
+ * Both writes are best-effort; the in-memory write always succeeds.
+ */
+export async function persistSubscription(sub: Subscription): Promise<void> {
+  subscriptions.set(sub.id, sub);
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `INSERT INTO business_subscriptions
+         (id, business_id, stripe_customer_id, stripe_subscription_id, plan,
+          billing_period, status, current_period_start, current_period_end,
+          cancel_at_period_end, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+       ON CONFLICT (stripe_subscription_id) DO UPDATE SET
+         status = EXCLUDED.status,
+         plan = EXCLUDED.plan,
+         billing_period = EXCLUDED.billing_period,
+         current_period_start = EXCLUDED.current_period_start,
+         current_period_end = EXCLUDED.current_period_end,
+         cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+         updated_at = NOW()`,
+      [
+        crypto.randomUUID(),
+        sub.businessId,
+        sub.customerId,
+        sub.id,
+        sub.plan,
+        sub.billingPeriod,
+        sub.status,
+        sub.currentPeriodStart,
+        sub.currentPeriodEnd,
+        sub.cancelAtPeriodEnd,
+        sub.createdAt,
+      ],
+    );
+  } catch (e) {
+    // Don't fail the webhook just because DB write failed; log and
+    // continue. Stripe will retry if we 5xx, so successful return here
+    // means we acknowledged the event with at least the in-memory cache
+    // updated.
+    console.error("[billing] DB persistSubscription failed:", e instanceof Error ? e.message : e);
+  }
 }
 
 export function getOrCreateCustomerId(businessId: string): string {

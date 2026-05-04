@@ -34,9 +34,51 @@ import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
     AI logic lives in /api/v1/ai/* routes — never runs client-side.
     ═══════════════════════════════════════════════════════════════════ */
 
-// ─── Constant seed data (created once, outside component) ────────────────
+// ─── Initial seed data ────────────────────────────────────────────────────
+//
+// Demo data (Maria's Coffee, Sunrise Yoga, Priya the influencer, etc.) is
+// useful for UX testing and screenshots, but harmful when a real customer
+// signs up — they shouldn't see fake businesses pollute the marketplace.
+//
+// Gate behind ?demo=1 (or the persisted "sp-demo-mode" flag from a
+// previous demo session) so the seed is opt-in. Real users get empty
+// initial state; the discover/marketplace will populate as real
+// campaigns launch.
+const EMPTY_SEED_DATA: SeedData = {
+  businesses: [],
+  influencers: [],
+  campaigns: [],
+  stats: {
+    businessesActive: 0,
+    influencersActive: 0,
+    reviewsGenerated: 0,
+    socialPostsCreated: 0,
+    referralsMade: 0,
+    totalPerksEarned: 0,
+    totalMarketingValue: 0,
+    actionsCompleted: 0,
+    platformsConnected: 0,
+    campaignsRunning: 0,
+  },
+};
 
-const INITIAL_SEED_DATA = createSeedData();
+function resolveInitialData() {
+  if (typeof window === "undefined") return EMPTY_SEED_DATA;
+  const url = new URL(window.location.href);
+  const wantsDemo = url.searchParams.get("demo") === "1";
+  if (wantsDemo) {
+    try { window.localStorage.setItem("sp-demo-mode", "1"); } catch { /* ignore */ }
+    return createSeedData();
+  }
+  try {
+    if (window.localStorage.getItem("sp-demo-mode") === "1") {
+      return createSeedData();
+    }
+  } catch { /* ignore */ }
+  return EMPTY_SEED_DATA;
+}
+
+const INITIAL_SEED_DATA = resolveInitialData();
 
 // ─── Session restore timeout ─────────────────────────────────────────────
 

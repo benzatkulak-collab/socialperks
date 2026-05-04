@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -36,6 +36,51 @@ export function AuthForm({
   const [loading, setLoading] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+
+  // Plan intent — captured from the pricing page CTAs which encode
+  //   /dashboard#signup?plan=professional&period=annual
+  // Persisted to localStorage so it survives the navigation. Used to:
+  //   1. Show a confirmation banner ("You picked the Pro plan...")
+  //   2. After signup completes, hand off directly to /api/v1/billing
+  //      with the right plan/period so the user lands in checkout.
+  const [planIntent, setPlanIntent] = useState<{
+    plan: "starter" | "professional" | "enterprise";
+    period: "monthly" | "annual";
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // The hash is "#signup?plan=professional&period=annual" so we have
+    // to parse it ourselves — URL.searchParams only reads the query.
+    const hash = window.location.hash.replace(/^#/, "");
+    const [, queryString] = hash.split("?");
+    if (!queryString) {
+      // Fall back to any persisted intent so a refresh doesn't lose it.
+      try {
+        const stored = window.localStorage.getItem("sp:planIntent");
+        if (stored) setPlanIntent(JSON.parse(stored));
+      } catch { /* ignore */ }
+      return;
+    }
+    const params = new URLSearchParams(queryString);
+    const plan = params.get("plan");
+    const period = params.get("period") ?? "monthly";
+    if (
+      (plan === "starter" || plan === "professional" || plan === "enterprise") &&
+      (period === "monthly" || period === "annual")
+    ) {
+      const intent: {
+        plan: "starter" | "professional" | "enterprise";
+        period: "monthly" | "annual";
+      } = { plan, period };
+      setPlanIntent(intent);
+      try {
+        window.localStorage.setItem("sp:planIntent", JSON.stringify(intent));
+      } catch { /* ignore */ }
+      // Auto-advance to signup since the user clearly wants to subscribe.
+      setScreen("signup");
+    }
+  }, []);
 
   const handleLogin = useCallback(async () => {
     setError("");
@@ -351,6 +396,32 @@ export function AuthForm({
               <h1 className="mt-4 font-heading text-xl italic text-brand-white sm:text-2xl">Create your account</h1>
               <p className="text-sm text-brand-dim mt-1">What describes you best?</p>
             </div>
+
+            {/* Plan intent banner — shows the plan/period the user picked
+                on the pricing page so they know it carried through. After
+                signup completes we'll route them to checkout with the
+                same selection. */}
+            {planIntent && (
+              <div
+                className="mb-6 rounded-xl border border-brand-cyan/30 bg-brand-cyan/5 px-4 py-3 text-sm"
+                role="status"
+                aria-live="polite"
+              >
+                <p className="text-brand-text">
+                  After signup we&apos;ll set you up with the{" "}
+                  <strong className="text-brand-cyan">
+                    {planIntent.plan === "professional"
+                      ? "Pro"
+                      : planIntent.plan === "starter"
+                        ? "Starter"
+                        : "Enterprise"}
+                  </strong>{" "}
+                  plan, billed{" "}
+                  <strong>{planIntent.period === "annual" ? "annually" : "monthly"}</strong>
+                  .
+                </p>
+              </div>
+            )}
 
             <div className="space-y-3">
               <button

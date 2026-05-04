@@ -12,6 +12,7 @@ import { ok, err, withTiming } from "../../_shared";
 import {
   subscriptions,
   generateStripeId,
+  persistSubscription,
   type Subscription,
 } from "@/lib/billing/store";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
@@ -140,7 +141,7 @@ export const POST = withTiming(async (req: NextRequest) => {
             cancelAtPeriodEnd: false,
             createdAt: now.toISOString(),
           };
-          subscriptions.set(subscriptionId, sub);
+          await persistSubscription(sub);
           console.warn(`[Billing Webhook] Created subscription ${subscriptionId} for business ${businessId}`);
         } catch (e) {
           // If subscription creation fails, remove from processed events so Stripe can retry
@@ -161,7 +162,7 @@ export const POST = withTiming(async (req: NextRequest) => {
         if (existing) {
           const status = eventData.status as Subscription["status"] | undefined;
           const cancelAtPeriodEnd = eventData.cancel_at_period_end as boolean | undefined;
-          subscriptions.set(subscriptionId, {
+          await persistSubscription({
             ...existing,
             ...(status && { status }),
             ...(typeof cancelAtPeriodEnd === "boolean" && { cancelAtPeriodEnd }),
@@ -179,7 +180,7 @@ export const POST = withTiming(async (req: NextRequest) => {
         const subscriptionId = eventData.id as string;
         const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
         if (existing) {
-          subscriptions.set(subscriptionId, { ...existing, status: "canceled" });
+          await persistSubscription({ ...existing, status: "canceled" });
           console.warn(`[Billing Webhook] Canceled subscription ${subscriptionId}`);
         }
       }
@@ -193,7 +194,7 @@ export const POST = withTiming(async (req: NextRequest) => {
         const subscriptionId = eventData.subscription as string;
         const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
         if (existing) {
-          subscriptions.set(subscriptionId, { ...existing, status: "past_due" });
+          await persistSubscription({ ...existing, status: "past_due" });
           console.warn(`[Billing Webhook] Marked subscription ${subscriptionId} as past_due`);
         }
       }

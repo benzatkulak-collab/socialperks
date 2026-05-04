@@ -1,7 +1,13 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  // Resolve "Next.js inferred your workspace root" warning by anchoring
+  // file tracing to this project, not whatever sibling lockfile sits
+  // higher up the tree.
+  outputFileTracingRoot: path.join(__dirname),
   async rewrites() {
     // Only proxy to external API service when API_URL is explicitly set.
     // Otherwise use the built-in Next.js API routes in app/api/v1/.
@@ -16,19 +22,53 @@ const nextConfig = {
   },
   async headers() {
     const isDev = process.env.NODE_ENV !== "production";
+    // Tracking pixel domains. Only emitted into CSP when the env var
+    // for that integration is set, so the policy stays minimal when a
+    // pixel isn't enabled.
+    const metaPixelEnabled = !!process.env.NEXT_PUBLIC_META_PIXEL_ID;
+    const gtagEnabled = !!process.env.NEXT_PUBLIC_GTAG_ID;
+    const pixelScriptHosts = [
+      metaPixelEnabled ? "https://connect.facebook.net" : null,
+      gtagEnabled ? "https://www.googletagmanager.com" : null,
+      gtagEnabled ? "https://www.google-analytics.com" : null,
+    ]
+      .filter((s) => s !== null)
+      .join(" ");
+    const pixelImgHosts = metaPixelEnabled ? "https://www.facebook.com" : "";
+    const pixelConnectHosts = [
+      metaPixelEnabled ? "https://www.facebook.com" : null,
+      gtagEnabled ? "https://www.google-analytics.com" : null,
+      // Vercel Analytics
+      "https://va.vercel-scripts.com",
+    ]
+      .filter((s) => s !== null)
+      .join(" ");
+
     // Dev needs 'unsafe-eval' for React Fast Refresh; prod stays locked down.
-    // Google Fonts CSS is loaded from layout.tsx, so allow fonts.googleapis.com in style-src.
-    const scriptSrc = isDev
-      ? "'self' 'unsafe-inline' 'unsafe-eval'"
-      : "'self' 'unsafe-inline'";
+    // Google Fonts CSS loaded from layout.tsx → allow fonts.googleapis.com.
+    const scriptSrc = [
+      isDev
+        ? "'self' 'unsafe-inline' 'unsafe-eval'"
+        : "'self' 'unsafe-inline'",
+      pixelScriptHosts,
+      "https://va.vercel-scripts.com",
+    ]
+      .filter(Boolean)
+      .join(" ");
     const styleSrc = "'self' 'unsafe-inline' https://fonts.googleapis.com";
+    const imgSrc = ["'self'", "data:", "blob:", "https:", pixelImgHosts]
+      .filter(Boolean)
+      .join(" ");
+    const connectSrc = ["'self'", "https:", pixelConnectHosts]
+      .filter(Boolean)
+      .join(" ");
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
       `style-src ${styleSrc}`,
-      "img-src 'self' data: blob: https:",
+      `img-src ${imgSrc}`,
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https:",
+      `connect-src ${connectSrc}`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -19,6 +19,9 @@ import { ok, err, rateLimit, parseBody } from "../_shared";
 import { ResendEmailProvider, ConsoleEmailProvider, type EmailProvider } from "@/lib/email";
 import { validateEmail } from "@/lib/security/validate";
 import { logger } from "@/lib/logging";
+import { db, InMemoryConnection } from "@/lib/db/connection";
+
+const usingDb = !(db instanceof InMemoryConnection);
 
 interface WaitlistEntry {
   email: string;
@@ -76,11 +79,6 @@ export async function POST(req: NextRequest) {
   const referrer =
     typeof body.referrer === "string" ? body.referrer.slice(0, 500) : undefined;
 
-  // Idempotent: same email returns the existing entry rather than dup
-  if (waitlist.has(email)) {
-    return ok({ alreadyOnList: true, email });
-  }
-
   const entry: WaitlistEntry = {
     email,
     businessName,
@@ -90,7 +88,38 @@ export async function POST(req: NextRequest) {
     createdAt: new Date().toISOString(),
     ip: ip(req),
   };
-  waitlist.set(email, entry);
+
+  // Durable path: if DATABASE_URL is configured, write to the
+  // `waitlist` table. ON CONFLICT keeps the original signup so we
+  // don't reset drip-tracking timestamps.
+  if (usingDb) {
+    try {
+      const inserted = await db.query<{ id: string }>(
+        `INSERT INTO waitlist (email, business_name, city, vertical, referrer, ip, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (email) DO NOTHING
+         RETURNING id`,
+        [email, businessName ?? null, city ?? null, vertical, referrer ?? null, entry.ip, entry.createdAt],
+      );
+      const isNewSignup = inserted.rows.length > 0;
+      if (!isNewSignup) {
+        return ok({ alreadyOnList: true, email });
+      }
+      // fall through to email side effects below
+    } catch (e) {
+      // DB write failed — log and fall back to in-memory so the user
+      // still gets a confirmation email rather than a 500.
+      logger.warn("waitlist DB write failed, falling back to memory", {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      if (waitlist.has(email)) return ok({ alreadyOnList: true, email });
+      waitlist.set(email, entry);
+    }
+  } else {
+    // In-memory path
+    if (waitlist.has(email)) return ok({ alreadyOnList: true, email });
+    waitlist.set(email, entry);
+  }
 
   // Best-effort emails — don't block the response
   const provider = getEmailProvider();
@@ -121,20 +150,32 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Admin-only: peek at the in-memory list size. No PII returned.
+  // Admin-only: peek at the list size. No PII returned.
   const adminToken = process.env.WAITLIST_ADMIN_TOKEN;
   const provided = req.headers.get("x-admin-token");
   if (!adminToken || provided !== adminToken) {
     return err("UNAUTHORIZED", "Admin token required", 401);
   }
-  return ok({ count: waitlist.size });
+  if (usingDb) {
+    try {
+      const result = await db.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM waitlist`,
+      );
+      const count = result.rows[0]?.count ?? "0";
+      return ok({ count: parseInt(count, 10), source: "db" });
+    } catch (e) {
+      logger.warn("waitlist count from DB failed", {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      // Fall through to in-memory tally
+    }
+  }
+  return ok({ count: waitlist.size, source: "memory" });
 }
 
-// TODO(Phase 3 infra migration): once `db.query` is the durable path,
-// replace `waitlist` Map with:
-//   await db.query<{}>(
-//     `INSERT INTO waitlist (email, business_name, city, vertical, referrer, ip, created_at)
-//      VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (email) DO NOTHING`,
-//     [email, businessName, city, vertical, referrer, entry.ip, entry.createdAt]
-//   );
-// Schema add: see src/lib/db/schema.ts.
+// Note: the in-memory `waitlist` Map remains as a fallback for when
+// DATABASE_URL is unset (local dev) or the DB write transiently fails.
+// On production with DATABASE_URL set, the DB is the source of truth
+// and the Map is only touched on the fallback path.
+//
+// Cohort retrieval for the drip scheduler lives in src/lib/email/waitlist-drip.ts.

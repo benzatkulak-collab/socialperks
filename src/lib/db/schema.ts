@@ -727,6 +727,72 @@ export const SCHEMA = {
     ],
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WAITLIST — pre-onboarding lead capture
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  waitlist: {
+    columns: {
+      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
+      email: { type: "varchar(255)", nullable: false },
+      business_name: { type: "varchar(255)", nullable: true },
+      city: { type: "varchar(100)", nullable: true },
+      vertical: { type: "varchar(50)", nullable: false, default: "'other'" },
+      referrer: { type: "text", nullable: true },
+      ip: { type: "varchar(100)", nullable: true },
+      // Drip stages: tracks which nurture emails have been sent so the
+      // scheduler doesn't double-send.
+      day3_sent_at: { type: "timestamptz", nullable: true },
+      day7_sent_at: { type: "timestamptz", nullable: true },
+      contacted_at: { type: "timestamptz", nullable: true },
+      onboarded_at: { type: "timestamptz", nullable: true },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "waitlist_pkey" },
+      { columns: ["email"], unique: true, name: "waitlist_email_unique" },
+      { columns: ["vertical"], unique: false, name: "waitlist_vertical_idx" },
+      { columns: ["created_at"], unique: false, name: "waitlist_created_idx" },
+    ],
+    relations: [],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUSINESS SUBSCRIPTIONS — durable Stripe subscription state
+  // (was an in-memory Map in src/lib/billing/store.ts)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  business_subscriptions: {
+    columns: {
+      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
+      business_id: {
+        type: "uuid",
+        nullable: false,
+        references: { table: "businesses", column: "id", onDelete: "CASCADE" },
+      },
+      stripe_customer_id: { type: "varchar(100)", nullable: false },
+      stripe_subscription_id: { type: "varchar(100)", nullable: false },
+      plan: { type: "varchar(50)", nullable: false }, // starter | professional | enterprise
+      billing_period: { type: "varchar(50)", nullable: false }, // monthly | annual
+      status: { type: "varchar(50)", nullable: false }, // active | past_due | canceled | trialing
+      current_period_start: { type: "timestamptz", nullable: false },
+      current_period_end: { type: "timestamptz", nullable: false },
+      cancel_at_period_end: { type: "boolean", nullable: false, default: "false" },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "business_subscriptions_pkey" },
+      { columns: ["stripe_subscription_id"], unique: true, name: "business_subs_stripe_sub_unique" },
+      { columns: ["business_id"], unique: false, name: "business_subs_business_idx" },
+      { columns: ["stripe_customer_id"], unique: false, name: "business_subs_stripe_customer_idx" },
+      { columns: ["status"], unique: false, name: "business_subs_status_idx" },
+    ],
+    relations: [
+      { type: "many-to-one", table: "businesses", foreignKey: "business_id", description: "Subscription belongs to a business" },
+    ],
+  },
+
 } as const satisfies Record<string, TableDef>;
 
 // ─── Helper Types ────────────────────────────────────────────────────────────
