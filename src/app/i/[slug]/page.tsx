@@ -66,6 +66,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: [{ url: ogImage, width: 1200, height: 630, alt: i.displayName }],
     },
     twitter: { card: "summary_large_image", title, description, images: [ogImage] },
+    // De-prioritized while we focus the public funnel on shop owners.
+    // Page still resolves for direct shares; just kept out of search.
+    robots: { index: false, follow: true },
   };
 }
 

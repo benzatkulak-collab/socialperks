@@ -14,37 +14,37 @@ interface Step {
 const STEPS: Step[] = [
   {
     number: "01",
-    title: "You pick the reward",
+    title: "Print your QR code",
     description:
-      "10% off, a free coffee, $5 off their next visit — whatever works for your business and your margins.",
-    example: "\"15% off your next order for an Instagram story\"",
-    icon: "🏷️",
+      "We generate a printable poster + small counter card with your perk on it. Tape it to the counter, slip it in the bag, stick it on the cup.",
+    example: "\"Scan to claim 15% off — post about us!\"",
+    icon: "🖨️",
     accent: "border-brand-green",
   },
   {
     number: "02",
-    title: "Customers do the marketing",
+    title: "Your customer scans it",
     description:
-      "They post on Instagram, share on TikTok, check in on Google, tag you on Facebook — whatever you choose.",
-    example: "Customer posts a photo at your shop with a tag",
+      "Right after they pay. They land on a clean page that explains the perk and links them to Instagram, TikTok, or Facebook to post.",
+    example: "Tap → camera opens → 30 seconds to post",
     icon: "📱",
     accent: "border-brand-cyan",
   },
   {
     number: "03",
-    title: "We make sure it happened",
+    title: "We verify the post",
     description:
-      "No honor system. We verify the post, review, or share actually went live before anyone gets their discount.",
-    example: "Automatic check — did the review actually post?",
+      "No honor system. We check the post actually went live with the right hashtag and FTC disclosure. Auto-injected, can&apos;t be skipped.",
+    example: "Verified in under 5 minutes",
     icon: "✓",
     accent: "border-brand-amber",
   },
   {
     number: "04",
-    title: "They get their discount. You get the exposure.",
+    title: "They get the perk. You get reach.",
     description:
-      "Customer redeems their reward. Their post stays up forever — bringing you new customers long after.",
-    example: "One $2 pastry → a review seen by 500 people",
+      "Customer redeems on their next visit. Their post stays up forever, seen by every friend they have. Most posts reach 800+ people.",
+    example: "$2 pastry → 800-person ad that lasts forever",
     icon: "🤝",
     accent: "border-brand-pink",
   },
@@ -72,10 +72,10 @@ export function HowItWorks() {
             id="how-it-works-heading"
             className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic text-brand-white leading-tight"
           >
-            Simple enough for any business owner
+            Set it up in 5 minutes. Forget about it.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
-            If you can set a price on your menu, you can run a campaign. No marketing experience needed.
+            No campaigns to babysit. No influencers to chase. Just a QR code and your real customers doing what they already want to do — show off where they go.
           </p>
         </AnimateOnScroll>
 

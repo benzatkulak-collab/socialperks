@@ -18,7 +18,9 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/calculator",    changeFrequency: "monthly", priority: 0.7 },
   { path: "/case-studies",  changeFrequency: "weekly",  priority: 0.7 },
   { path: "/blog",          changeFrequency: "weekly",  priority: 0.7 },
-  { path: "/leaderboard",   changeFrequency: "daily",   priority: 0.7 },
+  // /leaderboard intentionally omitted — de-prioritized creator-side
+  // surface during the shop-owner pivot. Re-add once we re-prioritize
+  // creator acquisition. Page still resolves for direct shares.
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
   { path: "/status",        changeFrequency: "monthly", priority: 0.4 },
@@ -78,12 +80,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "weekly" as const,
     priority: 0.5,
   }));
-  const influencerEntries: MetadataRoute.Sitemap = seed.influencers.map((i) => ({
-    url: `${SITE_URL}/i/${buildInfluencerSlug(i)}`,
-    lastModified: now,
-    changeFrequency: "weekly" as const,
-    priority: 0.5,
-  }));
+  // /i/[slug] influencer pages intentionally omitted from the sitemap —
+  // de-prioritized creator-side surface during the shop-owner pivot.
+  // The pages still resolve for direct-link landings; just kept out of
+  // search until we re-prioritize creator acquisition.
+  void buildInfluencerSlug; // keep import live for future re-enablement
 
   // Blog posts.
   const blogEntries: MetadataRoute.Sitemap = listPosts().map((p) => ({
@@ -99,7 +100,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...cityEntries,
     ...cityIndustryEntries,
     ...businessEntries,
-    ...influencerEntries,
     ...blogEntries,
   ];
 }

@@ -1,7 +1,7 @@
 {
   "name": "Social Perks",
   "short_name": "SocialPerks",
-  "description": "Turn customers into your marketing team. Offer perks in exchange for social media posts, reviews, and shares.",
+  "description": "Print one QR code. Stick it on the cup. Customers scan, post about you, get a small perk. You get real customer-made ads.",
   "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "any",

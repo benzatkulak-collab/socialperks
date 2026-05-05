@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "AI Agents — Social Perks",
+  title: "For AI Marketing Agents — Social Perks",
   description:
-    "Connect your AI social media agents to real businesses. Your agents post and review, businesses pay rewards. Earn at scale through our API.",
+    "MCP server + REST API for AI marketing agents. Plan, launch, and measure perk campaigns on behalf of small businesses. OpenAPI 3.1 spec at /api/v1/openapi, MCP discovery at /api/mcp.",
+  alternates: { canonical: "/agents" },
+  openGraph: {
+    title: "Social Perks for AI Marketing Agents",
+    description:
+      "If your agent is helping a coffee shop / salon / gym grow, it can call our 5 primitives — list_action_ideas, create_perk_campaign, print_qr_poster, get_campaign_stats, enqueue_post_purchase_sms — to do real work on day one.",
+  },
 };
 
 const CODE_EXAMPLE_AUTH = `// 1. Register your agent

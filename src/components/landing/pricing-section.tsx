@@ -29,11 +29,11 @@ const PRICING_TIERS: PricingTier[] = [
     planKey: null,
     price: "$0",
     period: "forever",
-    description: "Run your first campaign and see results.",
+    description: "Print one QR code.",
     features: [
-      "1 active campaign",
-      "Up to 50 completions/month",
-      "Basic analytics",
+      "Up to 1 active campaign",
+      "All features",
+      "Forever free",
       "Email support",
     ],
     cta: "Start Free",
@@ -42,22 +42,21 @@ const PRICING_TIERS: PricingTier[] = [
     accentBorder: "border-brand-border",
   },
   {
-    name: "Pro",
+    name: "Growth",
     planKey: "professional",
     price: "$49",
     period: "/month",
-    description: "Everything you need to grow.",
+    description: "Multiple QRs + analytics.",
     features: [
       "Unlimited campaigns",
-      "Unlimited completions",
-      "Full analytics dashboard",
-      "QR codes for your counter",
+      "Multi-location",
+      "Embed widget",
       "Priority verification",
-      "API access",
+      "Full analytics dashboard",
+      "POS webhook integrations",
     ],
     // CTA reflects actual product policy: there's no time-bombed trial,
-    // just a free tier. Saying "Start Free Trial" sets up an expectation
-    // we don't meet. "Start Free" is honest and matches the Free card.
+    // just a free tier. "Start Free" is honest and matches the Free card.
     cta: "Start Free",
     popular: true,
     accent: "text-brand-cyan",
@@ -68,10 +67,10 @@ const PRICING_TIERS: PricingTier[] = [
     planKey: "enterprise",
     price: "Custom",
     period: "",
-    description: "Multiple locations, custom needs.",
+    description: "Custom multi-location — for chains.",
     features: [
-      "Everything in Pro",
-      "Multi-location management",
+      "Everything in Growth",
+      "Centralized multi-location dashboard",
       "Team permissions",
       "Dedicated account manager",
       "Custom integrations",
@@ -112,7 +111,8 @@ export function PricingSection() {
             Costs less than one Instagram ad
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
-            Start free. Most businesses stay on free or Starter. No contracts, cancel anytime.
+            Start free with one QR. Upgrade when you need more campaigns or
+            multiple locations. No contracts, cancel anytime.
           </p>
 
           {/* Billing toggle */}
@@ -316,28 +316,16 @@ export function PricingSection() {
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: "Is there really a free tier?",
-    a: "Yes. Run one campaign with up to 50 completions per month, forever. No credit card. We only charge when you outgrow it.",
+    q: "What if I don't have many regulars yet?",
+    a: "That's actually the best time to start. The QR code goes on your counter and works on every walk-in customer — not just regulars. Even a single post from a first-time customer reaches their friends, who tend to live nearby. Most shops see their first claimed perk within the first week.",
   },
   {
-    q: "What if I cancel?",
-    a: "Cancel anytime from your dashboard. No phone calls, no retention scripts. Your data stays accessible for export for 30 days after.",
+    q: "What POS systems do you connect to?",
+    a: "Square (live), Toast and Clover (rolling out). Connecting your POS lets us auto-text customers ~2 hours after they pay with a friendly perk link — no extra work for your staff. Don't have one of those? The QR code on the counter works on its own.",
   },
   {
-    q: "Do I get a refund if it doesn't work?",
-    a: "30-day money-back guarantee on Pro. If your customers aren't posting, email us within 30 days of your first paid month and we'll refund in full.",
-  },
-  {
-    q: "How does the FTC compliance piece work?",
-    a: "Every campaign auto-injects the platform-specific disclosure (#ad on Instagram, branded-content tag on TikTok, etc.) into the customer's posting flow. You can't accidentally launch a non-compliant campaign — the system blocks it.",
-  },
-  {
-    q: "Why don't you support paying for Google reviews?",
-    a: "Google's Terms of Service prohibit incentivized reviews — same with Yelp and Tripadvisor. The platform actively blocks these to protect your account from being suspended. We focus on Instagram, TikTok, and Facebook posts where incentivization is allowed with proper disclosure.",
-  },
-  {
-    q: "What if I have multiple locations?",
-    a: "That's the Enterprise tier. Multi-location dashboard, team permissions, brand-compliance review across stores, and a dedicated account manager. Reach out via Contact.",
+    q: "Do customers really post?",
+    a: "When the perk is worth more than the post takes — yes. A free coffee for an Instagram story is a fair trade for most people, and it takes them about 30 seconds. We see roughly 1 in 8 customers who scan the QR end up posting.",
   },
 ];
 

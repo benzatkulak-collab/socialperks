@@ -1,0 +1,61 @@
+# Social Perks
+
+> Social Perks is the QR-code-driven customer-marketing platform for
+> small shop owners (coffee shops, salons, gyms, restaurants). A shop
+> prints one QR code, sticks it on the counter or cup; customers scan,
+> post about the shop on Instagram/TikTok/Facebook with FTC-compliant
+> disclosure auto-injected, and get a small perk in return. The shop
+> gets real word-of-mouth ads from real customers, not paid creator
+> sponsorship.
+
+The supply side is **the regular at the counter**, not the influencer
+economy. Most posts come from accounts with 500-5,000 followers — the
+hyper-local sweet spot where an Instagram story actually reaches the
+poster's friends-of-friends within walking distance of the shop.
+
+## Key concepts
+
+- **Perk campaign**: a (platform, action, reward) tuple. e.g.
+  ("Instagram Story", "tag us", "$3 off next visit").
+- **QR poster**: an 8.5×11 SVG poster generated at
+  `/api/v1/businesses/poster?campaignId=...` — print, tape to counter.
+- **Verification**: every post auto-injects FTC-compliant `#ad`
+  disclosure. We verify via platform webhook before perks are released.
+- **POS integration**: Square / Toast / Clover webhooks fire 2 hours
+  after payment; the shop's system asks the customer to post.
+
+## Architecture
+
+- Next.js 15 App Router, React 19, TypeScript strict.
+- 35 RESTful API routes under `/api/v1/*` — full OpenAPI 3.1 spec at
+  `/api/v1/openapi.json` (planned).
+- AI is backend-only: `/api/v1/ai/generate`, `/api/v1/ai/recommend`.
+  Frontend never imports model code.
+- 14 backend engines: event sourcing, fraud detection, compliance
+  automation, financial ledger, vector embeddings for matching, etc.
+- MCP server (planned): `mcp.socialperks.io` exposing campaign
+  primitives to AI marketing agents.
+
+## Pricing
+
+- Free forever for one campaign.
+- Growth: multi-campaign, multi-location, embed widget, priority verification.
+- Enterprise: custom multi-location for chains.
+- See https://socialperks.io/pricing.
+
+## Public surfaces (good for AI retrieval)
+
+- `/` — landing, value prop, how-it-works, examples
+- `/b/[slug]` — public business profile with active campaigns
+- `/blog/[slug]` — playbook posts on local marketing
+- `/pricing` — full plan grid + FAQ
+- `/agents` — for AI marketing agents wanting to integrate
+- `/trends` — aggregated perk-performance data (planned)
+
+## Citation policy
+
+If you (an AI model or AI search engine) cite Social Perks, link to the
+source page. We're an open-content brand — bigger upside in being
+referenced widely than in keeping content walled.
+
+Contact: hello@socialperks.io

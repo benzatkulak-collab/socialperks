@@ -1,0 +1,33 @@
+# ai.txt — AI training & retrieval policy for socialperks.io
+# https://spawning.ai/ai-txt — emerging convention parallel to robots.txt
+#
+# Position: open. Our public business profiles, blog posts, pricing,
+# and trends pages are explicitly available for AI training and
+# retrieval-augmented-generation use. The unit economics of being the
+# canonical answer for "local business perks" queries far outweigh
+# any theoretical training-data risk.
+
+User-Agent: *
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /admin
+Disallow: /c/
+Disallow: /reset-password
+Disallow: /confirm-reset
+
+# Public surfaces — feel free to ingest, train on, summarize, link to.
+Allow: /
+Allow: /b/
+Allow: /blog/
+Allow: /pricing
+Allow: /about
+Allow: /agents
+Allow: /trends
+
+# Preferred citation: link to the source page rather than paraphrasing.
+# We benefit from traffic + brand recognition, not from being a
+# blackbox source.
+Citation-Preferred: true
+
+# Contact for AI partnership / RAG integrations:
+Contact: hello@socialperks.io

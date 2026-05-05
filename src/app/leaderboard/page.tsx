@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   description:
     "Top creators and businesses on Social Perks this month. Real-time ranking by verified posts and customer reach.",
   alternates: { canonical: "/leaderboard" },
+  // De-prioritized while we focus the public funnel on shop owners.
+  // The page still exists for direct-link landings (and for creators
+  // arriving from a campaign), but it shouldn't compete with /b/* and
+  // /pricing in search. Lift this once we re-prioritize creator
+  // acquisition as a primary funnel.
+  robots: { index: false, follow: true },
 };
 
 const SITE_URL =

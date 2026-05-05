@@ -113,6 +113,21 @@ export function PortalHome({
     });
   }, []);
 
+  // Pick the campaign whose poster we surface as the dashboard hero. Prefer
+  // the first active one (so paused/ended don't dominate); fall back to the
+  // most recent if nothing is active. The QR poster is the single most
+  // important artifact on this page — printing and sticking it on the
+  // counter is what actually drives the customer flywheel.
+  const heroCampaign =
+    myCampaigns.find((c) => c.status === "active") ?? myCampaigns[0];
+  const heroPosterUrl = heroCampaign
+    ? `/api/v1/businesses/poster?campaignId=${encodeURIComponent(
+        heroCampaign.id,
+      )}&businessName=${encodeURIComponent(
+        businessName ?? "Your Business",
+      )}&perk=${encodeURIComponent(heroCampaign.rewardValue + (heroCampaign.rewardType === "pct" ? "% off" : heroCampaign.rewardType === "dol" ? " off" : ""))}`
+    : null;
+
   return (
     <>
       {/* Stats (only if there are campaigns) */}
@@ -122,6 +137,96 @@ export function PortalHome({
           <Card><Stat value={totalCompletions} label="Completions" color="green" /></Card>
           <Card><Stat value={String(stats.reviews)} label="Reviews" color="amber" /></Card>
           <Card><Stat value={"$" + stats.marketingValue} label="Value" color="pink" /></Card>
+        </AnimateOnScroll>
+      )}
+
+      {/* QR Poster Hero — the centerpiece of the whole product. The single
+          action that turns a campaign into actual customer reach is "print
+          this and stick it on the counter." Surface it loud, surface it
+          first, make it one click. */}
+      {heroCampaign && heroPosterUrl && (
+        <AnimateOnScroll animation="fade-up" delay={40} className="mb-8">
+          <Card borderColor="cyan" className="bg-gradient-to-br from-brand-cyan/[0.06] to-brand-purple/[0.04]">
+            <div className="grid grid-cols-1 sm:grid-cols-[auto,1fr] gap-6 items-center">
+              {/* Poster preview thumbnail */}
+              <a
+                href={heroPosterUrl}
+                target="_blank"
+                rel="noopener"
+                className="block relative shrink-0 rounded-lg overflow-hidden border border-brand-border bg-white shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50"
+                style={{ width: 140, height: 180 }}
+                aria-label="Open full-size poster in a new tab"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={heroPosterUrl}
+                  alt={`Printable QR poster for ${heroCampaign.name}`}
+                  className="w-full h-full object-cover"
+                />
+              </a>
+
+              {/* Copy + actions */}
+              <div className="min-w-0">
+                <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan mb-2">
+                  Step 1 → Print this
+                </p>
+                <h2 className="font-heading text-2xl italic text-brand-white leading-tight">
+                  Stick this on your counter today.
+                </h2>
+                <p className="mt-2 text-sm text-brand-dim">
+                  Customers scan, post, get{" "}
+                  <span className="text-brand-white font-semibold">
+                    {heroCampaign.rewardValue}
+                    {heroCampaign.rewardType === "pct" ? "% off" : heroCampaign.rewardType === "dol" ? " off" : ""}
+                  </span>
+                  . You get real word-of-mouth seen by every friend they have.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a
+                    href={heroPosterUrl}
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-cyan px-4 py-2 text-sm font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829q-.34.018-.68.04m.68-.04a24.5 24.5 0 0 1 4.56 0m-4.56 0v-3.752m4.56 3.752v-3.752m0 3.752q.34.018.68.04m-.68-.04l-1-3.752M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
+                    Open & print poster
+                  </a>
+                  <a
+                    href={heroPosterUrl}
+                    download={`socialperks-poster-${heroCampaign.id.slice(-6)}.svg`}
+                    className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-surface/50 px-4 py-2 text-sm font-semibold text-brand-text transition-all hover:bg-brand-surface hover:border-brand-border-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Download
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleShareCampaign(heroCampaign.id)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-surface/50 px-4 py-2 text-sm font-semibold text-brand-text transition-all hover:bg-brand-surface hover:border-brand-border-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+                  >
+                    {copiedId === heroCampaign.id ? (
+                      <>
+                        <svg className="w-4 h-4 text-brand-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>
+                        Copy link
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="mt-3 text-xs text-brand-muted">
+                  Tip: tape it next to the register, on the cup sleeve, or on a tip-jar tent card. Most posts reach 800+ people on average.
+                </p>
+              </div>
+            </div>
+          </Card>
         </AnimateOnScroll>
       )}
 
@@ -177,14 +282,23 @@ export function PortalHome({
         </AnimateOnScroll>
       )}
 
-      {/* Create new campaign button */}
+      {/* Create new campaign button — copy reframed around the QR
+          flow. The visible job is "set the perk" once; the actual
+          ongoing artifact is the printed QR which the hero card above
+          handles. */}
       <button
         onClick={onGoToCreate}
         className="w-full rounded-xl border-2 border-dashed border-brand-cyan/30 bg-brand-cyan/[0.03] p-8 sm:p-10 text-center transition-all duration-300 hover:border-brand-cyan/60 hover:bg-brand-cyan/[0.07] mb-6 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
       >
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-cyan/10 text-brand-cyan text-2xl transition-transform duration-300 group-hover:scale-110">+</span>
-        <p className="mt-3 text-sm font-semibold text-brand-white">Create a new campaign</p>
-        <p className="mt-1 text-xs text-brand-dim">Pick what you want customers to do and what they get</p>
+        <p className="mt-3 text-sm font-semibold text-brand-white">
+          {myCampaigns.length === 0 ? "Print your first QR code" : "Create another campaign"}
+        </p>
+        <p className="mt-1 text-xs text-brand-dim">
+          {myCampaigns.length === 0
+            ? "Pick a perk, print the poster, stick it on the counter. 5 minutes."
+            : "Add a different perk or a different platform."}
+        </p>
       </button>
 
       {/* Active campaigns list */}

@@ -103,6 +103,68 @@ export default async function BusinessProfilePage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* Hero "claim band" — the loudest thing on the page for friends
+            arriving here from a customer's IG/TikTok post. Falls back to
+            the dim "no active campaigns" card if nothing is live. */}
+        {activeCampaigns.length > 0 ? (
+          <section
+            aria-labelledby="claim-band"
+            className="mt-10 overflow-hidden rounded-3xl border border-brand-cyan/40 bg-gradient-to-br from-brand-cyan/15 via-brand-cyan/5 to-transparent p-6 sm:p-8"
+          >
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">
+              For you
+            </p>
+            <h2
+              id="claim-band"
+              className="mt-2 font-heading text-3xl italic text-brand-white sm:text-4xl"
+            >
+              🎁 {biz.name} is giving free perks for posting about them
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm text-brand-text/90 sm:text-base">
+              Pick something to post, share it on Instagram or TikTok, and walk in to
+              claim. Verified in seconds at the counter.
+            </p>
+            <Link
+              href={`/c/${activeCampaigns[0].id}?ref=friend`}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 font-body text-sm font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/20 sm:text-base"
+            >
+              Claim your perk →
+            </Link>
+
+            {/* "How it takes 30 seconds" 3-step strip */}
+            <ol className="mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                {
+                  n: "1",
+                  t: "Pick what to post",
+                  d: "We suggest options that fit you.",
+                },
+                {
+                  n: "2",
+                  t: "Post on IG / TikTok",
+                  d: "Takes about 30 seconds.",
+                },
+                {
+                  n: "3",
+                  t: "Show the verified screen",
+                  d: "Hand the staff your phone — done.",
+                },
+              ].map((step) => (
+                <li
+                  key={step.n}
+                  className="rounded-2xl border border-brand-border/40 bg-brand-surface/40 p-4"
+                >
+                  <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">
+                    Step {step.n}
+                  </p>
+                  <p className="mt-1 font-semibold text-brand-white">{step.t}</p>
+                  <p className="mt-1 text-xs text-brand-muted">{step.d}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
+
         {/* Active campaigns */}
         <section aria-labelledby="campaigns" className="mt-12">
           <h2 id="campaigns" className="font-heading text-2xl italic text-brand-white">
@@ -145,6 +207,13 @@ export default async function BusinessProfilePage({ params }: PageProps) {
             <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan" aria-hidden="true" />
             Verified posts only
           </span>
+        </div>
+
+        {/* Referral boost — copy-only for now. The ?ref=friend on the
+            CTA link sets up attribution wiring for a follow-up phase. */}
+        <div className="mt-6 rounded-2xl border border-brand-border/40 bg-brand-surface/20 p-5 text-sm text-brand-dim">
+          👀 Came here from a friend&apos;s post? You both win — they get extra credit
+          when you claim.
         </div>
 
         {/* CTA */}

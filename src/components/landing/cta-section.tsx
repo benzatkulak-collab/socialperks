@@ -27,19 +27,19 @@ export function CtaSection() {
       <div className="relative z-10 mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
         <AnimateOnScroll animation="fade-up">
           <h2 className="font-heading text-[clamp(1.75rem,4vw,3rem)] italic text-brand-white leading-[1.15]">
-            Stop paying for ads.
+            One QR code.
             <br />
             <span className="bg-gradient-to-r from-brand-cyan via-brand-green to-brand-cyan bg-clip-text text-transparent">
-              Start rewarding your customers.
+              Hundreds of customer-made ads.
             </span>
           </h2>
         </AnimateOnScroll>
 
         <AnimateOnScroll animation="fade-up" delay={100}>
           <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-brand-dim sm:mt-8 sm:text-lg">
-            Your customers already tell their friends about you.
+            Your regulars already love you.
             <br className="hidden sm:block" />
-            Now give them a reason to tell everyone else.
+            Make it easy for them to say so — and reach every friend they have.
           </p>
         </AnimateOnScroll>
 
@@ -49,7 +49,7 @@ export function CtaSection() {
               href="/dashboard#signup"
               className="w-full sm:w-auto rounded-xl bg-brand-cyan px-10 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0"
             >
-              Create Your First Campaign
+              Print Your QR Code Free
             </a>
           </div>
         </AnimateOnScroll>

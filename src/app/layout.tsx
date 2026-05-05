@@ -18,23 +18,24 @@ const SITE_URL =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Social Perks — Turn Customers Into Your Marketing Team",
+  title: "Social Perks — One QR Code. Hundreds of Customer-Made Ads.",
   description:
-    "Independent coffee shops: turn regulars into your marketing team. Offer a perk, they post on Instagram, TikTok or Facebook. You get real word-of-mouth — not ads.",
+    "Print one QR code. Stick it on the cup. Customers scan, post about you, get a small perk. You get real customer-made ads — not paid creator junk.",
   keywords: [
-    "social media marketing for coffee shops",
-    "coffee shop marketing",
+    "qr code marketing",
+    "customer marketing",
+    "in-store marketing",
     "small business marketing",
-    "customer referrals",
-    "instagram marketing for cafes",
+    "user-generated content",
+    "coffee shop marketing",
     "local business marketing",
     "word of mouth marketing",
     "customer perks",
   ],
   openGraph: {
-    title: "Social Perks — Turn Coffee Shop Regulars Into Marketing",
+    title: "Social Perks — One QR Code. Hundreds of Customer-Made Ads.",
     description:
-      "Offer a perk. Customers post on Instagram, TikTok, Facebook. You get real word-of-mouth — not ads.",
+      "Print one QR code. Customers scan, post, get a perk. You get real word-of-mouth seen by every friend they have.",
     type: "website",
     siteName: "Social Perks",
     url: SITE_URL,
@@ -99,6 +100,13 @@ export default function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
+        {/* AI/LLM crawler policy. We're explicitly open: every public
+            page (especially /b/[slug]) is meant to be ingested and
+            cited by AI search agents. This meta is paired with a
+            permissive ai.txt at /public/ai.txt and explicit allows in
+            robots.ts for GPTBot/ClaudeBot/PerplexityBot. */}
+        <meta name="ai-content-policy" content="open" />
+        <meta name="robots" content="index,follow,max-image-preview:large" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -21,20 +21,22 @@ export function Hero() {
       />
 
       <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-4 pb-24 pt-32 text-center sm:px-6 md:px-8 sm:pt-40 lg:pt-48 lg:pb-32">
-        {/* Headline */}
+        {/* Headline — repositioned: this is customer-powered marketing,
+            not a creator marketplace. Talks to shop owners, not platform
+            people. */}
         <h1 className="animate-fade-up font-heading text-[clamp(2.25rem,5vw,4.5rem)] italic leading-[1.1] text-brand-white tracking-tight">
-          Your customers love you.
+          Your regulars are your best ad.
           <br />
           <span className="bg-gradient-to-r from-brand-cyan via-brand-green to-brand-cyan bg-clip-text text-transparent">
-            Pay them to say it online.
+            Stick a QR code on the cup.
           </span>
         </h1>
 
         {/* Subline */}
         <p className="mt-6 max-w-[42rem] animate-fade-up text-base leading-relaxed text-brand-dim animate-delay-100 sm:mt-8 sm:text-lg md:text-xl">
-          Give customers a small discount. They post on Instagram,
-          share on TikTok, tag you on Facebook. You get real marketing
-          from real people — not ads nobody trusts.
+          Print a QR code. Customer scans. Posts about you on Instagram,
+          TikTok, or Facebook. Gets a small perk. You get real word-of-mouth
+          from a real customer — seen by every friend they have.
         </p>
 
         {/* CTA Buttons */}
@@ -43,7 +45,7 @@ export function Hero() {
             href="/dashboard#signup"
             className="w-full sm:w-auto rounded-xl bg-brand-cyan px-8 py-3.5 font-body text-base font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0"
           >
-            Create Your First Campaign
+            Print Your QR Code Free
           </a>
           <a
             href="#how-it-works"
@@ -54,7 +56,7 @@ export function Hero() {
         </div>
 
         <p className="mt-6 animate-fade-up text-sm text-brand-muted animate-delay-300 sm:mt-8">
-          Free to start. No credit card. Takes 5 minutes. Or{" "}
+          Free forever for your first campaign. No credit card. 5-minute setup. Or{" "}
           <a
             href="#waitlist"
             className="text-brand-cyan underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded-sm"
