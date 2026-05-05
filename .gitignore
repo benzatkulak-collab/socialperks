@@ -34,3 +34,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 api/node_modules/
+
+# Workspace package build outputs
+packages/*/dist/
+packages/*/node_modules/

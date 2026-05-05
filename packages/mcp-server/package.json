@@ -1,0 +1,47 @@
+{
+  "name": "@socialperks/mcp-server",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for Social Perks. Lets AI agents (Claude Code, Cursor, custom MCP clients) plan, launch, and measure customer-rewards campaigns on behalf of small businesses.",
+  "keywords": ["mcp", "model-context-protocol", "ai-agent", "social-perks", "loyalty", "marketing"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benzatkulak-collab/socialperks.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://socialperks.io",
+  "type": "module",
+  "bin": {
+    "socialperks-mcp": "./dist/server.js"
+  },
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    },
+    "./handler": {
+      "types": "./dist/handler.d.ts",
+      "import": "./dist/handler.js",
+      "default": "./dist/handler.js"
+    }
+  },
+  "files": ["dist/", "src/", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/server.js', 0o755)\"",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/server.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@socialperks/sdk": "0.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

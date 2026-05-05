@@ -1,0 +1,48 @@
+{
+  "name": "@socialperks/sdk",
+  "version": "0.1.0",
+  "description": "Typed SDK for Social Perks — primitives for AI marketing agents and developers building customer-rewards loops into local-business apps.",
+  "keywords": [
+    "social-perks",
+    "loyalty",
+    "customer-rewards",
+    "referral",
+    "marketing",
+    "qr-code",
+    "ai-agent",
+    "mcp"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benzatkulak-collab/socialperks.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://socialperks.io",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

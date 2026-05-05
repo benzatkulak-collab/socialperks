@@ -1,0 +1,35 @@
+{
+  "name": "@socialperks/cli",
+  "version": "0.1.0",
+  "description": "CLI for Social Perks. Agent-runnable account creation, campaign management, poster printing — all from the terminal, no browser required.",
+  "keywords": ["social-perks", "cli", "ai-agent", "automation"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benzatkulak-collab/socialperks.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://socialperks.io",
+  "type": "module",
+  "bin": {
+    "socialperks": "./dist/cli.js",
+    "social-perks": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "files": ["dist/", "src/", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@socialperks/sdk": "0.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
