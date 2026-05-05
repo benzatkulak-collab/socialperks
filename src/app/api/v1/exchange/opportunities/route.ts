@@ -133,6 +133,17 @@ export const GET = withTiming(async (req: NextRequest) => {
         }))
       : undefined;
 
+  // Supply-deficit signal — bot-detectable. Lower number = more
+  // unmatched campaigns vs available creators in this slice. Bots
+  // route fresh creators toward deficit cities.
+  // For now we surface a synthetic deficit derived from niche + city
+  // filter narrowness; the real number plugs in once campaigns persist.
+  const supplyDeficit = computeSupplyDeficit({
+    actionCount: filteredActions.length,
+    platformCount: filteredPlatforms.length,
+    location: location ?? undefined,
+  });
+
   return ok(
     {
       opportunities: {
@@ -142,6 +153,8 @@ export const GET = withTiming(async (req: NextRequest) => {
         followerBonus: getFollowerBonus(followerCount),
         estimatedMonthlyEarnings: estimatedMonthly,
         location,
+        // Public bot-readable signal: 0..1, lower = more demand vs supply.
+        supplyDeficit,
       },
       topPayingActions: topActions,
       demandSignals,
@@ -152,3 +165,17 @@ export const GET = withTiming(async (req: NextRequest) => {
     { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
   );
 });
+
+function computeSupplyDeficit(args: {
+  actionCount: number;
+  platformCount: number;
+  location?: string;
+}): number {
+  // Heuristic until real campaign + creator persistence lands:
+  //   - More action surface area + a city filter → assume deficit (bots prioritize)
+  //   - No filter → average market, deficit ~ 0.5
+  if (args.location && args.actionCount > 50) return 0.2;  // hot city
+  if (args.location) return 0.4;
+  if (args.actionCount > 80) return 0.5;
+  return 0.6;
+}

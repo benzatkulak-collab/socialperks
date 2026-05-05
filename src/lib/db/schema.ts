@@ -827,6 +827,46 @@ export const SCHEMA = {
   // (was an in-memory Map in src/lib/billing/store.ts)
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INFLUENCER EARNINGS — public-facing ledger that drives /i/[slug]
+  // and the leaderboard. Each approved submission writes one row.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  influencer_earnings: {
+    columns: {
+      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
+      influencer_id: {
+        type: "uuid",
+        nullable: false,
+        references: { table: "influencers", column: "id", onDelete: "CASCADE" },
+      },
+      campaign_id: { type: "varchar(100)", nullable: false },
+      business_id: {
+        type: "uuid",
+        nullable: false,
+        references: { table: "businesses", column: "id", onDelete: "CASCADE" },
+      },
+      submission_id: { type: "varchar(100)", nullable: false },
+      amount_cents: { type: "int", nullable: false },
+      currency: { type: "varchar(50)", nullable: false, default: "'USD'" },
+      // Settlement tracking — Stripe transfer id once payout fires.
+      payout_id: { type: "varchar(100)", nullable: true },
+      payout_at: { type: "timestamptz", nullable: true },
+      awarded_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "influencer_earnings_pkey" },
+      { columns: ["influencer_id"], unique: false, name: "influencer_earnings_influencer_idx" },
+      { columns: ["business_id"], unique: false, name: "influencer_earnings_business_idx" },
+      { columns: ["awarded_at"], unique: false, name: "influencer_earnings_awarded_idx" },
+      { columns: ["submission_id"], unique: true, name: "influencer_earnings_submission_unique" },
+    ],
+    relations: [
+      { type: "many-to-one", table: "influencers", foreignKey: "influencer_id", description: "Earning belongs to a creator" },
+      { type: "many-to-one", table: "businesses", foreignKey: "business_id", description: "Earning came from a business" },
+    ],
+  },
+
   business_subscriptions: {
     columns: {
       id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },

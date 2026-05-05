@@ -7,8 +7,12 @@ import Link from "next/link";
 const FOOTER_LINKS = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Pricing", href: "/pricing" },
+  { label: "ROI Calculator", href: "/calculator" },
+  { label: "Leaderboard", href: "/leaderboard" },
+  { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
+  { label: "Status", href: "/status" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
 ];

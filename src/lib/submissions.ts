@@ -5,8 +5,11 @@
  * Handles creation, validation, review (approve/reject), expiration,
  * and perk value calculation including follower tier bonuses.
  *
- * Storage: in-memory Map (ready for Postgres + Prisma migration).
+ * Storage: in-memory Map (canonical) + DB write-through via
+ * `./submissions/persist.ts` when DATABASE_URL is set.
  */
+
+import { persistSubmission } from "@/lib/submissions/persist";
 
 import type {
   SubmissionStatus,
@@ -292,6 +295,23 @@ export function createSubmission(
   submissions.set(submission.id, submission);
   addToIndex(userSubmissions, userId, submission.id);
   addToIndex(campaignSubmissions, campaignId, submission.id);
+
+  // Phase 12: durable write-through. Best-effort.
+  void persistSubmission({
+    id: submission.id,
+    campaignId: submission.campaignId,
+    userId: submission.userId,
+    actionId: submission.actionId,
+    proofUrl: submission.proofUrl,
+    proofType: submission.proofType,
+    status: submission.status,
+    submittedAt: submission.submittedAt,
+    reviewedAt: submission.reviewedAt,
+    reviewedBy: submission.reviewedBy,
+    reviewNote: submission.reviewNote,
+    perkAwarded: submission.perkAwarded,
+    metadata: submission.metadata as Record<string, unknown>,
+  });
 
   if (submissions.size > MAX_SUBMISSIONS) {
     const oldest = Array.from(submissions.keys()).slice(0, Math.floor(MAX_SUBMISSIONS * 0.2));

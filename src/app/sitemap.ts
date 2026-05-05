@@ -3,6 +3,7 @@ import { INDUSTRY_SLUGS } from "@/lib/industries";
 import { listCities } from "@/lib/cities";
 import { createSeedData } from "@/lib/seed";
 import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
+import { listPosts } from "@/lib/blog";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -14,9 +15,13 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/",              changeFrequency: "weekly",  priority: 1.0 },
   { path: "/pricing",       changeFrequency: "weekly",  priority: 0.9 },
   { path: "/for",           changeFrequency: "monthly", priority: 0.8 },
+  { path: "/calculator",    changeFrequency: "monthly", priority: 0.7 },
   { path: "/case-studies",  changeFrequency: "weekly",  priority: 0.7 },
+  { path: "/blog",          changeFrequency: "weekly",  priority: 0.7 },
+  { path: "/leaderboard",   changeFrequency: "daily",   priority: 0.7 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
+  { path: "/status",        changeFrequency: "monthly", priority: 0.4 },
   { path: "/about",         changeFrequency: "monthly", priority: 0.4 },
   { path: "/accessibility", changeFrequency: "yearly",  priority: 0.3 },
   { path: "/privacy",       changeFrequency: "yearly",  priority: 0.3 },
@@ -42,12 +47,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   // Programmatic city pages — primary local-SEO surface.
-  const cityEntries: MetadataRoute.Sitemap = listCities().map((c) => ({
+  const cities = listCities();
+  const cityEntries: MetadataRoute.Sitemap = cities.map((c) => ({
     url: `${SITE_URL}/in/${c.slug}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
     priority: c.priority ? 0.85 : 0.55,
   }));
+
+  // City × industry — long-tail keyword surface ("coffee shops in DC",
+  // "salons in Arlington"). Filtered to launch-priority cities so we
+  // don't emit hundreds of empty pages.
+  const cityIndustryEntries: MetadataRoute.Sitemap = cities
+    .filter((c) => c.priority)
+    .flatMap((c) =>
+      INDUSTRY_SLUGS.map((slug) => ({
+        url: `${SITE_URL}/in/${c.slug}/${slug}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      })),
+    );
 
   // Public profile pages from seed data. Once businesses persist via
   // DB, swap createSeedData() for a businessRepo.list() call.
@@ -65,17 +85,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.5,
   }));
 
+  // Blog posts.
+  const blogEntries: MetadataRoute.Sitemap = listPosts().map((p) => ({
+    url: `${SITE_URL}/blog/${p.slug}`,
+    lastModified: new Date(p.publishedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
   return [
     ...staticEntries,
     ...industryEntries,
     ...cityEntries,
+    ...cityIndustryEntries,
     ...businessEntries,
     ...influencerEntries,
-    {
-      url: `${SITE_URL}/leaderboard`,
-      lastModified: now,
-      changeFrequency: "daily" as const,
-      priority: 0.7,
-    },
+    ...blogEntries,
   ];
 }

@@ -20,6 +20,7 @@ import { withTenant, checkResourceAccess } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import type { CampaignState, CampaignLifecycle } from "@/lib/campaign-state-machine";
+import { persistLifecycle } from "@/lib/campaign-state-machine/persist";
 import { validateId, validateString, validateNumber, validateEnum } from "@/lib/security/validate";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import { findAction, findPlatform } from "@/lib/platforms";
@@ -245,6 +246,11 @@ export const POST = withTiming(async (req: NextRequest) => {
       maxCompletions,
       expiresInDays,
     });
+
+    // Phase 11: durable write-through. Without this, every redeploy
+    // wipes campaign state. Best-effort — manager has the canonical
+    // in-memory record either way.
+    void persistLifecycle(lifecycle, { name: nv.data, actions: body.actions });
 
     eventPublisher.publish("campaign.created", { campaignId, name: nv.data }, bv.data);
     recordUsage(tenant.tenantId, "campaigns_created");

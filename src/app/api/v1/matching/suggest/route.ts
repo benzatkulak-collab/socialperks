@@ -1,24 +1,35 @@
 /**
- * GET /api/v1/matching/suggest?platformId=ig&niche=coffee&limit=5
+ * GET /api/v1/matching/suggest?platformId=ig&niche=coffee&city=dc&limit=5
  *
- * Returns top influencers matched to a campaign's platform + niche.
- * Public (relaxed rate limit) so a logged-in business can call it
- * directly from the dashboard, and so the public profile pages can
- * surface "creators like this" widgets later.
+ * Bot-detectable matching engine v2 (Phase 226).
  *
- * Initial heuristic — matches against seed.influencers by:
- *   1. Platform overlap (must)
- *   2. Niche overlap (sorted desc)
- *   3. Follower count (tiebreak)
+ * SCORING FORMULA — published in the response so callers don't have
+ * to reverse-engineer:
  *
- * Replaceable later with the embedding-based matchingService when the
- * influencer registry is real (instead of seed data).
+ *   score =
+ *       (niche_match     ? 50 : 0)
+ *     + tier_weight                              // 10/20/30/30
+ *     + min(engagement_rate * 100, 20)           // 0..20
+ *     + freshness_bonus                          // +10 if profile <14d old
+ *     + tier_multiplier_applied                  // surfaced separately
+ *
+ * Bots can predict their fill rate. Power users can target tier
+ * thresholds + the new-account 14-day freshness bonus.
  */
 
 import type { NextRequest } from "next/server";
 import { ok, rateLimit, getQuery } from "../../_shared";
 import { createSeedData } from "@/lib/seed";
 import { buildInfluencerSlug } from "@/lib/slugs";
+import { tierMatchMultiplier } from "@/lib/influencer/tier";
+
+const SCORING = {
+  nicheMatch: 50,
+  tier: { mega: 30, macro: 30, mid: 20, micro: 10 } as const,
+  engagementCap: 20,
+  freshnessBonus: 10,
+  freshnessWindowDays: 14,
+};
 
 export async function GET(req: NextRequest) {
   const limited = rateLimit(req, "relaxed");
@@ -33,34 +44,41 @@ export async function GET(req: NextRequest) {
   const seed = createSeedData();
 
   let candidates = [...seed.influencers];
-
-  // Platform filter (must match if specified)
   if (platformId) {
     candidates = candidates.filter((i) =>
       i.platforms.some((p) => p.platformId.toLowerCase() === platformId),
     );
   }
-
-  // City filter (must match if specified)
   if (city) {
     candidates = candidates.filter((i) =>
       (i.location ?? "").toLowerCase().includes(city),
     );
   }
 
-  // Score: niche overlap → tier weight → follower count
+  // Reference timestamp for freshness — seed data has no createdAt, so
+  // we treat all seed records as established. Once registrations persist
+  // we plug in the real timestamp here.
+  const now = Date.now();
+  void now;
+
   const scored = candidates.map((i) => {
     let score = 0;
-    if (niche && i.niches.some((n) => n.toLowerCase().includes(niche))) score += 50;
-    if (i.followerCount >= 100_000) score += 30;
-    else if (i.followerCount >= 25_000) score += 20;
-    else if (i.followerCount >= 5_000) score += 10;
-    score += Math.min(i.engagementRate * 100, 20);
-    return { i, score };
+    if (niche && i.niches.some((n) => n.toLowerCase().includes(niche))) {
+      score += SCORING.nicheMatch;
+    }
+    score += SCORING.tier[i.tier] ?? 0;
+    score += Math.min(i.engagementRate * 100, SCORING.engagementCap);
+    // freshness_bonus: 0 for seed data; real once we persist registration timestamps.
+    const multiplier = tierMatchMultiplier(
+      i.tier === "mega" ? "Platinum" :
+      i.tier === "macro" ? "Gold" :
+      i.tier === "mid" ? "Silver" : "Bronze",
+    );
+    return { i, score: score * multiplier, baseScore: score, multiplier };
   });
 
   scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, limit).map(({ i, score }) => ({
+  const top = scored.slice(0, limit).map(({ i, score, baseScore, multiplier }) => ({
     id: i.id,
     displayName: i.displayName,
     location: i.location,
@@ -69,7 +87,16 @@ export async function GET(req: NextRequest) {
     niches: i.niches,
     profileUrl: `/i/${buildInfluencerSlug(i)}`,
     matchScore: Math.round(score),
+    baseScore: Math.round(baseScore),
+    tierMultiplier: multiplier,
   }));
 
-  return ok({ matches: top, total: scored.length });
+  return ok({
+    matches: top,
+    total: scored.length,
+    meta: {
+      scoring: SCORING,
+      filters: { platformId, niche, city },
+    },
+  });
 }
