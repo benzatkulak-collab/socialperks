@@ -9,8 +9,15 @@
  * Cached for 1 hour. Returns application/json.
  */
 
-import type { NextRequest } from "next/server";
-import { ok, rateLimit, withTiming } from "../_shared";
+// NOTE: This route deliberately does NOT use the shared withTiming/rateLimit
+// helpers. Those touch a metrics Map with private class fields, which trips
+// over a Next.js prerender bug ("Cannot read private member #state from an
+// object whose class did not declare it") when the route is statically
+// generated. The OpenAPI spec is the same for every caller, has no auth
+// branch, and can be aggressively CDN-cached, so we keep the handler trivial
+// and let edge cache do the heavy lifting.
+
+import { NextResponse } from "next/server";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://social-perks.example.com";
@@ -373,14 +380,18 @@ function buildSpec() {
   } as const;
 }
 
-export const GET = withTiming(async (req: NextRequest) => {
-  const limited = rateLimit(req, "public");
-  if (limited) return limited;
-
-  return ok(buildSpec(), 200, {
-    "Cache-Control": "public, max-age=3600, s-maxage=3600",
-  });
-});
+export async function GET(): Promise<Response> {
+  return NextResponse.json(
+    { success: true, data: buildSpec() },
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    }
+  );
+}
 
 export const dynamic = "force-static";
 export const revalidate = 3600;
