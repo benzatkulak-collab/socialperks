@@ -12,13 +12,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden">
       <Nav />
-      <Hero />
-      <PlatformShowcase />
-      <HowItWorks />
-      <AudienceSections />
-      <SocialProof />
-      <PricingSection />
-      <CtaSection />
+      <main id="main-content">
+        <Hero />
+        <PlatformShowcase />
+        <HowItWorks />
+        <AudienceSections />
+        <SocialProof />
+        <PricingSection />
+        <CtaSection />
+      </main>
       <Footer />
     </div>
   );

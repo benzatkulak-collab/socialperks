@@ -35,7 +35,7 @@ export default function PrivacyPage() {
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8 sm:py-16">
+      <main id="main-content" className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8 sm:py-16">
         <h1 className="font-heading text-3xl italic text-brand-white sm:text-4xl">
           Privacy Policy
         </h1>

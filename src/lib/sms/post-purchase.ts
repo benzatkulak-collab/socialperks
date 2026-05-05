@@ -16,6 +16,9 @@
  */
 
 import { sendSms } from "@/lib/notifications/channels";
+import { db, InMemoryConnection } from "@/lib/db/connection";
+
+const usingDb = !(db instanceof InMemoryConnection);
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -59,6 +62,15 @@ export interface QueuedSms {
 }
 
 // ─── In-memory state ─────────────────────────────────────────────────────────
+//
+// Ring buffer is process-local — pending sends DO get lost on a server
+// restart. That's an accepted trade-off for the MVP because the post-
+// purchase delay is 2 hours and Vercel functions are short-lived; a
+// production-grade queue migrates these to a `sms_queue` table backed
+// by a Vercel cron tick. Filed as a follow-up; see TODO at top of file.
+//
+// Opt-out set, by contrast, IS persisted (compliance — when someone
+// replies STOP we must honor it forever, including across redeploys).
 
 const ringBuffer: QueuedSms[] = [];
 const optedOut = new Set<string>();
@@ -70,10 +82,49 @@ function pushToRing(entry: QueuedSms): void {
   }
 }
 
+// Warm the opt-out cache from Postgres on cold start. Best-effort; a
+// failure here doesn't break sends — `isOptedOut` will just miss
+// recently-opted-out users until the cache loads. The pattern matches
+// the api-keys/auto-issue layer.
+let optOutsHydrated = false;
+async function hydrateOptOuts(): Promise<void> {
+  if (optOutsHydrated || !usingDb) {
+    optOutsHydrated = true;
+    return;
+  }
+  try {
+    const result = await db.query<{ phone: string }>(`SELECT phone FROM sms_opt_outs`);
+    for (const row of result.rows) optedOut.add(normalizePhone(row.phone));
+  } catch (e) {
+    console.error("[sms] opt-out hydration failed:", e);
+  } finally {
+    optOutsHydrated = true;
+  }
+}
+// Kick off hydration immediately, but don't block module evaluation.
+void hydrateOptOuts();
+
 // ─── Opt-out helpers ─────────────────────────────────────────────────────────
 
-export function markOptedOut(phone: string): void {
-  optedOut.add(normalizePhone(phone));
+/**
+ * Record a STOP. Persists to Postgres when configured so it survives
+ * redeploys — compliance requires we honor opt-outs forever, not just
+ * for the current process lifetime.
+ */
+export async function markOptedOut(phone: string, reason?: string): Promise<void> {
+  const normalized = normalizePhone(phone);
+  optedOut.add(normalized);
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `INSERT INTO sms_opt_outs (phone, reason)
+       VALUES ($1, $2)
+       ON CONFLICT (phone) DO NOTHING`,
+      [normalized, reason ?? null],
+    );
+  } catch (e) {
+    console.error("[sms] opt-out persist failed:", e);
+  }
 }
 
 export function isOptedOut(phone: string): boolean {

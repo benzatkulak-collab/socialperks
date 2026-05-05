@@ -167,7 +167,7 @@ export default async function CityIndustryPage({ params }: PageProps) {
         {/* Cross-links */}
         <p className="mt-12 text-center text-sm text-brand-muted">
           See more in {c.name}: {" "}
-          <Link href={`/in/${c.slug}`} className="text-brand-cyan hover:underline">
+          <Link href={`/in/${c.slug}`} className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors">
             all industries →
           </Link>
         </p>

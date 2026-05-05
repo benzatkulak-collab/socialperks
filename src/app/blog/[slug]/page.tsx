@@ -81,7 +81,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </article>
 
         <p className="mt-12 text-sm text-brand-muted">
-          ← <Link href="/blog" className="text-brand-cyan hover:underline">All posts</Link>
+          ← <Link href="/blog" className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors">All posts</Link>
         </p>
       </main>
       <Footer />

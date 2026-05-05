@@ -607,9 +607,9 @@ export function AuthForm({
 
           <p className="text-center text-xs text-brand-dim mt-4">
             By signing up you agree to our{" "}
-            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Terms</Link>
+            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors">Terms</Link>
             {" "}and{" "}
-            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Privacy Policy</Link>
+            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors">Privacy Policy</Link>
           </p>
         </Card>
       </div>

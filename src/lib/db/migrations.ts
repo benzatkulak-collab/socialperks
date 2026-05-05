@@ -610,6 +610,57 @@ CREATE INDEX idx_sessions_email ON sessions(email);
 DROP TABLE IF EXISTS sessions;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 005: Agent-substrate persistence — magic-link tokens, dev-init email
+  // map, and SMS opt-out registry. These were originally in-memory Maps;
+  // any redeploy nuked them. Each table is small + write-mostly, so we
+  // don't bother with caching tables — every read is a single indexed
+  // lookup.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 5,
+    name: "add_agent_substrate_tables",
+    up: `
+CREATE TABLE IF NOT EXISTS magic_link_tokens (
+  token         TEXT PRIMARY KEY,
+  email         TEXT NOT NULL,
+  business_name TEXT,
+  expires_at    TIMESTAMPTZ NOT NULL,
+  used          BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_magic_link_tokens_email   ON magic_link_tokens(email);
+CREATE INDEX idx_magic_link_tokens_expires ON magic_link_tokens(expires_at);
+
+-- Email → business_id mapping for the agent-runnable signup flow at
+-- POST /api/v1/dev/init. Idempotent: re-init with the same email
+-- returns the same business_id (with a freshly-rotated API key).
+CREATE TABLE IF NOT EXISTS dev_init_emails (
+  email        TEXT PRIMARY KEY,
+  business_id  TEXT NOT NULL,
+  business_name TEXT,
+  source        TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_init_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_dev_init_emails_business_id ON dev_init_emails(business_id);
+
+-- Phone numbers that have replied STOP to a Social Perks SMS. We
+-- consult this BEFORE every send. Single-use of phone column as PK
+-- keeps the interface trivial.
+CREATE TABLE IF NOT EXISTS sms_opt_outs (
+  phone       TEXT PRIMARY KEY,
+  reason      TEXT,
+  opted_out_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`,
+    down: `
+DROP TABLE IF EXISTS sms_opt_outs;
+DROP TABLE IF EXISTS dev_init_emails;
+DROP TABLE IF EXISTS magic_link_tokens;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

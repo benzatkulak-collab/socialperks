@@ -19,7 +19,7 @@ import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, parseBody, withTiming } from "../../_shared";
 import { emailProvider } from "@/lib/email";
 import { magicLinkEmail } from "@/lib/email/templates/magic-link";
-import { magicLinks, pruneExpired, TOKEN_TTL_MS } from "@/lib/auth/magic-link-store";
+import { storeMagicLink, pruneExpired, TOKEN_TTL_MS } from "@/lib/auth/magic-link-store";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -52,10 +52,12 @@ export const POST = withTiming(async (req: NextRequest) => {
       ? body.businessName.slice(0, 200).trim()
       : undefined;
 
-  pruneExpired();
+  // Best-effort prune. Don't await on the response path; the store
+  // returns a Promise but a slow DB shouldn't block sign-in.
+  void pruneExpired();
 
   const token = generateToken();
-  magicLinks.set(token, {
+  await storeMagicLink(token, {
     email,
     businessName,
     expiresAt: Date.now() + TOKEN_TTL_MS,

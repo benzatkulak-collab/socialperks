@@ -28,7 +28,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .toUpperCase();
 
     if (from && body === "STOP") {
-      markOptedOut(from);
+      // Persist the opt-out before responding so a redeploy mid-flight
+      // doesn't lose the unsubscribe. markOptedOut now writes through
+      // to Postgres when DATABASE_URL is set; in-memory otherwise.
+      await markOptedOut(from, "user_replied_stop");
       return new NextResponse(STOP_TWIML, {
         status: 200,
         headers: { "Content-Type": "text/xml" },

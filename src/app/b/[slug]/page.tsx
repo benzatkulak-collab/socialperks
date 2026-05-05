@@ -158,7 +158,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                     Step {step.n}
                   </p>
                   <p className="mt-1 font-semibold text-brand-white">{step.t}</p>
-                  <p className="mt-1 text-xs text-brand-muted">{step.d}</p>
+                  <p className="mt-1 text-xs text-brand-dim">{step.d}</p>
                 </li>
               ))}
             </ol>
@@ -173,7 +173,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
           {activeCampaigns.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-brand-border/40 bg-brand-surface/30 p-6 text-sm text-brand-dim">
               No active campaigns right now. Want to be notified when they launch one?{" "}
-              <Link href="/#waitlist" className="text-brand-cyan hover:underline">
+              <Link href="/#waitlist" className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors">
                 Join the early-access list →
               </Link>
             </div>
@@ -198,7 +198,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
         </section>
 
         {/* Trust strip */}
-        <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-brand-border/40 bg-brand-surface/30 p-5 text-xs text-brand-muted">
+        <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-brand-border/40 bg-brand-surface/30 p-5 text-xs text-brand-dim">
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-green" aria-hidden="true" />
             FTC-compliant disclosures auto-injected

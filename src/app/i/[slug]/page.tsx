@@ -178,7 +178,7 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
         {/* Creator CTA */}
         <p className="mt-8 text-center text-xs text-brand-muted">
           Are you a creator?{" "}
-          <Link href="/dashboard#signup" className="text-brand-cyan hover:underline">
+          <Link href="/dashboard#signup" className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors">
             Set up your profile and start earning →
           </Link>
         </p>

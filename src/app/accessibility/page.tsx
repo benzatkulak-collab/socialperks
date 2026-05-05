@@ -27,7 +27,7 @@ export default function AccessibilityPage() {
             We aim for the marketing site and the dashboard to meet{" "}
             <a
               href="https://www.w3.org/WAI/standards-guidelines/wcag/"
-              className="text-brand-cyan hover:underline"
+              className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -76,7 +76,7 @@ export default function AccessibilityPage() {
             email{" "}
             <a
               href="mailto:accessibility@socialperks.app"
-              className="text-brand-cyan hover:underline"
+              className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors"
             >
               accessibility@socialperks.app
             </a>{" "}

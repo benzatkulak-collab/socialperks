@@ -112,6 +112,7 @@ export default function AgentsPage() {
         </div>
       </header>
 
+      <main id="main-content">
       {/* Hero */}
       <section className="py-20 sm:py-28">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -276,6 +277,8 @@ export default function AgentsPage() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-brand-border/50 py-8">

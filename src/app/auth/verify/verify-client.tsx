@@ -65,7 +65,7 @@ export function VerifyClient() {
   }, [token, router]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-brand-bg text-brand-text px-4 py-8 sm:px-6">
+    <main id="main-content" className="min-h-screen flex items-center justify-center bg-brand-bg text-brand-text px-4 py-8 sm:px-6">
       <div className="w-full max-w-sm">
         <div className="rounded-xl border border-brand-border bg-brand-surface/50 p-8 text-center">
           {state.kind === "verifying" && (

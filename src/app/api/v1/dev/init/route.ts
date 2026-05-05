@@ -24,6 +24,9 @@
 import type { NextRequest } from "next/server";
 import { autoIssueOnSignup } from "@/lib/api-keys/auto-issue";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/security/rate-limiter";
+import { db, InMemoryConnection } from "@/lib/db/connection";
+
+const usingDb = !(db instanceof InMemoryConnection);
 
 interface InitRequest {
   email?: string;
@@ -38,10 +41,52 @@ interface InitResponse {
   message: string;
 }
 
-// In-memory map: email -> businessId. Persists for the process lifetime
-// only — when DATABASE_URL is set the auto-issue layer will route
-// through Postgres and this becomes a cache, not a source of truth.
+// In-memory cache + (when DATABASE_URL is set) write-through Postgres.
+// Both layers are consulted for idempotency: re-init with the same
+// email returns the same business_id even across redeploys.
 const emailToBusinessId = new Map<string, string>();
+
+async function lookupBusinessId(email: string): Promise<string | null> {
+  const cached = emailToBusinessId.get(email);
+  if (cached) return cached;
+  if (!usingDb) return null;
+  try {
+    const result = await db.query<{ business_id: string }>(
+      `SELECT business_id FROM dev_init_emails WHERE email = $1 LIMIT 1`,
+      [email],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    emailToBusinessId.set(email, row.business_id);
+    return row.business_id;
+  } catch (e) {
+    console.error("[dev/init] db lookup failed:", e);
+    return null;
+  }
+}
+
+async function recordInit(args: {
+  email: string;
+  businessId: string;
+  businessName: string;
+  source: string | undefined;
+}): Promise<void> {
+  emailToBusinessId.set(args.email, args.businessId);
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `INSERT INTO dev_init_emails (email, business_id, business_name, source, last_init_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (email) DO UPDATE
+         SET business_name = EXCLUDED.business_name,
+             source = COALESCE(EXCLUDED.source, dev_init_emails.source),
+             last_init_at = NOW()`,
+      [args.email, args.businessId, args.businessName, args.source ?? null],
+    );
+  } catch (e) {
+    console.error("[dev/init] db write failed:", e);
+  }
+}
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -96,12 +141,14 @@ export async function POST(req: NextRequest) {
 
   const businessName = safeBusinessName(body.businessName, email.split("@")[0] ?? "Auto");
 
-  // Look up or create the business.
-  let businessId = emailToBusinessId.get(email);
+  // Look up or create the business — idempotent on email so the CLI
+  // can retry safely. Persists across redeploys when DATABASE_URL is
+  // set; otherwise lives in process memory for the dev session.
+  let businessId = await lookupBusinessId(email);
   if (!businessId) {
     businessId = `biz_cli_${crypto.randomUUID().slice(0, 12)}`;
-    emailToBusinessId.set(email, businessId);
   }
+  await recordInit({ email, businessId, businessName, source: body.source });
 
   const issued = await autoIssueOnSignup({ ownerType: "business", ownerId: businessId });
 

@@ -69,7 +69,7 @@ export function CtaSection() {
           </div>
         </AnimateOnScroll>
 
-        <AnimateOnScroll animation="fade-in" delay={300} className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-brand-muted sm:mt-12 sm:gap-x-8">
+        <AnimateOnScroll animation="fade-in" delay={300} className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-brand-dim sm:mt-12 sm:gap-x-8">
           <span className="flex items-center gap-2">
             <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-green/10 text-brand-green text-[10px]" aria-hidden="true">✓</span>
             Free to start

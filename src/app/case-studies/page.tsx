@@ -48,7 +48,7 @@ export default function CaseStudiesPage() {
 
         <p className="mt-12 text-sm text-brand-muted">
           In the meantime, here&apos;s how the system works:{" "}
-          <Link href="/#how-it-works" className="text-brand-cyan hover:underline">
+          <Link href="/#how-it-works" className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors">
             See how it works →
           </Link>
         </p>

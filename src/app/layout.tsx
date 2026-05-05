@@ -69,15 +69,10 @@ export const metadata: Metadata = {
     },
   },
   manifest: "/manifest.json",
-  icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
-    // SVG favicon doubles as the apple-touch source. iOS will scale it
-    // and fall back gracefully. A bespoke 180×180 PNG can be added at
-    // /public/apple-touch-icon.png to override.
-    apple: [{ url: "/favicon.svg" }],
-  },
+  // Icons are auto-emitted by Next.js from src/app/icon.svg and
+  // src/app/apple-icon.svg. Avoiding a manual `icons` config here
+  // prevents double-emission and the 404s Lighthouse used to flag
+  // for browser-auto-requested apple-touch-icon variants.
 };
 
 export const viewport: Viewport = {

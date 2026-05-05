@@ -70,7 +70,7 @@ export default async function WalletPage({ searchParams }: WalletPageProps) {
     : "guest";
 
   return (
-    <main className="min-h-screen bg-brand-bg text-brand-text">
+    <main id="main-content" className="min-h-screen bg-brand-bg text-brand-text">
       {/* Header */}
       <header className="border-b border-brand-border">
         <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">

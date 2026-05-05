@@ -14,7 +14,11 @@
 import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, parseBody, withTiming } from "../../../_shared";
 import { createTokenPair, sessionStore } from "@/lib/auth";
-import { magicLinks } from "@/lib/auth/magic-link-store";
+import {
+  getMagicLink,
+  markMagicLinkUsed,
+  deleteMagicLink,
+} from "@/lib/auth/magic-link-store";
 
 // ─── In-memory user index for magic-link signups ─────────────────────────────
 //
@@ -86,7 +90,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("INVALID_TOKEN", "Sign-in link is invalid or malformed", 400);
   }
 
-  const record = magicLinks.get(token);
+  const record = await getMagicLink(token);
   if (!record) {
     return err("INVALID_TOKEN", "Sign-in link is invalid or already used", 401);
   }
@@ -94,13 +98,13 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("TOKEN_USED", "Sign-in link has already been used", 401);
   }
   if (record.expiresAt < Date.now()) {
-    magicLinks.delete(token);
+    await deleteMagicLink(token);
     return err("TOKEN_EXPIRED", "Sign-in link has expired. Request a new one.", 401);
   }
 
-  // Mark used immediately to prevent races/replays.
-  record.used = true;
-  magicLinks.set(token, record);
+  // Mark used immediately to prevent races/replays. The store handles
+  // both the in-memory cache and the Postgres write.
+  await markMagicLinkUsed(token);
 
   // Lazy provisioning — magic-link auth implies email ownership, so we
   // can safely mint a business user on first sign-in.

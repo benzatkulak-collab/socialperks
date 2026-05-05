@@ -59,7 +59,7 @@ export function Hero() {
           Free forever for your first campaign. No credit card. 5-minute setup. Or{" "}
           <a
             href="#waitlist"
-            className="text-brand-cyan underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded-sm"
+            className="text-brand-cyan underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded-sm"
           >
             join the early-access list →
           </a>
@@ -82,15 +82,15 @@ export function Hero() {
               <div className="flex gap-6 text-center sm:gap-8">
                 <div>
                   <p className="font-mono text-2xl font-semibold text-brand-white sm:text-3xl">89</p>
-                  <p className="mt-1 text-xs text-brand-muted">customer posts</p>
+                  <p className="mt-1 text-xs text-brand-dim">customer posts</p>
                 </div>
                 <div>
                   <p className="font-mono text-2xl font-semibold text-brand-green sm:text-3xl">$0</p>
-                  <p className="mt-1 text-xs text-brand-muted">ad spend</p>
+                  <p className="mt-1 text-xs text-brand-dim">ad spend</p>
                 </div>
                 <div>
                   <p className="font-mono text-2xl font-semibold text-brand-cyan sm:text-3xl">3 mo</p>
-                  <p className="mt-1 text-xs text-brand-muted">time frame</p>
+                  <p className="mt-1 text-xs text-brand-dim">time frame</p>
                 </div>
               </div>
             </div>

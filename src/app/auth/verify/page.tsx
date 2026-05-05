@@ -23,7 +23,7 @@ export default function VerifyPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center bg-brand-bg text-brand-text px-4">
+        <main id="main-content" className="min-h-screen flex items-center justify-center bg-brand-bg text-brand-text px-4">
           <div className="text-sm text-brand-dim">Verifying&hellip;</div>
         </main>
       }
