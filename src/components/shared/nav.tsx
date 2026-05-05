@@ -137,7 +137,7 @@ export function Nav() {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-3 lg:flex">
-          <a
+          <Link
             href="/dashboard#login"
             className="
               rounded-lg px-4 py-2 text-sm font-medium text-brand-dim
@@ -147,7 +147,7 @@ export function Nav() {
             "
           >
             Log In
-          </a>
+          </Link>
           <a
             href="#signup"
             className="
@@ -260,7 +260,7 @@ export function Nav() {
             })}
           </ul>
           <div className="mt-6 flex flex-col gap-3 border-t border-brand-border/50 pt-6">
-            <a
+            <Link
               href="/dashboard#login"
               onClick={() => setMobileOpen(false)}
               className="
@@ -273,7 +273,7 @@ export function Nav() {
               "
             >
               Log In
-            </a>
+            </Link>
             <a
               href="#signup"
               onClick={() => setMobileOpen(false)}

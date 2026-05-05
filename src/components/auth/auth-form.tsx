@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -505,9 +506,9 @@ export function AuthForm({
 
           <p className="text-center text-xs text-brand-dim mt-4">
             By signing up you agree to our{" "}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Terms</a>
+            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Terms</Link>
             {" "}and{" "}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Privacy Policy</a>
+            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Privacy Policy</Link>
           </p>
         </Card>
       </div>

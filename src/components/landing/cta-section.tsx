@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { WaitlistForm } from "@/components/landing/waitlist-form";
 
@@ -89,9 +90,9 @@ export function CtaSection() {
 
         <p className="mt-8 text-xs text-brand-subtle sm:mt-10">
           Building AI social media agents?{" "}
-          <a href="/agents" className="text-brand-purple hover:text-brand-purple/80 hover:underline transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/40">
+          <Link href="/agents" className="text-brand-purple hover:text-brand-purple/80 hover:underline transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/40">
             Connect them to our API &rarr;
-          </a>
+          </Link>
         </p>
       </div>
     </section>
