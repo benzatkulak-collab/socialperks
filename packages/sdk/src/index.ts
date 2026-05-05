@@ -14,7 +14,7 @@ import {
   type Action,
   type ApiResponse,
   type Campaign,
-  type PaginatedResult,
+  type PaginatedActions,
   type PricingEstimate,
   type SocialPerksConfig,
   SocialPerksError,
@@ -135,7 +135,7 @@ export class SocialPerks {
       this.http.request<PricingEstimate>("GET", "/pricing", { query: params }),
   };
 
-  /** Action library — list and filter the 107 marketing actions. */
+  /** Action library — list and filter the 125+ marketing actions. */
   readonly actions = {
     list: (
       params: {
@@ -145,8 +145,8 @@ export class SocialPerks {
         page?: number;
         perPage?: number;
       } = {}
-    ): Promise<PaginatedResult<Action>> =>
-      this.http.request<PaginatedResult<Action>>("GET", "/actions", { query: params }),
+    ): Promise<PaginatedActions> =>
+      this.http.request<PaginatedActions>("GET", "/actions", { query: params }),
   };
 
   /** Industry benchmarks. */

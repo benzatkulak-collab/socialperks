@@ -30,11 +30,15 @@ export type ApiResponse<T> = SuccessEnvelope<T> | ErrorEnvelope;
 
 export interface Action {
   id: string;
-  platformId: string;
   label: string;
   type: "content" | "review" | "engage" | "share" | "referral";
   effort: number;
   value: number;
+  incentivizable: boolean;
+  platformId: string;
+  platformName: string;
+  platformIcon: string;
+  platformColor: string;
 }
 
 export interface PricingEstimate {
@@ -60,11 +64,18 @@ export interface Campaign {
   createdAt: string;
 }
 
-export interface PaginatedResult<T> {
-  items: T[];
+/**
+ * Paginated list responses on this API are domain-keyed: each endpoint
+ * returns its data under its own key (e.g. `actions`, `influencers`)
+ * rather than a generic `items` field. The SDK's list methods normalize
+ * to this shape using a generic key parameter.
+ */
+export interface PaginatedActions {
+  actions: Action[];
   total: number;
   page: number;
   perPage: number;
+  totalPages: number;
 }
 
 export class SocialPerksError extends Error {

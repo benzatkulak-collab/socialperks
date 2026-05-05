@@ -19,6 +19,9 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/case-studies",  changeFrequency: "weekly",  priority: 0.7 },
   { path: "/blog",          changeFrequency: "weekly",  priority: 0.7 },
   { path: "/leaderboard",   changeFrequency: "daily",   priority: 0.7 },
+  // /agents is a key landing for AI agent traffic — keep priority high
+  // so it's indexed alongside /pricing and /for.
+  { path: "/agents",        changeFrequency: "monthly", priority: 0.8 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
   { path: "/status",        changeFrequency: "monthly", priority: 0.4 },

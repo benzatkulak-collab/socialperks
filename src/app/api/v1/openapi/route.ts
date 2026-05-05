@@ -85,12 +85,16 @@ function buildSpec() {
         Action: {
           type: "object",
           properties: {
-            id: { type: "string", example: "ig_post" },
-            platformId: { type: "string", example: "instagram" },
-            label: { type: "string", example: "Instagram post" },
+            id: { type: "string", example: "ig_st" },
+            label: { type: "string", example: "Story Tag" },
             type: { type: "string", enum: ["content", "review", "engage", "share", "referral"] },
             effort: { type: "integer", minimum: 0, maximum: 5 },
             value: { type: "number", description: "Estimated USD value" },
+            incentivizable: { type: "boolean" },
+            platformId: { type: "string", example: "ig" },
+            platformName: { type: "string", example: "Instagram" },
+            platformIcon: { type: "string", example: "📸" },
+            platformColor: { type: "string", example: "#E1306C" },
           },
         },
         PricingEstimate: {
@@ -181,13 +185,13 @@ function buildSpec() {
         get: {
           tags: ["Reference"],
           summary: "List marketing actions",
-          description: "Returns all 107 actions with effort, type, and platform metadata.",
+          description: "Returns all 125+ actions with effort, type, and platform metadata.",
           parameters: [
             { name: "platformId", in: "query", schema: { type: "string" } },
             { name: "type", in: "query", schema: { type: "string" } },
             { name: "maxEffort", in: "query", schema: { type: "integer", minimum: 0, maximum: 5 } },
             { name: "page", in: "query", schema: { type: "integer", default: 1 } },
-            { name: "perPage", in: "query", schema: { type: "integer", default: 50 } },
+            { name: "perPage", in: "query", schema: { type: "integer", default: 20, maximum: 100 } },
           ],
           responses: {
             "200": {
@@ -201,12 +205,14 @@ function buildSpec() {
                       data: {
                         type: "object",
                         properties: {
-                          items: {
+                          actions: {
                             type: "array",
                             items: { $ref: "#/components/schemas/Action" },
                           },
                           total: { type: "integer" },
                           page: { type: "integer" },
+                          perPage: { type: "integer" },
+                          totalPages: { type: "integer" },
                         },
                       },
                     },
@@ -318,8 +324,35 @@ function buildSpec() {
           parameters: [
             { name: "platform", in: "query", schema: { type: "string" } },
             { name: "minFollowers", in: "query", schema: { type: "integer" } },
+            { name: "maxFollowers", in: "query", schema: { type: "integer" } },
+            { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+            { name: "perPage", in: "query", schema: { type: "integer", default: 20 } },
           ],
-          responses: { "200": { description: "Influencer list" } },
+          responses: {
+            "200": {
+              description: "Paginated influencer list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          influencers: { type: "array", items: { type: "object" } },
+                          total: { type: "integer" },
+                          page: { type: "integer" },
+                          perPage: { type: "integer" },
+                          totalPages: { type: "integer" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       },
       "/submissions": {
