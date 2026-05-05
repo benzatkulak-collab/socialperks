@@ -11,6 +11,7 @@ import { PortalCreate } from "./portal-create";
 import { PortalAnalytics } from "./portal-analytics";
 import { OnboardingWizard } from "./onboarding-wizard";
 import { CampaignEditModal } from "./campaign-edit-modal";
+import { CheckoutBanner } from "./checkout-banner";
 import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
 import { DashboardSkeleton } from "@/components/ui/portal-skeletons";
 import { NotificationCenter } from "@/components/shared/notification-center";
@@ -394,6 +395,11 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
           </div>
         </div>
       </div>
+
+      {/* Stripe checkout return banner — confirms payment so the user
+          doesn't email support asking "did it go through?". Renders only
+          if ?checkout=success or ?checkout=cancelled is in the URL. */}
+      <CheckoutBanner />
 
       {/* Toast */}
       {toast && (

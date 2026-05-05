@@ -176,6 +176,72 @@ export function AuthForm({
           size: "small", location: "", industry: type,
         };
         save({ ...data, businesses: [...(data.businesses ?? []), biz] });
+
+        // ── Plan-intent handoff to Stripe checkout ─────────────────────
+        // The user picked a paid plan on the pricing page before signing
+        // up. Hand them off directly to Stripe checkout instead of dropping
+        // them on the dashboard — the funnel was previously broken here
+        // and we'd lose the conversion. Free and enterprise tiers skip
+        // checkout (free needs no payment; enterprise routes via /contact).
+        if (
+          planIntent &&
+          (planIntent.plan === "starter" || planIntent.plan === "professional")
+        ) {
+          try {
+            const origin = window.location.origin;
+            const checkoutRes = await fetch("/api/v1/billing", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                action: "create_checkout",
+                plan: planIntent.plan,
+                billingPeriod: planIntent.period,
+                businessId: biz.id,
+                successUrl: `${origin}/dashboard?welcome=1&checkout=success`,
+                cancelUrl: `${origin}/dashboard?checkout=cancelled`,
+              }),
+            });
+            const checkoutJson: {
+              success: boolean;
+              data?: { url?: string; mock?: boolean };
+              error?: { code: string; message: string };
+            } = await checkoutRes.json();
+
+            if (checkoutJson.success && checkoutJson.data?.url) {
+              // Clear the intent so a back-button doesn't re-trigger.
+              try {
+                window.localStorage.removeItem("sp:planIntent");
+              } catch { /* ignore */ }
+              // For mock URLs in dev/staging, still surface the URL but
+              // log a warning so the developer knows it's not real.
+              if (checkoutJson.data.mock) {
+                console.warn(
+                  "[billing] redirecting to mock Stripe URL — Stripe is not configured on this server"
+                );
+              }
+              window.location.href = checkoutJson.data.url;
+              return;
+            }
+
+            // Checkout failed: don't block the signup. The user is fully
+            // authenticated; surface the message and drop them on the
+            // dashboard where they can retry from /dashboard/billing.
+            const billingMessage =
+              checkoutJson.error?.code === "BILLING_UNAVAILABLE"
+                ? "Your account is created. Billing isn't quite set up yet — we'll email you when it's live."
+                : `Your account is created. We couldn't start checkout (${checkoutJson.error?.message ?? "unknown error"}). You can retry from your dashboard.`;
+            setError(billingMessage);
+          } catch (e) {
+            // Network error mid-checkout. Same recovery: signup succeeded,
+            // just couldn't redirect.
+            console.error("[billing] checkout handoff failed", e);
+            setError(
+              "Your account is created, but we couldn't start checkout. You can retry from your dashboard."
+            );
+          }
+        }
+
         onAuth(biz, "business");
       } else {
         const inf: SeedInfluencer = {
@@ -192,7 +258,7 @@ export function AuthForm({
     } finally {
       setLoading(false);
     }
-  }, [name, signupRole, type, email, password, data, save, onAuth]);
+  }, [name, signupRole, type, email, password, data, save, onAuth, planIntent]);
 
   const handleForgotPassword = useCallback(async () => {
     setError("");
