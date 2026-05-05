@@ -120,6 +120,12 @@ export function OnboardingWizard({
   const [campaignName, setCampaignName] = useState("");
   const [launching, setLaunching] = useState(false);
   const [launched, setLaunched] = useState(false);
+  // Capture the launched campaign id so we can render the QR poster
+  // preview on the success step. The poster is the actual artifact
+  // a shop owner needs in their hand on day one — surfacing it
+  // immediately turns "campaign created" into "I have something to
+  // print before I close this tab."
+  const [launchedCampaignId, setLaunchedCampaignId] = useState<string | null>(null);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -188,9 +194,21 @@ export function OnboardingWizard({
         }),
       });
 
-      if (!res.ok) {
-        // Still show success for optimistic UX — campaign is saved locally by portal
+      if (res.ok) {
+        // Pull the campaign id from the response so the success step
+        // can render its poster preview. The API may wrap in `data`
+        // or return the campaign directly — handle both shapes.
+        try {
+          const json = (await res.json()) as { data?: { id?: string }; id?: string };
+          const id = json.data?.id ?? json.id ?? null;
+          if (id) setLaunchedCampaignId(id);
+        } catch {
+          /* response wasn't JSON — fine; success path still proceeds */
+        }
       }
+      // Even if !res.ok, fall through to success state. The portal
+      // store has the campaign locally; the user shouldn't be punished
+      // for a transient backend hiccup during onboarding.
     } catch {
       // Network errors — proceed optimistically
     } finally {
@@ -200,6 +218,19 @@ export function OnboardingWizard({
     setLaunching(false);
     setLaunched(true);
   }, [platform, campaignName, businessId, businessName, businessType, rewardType, rewardValue]);
+
+  // Build the poster URL for the success step. Same params as the
+  // dashboard's hero card so the visual matches what they'll see
+  // again on /dashboard.
+  const successPosterUrl = useMemo(() => {
+    if (!launchedCampaignId) return null;
+    const params = new URLSearchParams({
+      campaignId: launchedCampaignId,
+      businessName,
+      perk: rewardPreview,
+    });
+    return `/api/v1/businesses/poster?${params.toString()}`;
+  }, [launchedCampaignId, businessName, rewardPreview]);
 
   const slideClass = direction === "forward"
     ? "animate-onboarding-slide-in"
@@ -495,10 +526,52 @@ export function OnboardingWizard({
                   <span className="text-brand-white font-medium">&ldquo;{campaignName}&rdquo;</span> is now active.
                   Customers can start earning rewards right away.
                 </p>
-                <p className="text-xs text-brand-muted mb-8">
+                <p className="text-xs text-brand-muted mb-6">
                   {platform?.icon} {platform?.name} &middot; {actionLabel} &middot;{" "}
                   <span className="text-brand-green">{rewardPreview}</span>
                 </p>
+
+                {/* Poster preview — the artifact the shop owner needs
+                    in their hand TODAY. We surface it before the
+                    "Go to Dashboard" button so it's the obvious
+                    next action: print this, stick it on the counter. */}
+                {successPosterUrl && (
+                  <div className="mx-auto mb-8 max-w-xs">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-brand-cyan mb-2">
+                      Your printable QR poster
+                    </p>
+                    <a
+                      href={successPosterUrl}
+                      target="_blank"
+                      rel="noopener"
+                      className="block rounded-lg overflow-hidden border border-brand-border bg-white shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={successPosterUrl}
+                        alt="Your printable QR poster"
+                        className="w-full h-auto"
+                      />
+                    </a>
+                    <div className="mt-3 flex justify-center gap-2">
+                      <a
+                        href={successPosterUrl}
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-cyan px-3 py-1.5 text-xs font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90"
+                      >
+                        Open & print
+                      </a>
+                      <a
+                        href={successPosterUrl}
+                        download={`socialperks-poster-${launchedCampaignId?.slice(-6) ?? "campaign"}.svg`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-brand-border bg-brand-surface/50 px-3 py-1.5 text-xs font-semibold text-brand-text transition-all hover:bg-brand-surface"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                )}
 
                 <Button size="lg" onClick={onComplete}>
                   Go to Dashboard &rarr;

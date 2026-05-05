@@ -484,11 +484,26 @@ export function PortalHome({
         </AnimateOnScroll>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — visible only when there are no campaigns and
+          the user hasn't already started clicking. We let the
+          "Print your first QR code" CTA above carry the primary
+          action; this card is the encouragement strip. The "Try a
+          sample" affordance creates a demo campaign locally so the
+          shop owner sees what a populated dashboard looks like
+          before they commit to creating a real one. */}
       {myCampaigns.length === 0 && (
         <Card className="text-center py-10 bg-brand-surface/30">
-          <p className="text-sm text-brand-dim">No campaigns yet. Create your first one above.</p>
-          <p className="text-xs text-brand-muted mt-2">It takes less than a minute.</p>
+          <p className="text-sm text-brand-dim">No campaigns yet. Use the button above to print your QR.</p>
+          <p className="text-xs text-brand-muted mt-2">5-minute setup. Free forever for one campaign.</p>
+          {onApplyTemplate && campaignTemplates.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onApplyTemplate(campaignTemplates[0]!.id)}
+              className="mt-5 text-xs text-brand-cyan hover:text-brand-white underline underline-offset-2 decoration-brand-cyan/40 hover:decoration-brand-cyan transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded-sm"
+            >
+              Or auto-fill a sample campaign to see how it looks
+            </button>
+          )}
         </Card>
       )}
     </>
