@@ -1,8 +1,10 @@
 # Social Perks
 
-**The Marketing Value Protocol** — AI-powered marketing infrastructure for every business.
+**One QR code. Hundreds of customer-made ads.** Print one QR, stick it on the cup. Customers scan, post about you, get a small perk. You get real customer-made ads — not paid creator junk.
 
-107 marketing actions across 15 platforms. Pricing oracle for AI agents. Campaign execution layer.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fbenzatkulak-collab%2Fsocialperks&env=AUTH_SECRET,CSRF_SECRET&envDescription=Generate+with+%60openssl+rand+-hex+32%60&envLink=https%3A%2F%2Fgithub.com%2Fbenzatkulak-collab%2Fsocialperks%2Fblob%2Fmain%2F.env.example&project-name=social-perks&repository-name=social-perks)
+
+> 35 RESTful API routes · 14 backend engines · MCP server for AI agents · OpenAPI 3.1 spec · Square/Toast/Clover POS integration · FTC-compliant disclosure auto-injection
 
 ## Quick Start
 
@@ -12,6 +14,48 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## For developers building customer-rewards into their app
+
+```bash
+# Provision an account + API key in 30 seconds (no browser, no clicks)
+npx @socialperks/cli init --email you@example.com --business-name "My Shop"
+```
+
+Then:
+
+```ts
+import { SocialPerks } from "@socialperks/sdk";
+
+const sp = SocialPerks.fromEnv();
+const campaign = await sp.campaigns.create({
+  platformId: "instagram",
+  actionId: "ig_story",
+  rewardType: "pct",
+  rewardValue: "15",
+});
+const posterUrl = sp.poster.url({ campaignId: campaign.id });
+```
+
+See [`AGENTS.md`](./AGENTS.md) if you're an AI coding agent (Claude Code, Cursor, Cline) reading this repo for the first time.
+
+## For AI marketing agents (MCP)
+
+Add to your MCP client config:
+
+```jsonc
+{
+  "mcpServers": {
+    "social-perks": {
+      "command": "npx",
+      "args": ["-y", "@socialperks/mcp-server"],
+      "env": { "SOCIAL_PERKS_API_KEY": "sk_live_..." }
+    }
+  }
+}
+```
+
+Six tools become available: `list_action_ideas`, `create_perk_campaign`, `print_qr_poster`, `list_campaigns`, `enqueue_post_purchase_sms`, `ai_quick_start`.
 
 ## Demo Accounts
 

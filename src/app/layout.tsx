@@ -4,6 +4,7 @@ import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { TrackingPixels } from "@/components/shared/tracking-pixels";
 import { RefCapture } from "@/components/shared/ref-capture";
+import { CookieBanner } from "@/components/shared/cookie-banner";
 import "./globals.css";
 
 // metadataBase prefers an explicit NEXT_PUBLIC_SITE_URL env var so OG image
@@ -131,6 +132,7 @@ export default function RootLayout({
         <RefCapture />
         {children}
         <OfflineIndicator />
+        <CookieBanner />
         <Analytics />
         <TrackingPixels />
       </body>

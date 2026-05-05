@@ -27,7 +27,7 @@ export function AuthForm({
   onAuth,
   onEnterpriseDemo,
 }: AuthFormProps) {
-  const [screen, setScreen] = useState<"login" | "signup" | "signup-form" | "forgot" | "forgot-success">("login");
+  const [screen, setScreen] = useState<"login" | "signup" | "signup-form" | "forgot" | "forgot-success" | "magic-link" | "magic-link-sent">("login");
   const [signupRole, setSignupRole] = useState<"business" | "influencer">("business");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,6 +37,7 @@ export function AuthForm({
   const [loading, setLoading] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [magicEmail, setMagicEmail] = useState("");
 
   // Plan intent — captured from the pricing page CTAs which encode
   //   /dashboard#signup?plan=professional&period=annual
@@ -214,6 +215,32 @@ export function AuthForm({
     }
   }, [resetEmail]);
 
+  const handleSendMagicLink = useCallback(async () => {
+    setError("");
+    if (!magicEmail) { setError("Email is required."); return; }
+    setLoading(true);
+    try {
+      await fetch("/api/v1/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: magicEmail }),
+      });
+      // Always advance — don't leak whether the email is registered.
+      setScreen("magic-link-sent");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [magicEmail]);
+
+  const handleGoToMagicLink = useCallback(() => {
+    setScreen("magic-link");
+    setError("");
+    setMagicEmail(email);
+  }, [email]);
+
   const handleGoToForgot = useCallback(() => {
     setScreen("forgot");
     setError("");
@@ -299,6 +326,23 @@ export function AuthForm({
               {loading ? "Logging in..." : "Log In"}
             </Button>
 
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-brand-border" />
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
+                <span className="bg-brand-surface px-2 text-brand-muted">or</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoToMagicLink}
+              className="w-full rounded-lg border border-brand-border bg-brand-surface/50 py-3 text-sm font-medium text-brand-text transition-colors hover:border-brand-cyan hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+            >
+              Email me a sign-in link
+            </button>
+
             <p className="text-center text-sm text-brand-dim mt-6">
               Don&apos;t have an account?{" "}
               <button onClick={handleGoToSignup} className="text-brand-cyan hover:underline font-medium rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
@@ -322,6 +366,63 @@ export function AuthForm({
                 </div>
               )}
             </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Magic Link Request ───
+  if (screen === "magic-link") {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
+        <div className="w-full max-w-sm animate-fade-up">
+          <button onClick={handleGoToLogin} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
+            &larr; Back to login
+          </button>
+
+          <Card className="p-8">
+            <div className="text-center mb-8">
+              <Logo size="md" />
+              <h1 className="mt-4 font-heading text-xl italic text-brand-white sm:text-2xl">Sign in with email</h1>
+              <p className="text-sm text-brand-dim mt-1">We&apos;ll email you a one-time link. No password needed.</p>
+            </div>
+
+            <div className="space-y-4">
+              <Field label="Email" value={magicEmail} onChange={setMagicEmail} placeholder="you@yourbusiness.com" type="email" required />
+            </div>
+
+            {inputSection}
+
+            <Button fullWidth onClick={handleSendMagicLink} className="py-3 text-sm rounded-lg mt-4" disabled={loading} aria-busy={loading}>
+              {loading ? "Sending..." : "Email me a sign-in link"}
+            </Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Magic Link Sent ───
+  if (screen === "magic-link-sent") {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
+        <div className="w-full max-w-sm animate-fade-up">
+          <Card className="p-8">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-4">&#x2709;&#xFE0F;</div>
+              <h1 className="font-heading text-xl italic text-brand-white sm:text-2xl">Check your email</h1>
+              <p className="text-sm text-brand-dim mt-2">
+                We sent a sign-in link to <span className="text-brand-cyan font-medium">{magicEmail}</span>
+              </p>
+              <p className="text-xs text-brand-muted mt-3">
+                The link expires in 15 minutes. Didn&apos;t receive it? Check your spam folder.
+              </p>
+            </div>
+
+            <Button fullWidth onClick={handleGoToLogin} className="py-3 text-sm rounded-lg">
+              Back to Login
+            </Button>
           </Card>
         </div>
       </div>

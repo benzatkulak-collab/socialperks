@@ -11,6 +11,27 @@ import { InviteUnlock } from "@/components/campaign/invite-unlock";
 
 interface PageProps {
   params: Promise<{ campaignId: string }>;
+  searchParams: Promise<{ ref?: string }>;
+}
+
+/** What kind of arrival is this? Drives the welcome strip + attribution. */
+function classifyArrival(ref: string | undefined): {
+  kind: "poster" | "sms" | "friend" | "email" | "direct";
+  badge: string;
+  headline: string;
+} {
+  switch (ref) {
+    case "poster":
+      return { kind: "poster", badge: "Scanned at the counter", headline: "You're in the right place." };
+    case "sms":
+      return { kind: "sms", badge: "From your post-purchase text", headline: "Thanks for stopping by." };
+    case "friend":
+      return { kind: "friend", badge: "A friend posted about this", headline: "Good taste in friends." };
+    case "email":
+      return { kind: "email", badge: "From email", headline: "Welcome back." };
+    default:
+      return { kind: "direct", badge: "", headline: "" };
+  }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -70,8 +91,10 @@ export async function generateMetadata({
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
-export default async function CampaignPage({ params }: PageProps) {
+export default async function CampaignPage({ params, searchParams }: PageProps) {
   const { campaignId } = await params;
+  const { ref } = await searchParams;
+  const arrival = classifyArrival(ref);
   const campaign = getCampaign(campaignId);
 
   // Campaign not found
@@ -129,6 +152,21 @@ export default async function CampaignPage({ params }: PageProps) {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-8 sm:py-12">
+        {/* Arrival strip — surfaces *why* this customer is here. The
+            messaging differs meaningfully: a friend-arrival is the
+            high-value flywheel moment ("a friend's post brought you
+            here"), the poster-arrival is the in-shop scan, the SMS
+            arrival is the post-purchase nudge. Direct visits get
+            nothing — the rest of the page is the message. */}
+        {arrival.kind !== "direct" && (
+          <div className="mb-6 flex items-center justify-center gap-3 rounded-full border border-brand-cyan/30 bg-brand-cyan/[0.06] px-4 py-2 text-center animate-fade-up">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan animate-pulse" aria-hidden />
+            <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">
+              {arrival.badge}
+            </span>
+          </div>
+        )}
+
         {/* Business identity */}
         <div className="text-center mb-8 animate-fade-up">
           {business && (
@@ -142,6 +180,11 @@ export default async function CampaignPage({ params }: PageProps) {
           {business && (
             <p className="text-xs text-brand-muted">
               {business.type} &middot; {business.location}
+            </p>
+          )}
+          {arrival.headline && (
+            <p className="mt-3 text-sm text-brand-dim italic">
+              {arrival.headline}
             </p>
           )}
         </div>

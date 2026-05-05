@@ -448,6 +448,60 @@ function buildWalletSummary(wallet: PerkWallet): WalletSummary {
   };
 }
 
+// ─── List Perks For Customer ─────────────────────────────────────────────────
+
+export interface CustomerPerkView {
+  id: string;
+  businessId: string;
+  campaignId: string;
+  value: number;
+  type: DiscountType;
+  status: PerkStatus;
+  earnedAt: string;
+  expiresAt: string;
+  redeemedAt: string | null;
+  redemptionCode: string;
+}
+
+/**
+ * Customer-facing flattened list of all perks earned by a customer
+ * (across every business). Applies expiry status on read so the UI
+ * sees a fresh snapshot without mutating the store.
+ *
+ * Sorted newest first by earnedAt.
+ */
+export function listPerksForCustomer(customerId: string): CustomerPerkView[] {
+  if (!customerId || typeof customerId !== "string") return [];
+
+  const now = Date.now();
+  const out: CustomerPerkView[] = [];
+
+  for (const wallet of wallets.values()) {
+    if (wallet.userId !== customerId) continue;
+    for (const perk of wallet.perks) {
+      const status: PerkStatus =
+        perk.status === "available" && new Date(perk.expiresAt).getTime() < now
+          ? "expired"
+          : perk.status;
+      out.push({
+        id: perk.id,
+        businessId: wallet.businessId,
+        campaignId: perk.campaignId,
+        value: perk.value,
+        type: perk.type,
+        status,
+        earnedAt: perk.earnedAt,
+        expiresAt: perk.expiresAt,
+        redeemedAt: perk.redeemedAt,
+        redemptionCode: perk.redemptionCode,
+      });
+    }
+  }
+
+  out.sort((a, b) => (a.earnedAt < b.earnedAt ? 1 : -1));
+  return out;
+}
+
 // ─── Expire Perks ────────────────────────────────────────────────────────────
 
 export function expirePerks(): { expired: number; ids: string[] } {

@@ -100,6 +100,30 @@ export async function GET(req: NextRequest) {
       "WEBHOOK_VERIFY_TOKEN / WEBHOOK_SECRET missing — incoming platform webhooks will fail",
       true,
     ),
+    twilio_sms: check(
+      !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER),
+      "Twilio SMS configured",
+      "Twilio not configured — post-purchase SMS pipeline silently no-ops",
+      true,
+    ),
+    pos_square: check(
+      !!process.env.SQUARE_WEBHOOK_SIGNATURE_KEY,
+      "Square POS webhooks signed",
+      "SQUARE_WEBHOOK_SIGNATURE_KEY missing — Square webhooks accept all requests in dev mode",
+      true,
+    ),
+    pos_toast: check(
+      !!process.env.TOAST_WEBHOOK_SIGNING_SECRET,
+      "Toast POS webhooks signed",
+      "TOAST_WEBHOOK_SIGNING_SECRET missing — Toast webhooks accept all requests in dev mode",
+      true,
+    ),
+    pos_clover: check(
+      !!process.env.CLOVER_WEBHOOK_AUTH_TOKEN,
+      "Clover POS webhooks signed",
+      "CLOVER_WEBHOOK_AUTH_TOKEN missing — Clover webhooks accept all requests in dev mode",
+      true,
+    ),
   };
 
   // Aggregate readiness — only "missing" (non-warning) failures count
