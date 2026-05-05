@@ -205,7 +205,10 @@ export function Nav() {
         </button>
       </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile menu. `inert` (when closed) removes both screen-reader
+          access and tab focus from the subtree in one attribute — no
+          need to pair it with aria-hidden. Fixes the Lighthouse
+          aria-hidden-focus violation flagged in LIGHTHOUSE_FINDINGS.md. */}
       <div
         ref={mobileMenuRef}
         className={`
@@ -220,7 +223,8 @@ export function Nav() {
         `}
         role={mobileOpen ? "dialog" : undefined}
         aria-label={mobileOpen ? "Mobile navigation menu" : undefined}
-        aria-hidden={!mobileOpen}
+        // @ts-expect-error — `inert` is valid HTML, React types lag
+        inert={!mobileOpen ? "" : undefined}
       >
         <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8">
           <ul className="space-y-1" role="list">
