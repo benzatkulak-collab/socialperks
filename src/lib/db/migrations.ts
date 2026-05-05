@@ -747,6 +747,88 @@ DROP INDEX IF EXISTS idx_webhook_deliveries_pending;
 DROP TABLE IF EXISTS webhook_deliveries;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 008: Multi-tenant agent OAuth — Stripe-Connect-style flow.
+  //
+  // An agency-style AI agent (one developer building "marketing agent
+  // for coffee shops" who has 50+ shop customers) shouldn't have to
+  // store 50 distinct API keys. Instead they register one OAuth-style
+  // app once, the shop owner clicks "Authorize {Agent} to manage my
+  // perks" through our dashboard, and the agency gets a per-business
+  // access token + refresh token.
+  //
+  // Three tables:
+  //   agent_apps        — the registered agent (one per developer)
+  //   agent_authorizations — per-business consent grants
+  //   agent_access_tokens  — issued tokens (revocable)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 8,
+    name: "add_agent_oauth_tables",
+    up: `
+CREATE TABLE IF NOT EXISTS agent_apps (
+  id              TEXT PRIMARY KEY,
+  client_id       TEXT NOT NULL UNIQUE,
+  client_secret_hash TEXT NOT NULL,
+  name            TEXT NOT NULL,
+  description     TEXT,
+  homepage_url    TEXT,
+  redirect_uris   TEXT[] NOT NULL,
+  default_scopes  TEXT[] NOT NULL DEFAULT ARRAY['read'],
+  owner_email     TEXT NOT NULL,
+  owner_business_id TEXT,
+  status          TEXT NOT NULL DEFAULT 'active'
+                    CHECK (status IN ('active','suspended','revoked')),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_agent_apps_client_id ON agent_apps(client_id);
+CREATE INDEX idx_agent_apps_owner ON agent_apps(owner_email);
+
+CREATE TABLE IF NOT EXISTS agent_authorizations (
+  id              TEXT PRIMARY KEY,
+  app_id          TEXT NOT NULL,
+  business_id     TEXT NOT NULL,
+  scopes          TEXT[] NOT NULL,
+  authorized_by_user_id TEXT NOT NULL,
+  authorized_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  revoked_at      TIMESTAMPTZ,
+  revoked_reason  TEXT,
+  UNIQUE (app_id, business_id)
+);
+CREATE INDEX idx_agent_authorizations_app ON agent_authorizations(app_id);
+CREATE INDEX idx_agent_authorizations_business ON agent_authorizations(business_id);
+CREATE INDEX idx_agent_authorizations_active ON agent_authorizations(business_id) WHERE revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS agent_access_tokens (
+  id              TEXT PRIMARY KEY,
+  authorization_id TEXT NOT NULL,
+  access_token_hash TEXT NOT NULL UNIQUE,
+  refresh_token_hash TEXT UNIQUE,
+  expires_at      TIMESTAMPTZ NOT NULL,
+  refresh_expires_at TIMESTAMPTZ,
+  scopes          TEXT[] NOT NULL,
+  last_used_at    TIMESTAMPTZ,
+  revoked_at      TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_agent_access_tokens_authz ON agent_access_tokens(authorization_id);
+CREATE INDEX idx_agent_access_tokens_expires ON agent_access_tokens(expires_at) WHERE revoked_at IS NULL;
+`,
+    down: `
+DROP INDEX IF EXISTS idx_agent_access_tokens_expires;
+DROP INDEX IF EXISTS idx_agent_access_tokens_authz;
+DROP TABLE IF EXISTS agent_access_tokens;
+DROP INDEX IF EXISTS idx_agent_authorizations_active;
+DROP INDEX IF EXISTS idx_agent_authorizations_business;
+DROP INDEX IF EXISTS idx_agent_authorizations_app;
+DROP TABLE IF EXISTS agent_authorizations;
+DROP INDEX IF EXISTS idx_agent_apps_owner;
+DROP INDEX IF EXISTS idx_agent_apps_client_id;
+DROP TABLE IF EXISTS agent_apps;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

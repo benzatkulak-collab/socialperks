@@ -44,6 +44,7 @@
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/server.js', 0o755)\"",
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

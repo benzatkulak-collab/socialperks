@@ -108,15 +108,48 @@ export async function verifyApiKey(secret: string): Promise<VerifiedKey | null> 
 /**
  * Convenience: pull the key out of an Authorization header (Bearer)
  * or X-API-Key header, then verify.
+ *
+ * Accepts BOTH:
+ *   - Per-business API keys (sk_live_…) issued via /dev/init or
+ *     dashboard. Looked up in api_keys.
+ *   - Agent OAuth access tokens (at_…) issued via /oauth/token.
+ *     Looked up in agent_access_tokens, mapped to the granting
+ *     business.
+ *
+ * The token-prefix tells us which path to take. Both produce the
+ * same VerifiedKey shape so every existing route works without
+ * changes — the route sees `{ businessId, scopes }` either way.
  */
 export async function verifyFromHeaders(headers: Headers): Promise<VerifiedKey | null> {
   const auth = headers.get("authorization") ?? "";
+  let token: string | null = null;
   if (auth.toLowerCase().startsWith("bearer ")) {
-    return verifyApiKey(auth.slice(7).trim());
+    token = auth.slice(7).trim();
+  } else {
+    const x = headers.get("x-api-key");
+    if (x) token = x.trim();
   }
-  const x = headers.get("x-api-key");
-  if (x) return verifyApiKey(x.trim());
-  return null;
+  if (!token) return null;
+
+  // Agent OAuth access token: dispatch to the agent verifier.
+  if (token.startsWith("at_")) {
+    // Lazy import to avoid a circular dep at module-load time
+    // (oauth/agent-apps imports the db connection, which is fine,
+    //  but we want this verify path to remain a leaf).
+    const { verifyAccessToken } = await import("@/lib/oauth/agent-apps");
+    const result = await verifyAccessToken(token);
+    if (!result) return null;
+    return {
+      keyId: result.authorizationId,
+      ownerType: "business",
+      ownerId: result.businessId,
+      businessId: result.businessId,
+      scopes: result.scopes,
+    };
+  }
+
+  // Per-business API key.
+  return verifyApiKey(token);
 }
 
 /** Test-only: clear the in-process cache. Production code must not call this. */

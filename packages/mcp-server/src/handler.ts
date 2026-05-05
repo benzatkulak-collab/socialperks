@@ -181,6 +181,39 @@ const TOOLS: Tool[] = [
     },
     handler: (_args, sp) => sp.webhooks.list(),
   },
+  {
+    name: "list_campaign_goals",
+    description:
+      "Browse the structured goal taxonomy — outcomes a shop owner cares about, like 'get new customers in the door' or 'build social proof'. Each goal maps to a ranked set of actions and a suggested perk shape. Use this BEFORE list_action_ideas when the user expressed a goal rather than a specific action — it'll surface the right action subset without the agent having to filter the full 125-action library by hand.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    handler: (_args, sp) => sp.actions.listGoals(),
+  },
+  {
+    name: "recommend_for_goal",
+    description:
+      "Given a goal id (from list_campaign_goals), return the ranked actions that serve it plus the suggested perk shape. The actions come back with goalFit scores 0..1 — pick the highest-scoring action whose effort matches the shop owner's appetite. Use after list_campaign_goals or when the user named a goal directly ('I want more new customers' → goal: new_customers).",
+    inputSchema: {
+      type: "object",
+      required: ["goal"],
+      properties: {
+        goal: {
+          type: "string",
+          description: "Goal id from list_campaign_goals — e.g. 'new_customers', 'build_social_proof', 'viral_reach'",
+        },
+        limit: {
+          type: "number",
+          description: "Max actions to return (default 10, capped at 50)",
+        },
+      },
+    },
+    handler: (args, sp) =>
+      sp.actions.forGoal(String(args.goal), {
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+      }),
+  },
 ];
 
 // ─── JSON-RPC envelope ────────────────────────────────────────────────────

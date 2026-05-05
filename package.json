@@ -21,6 +21,7 @@
     "test:all": "vitest run && cd api && npx vitest run",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
+    "test:packages": "npm run test --workspace=@socialperks/sdk && npm run test --workspace=@socialperks/cli && npm run test --workspace=@socialperks/mcp-server",
     "db:migrate": "npx tsx scripts/db-migrate.ts",
     "db:migrate:status": "npx tsx scripts/db-migrate.ts --status",
     "db:migrate:dry": "npx tsx scripts/db-migrate.ts --dry-run",

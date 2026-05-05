@@ -91,6 +91,39 @@ export class SocialPerks {
         path: "/api/v1/actions",
         query: { platform: args.platform, tier: args.tier, businessType: args.businessType },
       }),
+
+    /**
+     * Browse the goal taxonomy. Each goal maps to a ranked subset of
+     * actions plus a suggested perk shape. Designed for the case
+     * where the agent's principal expressed an outcome ("get more
+     * new customers"), not a mechanical action.
+     */
+    listGoals: (): Promise<{ goals: Array<{ id: string; label: string; description: string; suggestedPerk: unknown }> }> =>
+      this.req({ path: "/api/v1/actions/by-goal" }),
+
+    /**
+     * Get ranked actions for a specific goal id. Returns the goal
+     * meta + the top N actions by goal-fit score.
+     */
+    forGoal: (goalId: string, options: { limit?: number } = {}): Promise<{
+      goal: { id: string; label: string; description: string; suggestedPerk: unknown };
+      actions: Array<{
+        platformId: string;
+        platformName: string;
+        platformIcon: string;
+        actionId: string;
+        label: string;
+        type: string;
+        effort: number;
+        value: number;
+        incentivizable: boolean;
+        goalFit: number;
+      }>;
+    }> =>
+      this.req({
+        path: "/api/v1/actions/by-goal",
+        query: { goal: goalId, limit: options.limit },
+      }),
   };
 
   poster = {
