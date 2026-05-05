@@ -81,6 +81,11 @@ export async function GET(req: NextRequest) {
       "SMS drain cron protected (CRON_SECRET set)",
       "CRON_SECRET missing — /api/v1/cron/sms-drain will 503; pending SMS won't be delivered",
     ),
+    cron_webhook_redrive: check(
+      !!process.env.CRON_SECRET,
+      "Webhook redrive cron protected (CRON_SECRET set)",
+      "CRON_SECRET missing — /api/v1/cron/webhook-redrive will 503; failed webhooks won't be retried across redeploys",
+    ),
     site_url: check(
       !!process.env.NEXT_PUBLIC_SITE_URL || !!process.env.VERCEL_PROJECT_PRODUCTION_URL,
       "Public site URL resolved",

@@ -699,6 +699,54 @@ DROP INDEX IF EXISTS idx_sms_queue_pending;
 DROP TABLE IF EXISTS sms_queue;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 007: Webhook deliveries — track each attempt at each subscription so
+  // we have a real retry queue + dead-letter visibility, separate from
+  // the `webhooks` subscription table itself. The webhooks table tracks
+  // current state of a subscription; this table tracks the audit trail
+  // of every delivery attempt so we can:
+  //   - retry failures with exponential backoff (cron drains pending)
+  //   - show shop owners "your webhook to https://x failed 3 times"
+  //   - hard-disable subscriptions after N consecutive failures
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 7,
+    name: "add_webhook_deliveries_table",
+    up: `
+-- Column names match the existing WebhookDelivery interface in
+-- src/lib/webhooks/index.ts so Postgres rows can be hydrated into
+-- the same in-memory shape without a translation layer. Status
+-- enum mirrors the existing one: pending → delivered/failed/dead.
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+  id           TEXT PRIMARY KEY,
+  webhook_id   TEXT NOT NULL,
+  event_type   TEXT NOT NULL,
+  payload      JSONB NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending','delivered','failed','dead')),
+  status_code  INT,
+  attempts     INT NOT NULL DEFAULT 0,
+  max_attempts INT NOT NULL DEFAULT 6,
+  next_retry   TIMESTAMPTZ,
+  response     TEXT,
+  error        TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  delivered_at TIMESTAMPTZ
+);
+CREATE INDEX idx_webhook_deliveries_pending
+  ON webhook_deliveries(next_retry)
+  WHERE status = 'pending';
+CREATE INDEX idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id);
+CREATE INDEX idx_webhook_deliveries_event   ON webhook_deliveries(event_type);
+`,
+    down: `
+DROP INDEX IF EXISTS idx_webhook_deliveries_event;
+DROP INDEX IF EXISTS idx_webhook_deliveries_webhook;
+DROP INDEX IF EXISTS idx_webhook_deliveries_pending;
+DROP TABLE IF EXISTS webhook_deliveries;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

@@ -145,6 +145,42 @@ const TOOLS: Tool[] = [
         budget: args.budget as number | undefined,
       }),
   },
+  {
+    name: "subscribe_to_campaign_events",
+    description:
+      "Subscribe to outbound webhooks for events on this business's campaigns. Avoids polling. Returns a signing secret (only shown once) used to verify incoming delivery signatures. Events: campaign.created, campaign.launched, campaign.ended, submission.created, submission.approved, submission.rejected, perk.awarded, perk.redeemed. Use '*' to subscribe to all.",
+    inputSchema: {
+      type: "object",
+      required: ["url", "events"],
+      properties: {
+        url: {
+          type: "string",
+          description: "HTTPS URL we'll POST events to. Must respond 2xx within 30s.",
+        },
+        events: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Event types to subscribe to. Pass ['*'] for all. Each delivery is HMAC-signed and includes X-SocialPerks-Signature: sha256=<hex>.",
+        },
+      },
+    },
+    handler: (args, sp) =>
+      sp.webhooks.subscribe({
+        url: String(args.url),
+        events: Array.isArray(args.events) ? args.events.map(String) : [],
+      }),
+  },
+  {
+    name: "list_webhook_subscriptions",
+    description:
+      "List the agent's existing webhook subscriptions. Use to check delivery health (failureCount, lastFailureReason) before assuming events are flowing.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+    handler: (_args, sp) => sp.webhooks.list(),
+  },
 ];
 
 // ─── JSON-RPC envelope ────────────────────────────────────────────────────

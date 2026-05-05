@@ -9,6 +9,13 @@
 
 import { createHmac } from "crypto";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import {
+  persistEndpoint,
+  updateEndpointState,
+  persistDelivery,
+  loadAllEndpoints,
+  loadPendingDeliveries,
+} from "./persistence";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -174,6 +181,9 @@ class WebhookStore {
     };
 
     this.webhooks.set(webhook.id, webhook);
+    // Fire-and-forget persistence — never blocks the registration
+    // path. When DATABASE_URL is unset, the call is a no-op.
+    void persistEndpoint(webhook);
     return webhook;
   }
 
@@ -184,6 +194,7 @@ class WebhookStore {
     const webhook = this.webhooks.get(webhookId);
     if (!webhook) return false;
     webhook.status = "inactive";
+    void updateEndpointState(webhook);
     return true;
   }
 
@@ -207,6 +218,7 @@ class WebhookStore {
       }
     }
 
+    void persistEndpoint(webhook);
     return { ...webhook };
   }
 
@@ -275,6 +287,7 @@ class WebhookStore {
 
       this.deliveries.set(delivery.id, delivery);
       deliveryIds.push(delivery.id);
+      void persistDelivery(delivery);
 
       // Update webhook last triggered
       webhook.lastTriggered = delivery.createdAt;
@@ -362,6 +375,11 @@ class WebhookStore {
         error instanceof Error ? error.message : "Unknown fetch error";
       this.handleDeliveryFailure(delivery, webhook, message);
     }
+
+    // After every attempt, persist both the delivery row and the
+    // parent endpoint's updated state.
+    void persistDelivery(delivery);
+    void updateEndpointState(webhook);
 
     return { ...delivery };
   }
@@ -507,6 +525,37 @@ class WebhookStore {
     webhookCounter = 0;
     deliveryCounter = 0;
   }
+
+  /**
+   * Hydrate from Postgres on cold start. No-op when DATABASE_URL is
+   * unset. Safe to call multiple times — re-loading just refreshes
+   * the in-memory caches with whatever is currently in the DB.
+   *
+   * Called once by the singleton initializer below; routes can also
+   * call it explicitly if they want to ensure freshness (e.g. after
+   * a webhook was registered on a different Vercel function instance).
+   */
+  async hydrateFromPersistence(): Promise<{ endpoints: number; deliveries: number }> {
+    const endpoints = await loadAllEndpoints(FAILING_THRESHOLD);
+    for (const endpoint of endpoints) {
+      this.webhooks.set(endpoint.id, endpoint);
+    }
+    const deliveries = await loadPendingDeliveries();
+    for (const delivery of deliveries) {
+      this.deliveries.set(delivery.id, delivery);
+    }
+    return { endpoints: endpoints.length, deliveries: deliveries.length };
+  }
+
+  /**
+   * Insert a single delivery into the in-memory map. Used by the
+   * cron redrive route which loads pending rows from Postgres and
+   * needs the in-memory state populated before calling
+   * attemptDelivery (which reads from the map).
+   */
+  upsertDelivery(delivery: WebhookDelivery): void {
+    this.deliveries.set(delivery.id, delivery);
+  }
 }
 
 // ─── Singleton ──────────────────────────────────────────────────────────────
@@ -515,3 +564,11 @@ export const webhookStore = new WebhookStore();
 
 // Auto-initialize event subscription so webhooks fire for all published events
 webhookStore.initEventSubscription();
+
+// Best-effort hydrate from Postgres on cold start. Fire-and-forget so
+// module evaluation isn't blocked by a slow DB. The cron drain at
+// /api/v1/cron/webhook-redrive provides a safety net for anything we
+// miss during the brief unhydrated window.
+void webhookStore.hydrateFromPersistence().catch((e) => {
+  console.error("[webhooks] cold-start hydration failed:", e);
+});

@@ -3,6 +3,7 @@
   "crons": [
     { "path": "/api/v1/cron/waitlist-drip", "schedule": "0 14 * * *" },
     { "path": "/api/v1/cron/campaign-sweeps", "schedule": "0 9 * * *" },
-    { "path": "/api/v1/cron/sms-drain", "schedule": "*/2 * * * *" }
+    { "path": "/api/v1/cron/sms-drain", "schedule": "*/2 * * * *" },
+    { "path": "/api/v1/cron/webhook-redrive", "schedule": "*/5 * * * *" }
   ]
 }

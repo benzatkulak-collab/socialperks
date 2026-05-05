@@ -150,6 +150,56 @@ export class SocialPerks {
     health: (): Promise<{ ok: boolean }> => this.req({ path: "/api/v1/health" }),
   };
 
+  webhooks = {
+    /**
+     * List active webhook subscriptions. The secret is NOT returned;
+     * if you've lost it, delete + re-create the subscription.
+     */
+    list: (): Promise<{
+      subscriptions: Array<{
+        id: string;
+        url: string;
+        events: string[];
+        active: boolean;
+        failureCount: number;
+        lastSuccessAt?: string;
+        lastFailureAt?: string;
+        lastFailureReason?: string;
+        createdAt: string;
+      }>;
+    }> => this.req({ path: "/api/v1/webhooks" }),
+
+    /**
+     * Subscribe to events. Returns the secret in plaintext — save
+     * it; you'll use it to verify HMAC signatures on incoming
+     * deliveries. The secret is never retrievable after this call.
+     *
+     * Verify signatures by computing
+     *   HMAC_SHA256(secret, request_body)
+     * and comparing (timing-safely) to the X-SocialPerks-Signature
+     * header value (format: "sha256=<hex>").
+     */
+    subscribe: (input: {
+      url: string;
+      events: string[];
+    }): Promise<{
+      subscription: {
+        id: string;
+        url: string;
+        events: string[];
+        active: boolean;
+        secret: string;
+        createdAt: string;
+      };
+      verifyHelp?: string;
+    }> =>
+      this.req({
+        path: "/api/v1/webhooks",
+        method: "POST",
+        body: input,
+      }),
+  };
+
   // ─── Internals ──────────────────────────────────────────────────────────
 
   private async req<T>(args: RequestArgs): Promise<T> {
