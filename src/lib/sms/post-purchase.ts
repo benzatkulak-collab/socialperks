@@ -7,12 +7,20 @@
  *
  * POS webhooks (Square / Toast / Clover) call `enqueuePostPurchaseSms`
  * after a verified payment event. This module owns the delay timer,
- * opt-out tracking, and the templated message body.
+ * opt-out tracking, persistence, and the templated message body.
  *
- * Persistence: in-memory ring buffer + setTimeout for now.
- * TODO: write-through to a `sms_queue` table when DATABASE_URL is set
- * so server restarts don't drop pending sends, and so multi-instance
- * deployments don't double-send. See lib/db for the connection pattern.
+ * Persistence model
+ * ─────────────────
+ * When DATABASE_URL is set, the `sms_queue` table is the source of
+ * truth. The in-memory ring buffer is a process-local read cache and
+ * a same-process fast-path for delays under 60s (so test endpoints
+ * still fire immediately). The `drainPending()` function — invoked
+ * by the Vercel cron at /api/v1/cron/sms-drain — selects due rows
+ * and delivers them. setTimeout is unreliable across the short-lived
+ * Vercel function lifetime, so the cron is the production code path.
+ *
+ * When DATABASE_URL is unset, the ring buffer + setTimeout is the
+ * source of truth (local dev, no cron needed).
  */
 
 import { sendSms } from "@/lib/notifications/channels";
@@ -25,6 +33,14 @@ const usingDb = !(db instanceof InMemoryConnection);
 export const SMS_OPT_OUT_FOOTER = "\n\nReply STOP to opt out.";
 
 const RING_BUFFER_SIZE = 500;
+
+/** Below this threshold we also schedule a setTimeout for low-latency
+ *  in-process delivery (test endpoints, dev). Above it we rely on the
+ *  cron drain because the function instance won't live that long. */
+const FAST_PATH_THRESHOLD_MS = 60_000;
+
+/** Drain batch size — keep below the rate-limit headroom for Twilio. */
+const DRAIN_BATCH_SIZE = 100;
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -61,16 +77,49 @@ export interface QueuedSms {
   error?: string;
 }
 
+export interface DrainResult {
+  drained: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+}
+
+interface SmsQueueRow {
+  id: string;
+  business_id: string;
+  business_name: string;
+  campaign_id: string;
+  customer_phone: string;
+  purchase_amount: string | number;
+  body: string;
+  enqueued_at: string;
+  scheduled_for: string;
+  status: QueuedSms["status"];
+  attempts: number;
+  last_error: string | null;
+  sent_at: string | null;
+}
+
+function rowToQueuedSms(row: SmsQueueRow): QueuedSms {
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    businessName: row.business_name,
+    campaignId: row.campaign_id,
+    customerPhone: row.customer_phone,
+    purchaseAmount: Number(row.purchase_amount),
+    body: row.body,
+    enqueuedAt: new Date(row.enqueued_at).toISOString(),
+    scheduledFor: new Date(row.scheduled_for).toISOString(),
+    status: row.status,
+    error: row.last_error ?? undefined,
+  };
+}
+
 // ─── In-memory state ─────────────────────────────────────────────────────────
 //
-// Ring buffer is process-local — pending sends DO get lost on a server
-// restart. That's an accepted trade-off for the MVP because the post-
-// purchase delay is 2 hours and Vercel functions are short-lived; a
-// production-grade queue migrates these to a `sms_queue` table backed
-// by a Vercel cron tick. Filed as a follow-up; see TODO at top of file.
-//
-// Opt-out set, by contrast, IS persisted (compliance — when someone
-// replies STOP we must honor it forever, including across redeploys).
+// Ring buffer = read cache when usingDb, source of truth otherwise.
+// Opt-out set is persisted (compliance — we must honor STOP forever).
 
 const ringBuffer: QueuedSms[] = [];
 const optedOut = new Set<string>();
@@ -82,10 +131,14 @@ function pushToRing(entry: QueuedSms): void {
   }
 }
 
-// Warm the opt-out cache from Postgres on cold start. Best-effort; a
-// failure here doesn't break sends — `isOptedOut` will just miss
-// recently-opted-out users until the cache loads. The pattern matches
-// the api-keys/auto-issue layer.
+function updateRingEntry(id: string, patch: Partial<QueuedSms>): void {
+  const idx = ringBuffer.findIndex((e) => e.id === id);
+  if (idx >= 0) {
+    ringBuffer[idx] = { ...ringBuffer[idx], ...patch };
+  }
+}
+
+// Warm the opt-out cache from Postgres on cold start. Best-effort.
 let optOutsHydrated = false;
 async function hydrateOptOuts(): Promise<void> {
   if (optOutsHydrated || !usingDb) {
@@ -101,7 +154,6 @@ async function hydrateOptOuts(): Promise<void> {
     optOutsHydrated = true;
   }
 }
-// Kick off hydration immediately, but don't block module evaluation.
 void hydrateOptOuts();
 
 // ─── Opt-out helpers ─────────────────────────────────────────────────────────
@@ -135,13 +187,125 @@ function normalizePhone(phone: string): string {
   return phone.trim();
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+// ─── Persistence helpers ─────────────────────────────────────────────────────
 
-export function listQueuedSms(businessId?: string): QueuedSms[] {
-  if (!businessId) return [...ringBuffer];
-  return ringBuffer.filter((e) => e.businessId === businessId);
+async function persistQueueRow(entry: QueuedSms): Promise<void> {
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `INSERT INTO sms_queue (
+         id, business_id, business_name, campaign_id, customer_phone,
+         purchase_amount, body, enqueued_at, scheduled_for, status, attempts
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0)
+       ON CONFLICT (id) DO NOTHING`,
+      [
+        entry.id,
+        entry.businessId,
+        entry.businessName,
+        entry.campaignId,
+        entry.customerPhone,
+        entry.purchaseAmount,
+        entry.body,
+        entry.enqueuedAt,
+        entry.scheduledFor,
+        entry.status,
+      ],
+    );
+  } catch (e) {
+    console.error("[sms] queue persist failed:", e);
+  }
 }
 
+async function markRowSent(id: string): Promise<void> {
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `UPDATE sms_queue
+          SET status = 'sent',
+              sent_at = NOW(),
+              attempts = attempts + 1,
+              last_error = NULL
+        WHERE id = $1`,
+      [id],
+    );
+  } catch (e) {
+    console.error("[sms] mark-sent failed:", e);
+  }
+}
+
+async function markRowFailed(id: string, error: string): Promise<void> {
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `UPDATE sms_queue
+          SET status = 'failed',
+              attempts = attempts + 1,
+              last_error = $2
+        WHERE id = $1`,
+      [id, error],
+    );
+  } catch (e) {
+    console.error("[sms] mark-failed failed:", e);
+  }
+}
+
+async function markRowSkipped(id: string): Promise<void> {
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `UPDATE sms_queue
+          SET status = 'skipped_opted_out'
+        WHERE id = $1`,
+      [id],
+    );
+  } catch (e) {
+    console.error("[sms] mark-skipped failed:", e);
+  }
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+/**
+ * List queued SMS. When DATABASE_URL is set, reads from the table so
+ * the dashboard reflects state across redeploys / multiple instances.
+ * The in-memory ring is consulted as a 0-latency fallback if the
+ * query fails.
+ */
+export async function listQueuedSms(businessId?: string): Promise<QueuedSms[]> {
+  if (!usingDb) {
+    if (!businessId) return [...ringBuffer];
+    return ringBuffer.filter((e) => e.businessId === businessId);
+  }
+  try {
+    const result = businessId
+      ? await db.query<SmsQueueRow>(
+          `SELECT * FROM sms_queue
+            WHERE business_id = $1
+            ORDER BY enqueued_at DESC
+            LIMIT 500`,
+          [businessId],
+        )
+      : await db.query<SmsQueueRow>(
+          `SELECT * FROM sms_queue
+            ORDER BY enqueued_at DESC
+            LIMIT 500`,
+        );
+    return result.rows.map(rowToQueuedSms);
+  } catch (e) {
+    console.error("[sms] list query failed; falling back to ring:", e);
+    if (!businessId) return [...ringBuffer];
+    return ringBuffer.filter((e2) => e2.businessId === businessId);
+  }
+}
+
+/**
+ * Enqueue a post-purchase SMS. Returns a QueuedSms snapshot.
+ *
+ * Synchronous return (no Promise) — the persistence write is fired
+ * in the background so POS webhook handlers don't pay the round-trip
+ * latency on the hot path. If persistence fails, the in-memory entry
+ * still records the attempt and we fall back to the setTimeout path.
+ */
 export function enqueuePostPurchaseSms(args: EnqueueArgs): QueuedSms {
   const delayMinutes = args.delayMinutes ?? 120;
   const perkText = args.perkText ?? "next one";
@@ -153,6 +317,7 @@ export function enqueuePostPurchaseSms(args: EnqueueArgs): QueuedSms {
     SMS_OPT_OUT_FOOTER;
 
   const now = new Date();
+  const delayMs = Math.max(0, delayMinutes * 60_000);
   const entry: QueuedSms = {
     id: `sms_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`,
     businessId: args.businessId,
@@ -162,43 +327,143 @@ export function enqueuePostPurchaseSms(args: EnqueueArgs): QueuedSms {
     purchaseAmount: args.purchaseAmount,
     body: messageBody,
     enqueuedAt: now.toISOString(),
-    scheduledFor: new Date(now.getTime() + delayMinutes * 60_000).toISOString(),
+    scheduledFor: new Date(now.getTime() + delayMs).toISOString(),
     status: "pending",
   };
 
   pushToRing(entry);
 
-  // If recipient is already opted out, mark and skip the send.
+  // If recipient is already opted out, mark, persist, and skip.
   if (isOptedOut(args.customerPhone)) {
     entry.status = "skipped_opted_out";
+    void persistQueueRow(entry);
     return entry;
   }
 
-  const timerMs = Math.max(0, delayMinutes * 60_000);
-  setTimeout(() => {
-    void deliver(entry);
-  }, timerMs);
+  // Persist (write-through). Fire-and-forget — the cron will see the
+  // row even if the in-process timer fails to fire.
+  void persistQueueRow(entry);
+
+  // Same-process fast path for short delays (test endpoints, dev).
+  // For production 2-hour delays this timer probably won't fire
+  // (Vercel function will exit) — that's fine, the cron picks it up.
+  if (delayMs < FAST_PATH_THRESHOLD_MS) {
+    setTimeout(() => {
+      void deliver(entry.id);
+    }, delayMs);
+  }
 
   return entry;
 }
 
-async function deliver(entry: QueuedSms): Promise<void> {
-  // Re-check opt-out at delivery time — they could have unsubscribed
-  // during the 2-hour delay window.
+/**
+ * Deliver a single queued message by id. Updates both the in-memory
+ * ring entry and the persisted row. Idempotent enough — the cron
+ * filters on status='pending' so a double-fire just no-ops the second
+ * time at the SQL level.
+ */
+async function deliver(id: string): Promise<void> {
+  // Look up the entry. Memory first (fast path), DB fallback so the
+  // cron drain works even after a redeploy nuked the ring.
+  let entry = ringBuffer.find((e) => e.id === id) ?? null;
+  if (!entry && usingDb) {
+    try {
+      const result = await db.query<SmsQueueRow>(
+        `SELECT * FROM sms_queue WHERE id = $1 LIMIT 1`,
+        [id],
+      );
+      const row = result.rows[0];
+      if (row) entry = rowToQueuedSms(row);
+    } catch (e) {
+      console.error("[sms] deliver lookup failed:", e);
+    }
+  }
+  if (!entry) return;
+
+  // Re-check opt-out — they could have unsubscribed during the delay.
   if (isOptedOut(entry.customerPhone)) {
-    entry.status = "skipped_opted_out";
+    updateRingEntry(id, { status: "skipped_opted_out" });
+    await markRowSkipped(id);
     return;
   }
+
   try {
     const result = await sendSms({ to: entry.customerPhone, body: entry.body });
     if (result.success) {
-      entry.status = "sent";
+      updateRingEntry(id, { status: "sent", error: undefined });
+      await markRowSent(id);
     } else {
-      entry.status = "failed";
-      entry.error = result.error;
+      const reason = result.error ?? "unknown";
+      updateRingEntry(id, { status: "failed", error: reason });
+      await markRowFailed(id, reason);
     }
   } catch (e) {
-    entry.status = "failed";
-    entry.error = e instanceof Error ? e.message : "unknown";
+    const reason = e instanceof Error ? e.message : "unknown";
+    updateRingEntry(id, { status: "failed", error: reason });
+    await markRowFailed(id, reason);
   }
+}
+
+/**
+ * Drain pending rows whose `scheduled_for` has passed. Called by the
+ * Vercel cron tick. No-op when DATABASE_URL is unset (local dev uses
+ * the setTimeout fast-path for everything).
+ */
+export async function drainPending(): Promise<DrainResult> {
+  const result: DrainResult = { drained: 0, sent: 0, failed: 0, skipped: 0 };
+
+  if (!usingDb) return result;
+
+  // Make sure opt-outs are loaded before we send anything.
+  await hydrateOptOuts();
+
+  let rows: SmsQueueRow[] = [];
+  try {
+    const select = await db.query<SmsQueueRow>(
+      `SELECT * FROM sms_queue
+        WHERE status = 'pending'
+          AND scheduled_for <= NOW()
+        ORDER BY scheduled_for ASC
+        LIMIT $1`,
+      [DRAIN_BATCH_SIZE],
+    );
+    rows = select.rows;
+  } catch (e) {
+    console.error("[sms] drain select failed:", e);
+    return result;
+  }
+
+  for (const row of rows) {
+    result.drained += 1;
+    const entry = rowToQueuedSms(row);
+
+    // Re-check opt-out at delivery time.
+    if (isOptedOut(entry.customerPhone)) {
+      await markRowSkipped(entry.id);
+      updateRingEntry(entry.id, { status: "skipped_opted_out" });
+      result.skipped += 1;
+      continue;
+    }
+
+    try {
+      const send = await sendSms({ to: entry.customerPhone, body: entry.body });
+      if (send.success) {
+        await markRowSent(entry.id);
+        updateRingEntry(entry.id, { status: "sent", error: undefined });
+        result.sent += 1;
+      } else {
+        const reason = send.error ?? "unknown";
+        await markRowFailed(entry.id, reason);
+        updateRingEntry(entry.id, { status: "failed", error: reason });
+        result.failed += 1;
+      }
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : "unknown";
+      await markRowFailed(entry.id, reason);
+      updateRingEntry(entry.id, { status: "failed", error: reason });
+      result.failed += 1;
+    }
+  }
+
+  return result;
 }

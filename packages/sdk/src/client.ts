@@ -124,8 +124,11 @@ export class SocialPerks {
      * Customer phone must be E.164.
      */
     enqueuePostPurchase: (input: EnqueueSmsInput): Promise<{ queued: boolean; sendAt: string }> =>
+      // The SDK calls the production endpoint. The `/api/v1/sms/test`
+      // endpoint is admin-only (WAITLIST_ADMIN_TOKEN gated) and not
+      // intended for shop-owner / agent usage.
       this.req({
-        path: "/api/v1/sms/test",
+        path: "/api/v1/sms/enqueue",
         method: "POST",
         body: input,
       }),

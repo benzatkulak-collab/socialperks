@@ -76,6 +76,11 @@ export async function GET(req: NextRequest) {
       "CRON_SECRET present",
       "CRON_SECRET missing — drip schedule will 503",
     ),
+    cron_sms_drain: check(
+      !!process.env.CRON_SECRET,
+      "SMS drain cron protected (CRON_SECRET set)",
+      "CRON_SECRET missing — /api/v1/cron/sms-drain will 503; pending SMS won't be delivered",
+    ),
     site_url: check(
       !!process.env.NEXT_PUBLIC_SITE_URL || !!process.env.VERCEL_PROJECT_PRODUCTION_URL,
       "Public site URL resolved",

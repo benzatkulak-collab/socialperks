@@ -16,8 +16,50 @@
 
 import type { NextRequest } from "next/server";
 import { handle, catalog } from "@socialperks/mcp-server/handler";
+import { eventStore } from "@/lib/events";
 
 export const runtime = "nodejs";
+
+/**
+ * Best-effort telemetry on agent tool calls. We emit one event per
+ * `tools/call` so we can tell which tools agents actually reach for,
+ * which ones error, and how long they take. Aggregating this over a
+ * week tells us which tool descriptions are wrong (low pickup) and
+ * which tools we should add (because agents try names that don't
+ * exist and 404).
+ *
+ * Stored in the existing in-memory event store; when DATABASE_URL is
+ * set, the analytics_events table will pick it up too via the same
+ * shared engine.
+ */
+function emitToolCallTelemetry(args: {
+  tool: string;
+  apiKeyPrefix: string;
+  userAgent: string;
+  durationMs: number;
+  success: boolean;
+  errorMessage?: string;
+}): void {
+  try {
+    eventStore.emit(
+      "agent.campaign_execute", // closest existing EventType — this lane is for agent activity
+      args.tool, // entityId = tool name (lets us filter quickly)
+      "agent",
+      args.apiKeyPrefix, // actorId — first 12 chars of the key, never the secret
+      "agent",
+      {
+        kind: "mcp_tool_call",
+        tool: args.tool,
+        userAgent: args.userAgent.slice(0, 200),
+        durationMs: args.durationMs,
+        success: args.success,
+        errorMessage: args.errorMessage?.slice(0, 200),
+      },
+    );
+  } catch {
+    // Telemetry is never allowed to break the request path.
+  }
+}
 
 export async function GET() {
   return Response.json(
@@ -84,6 +126,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const startedAt = Date.now();
   const result = await handle(body, {
     apiKey: apiKey ?? "preview",
     baseUrl:
@@ -92,6 +135,26 @@ export async function POST(req: NextRequest) {
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
         : undefined),
   });
+
+  // Emit telemetry only for tools/call — initialize/list/ping are
+  // discovery noise and would dilute the per-tool aggregates.
+  if (body.method === "tools/call") {
+    const toolName = (body.params?.["name"] as string | undefined) ?? "unknown";
+    const isError = !!(
+      result.error ||
+      (result.result as { isError?: boolean } | undefined)?.isError
+    );
+    const errorMessage = result.error?.message;
+    emitToolCallTelemetry({
+      tool: toolName,
+      apiKeyPrefix: apiKey ? apiKey.slice(0, 12) : "preview",
+      userAgent: req.headers.get("user-agent") ?? "",
+      durationMs: Date.now() - startedAt,
+      success: !isError,
+      errorMessage,
+    });
+  }
+
   return Response.json(result, {
     headers: { "Access-Control-Allow-Origin": "*" },
   });

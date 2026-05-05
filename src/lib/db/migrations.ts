@@ -661,6 +661,44 @@ DROP TABLE IF EXISTS dev_init_emails;
 DROP TABLE IF EXISTS magic_link_tokens;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 006: Persistent SMS queue. Replaces the in-memory ring buffer +
+  // setTimeout used by the post-purchase pipeline. The partial index on
+  // status='pending' keeps the cron drain query cheap as the table
+  // accumulates historical rows over time.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 6,
+    name: "add_sms_queue_table",
+    up: `
+CREATE TABLE IF NOT EXISTS sms_queue (
+  id              TEXT PRIMARY KEY,
+  business_id     TEXT NOT NULL,
+  business_name   TEXT NOT NULL,
+  campaign_id     TEXT NOT NULL,
+  customer_phone  TEXT NOT NULL,
+  purchase_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  body            TEXT NOT NULL,
+  enqueued_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  scheduled_for   TIMESTAMPTZ NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending','sent','failed','skipped_opted_out')),
+  attempts        INT NOT NULL DEFAULT 0,
+  last_error      TEXT,
+  sent_at         TIMESTAMPTZ
+);
+CREATE INDEX idx_sms_queue_pending ON sms_queue(scheduled_for) WHERE status = 'pending';
+CREATE INDEX idx_sms_queue_business ON sms_queue(business_id);
+CREATE INDEX idx_sms_queue_customer ON sms_queue(customer_phone);
+`,
+    down: `
+DROP INDEX IF EXISTS idx_sms_queue_customer;
+DROP INDEX IF EXISTS idx_sms_queue_business;
+DROP INDEX IF EXISTS idx_sms_queue_pending;
+DROP TABLE IF EXISTS sms_queue;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────
