@@ -9,6 +9,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { verifyJWT, sessionStore } from "@/lib/auth";
+import { verifyApiKey } from "@/lib/auth/api-keys";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
@@ -54,7 +55,27 @@ export interface AuthUser {
  * Returns null if unauthenticated.
  */
 export function getUser(req: NextRequest): AuthUser | null {
-  // 1. Check Authorization header
+  // 1. API key (preferred for machine-to-machine — agents, SDK, CLI).
+  // Checked first so that callers presenting BOTH a JWT and an API key get
+  // the API key's permissions (the typical agent flow uses the API key only).
+  const apiKeyHeader = req.headers.get("x-api-key");
+  if (apiKeyHeader) {
+    const record = verifyApiKey(apiKeyHeader);
+    if (record) {
+      return {
+        id: `api-key:${record.id}`,
+        email: record.agentName,
+        role: "agent",
+        businessId: record.businessId,
+      };
+    }
+    // If they sent x-api-key and it's invalid/revoked/expired, do NOT fall
+    // through to other auth methods — that would mask the bad key. Caller
+    // sees null → 401.
+    return null;
+  }
+
+  // 2. Check Authorization header
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
@@ -82,7 +103,7 @@ export function getUser(req: NextRequest): AuthUser | null {
     }
   }
 
-  // 2. Check cookie
+  // 3. Check cookie
   const cookie = req.cookies.get("sp-access-token")?.value;
   if (cookie) {
     const jwt = verifyJWT(cookie);
