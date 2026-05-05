@@ -2,7 +2,14 @@
   "name": "@socialperks/mcp-server",
   "version": "0.1.0",
   "description": "Model Context Protocol server for Social Perks. Lets AI agents (Claude Code, Cursor, custom MCP clients) plan, launch, and measure customer-rewards campaigns on behalf of small businesses.",
-  "keywords": ["mcp", "model-context-protocol", "ai-agent", "social-perks", "loyalty", "marketing"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "social-perks",
+    "loyalty",
+    "marketing"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -28,7 +35,11 @@
       "default": "./dist/handler.js"
     }
   },
-  "files": ["dist/", "src/", "README.md"],
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/server.js', 0o755)\"",
     "typecheck": "tsc --noEmit",

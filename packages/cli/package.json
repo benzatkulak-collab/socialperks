@@ -2,7 +2,12 @@
   "name": "@socialperks/cli",
   "version": "0.1.0",
   "description": "CLI for Social Perks. Agent-runnable account creation, campaign management, poster printing — all from the terminal, no browser required.",
-  "keywords": ["social-perks", "cli", "ai-agent", "automation"],
+  "keywords": [
+    "social-perks",
+    "cli",
+    "ai-agent",
+    "automation"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -17,7 +22,11 @@
   },
   "main": "./dist/cli.js",
   "types": "./dist/cli.d.ts",
-  "files": ["dist/", "src/", "README.md"],
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
     "typecheck": "tsc --noEmit",
