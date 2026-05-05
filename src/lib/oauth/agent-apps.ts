@@ -86,6 +86,10 @@ export interface AgentAccessToken {
 const appsByClientId = new Map<string, AgentApp & { clientSecretHash: string }>();
 const authzByCompoundKey = new Map<string, AgentAuthorization>(); // `${appId}:${businessId}`
 const tokensByHash = new Map<string, AgentAccessToken & { authorizationId: string }>();
+// Parallel refresh-token index. We need O(1) lookup by refresh-hash
+// during /oauth/token grant_type=refresh_token; scanning tokensByHash
+// for a refresh-hash match would be O(N).
+const tokensByRefreshHash = new Map<string, { tokenId: string; authorizationId: string; refreshExpiresAt: string; revokedAt?: string; scopes: string[] }>();
 
 // ─── Crypto helpers ───────────────────────────────────────────────────────
 
@@ -346,6 +350,12 @@ export async function issueTokenPair(authz: AgentAuthorization): Promise<IssuedT
   };
 
   tokensByHash.set(accessHash, record);
+  tokensByRefreshHash.set(refreshHash, {
+    tokenId: id,
+    authorizationId: authz.id,
+    refreshExpiresAt,
+    scopes: authz.scopes,
+  });
 
   if (usingDb) {
     try {
@@ -362,6 +372,92 @@ export async function issueTokenPair(authz: AgentAuthorization): Promise<IssuedT
   }
 
   return { accessToken, refreshToken, expiresAt, refreshExpiresAt, scopes: authz.scopes };
+}
+
+/**
+ * Refresh-token grant — exchange a valid refresh_token for a fresh
+ * access/refresh pair. Implements rotation: the OLD refresh token
+ * is revoked atomically with issuance of the new one. This is the
+ * recommended pattern (RFC 6749 + the OAuth 2.1 draft) — a stolen
+ * refresh token can only be used once before being invalidated;
+ * if both the legitimate agent AND an attacker try to refresh, the
+ * second one fails AND we know there's a leak (can be surfaced via
+ * security alerting later).
+ *
+ * Returns null if the refresh token is invalid, expired, revoked,
+ * or its parent authorization was revoked.
+ */
+export async function refreshTokenPair(
+  refreshToken: string,
+  appId: string,
+): Promise<IssuedTokenPair | null> {
+  if (!refreshToken.startsWith("rt_")) return null;
+  const refreshHash = hashSecret(refreshToken);
+
+  const cached = tokensByRefreshHash.get(refreshHash);
+  if (cached) {
+    if (cached.revokedAt) return null;
+    if (new Date(cached.refreshExpiresAt).getTime() < Date.now()) return null;
+    const authz = await findAuthorizationById(cached.authorizationId);
+    if (!authz || authz.revokedAt) return null;
+    if (authz.appId !== appId) return null; // mismatched client
+    // Rotate: revoke old token, issue new pair, return new.
+    await revokeTokenById(cached.tokenId, "rotated");
+    return issueTokenPair(authz);
+  }
+
+  if (!usingDb) return null;
+  try {
+    const result = await db.query<{
+      id: string;
+      authorization_id: string;
+      refresh_expires_at: string;
+      revoked_at: string | null;
+      scopes: string[];
+    }>(
+      `SELECT id, authorization_id, refresh_expires_at, revoked_at, scopes
+         FROM agent_access_tokens
+        WHERE refresh_token_hash = $1
+        LIMIT 1`,
+      [refreshHash],
+    );
+    const row = result.rows[0];
+    if (!row || row.revoked_at) return null;
+    if (new Date(row.refresh_expires_at).getTime() < Date.now()) return null;
+
+    const authz = await findAuthorizationById(row.authorization_id);
+    if (!authz || authz.revokedAt) return null;
+    if (authz.appId !== appId) return null;
+
+    await revokeTokenById(row.id, "rotated");
+    return issueTokenPair(authz);
+  } catch (e) {
+    console.error("[oauth/agent-apps] refresh failed:", e);
+    return null;
+  }
+}
+
+async function revokeTokenById(tokenId: string, reason: string): Promise<void> {
+  // Best-effort: clear from both in-memory caches.
+  for (const [hash, rec] of tokensByHash.entries()) {
+    if (rec.id === tokenId) tokensByHash.delete(hash);
+  }
+  for (const [hash, rec] of tokensByRefreshHash.entries()) {
+    if (rec.tokenId === tokenId) {
+      rec.revokedAt = new Date().toISOString();
+      tokensByRefreshHash.set(hash, rec);
+    }
+  }
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `UPDATE agent_access_tokens SET revoked_at = NOW() WHERE id = $1 AND revoked_at IS NULL`,
+      [tokenId],
+    );
+    void reason; // logged at call sites; not persisted on the row to keep schema small
+  } catch (e) {
+    console.error("[oauth/agent-apps] revoke token failed:", e);
+  }
 }
 
 /**

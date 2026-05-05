@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -26,13 +27,71 @@ const NAV_ITEMS = [
   { id: "settings", label: "Settings" },
 ] as const;
 
+// Inline icon components — no lucide dependency.
+const IconArrow = (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+    className="shrink-0"
+  >
+    <path
+      d="M4 4l4 4-4 4M9 12h3"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconKey = (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+    className="shrink-0"
+  >
+    <circle cx="5.5" cy="10.5" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+    <path
+      d="M7.5 9L13 3.5M11 5l1.5 1.5M9.5 6.5L11 8"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconPlug = (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+    className="shrink-0"
+  >
+    <path
+      d="M5 2v3M11 2v3M3.5 5h9v3a4.5 4.5 0 0 1-9 0V5zM8 12.5V14"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 // Dev-tooling section: separate links to actual routes (not in-portal pages).
-const DEV_NAV_ITEMS = [
-  {
-    href: "/dashboard/webhooks",
-    label: "Webhooks",
-  },
-] as const;
+const DEV_NAV_ITEMS: ReadonlyArray<{ href: string; label: string; icon: React.ReactNode }> = [
+  { href: "/dashboard/webhooks", label: "Webhooks", icon: IconArrow },
+  { href: "/dashboard/api-keys", label: "API keys", icon: IconKey },
+  { href: "/dashboard/integrations", label: "Integrations", icon: IconPlug },
+];
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -83,22 +142,7 @@ export function Sidebar({ activePage, business, onNavigate }: SidebarProps) {
                   href={item.href}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-body font-medium transition-colors duration-150 bg-transparent text-brand-dim hover:text-brand-text hover:bg-brand-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                    className="shrink-0"
-                  >
-                    <path
-                      d="M4 4l4 4-4 4M9 12h3"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  {item.icon}
                   {item.label}
                 </Link>
               </li>

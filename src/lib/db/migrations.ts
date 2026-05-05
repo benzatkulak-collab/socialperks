@@ -829,6 +829,39 @@ DROP INDEX IF EXISTS idx_agent_apps_client_id;
 DROP TABLE IF EXISTS agent_apps;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 009: Platform post cache — short-TTL responses from Instagram /
+  // TikTok / Facebook Graph APIs. Verification engine consults this
+  // before paying a real-API call. 5-minute default TTL: long enough
+  // that re-checking at redemption time stays free, short enough
+  // that a deleted post is detected promptly.
+  //
+  // Documented in docs/VERIFICATION_ENGINE_REAL_API.md (P13).
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 9,
+    name: "add_platform_post_cache",
+    up: `
+CREATE TABLE IF NOT EXISTS platform_post_cache (
+  cache_key   TEXT PRIMARY KEY,
+  platform    TEXT NOT NULL,
+  media_id    TEXT NOT NULL,
+  data        JSONB NOT NULL,
+  fetched_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at  TIMESTAMPTZ NOT NULL,
+  source      TEXT NOT NULL DEFAULT 'fetch'
+                CHECK (source IN ('fetch','mock','manual'))
+);
+CREATE INDEX idx_platform_post_cache_expires ON platform_post_cache(expires_at);
+CREATE INDEX idx_platform_post_cache_platform_media ON platform_post_cache(platform, media_id);
+`,
+    down: `
+DROP INDEX IF EXISTS idx_platform_post_cache_platform_media;
+DROP INDEX IF EXISTS idx_platform_post_cache_expires;
+DROP TABLE IF EXISTS platform_post_cache;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

@@ -16,6 +16,7 @@ import type { NextRequest } from "next/server";
 import { ok } from "../../_shared";
 import { db, InMemoryConnection } from "@/lib/db/connection";
 import { isStripeConfigured } from "@/lib/stripe";
+import { describeVerifierRouting } from "@/lib/verification/platform-router";
 
 interface CheckEntry {
   status: "ok" | "missing" | "warning";
@@ -159,5 +160,8 @@ export async function GET(req: NextRequest) {
             { status: v.status, detail: "(redacted — supply READINESS_TOKEN to view)" },
           ]),
         ),
+    verification: authed
+      ? describeVerifierRouting()
+      : "(redacted — supply READINESS_TOKEN to view)",
   });
 }

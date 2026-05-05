@@ -33,6 +33,7 @@ import {
   consumeAuthCode,
   grantAuthorization,
   issueTokenPair,
+  refreshTokenPair,
 } from "@/lib/oauth/agent-apps";
 
 export const runtime = "nodejs";
@@ -133,15 +134,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
   }
 
-  // refresh_token grant — TODO: implement when an integrator asks for
-  // it. The token-pair issuance already creates a refresh hash so
-  // we just need a verify-and-reissue path here.
   if (grantType === "refresh_token") {
-    return err(
-      "unsupported_grant_type",
-      "refresh_token grant is on the roadmap; for now, re-run /oauth/authorize",
-      400,
-    );
+    const refreshToken = body.refresh_token ?? "";
+    if (!refreshToken) {
+      return err("invalid_request", "refresh_token is required", 400);
+    }
+    const fresh = await refreshTokenPair(refreshToken, app.id);
+    if (!fresh) {
+      // Spec-compliant error: don't leak whether the cause was
+      // expiry vs. wrong-client vs. revocation. The agent should
+      // treat any failure as "user must re-authorize."
+      return err(
+        "invalid_grant",
+        "refresh_token is invalid, expired, revoked, or for a different app",
+        400,
+      );
+    }
+    return ok({
+      access_token: fresh.accessToken,
+      refresh_token: fresh.refreshToken,
+      token_type: "Bearer",
+      expires_in: Math.round(
+        (new Date(fresh.expiresAt).getTime() - Date.now()) / 1000,
+      ),
+      scope: fresh.scopes.join(" "),
+    });
   }
 
   return err("unsupported_grant_type", `grant_type '${grantType}' is not supported`, 400);
