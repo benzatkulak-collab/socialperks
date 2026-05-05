@@ -48,6 +48,7 @@ function buildSpec() {
       { name: "Exchange", description: "Marketplace for open campaign opportunities" },
       { name: "Programs", description: "Multi-action perk programs" },
       { name: "Auth", description: "Authentication and session management" },
+      { name: "ApiKeys", description: "Mint and manage API keys for agents (human-only — keys cannot mint other keys)" },
       { name: "Infrastructure", description: "Health, status, OpenAPI" },
     ],
     components: {
@@ -359,6 +360,146 @@ function buildSpec() {
                 },
               },
             },
+          },
+        },
+      },
+      "/api-keys": {
+        get: {
+          tags: ["ApiKeys"],
+          summary: "List API keys for the calling business",
+          description:
+            "Returns the calling business's API keys (public fields only — never the hash). Requires JWT or session auth; cannot be called with x-api-key (keys cannot enumerate keys).",
+          security: [{ BearerAuth: [] }],
+          responses: {
+            "200": {
+              description: "API key list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          keys: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              properties: {
+                                id: { type: "string" },
+                                agentName: { type: "string" },
+                                keyPrefix: { type: "string", example: "deadbeef" },
+                                env: { type: "string", enum: ["live", "test"] },
+                                permissions: { type: "array", items: { type: "string" } },
+                                active: { type: "boolean" },
+                                lastUsedAt: { type: "string", format: "date-time", nullable: true },
+                                createdAt: { type: "string", format: "date-time" },
+                                expiresAt: { type: "string", format: "date-time", nullable: true },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Authentication required" },
+            "403": { description: "API-key callers are forbidden — sign in to your dashboard" },
+          },
+        },
+        post: {
+          tags: ["ApiKeys"],
+          summary: "Mint a new API key",
+          description:
+            "Creates a new API key. The plaintext is returned ONCE in the response and cannot be retrieved later. Requires JWT or session auth (NOT x-api-key).",
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["agentName"],
+                  properties: {
+                    agentName: {
+                      type: "string",
+                      maxLength: 255,
+                      description: "Human-readable label for which agent this key belongs to.",
+                    },
+                    permissions: {
+                      type: "array",
+                      items: { type: "string", enum: ["read", "write", "admin"] },
+                      default: ["read"],
+                    },
+                    env: { type: "string", enum: ["live", "test"] },
+                    expiresInDays: {
+                      type: "integer",
+                      minimum: 1,
+                      maximum: 3650,
+                      description: "Optional expiry (days from now). Defaults to no expiry.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Key created. The plaintext is in `data.key` and is shown ONLY here.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          key: {
+                            type: "string",
+                            example: "sp_live_deadbeef_00112233445566778899aabbccddeeff",
+                            description: "The plaintext API key. Show ONCE, then store securely.",
+                          },
+                          id: { type: "string" },
+                          keyPrefix: { type: "string" },
+                          env: { type: "string" },
+                          agentName: { type: "string" },
+                          permissions: { type: "array", items: { type: "string" } },
+                          createdAt: { type: "string", format: "date-time" },
+                          expiresAt: { type: "string", format: "date-time", nullable: true },
+                          warning: { type: "string" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "API keys cannot mint other keys" },
+            "429": { description: "Rate limit exceeded" },
+          },
+        },
+      },
+      "/api-keys/{id}": {
+        delete: {
+          tags: ["ApiKeys"],
+          summary: "Revoke an API key",
+          description:
+            "Soft-deletes the key (sets active=false). Cross-business attempts return 404 to avoid ID enumeration. Idempotent on unknown IDs.",
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Revoked" },
+            "401": { description: "Authentication required" },
+            "403": { description: "API keys cannot revoke other keys" },
+            "404": { description: "Not found" },
           },
         },
       },

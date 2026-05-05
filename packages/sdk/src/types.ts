@@ -78,6 +78,28 @@ export interface PaginatedActions {
   totalPages: number;
 }
 
+export interface ApiKeyMetadata {
+  id: string;
+  agentName: string;
+  keyPrefix: string;
+  env: "live" | "test";
+  permissions: string[];
+  active: boolean;
+  lastUsedAt: string | null;
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+/**
+ * Returned ONCE on creation — `key` is the plaintext that you must show
+ * the user (and only the user) and then discard from memory. The platform
+ * does not store the plaintext; it cannot be retrieved later.
+ */
+export interface ApiKeyCreated extends ApiKeyMetadata {
+  key: string;
+  warning: string;
+}
+
 export class SocialPerksError extends Error {
   constructor(
     public readonly code: string,

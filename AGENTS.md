@@ -95,13 +95,52 @@ For the full list, see `API.md` or fetch `/api/v1/openapi`.
 
 Three methods, listed in order of preference for programmatic use:
 
-1. **API keys** (`x-api-key: sp_live_...`) — best for machine-to-machine
+1. **API keys** (`x-api-key: sp_live_...`) — best for machine-to-machine. Header is checked **first** by the auth layer; an invalid key is rejected immediately rather than falling through to other auth methods.
 2. **Bearer tokens** (`Authorization: Bearer <jwt>`) — for user-scoped flows
 3. **Cookies** — only relevant if you're embedded in a browser session
 
-To provision an API key, a human user must sign in and create one in the
-business dashboard at `/dashboard/settings/api-keys`. (Self-service key
-provisioning for agents without a human in the loop is on the roadmap.)
+### How to get an API key
+
+A human user signs in to the business dashboard and mints a key. Today this
+is human-in-the-loop — agents cannot self-mint without a human signing up
+first (deliberate trust decision; signup-then-mint expands the abuse surface
+on signup).
+
+The dashboard route is at `/dashboard/api-keys`. Or via the API directly,
+after signing in:
+
+```bash
+# 1. Sign in (cookie auth)
+curl -X POST https://<host>/api/v1/auth \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"login","email":"you@example.com","password":"..."}' \
+  -c cookies.txt
+
+# 2. Mint a key
+curl -X POST https://<host>/api/v1/api-keys \
+  -H 'Content-Type: application/json' \
+  -b cookies.txt \
+  -d '{"agentName":"My Agent","permissions":["read","write"]}'
+```
+
+The response includes the plaintext **once** under `data.key`. Store it
+securely (env var, secret manager). If lost, revoke and mint a new one —
+plaintext cannot be retrieved later.
+
+Key format: `sp_{env}_{prefix}_{random}` where `env` is `live` or `test`,
+`prefix` is 8 hex chars (used for indexed lookup), and `random` is 32 hex
+chars (128 bits of entropy). Keys are stored hashed (SHA-256); the
+plaintext is never persisted.
+
+### Key lifecycle
+
+- `POST /api/v1/api-keys` — create. Plaintext returned ONCE. Strict rate
+  limit (10/min). Requires JWT/session, NOT `x-api-key` (keys cannot mint
+  keys).
+- `GET /api/v1/api-keys` — list keys for the calling business. Returns
+  prefix + label + lastUsed; never the hash.
+- `DELETE /api/v1/api-keys/:id` — revoke. Cross-business attempts return
+  404 to avoid ID enumeration. Idempotent.
 
 ---
 
