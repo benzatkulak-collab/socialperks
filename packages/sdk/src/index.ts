@@ -12,6 +12,8 @@
 
 import {
   type Action,
+  type ApiKeyCreated,
+  type ApiKeyMetadata,
   type ApiResponse,
   type Campaign,
   type PaginatedActions,
@@ -193,6 +195,33 @@ export class SocialPerks {
 
     campaignAgent: (input: Record<string, unknown>): Promise<unknown> =>
       this.http.request<unknown>("POST", "/ai/campaign-agent", { body: input }),
+  };
+
+  /**
+   * API key management. Requires JWT/session auth — these endpoints
+   * REJECT x-api-key callers (keys cannot mint or list other keys).
+   * Use this from a script that signs in interactively, or from the
+   * dashboard, not from your agent's runtime.
+   */
+  readonly apiKeys = {
+    list: (): Promise<{ keys: ApiKeyMetadata[] }> =>
+      this.http.request<{ keys: ApiKeyMetadata[] }>("GET", "/api-keys"),
+
+    /**
+     * Mint a new API key. The returned `key` field is the plaintext —
+     * shown ONCE in the response, never retrievable again. Hand it to
+     * your agent's secrets store immediately.
+     */
+    create: (input: {
+      agentName: string;
+      permissions?: ("read" | "write" | "admin")[];
+      env?: "live" | "test";
+      expiresInDays?: number;
+    }): Promise<ApiKeyCreated> =>
+      this.http.request<ApiKeyCreated>("POST", "/api-keys", { body: input }),
+
+    revoke: (id: string): Promise<{ id: string; revoked: boolean }> =>
+      this.http.request<{ id: string; revoked: boolean }>("DELETE", `/api-keys/${encodeURIComponent(id)}`),
   };
 
   /** Server health check. */
