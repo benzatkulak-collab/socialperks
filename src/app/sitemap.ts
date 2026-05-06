@@ -5,6 +5,7 @@ import { createSeedData } from "@/lib/seed";
 import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
 import { listPosts } from "@/lib/blog";
 import { PLATFORMS } from "@/lib/platforms";
+import { COMPARISONS } from "@/lib/comparison-data";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -20,12 +21,18 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/case-studies",  changeFrequency: "weekly",  priority: 0.7 },
   { path: "/blog",          changeFrequency: "weekly",  priority: 0.7 },
   { path: "/leaderboard",   changeFrequency: "daily",   priority: 0.7 },
-  // Catalog index pages — these are SEO surfaces optimized for AI/LLM
-  // citations ("what is an Instagram story tag worth", "what social
-  // platforms support marketing campaigns"), so they're high priority.
+  // Catalog + reference pages — SEO surfaces optimized for LLM
+  // citations. These are the canonical answers to high-volume queries
+  // ("what is an Instagram story tag worth", "FTC disclosure for
+  // incentivized marketing", "social platform comparison"), so they're
+  // top-priority alongside the home page.
   { path: "/actions",       changeFrequency: "weekly",  priority: 0.85 },
   { path: "/platforms",     changeFrequency: "weekly",  priority: 0.85 },
   { path: "/agents",        changeFrequency: "monthly", priority: 0.8 },
+  { path: "/faq",           changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/glossary",      changeFrequency: "weekly",  priority: 0.8 },
+  { path: "/benchmarks",    changeFrequency: "weekly",  priority: 0.8 },
+  { path: "/compare",       changeFrequency: "monthly", priority: 0.7 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
   { path: "/status",        changeFrequency: "monthly", priority: 0.4 },
@@ -122,6 +129,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  // Comparison pages — one per platform-vs-platform article. These
+  // target high-volume LLM queries ("Instagram vs TikTok") so they're
+  // priority 0.75 — between catalog index (0.85) and detail (0.7).
+  const compareEntries: MetadataRoute.Sitemap = COMPARISONS.map((c) => ({
+    url: `${SITE_URL}/compare/${c.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.75,
+  }));
+
   return [
     ...staticEntries,
     ...industryEntries,
@@ -132,5 +149,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...blogEntries,
     ...actionEntries,
     ...platformEntries,
+    ...compareEntries,
   ];
 }

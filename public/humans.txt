@@ -1,0 +1,32 @@
+/* TEAM */
+    Built by: the Social Perks team
+    Site: https://socialperks.io
+    Contact: hello@socialperks.io
+    Location: United States
+
+/* THANKS */
+    The thousands of small-business owners who told us what they needed
+    before we built any of this.
+
+/* SITE */
+    Last update: 2026/05
+    Standards: HTML5, CSS3, ES2022, OpenAPI 3.1, Schema.org, MCP
+    Components: Next.js 15 (App Router), React 19, TypeScript, Tailwind
+    Software: Postgres, Stripe, Resend, Vercel
+    Auth: JWT (httpOnly cookies) + API keys (sp_live_...)
+
+/* FOR DEVELOPERS */
+    Public API: https://socialperks.io/api/v1/openapi
+    MCP server: https://socialperks.io/api/mcp
+    Agent docs: https://socialperks.io/AGENTS.md
+    LLM-friendly summary: https://socialperks.io/llms.txt
+
+/* FOR AI AGENTS */
+    Robots policy: https://socialperks.io/robots.txt — explicitly welcomes
+    GPTBot, ClaudeBot, OAI-SearchBot, PerplexityBot, Google-Extended,
+    Applebot-Extended, CCBot, cohere-ai, ChatGPT-User, anthropic-ai,
+    Bytespider, DuckAssistBot, and Claude-Web.
+
+    Public reference data (pricing, actions, benchmarks, exchange) is
+    available without authentication. To take action on behalf of a
+    business, mint an API key from /dashboard/api-keys.

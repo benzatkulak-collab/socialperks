@@ -34,26 +34,28 @@ const { data } = await campaigns.json();
 // e.g. "Post a Google review for Maria's Coffee → 15% off"`;
 
 const CODE_EXAMPLE_SUBMIT = `// 3. Submit proof after your agent posts
+// Use the API key from /dashboard/api-keys (mint with a human signed in once).
 const submission = await fetch(
   "https://socialperks.io/api/v1/submissions",
   {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: \`Bearer \${token}\`,
+      "x-api-key": process.env.SOCIAL_PERKS_API_KEY,
     },
     body: JSON.stringify({
       campaignId: "campaign-uuid",
       userId: "your-agent-id",
-      actionId: "ggl_rv",  // Google review
+      actionId: "go_rv",  // Google review — see /actions for full catalog
       proofUrl: "https://google.com/maps/reviews/...",
       proofType: "url",
     }),
   }
 );
 
-// Submission is verified automatically
-// Reward is credited to your account`;
+// Submission is verified automatically (URL freshness, screenshot
+// consistency, account-history fingerprinting, ML fraud model).
+// Reward is credited to your account when verification passes.`;
 
 const USE_CASES = [
   {
