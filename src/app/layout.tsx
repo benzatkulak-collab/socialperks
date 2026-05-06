@@ -99,6 +99,27 @@ export default function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
+        {/* AI agent discovery hints — these help LLM clients, plugin
+            ecosystems, and crawlers find the agent surfaces without
+            having to guess paths. */}
+        <link
+          rel="alternate"
+          type="application/json"
+          title="Social Perks OpenAPI spec"
+          href="/api/v1/openapi"
+        />
+        <link
+          rel="alternate"
+          type="application/json"
+          title="Social Perks AI plugin manifest"
+          href="/.well-known/ai-plugin.json"
+        />
+        <link
+          rel="alternate"
+          type="text/plain"
+          title="LLM-friendly site summary"
+          href="/llms.txt"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -113,6 +134,30 @@ export default function RootLayout({
                 "@type": "Offer",
                 price: "0",
                 priceCurrency: "USD",
+              },
+            }),
+          }}
+        />
+        {/* Schema.org WebAPI — declares that an API exists at /api/v1
+            with a discoverable spec. Helps AI crawlers and search
+            engines that index APIs (Google's Rich Results, etc.). */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebAPI",
+              name: "Social Perks API",
+              description:
+                "REST API and MCP server for the Social Perks marketing platform. Public reference data (pricing, actions, benchmarks) is available without authentication.",
+              documentation: `${SITE_URL}/AGENTS.md`,
+              termsOfService: `${SITE_URL}/terms`,
+              endpointURL: `${SITE_URL}/api/v1`,
+              endpointDescription: `${SITE_URL}/api/v1/openapi`,
+              provider: {
+                "@type": "Organization",
+                name: "Social Perks",
+                url: SITE_URL,
               },
             }),
           }}
