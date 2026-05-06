@@ -34,3 +34,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 api/node_modules/
+
+# scheduled task scratchpads (per-developer state files written by
+# the claim-loop-merge-watcher task — see ~/.claude/scheduled-tasks/)
+.merge-watcher-state.json
