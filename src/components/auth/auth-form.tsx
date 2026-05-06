@@ -470,7 +470,10 @@ export function AuthForm({
             {/* Plan intent banner — shows the plan/period the user picked
                 on the pricing page so they know it carried through. After
                 signup completes we'll route them to checkout with the
-                same selection. */}
+                same selection. If the user picked monthly, surface the
+                annual upsell inline — switching costs nothing here and
+                the savings are typically ~17% (2 months free at our
+                price points). */}
             {planIntent && (
               <div
                 className="mb-6 rounded-xl border border-brand-cyan/30 bg-brand-cyan/5 px-4 py-3 text-sm"
@@ -490,6 +493,30 @@ export function AuthForm({
                   <strong>{planIntent.period === "annual" ? "annually" : "monthly"}</strong>
                   .
                 </p>
+                {planIntent.period === "monthly" && planIntent.plan !== "enterprise" && (
+                  <div className="mt-3 pt-3 border-t border-brand-cyan/20 flex items-start justify-between gap-3">
+                    <p className="text-xs text-brand-text-dim">
+                      <strong className="text-brand-text">Save ~17%</strong> on annual billing —
+                      that&apos;s {planIntent.plan === "professional" ? "$158" : "$58"} off per
+                      year (two months free).
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = { ...planIntent, period: "annual" as const };
+                        setPlanIntent(next);
+                        try {
+                          window.localStorage.setItem("sp:planIntent", JSON.stringify(next));
+                        } catch {
+                          /* ignore */
+                        }
+                      }}
+                      className="shrink-0 px-3 py-1.5 bg-brand-cyan text-black text-xs font-medium rounded hover:bg-brand-cyan/90"
+                    >
+                      Switch to annual
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

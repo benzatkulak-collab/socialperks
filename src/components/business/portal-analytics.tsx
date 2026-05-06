@@ -274,7 +274,15 @@ export function PortalAnalytics({ businessId }: PortalAnalyticsProps) {
             </svg>
           </div>
           <p className="text-sm font-semibold text-brand-white mb-1">No analytics yet</p>
-          <p className="text-xs text-brand-dim">Launch your first campaign to start seeing data here.</p>
+          <p className="text-xs text-brand-dim mb-5">
+            Launch your first campaign to start seeing data here.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-block px-5 py-2 bg-brand-cyan text-brand-bg font-medium rounded-lg text-sm hover:bg-brand-cyan/90"
+          >
+            Launch a campaign
+          </a>
         </Card>
       </div>
     );

@@ -125,7 +125,10 @@ export function PortalHome({
         </AnimateOnScroll>
       )}
 
-      {/* Welcome card (dismissible) */}
+      {/* Welcome card (dismissible) — three-step path to first activation.
+          Renders only on cold start (no campaigns). The numbered steps
+          mirror the order of UI elements directly below this card so
+          users can scan the steps and immediately see where to act. */}
       {showWelcome && myCampaigns.length === 0 && (
         <Card className="mb-6 bg-brand-cyan/5 border-brand-cyan/20 relative">
           <button
@@ -137,10 +140,29 @@ export function PortalHome({
             &times;
           </button>
           <div className="pr-6">
-            <p className="text-sm font-semibold text-brand-white mb-1">Welcome to Social Perks!</p>
-            <p className="text-xs text-brand-dim">
-              Get started by creating your first campaign or pick a template below. Customers will see your campaign, complete the action, and earn a perk.
+            <p className="text-sm font-semibold text-brand-white mb-2">
+              Welcome to Social Perks
             </p>
+            <p className="text-xs text-brand-dim mb-4">
+              Get to your first real customer post in three steps:
+            </p>
+            <ol className="space-y-2.5">
+              <WelcomeStep
+                num={1}
+                title="Pick a campaign template below"
+                detail="Or build from scratch — most shops start with a 10% off review or a free side for an Instagram post."
+              />
+              <WelcomeStep
+                num={2}
+                title="Print the QR code on your poster"
+                detail="Stick it where customers will see it — by the register, on the receipt, on the cup. The QR routes to a one-tap claim page."
+              />
+              <WelcomeStep
+                num={3}
+                title="Watch your stats fill in"
+                detail="When the first customer scans, you'll see it here. Submissions are reviewed automatically, and the customer gets their perk via SMS."
+              />
+            </ol>
           </div>
         </Card>
       )}
@@ -370,13 +392,52 @@ export function PortalHome({
         </AnimateOnScroll>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — only when there are NO templates being shown
+          either, otherwise it duplicates the CTA above. The big "Create
+          a new campaign" button is the primary affordance; this card
+          is the "if you scrolled all the way down here" reassurance. */}
       {myCampaigns.length === 0 && (
         <Card className="text-center py-10 bg-brand-surface/30">
-          <p className="text-sm text-brand-dim">No campaigns yet. Create your first one above.</p>
-          <p className="text-xs text-brand-muted mt-2">It takes less than a minute.</p>
+          <p className="text-sm text-brand-dim">
+            No campaigns yet. Pick a template above or build your own.
+          </p>
+          <p className="text-xs text-brand-muted mt-2">
+            It takes less than a minute, and your first scan usually
+            happens within a day of putting the QR code up.
+          </p>
+          <button
+            onClick={onGoToCreate}
+            className="mt-4 inline-block px-5 py-2 bg-brand-cyan text-brand-bg font-medium rounded-lg text-sm hover:bg-brand-cyan/90"
+          >
+            Build a campaign →
+          </button>
         </Card>
       )}
     </>
+  );
+}
+
+function WelcomeStep({
+  num,
+  title,
+  detail,
+}: {
+  num: number;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <li className="flex gap-3 items-start">
+      <span
+        aria-hidden
+        className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 text-brand-cyan text-xs font-semibold"
+      >
+        {num}
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm text-brand-white font-medium">{title}</p>
+        <p className="text-xs text-brand-dim mt-0.5">{detail}</p>
+      </div>
+    </li>
   );
 }
