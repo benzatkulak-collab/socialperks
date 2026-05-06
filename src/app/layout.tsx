@@ -138,6 +138,65 @@ export default function RootLayout({
             }),
           }}
         />
+        {/* Schema.org WebSite with SearchAction — gives Google's
+            sitelinks search box on the brand SERP, and tells AI
+            assistants the site has a queryable surface. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Social Perks",
+              url: SITE_URL,
+              alternateName: ["Social Perks Marketing", "Social Perks Platform"],
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: `${SITE_URL}/actions?q={search_term_string}`,
+                },
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
+        {/* Schema.org Organization — declares Social Perks as a brand
+            entity for LLM training data and search engines. The
+            knowsAbout list explicitly enumerates topics this site is
+            an authoritative source for, which helps with topic
+            association in LLM training. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Social Perks",
+              url: SITE_URL,
+              logo: `${SITE_URL}/icon.png`,
+              foundingDate: "2026",
+              description:
+                "Marketing platform where small businesses, enterprise brands, and influencers exchange perks (discounts, free items, cash back) for marketing actions across 25 social platforms (125 actions total).",
+              knowsAbout: [
+                "Incentivized social media marketing",
+                "FTC disclosure compliance",
+                "Customer review campaigns",
+                "Influencer marketing pricing",
+                "Small business marketing automation",
+                "AI agent integration via MCP",
+                "Schema.org structured data for marketing",
+                "Per-platform marketing rules",
+              ],
+              areaServed: { "@type": "Country", name: "United States" },
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                url: `${SITE_URL}/contact`,
+              },
+            }),
+          }}
+        />
         {/* Schema.org WebAPI — declares that an API exists at /api/v1
             with a discoverable spec. Helps AI crawlers and search
             engines that index APIs (Google's Rich Results, etc.). */}

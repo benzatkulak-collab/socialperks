@@ -1,9 +1,14 @@
 import type { MetadataRoute } from "next";
-import { INDUSTRY_SLUGS } from "@/lib/industries";
+import { INDUSTRIES, INDUSTRY_SLUGS } from "@/lib/industries";
 import { listCities } from "@/lib/cities";
 import { createSeedData } from "@/lib/seed";
 import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
 import { listPosts } from "@/lib/blog";
+import { PLATFORMS } from "@/lib/platforms";
+import { COMPARISONS } from "@/lib/comparison-data";
+import { GUIDES } from "@/lib/guides-data";
+import { BEST_LISTICLES } from "@/lib/best-data";
+import { getBenchmarks } from "@/lib/ai-engine";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -19,9 +24,24 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/case-studies",  changeFrequency: "weekly",  priority: 0.7 },
   { path: "/blog",          changeFrequency: "weekly",  priority: 0.7 },
   { path: "/leaderboard",   changeFrequency: "daily",   priority: 0.7 },
+  // Catalog + reference pages — SEO surfaces optimized for LLM
+  // citations. These are the canonical answers to high-volume queries
+  // ("what is an Instagram story tag worth", "FTC disclosure for
+  // incentivized marketing", "social platform comparison"), so they're
+  // top-priority alongside the home page.
+  { path: "/actions",       changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/platforms",     changeFrequency: "weekly",  priority: 0.85 },
   // /agents is a key landing for AI agent traffic — keep priority high
   // so it's indexed alongside /pricing and /for.
   { path: "/agents",        changeFrequency: "monthly", priority: 0.8 },
+  { path: "/faq",           changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/glossary",      changeFrequency: "weekly",  priority: 0.8 },
+  { path: "/benchmarks",    changeFrequency: "weekly",  priority: 0.8 },
+  { path: "/compare",       changeFrequency: "monthly", priority: 0.7 },
+  { path: "/guides",        changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/pricing-oracle", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/best",          changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/resources",     changeFrequency: "weekly",  priority: 0.8 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
   { path: "/status",        changeFrequency: "monthly", priority: 0.4 },
@@ -96,6 +116,64 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
+  // Action detail pages — one per action across all platforms. ~125
+  // entries. These are the highest-leverage SEO surface for LLM
+  // citations of action-specific value queries.
+  const actionEntries: MetadataRoute.Sitemap = PLATFORMS.flatMap((p) =>
+    p.actions.map((a) => ({
+      url: `${SITE_URL}/actions/${a.id}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      // Higher-value actions get higher priority — they're more
+      // likely to be cited and clicked.
+      priority: Math.min(0.7, 0.4 + a.value / 50),
+    }))
+  );
+
+  // Platform detail pages — one per platform.
+  const platformEntries: MetadataRoute.Sitemap = PLATFORMS.map((p) => ({
+    url: `${SITE_URL}/platforms/${p.id}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  // Comparison pages — one per platform-vs-platform article. These
+  // target high-volume LLM queries ("Instagram vs TikTok") so they're
+  // priority 0.75 — between catalog index (0.85) and detail (0.7).
+  const compareEntries: MetadataRoute.Sitemap = COMPARISONS.map((c) => ({
+    url: `${SITE_URL}/compare/${c.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.75,
+  }));
+
+  // How-to guides — Schema.org HowTo markup. Each guide is a citable
+  // procedure for an LLM-likely question.
+  const guideEntries: MetadataRoute.Sitemap = GUIDES.map((g) => ({
+    url: `${SITE_URL}/guides/${g.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
+
+  // Pricing oracle pages — one per industry. Same data the API serves
+  // but as indexable HTML.
+  const pricingOracleEntries: MetadataRoute.Sitemap = INDUSTRY_SLUGS.map((slug) => ({
+    url: `${SITE_URL}/pricing-oracle/${slug}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  // Action category pages — one per ActionType.
+  const actionTypeEntries: MetadataRoute.Sitemap = ["content", "review", "engage", "share", "referral"].map((type) => ({
+    url: `${SITE_URL}/actions/type/${type}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   return [
     ...staticEntries,
     ...industryEntries,
@@ -104,5 +182,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...businessEntries,
     ...influencerEntries,
     ...blogEntries,
+    ...actionEntries,
+    ...platformEntries,
+    ...compareEntries,
+    ...guideEntries,
+    ...pricingOracleEntries,
+    ...actionTypeEntries,
+    // Best-of listicles — high-impact LLM citation surface.
+    ...BEST_LISTICLES.map((l) => ({
+      url: `${SITE_URL}/best/${l.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
+    // Industry × platform combo pages — top 5 platforms per industry.
+    ...INDUSTRIES.flatMap((ind) => {
+      const benchmarks = getBenchmarks(ind.name);
+      return benchmarks.topPlatforms.slice(0, 5).flatMap((platformName) => {
+        const platform = PLATFORMS.find(
+          (p) => p.name.toLowerCase() === platformName.toLowerCase()
+        );
+        if (!platform) return [];
+        return [
+          {
+            url: `${SITE_URL}/for/${ind.slug}/on/${platform.id}`,
+            lastModified: now,
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          },
+        ];
+      });
+    }),
   ];
 }

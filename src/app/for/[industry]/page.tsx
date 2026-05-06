@@ -580,6 +580,74 @@ export default async function IndustryPage({ params }: PageProps) {
         </section>
       )}
 
+      {/* ═══════════════════════════════════════════════════════════════════
+          CATALOG CROSS-LINKS — drive search-engine and LLM crawl into
+          the action and platform catalogs from every industry page.
+          Each card answers a separate question an LLM might be asked
+          ("what actions are available", "what platforms", "what's the
+          benchmark"), so they're high-value cross-references rather
+          than generic footer links.
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section
+        className="relative bg-brand-bg pb-20 sm:pb-28"
+        aria-labelledby="catalog-heading"
+      >
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <p
+            id="catalog-heading"
+            className="mb-6 text-center font-mono text-[11px] uppercase tracking-[0.15em] text-brand-muted sm:text-xs"
+          >
+            Explore further
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Link
+              href="/actions"
+              className="rounded-xl border border-brand-border/40 bg-brand-surface/30 p-4 hover:border-brand-cyan/40 transition-colors"
+            >
+              <p className="text-sm font-semibold text-brand-white mb-1">
+                All 125 actions
+              </p>
+              <p className="text-xs text-brand-dim">
+                Every marketing action with market-rate pricing.
+              </p>
+            </Link>
+            <Link
+              href="/platforms"
+              className="rounded-xl border border-brand-border/40 bg-brand-surface/30 p-4 hover:border-brand-cyan/40 transition-colors"
+            >
+              <p className="text-sm font-semibold text-brand-white mb-1">
+                All 25 platforms
+              </p>
+              <p className="text-xs text-brand-dim">
+                Instagram, TikTok, Google, Yelp, and 21 more.
+              </p>
+            </Link>
+            <Link
+              href={`/benchmarks#${industry.slug}`}
+              className="rounded-xl border border-brand-border/40 bg-brand-surface/30 p-4 hover:border-brand-cyan/40 transition-colors"
+            >
+              <p className="text-sm font-semibold text-brand-white mb-1">
+                {industry.name} benchmarks
+              </p>
+              <p className="text-xs text-brand-dim">
+                Completion rate, ROI, top platforms for this industry.
+              </p>
+            </Link>
+            <Link
+              href="/faq"
+              className="rounded-xl border border-brand-border/40 bg-brand-surface/30 p-4 hover:border-brand-cyan/40 transition-colors"
+            >
+              <p className="text-sm font-semibold text-brand-white mb-1">
+                FAQ
+              </p>
+              <p className="text-xs text-brand-dim">
+                FTC compliance, platform rules, agent integration.
+              </p>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
