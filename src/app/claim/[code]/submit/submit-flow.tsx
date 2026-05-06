@@ -33,6 +33,8 @@ interface SubmissionResponse {
   submission: { id: string; points: number; status: string };
   member: { memberId: string };
   fraudCheck: { score: number; action: string; signals: string[] };
+  redemptionCode: string;
+  redemptionCodeDisplay: string;
 }
 
 export function SubmitFlow({ code, actions }: SubmitFlowProps) {
@@ -162,15 +164,26 @@ export function SubmitFlow({ code, actions }: SubmitFlowProps) {
           </svg>
         </div>
         <h2 className="text-lg font-heading italic text-brand-white mb-1">
-          Submission received
+          Your perk is ready
         </h2>
-        <p className="text-xs text-brand-dim mb-3">
-          {result.submission.status === "pending"
-            ? "We're reviewing your proof. You'll get a confirmation when it's approved."
-            : "Your proof was approved instantly."}
+        <p className="text-xs text-brand-dim mb-4">
+          Show this code at checkout. We&apos;ve also sent it to{" "}
+          <span className="text-brand-white">{contact}</span>.
         </p>
+        <div
+          className="rounded-lg border border-brand-cyan/30 bg-brand-cyan/5 px-4 py-5 mb-4"
+          data-testid="redemption-code"
+        >
+          <p
+            className="font-mono text-3xl tracking-[0.3em] text-brand-white"
+            aria-label="Redemption code"
+          >
+            {result.redemptionCodeDisplay}
+          </p>
+        </div>
         <p className="text-2xs text-brand-muted font-mono">
-          ID: {result.submission.id.slice(0, 8)}
+          Submission {result.submission.id.slice(0, 8)} ·{" "}
+          {result.submission.status}
         </p>
       </div>
     );

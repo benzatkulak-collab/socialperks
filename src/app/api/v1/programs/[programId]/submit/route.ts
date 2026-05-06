@@ -153,6 +153,10 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     status: "pending",
     submittedAt: new Date().toISOString(),
     reviewedAt: null,
+    redemptionCode: null, // authenticated path doesn't need a redemption code
+    redeemedAt: null,
+    notifiedChannel: null,
+    notifiedContact: null,
   };
 
   programSubmissions.set(submission.id, submission);

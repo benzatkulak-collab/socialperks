@@ -44,10 +44,17 @@ import {
   type ProgramMember,
   type ProgramSubmission,
 } from "@/lib/programs/store";
+import {
+  generateRedemptionCode,
+  formatRedemptionCode,
+} from "@/lib/programs/redemption";
 import { verifyClaimToken } from "@/lib/customer-otp";
 import { checkSubmission } from "@/lib/fraud-detection";
 import { ALL_ACTIONS } from "@/lib/platforms";
 import { validateString, validateEnum } from "@/lib/security/validate";
+import { smsProvider } from "@/lib/sms";
+import { emailProvider } from "@/lib/email";
+import { createSeedData } from "@/lib/seed";
 
 interface RouteContext {
   params: Promise<{ code: string }>;
@@ -285,6 +292,11 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     }
   }
 
+  // Optimistic redemption code — visible to the customer immediately so
+  // they can show it at checkout without waiting for review. The
+  // business can still redeem-or-reject from the dashboard later.
+  const redemptionCode = generateRedemptionCode();
+
   const submission: ProgramSubmission = {
     id: fraudSubmissionId,
     programId: program.id,
@@ -298,13 +310,30 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     status: "pending",
     submittedAt: new Date().toISOString(),
     reviewedAt: null,
+    redemptionCode,
+    redeemedAt: null,
+    notifiedChannel: claim.channel,
+    notifiedContact: claim.contact,
   };
   programSubmissions.set(submission.id, submission);
+
+  // Best-effort delivery of the redemption code so the customer has it
+  // even if they close the page. Failures are non-fatal — the code is
+  // still in the response body and visible on the post-submit screen.
+  void deliverRedemptionCode({
+    channel: claim.channel,
+    contact: claim.contact,
+    redemptionCode,
+    businessId: program.businessId,
+    programName: program.name,
+  });
 
   return ok(
     {
       submission,
       member,
+      redemptionCode,
+      redemptionCodeDisplay: formatRedemptionCode(redemptionCode),
       fraudCheck: {
         score: fraudResult.score,
         action: fraudResult.action,
@@ -314,3 +343,46 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     201
   );
 });
+
+/** Send the redemption code over the customer's chosen channel. */
+async function deliverRedemptionCode(opts: {
+  channel: "sms" | "email";
+  contact: string;
+  redemptionCode: string;
+  businessId: string;
+  programName: string;
+}): Promise<void> {
+  const seed = createSeedData();
+  const business = seed.businesses.find((b) => b.id === opts.businessId);
+  const businessName = business?.name ?? "this business";
+  const display = formatRedemptionCode(opts.redemptionCode);
+
+  if (opts.channel === "sms") {
+    await smsProvider.send({
+      to: opts.contact,
+      body: `Your perk at ${businessName} is ready. Show this code at checkout: ${display}. (Social Perks)`,
+    });
+    return;
+  }
+
+  await emailProvider.send({
+    to: opts.contact,
+    subject: `Your perk at ${businessName} is ready`,
+    text:
+      `Show this code at the counter to claim your perk:\n\n${display}\n\n` +
+      `From the team at ${businessName}, via Social Perks.`,
+    html:
+      `<p>Show this code at the counter to claim your perk at <strong>${escapeText(businessName)}</strong>:</p>` +
+      `<p style="font-size:28px;font-family:monospace;letter-spacing:6px;background:#f6f6f6;padding:16px 20px;border-radius:8px;text-align:center;">${display}</p>` +
+      `<p style="color:#666;font-size:12px;">From the team at ${escapeText(businessName)}, via Social Perks.</p>`,
+  });
+}
+
+function escapeText(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}

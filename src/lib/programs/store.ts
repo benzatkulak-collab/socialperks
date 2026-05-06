@@ -60,6 +60,17 @@ export interface ProgramSubmission {
   status: "pending" | "approved" | "rejected";
   submittedAt: string;
   reviewedAt: string | null;
+  /**
+   * One-time redemption code shown to the customer after submitting.
+   * Visible immediately for an optimistic UX; flips to redeemedAt once
+   * the business marks it used. Null for legacy submissions created
+   * before PR D landed.
+   */
+  redemptionCode: string | null;
+  redeemedAt: string | null;
+  /** Channel + contact the redemption code was emailed/SMSed to. */
+  notifiedChannel: "sms" | "email" | null;
+  notifiedContact: string | null;
 }
 
 export interface Payout {
