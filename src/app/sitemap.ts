@@ -8,6 +8,7 @@ import { PLATFORMS } from "@/lib/platforms";
 import { COMPARISONS } from "@/lib/comparison-data";
 import { GUIDES } from "@/lib/guides-data";
 import { BEST_LISTICLES } from "@/lib/best-data";
+import { VS_ENTRIES } from "@/lib/vs-data";
 import { getBenchmarks } from "@/lib/ai-engine";
 
 const SITE_URL =
@@ -41,6 +42,7 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/guides",        changeFrequency: "weekly",  priority: 0.85 },
   { path: "/pricing-oracle", changeFrequency: "weekly", priority: 0.8 },
   { path: "/best",          changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/vs",            changeFrequency: "weekly",  priority: 0.8 },
   { path: "/resources",     changeFrequency: "weekly",  priority: 0.8 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
@@ -194,6 +196,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.8,
+    })),
+    // Vs / alternatives comparison pages — high-volume "Social Perks
+    // alternative" + "X vs Y" search queries.
+    ...VS_ENTRIES.map((v) => ({
+      url: `${SITE_URL}/vs/${v.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
     })),
     // Industry × platform combo pages — top 5 platforms per industry.
     ...INDUSTRIES.flatMap((ind) => {
