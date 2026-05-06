@@ -44,6 +44,19 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+  // SECURITY: In production, refuse to fall through to mock-mode if the
+  // Stripe webhook secret is missing. Previously, the absence of the
+  // secret silently bypassed signature verification — any attacker could
+  // forge a Stripe event payload and mint subscriptions, cancel
+  // subscriptions, or trigger referral credits.
+  if (process.env.NODE_ENV === "production" && (!stripe || !isStripeConfigured() || !webhookSecret)) {
+    return err(
+      "BILLING_NOT_CONFIGURED",
+      "Stripe webhook verification is not configured. Refusing to process webhooks without signature verification in production.",
+      503
+    );
+  }
+
   let body: Record<string, unknown>;
   let eventId: string;
   let eventType: string;

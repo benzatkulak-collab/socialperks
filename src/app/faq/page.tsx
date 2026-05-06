@@ -11,6 +11,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FAQ_CATEGORIES, FAQ_ENTRIES } from "@/lib/faq-data";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -89,11 +90,11 @@ export default function FaqPage() {
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(faqLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(breadcrumbsLd) }}
       />
 
       <div className="mx-auto max-w-3xl px-6 py-16">

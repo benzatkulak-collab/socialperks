@@ -15,6 +15,7 @@ import { notFound } from "next/navigation";
 import { INDUSTRIES } from "@/lib/industries";
 import { PLATFORMS } from "@/lib/platforms";
 import { getBenchmarks, estimatePricing } from "@/lib/ai-engine";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -96,11 +97,11 @@ export default async function PricingOraclePage({
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(datasetLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(breadcrumbsLd) }}
       />
 
       <div className="mx-auto max-w-3xl px-6 py-16">

@@ -4,6 +4,7 @@
  * CRUD operations for the launched_campaigns table.
  */
 
+import { safeOrderBy, safeOrder } from "../../security/order-by";
 import type { CampaignStatus, CampaignTier, DiscountType } from "../../types";
 import {
   type PaginatedResult,
@@ -157,8 +158,13 @@ export class CampaignRepository
 
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const orderBy = options.orderBy ?? "created_at";
-    const order = options.order === "asc" ? "ASC" : "DESC";
+    // SECURITY: Allowlist columns to prevent SQL injection via orderBy.
+    const orderBy = safeOrderBy(
+      options.orderBy,
+      ["created_at", "updated_at", "started_at", "ended_at", "tier", "status", "completion_count", "submission_count", "discount_value"] as const,
+      "created_at"
+    );
+    const order = safeOrder(options.order);
     const page = options.page ?? 1;
     const perPage = options.perPage ?? 50;
     const limit = perPage;

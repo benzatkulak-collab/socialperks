@@ -22,6 +22,7 @@ import {
   type Payout,
 } from "@/lib/programs/store";
 import { validateEnum, validateNumber, validateString } from "@/lib/security/validate";
+import { requireOwnership } from "@/lib/security/owner";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
 
@@ -47,10 +48,10 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
-  // Tenant isolation: only the program owner can view payouts
-  if (user.businessId && program.businessId !== user.businessId) {
-    return err("FORBIDDEN", "You do not have access to this program's payouts", 403);
-  }
+  // Ownership: explicit (treats null user.businessId as no-access).
+  // Was the cashback financial-fraud IDOR vector.
+  const ownership = requireOwnership(user, program.businessId);
+  if (ownership) return ownership;
 
   const params = getQuery(req);
   const statusFilter = params.get("status");
@@ -100,10 +101,11 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
-  // Tenant isolation: only the program owner can manage payouts
-  if (user.businessId && program.businessId !== user.businessId) {
-    return err("FORBIDDEN", "You do not have access to this program's payouts", 403);
-  }
+  // Ownership: explicit (treats null user.businessId as no-access).
+  // Was the cashback financial-fraud IDOR vector — null user.businessId
+  // would skip the check and let any auth'd user mark payouts paid.
+  const ownership = requireOwnership(user, program.businessId);
+  if (ownership) return ownership;
 
   const body = await parseBody<{
     action: string;

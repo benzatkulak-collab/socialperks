@@ -4,6 +4,7 @@ import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { createSeedData } from "@/lib/seed";
 import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 export const metadata: Metadata = {
   title: "Leaderboard — Social Perks",
@@ -64,7 +65,7 @@ export default function LeaderboardPage() {
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(creatorJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonForScript(creatorJsonLd) }}
         />
 
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">

@@ -22,16 +22,23 @@ import {
   KNOWN_EVENT_TYPES,
 } from "@/lib/webhooks";
 import { validateId, validateString } from "@/lib/security/validate";
+import { isSafeUrl } from "@/lib/security/url";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * SECURITY: Validates that a webhook URL is HTTPS AND not pointing at a
+ * private/internal IP. Was previously HTTPS-only — let attackers
+ * register webhooks at internal services (RFC1918, AWS metadata
+ * 169.254.169.254, loopback) and exfiltrate response bodies via the
+ * webhook delivery log.
+ *
+ * Note: this is the synchronous shallow check (literal IPs only). The
+ * webhook delivery layer should re-validate against DNS at delivery
+ * time to defeat DNS rebinding.
+ */
 function isHttpsUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return isSafeUrl(url) === null;
 }
 
 function validateEvents(events: unknown): string[] | null {

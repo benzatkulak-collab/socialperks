@@ -31,7 +31,20 @@ function inviteKey(campaignId: string, sharerId: string): string {
 }
 
 function signUnlockToken(args: { campaignId: string; sharerId: string }): string {
-  const secret = process.env.AUTH_SECRET ?? "dev-only-unsafe-secret";
+  // SECURITY: AUTH_SECRET is required in production. Previously fell back
+  // to a hardcoded string, letting attackers who read the source forge
+  // unlock tokens for any campaign.
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET must be set in production");
+    }
+    // Dev fallback only — never used when NODE_ENV=production.
+    const devSecret = "dev-only-unsafe-secret";
+    const payload = `${args.campaignId}.${args.sharerId}.${Date.now()}`;
+    const sig = crypto.createHmac("sha256", devSecret).update(payload).digest("base64url");
+    return `${Buffer.from(payload).toString("base64url")}.${sig}`;
+  }
   const payload = `${args.campaignId}.${args.sharerId}.${Date.now()}`;
   const sig = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
   return `${Buffer.from(payload).toString("base64url")}.${sig}`;

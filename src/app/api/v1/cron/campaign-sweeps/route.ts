@@ -15,13 +15,16 @@ import type { NextRequest } from "next/server";
 import { ok, err } from "../../_shared";
 import { db, InMemoryConnection } from "@/lib/db/connection";
 import { logger } from "@/lib/logging";
+import { constantTimeEqual } from "@/lib/security/order-by";
 
 const usingDb = !(db instanceof InMemoryConnection);
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return err("CRON_NOT_CONFIGURED", "CRON_SECRET unset", 503);
-  if (req.headers.get("authorization") !== `Bearer ${secret}`) {
+  // SECURITY: constant-time compare to avoid timing oracle on the secret.
+  const auth = req.headers.get("authorization") ?? "";
+  if (!constantTimeEqual(auth, `Bearer ${secret}`)) {
     return err("UNAUTHORIZED", "Invalid cron token", 401);
   }
   if (!usingDb) {

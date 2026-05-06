@@ -20,6 +20,7 @@ import { ResendEmailProvider, ConsoleEmailProvider, type EmailProvider } from "@
 import { validateEmail } from "@/lib/security/validate";
 import { logger } from "@/lib/logging";
 import { db, InMemoryConnection } from "@/lib/db/connection";
+import { constantTimeEqual } from "@/lib/security/order-by";
 
 const usingDb = !(db instanceof InMemoryConnection);
 
@@ -152,8 +153,9 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Admin-only: peek at the list size. No PII returned.
   const adminToken = process.env.WAITLIST_ADMIN_TOKEN;
-  const provided = req.headers.get("x-admin-token");
-  if (!adminToken || provided !== adminToken) {
+  const provided = req.headers.get("x-admin-token") ?? "";
+  // SECURITY: constant-time compare to avoid timing oracle.
+  if (!adminToken || !constantTimeEqual(provided, adminToken)) {
     return err("UNAUTHORIZED", "Admin token required", 401);
   }
   if (usingDb) {

@@ -9,6 +9,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -53,7 +54,7 @@ export default function PlatformsCatalog() {
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(itemList) }}
       />
       <div className="mx-auto max-w-5xl px-6 py-16">
         <header className="mb-12">

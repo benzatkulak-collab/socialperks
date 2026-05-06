@@ -384,7 +384,9 @@ describe("checkProofUrl", () => {
       "https://www.instagram.com/p/abc",
       expect.objectContaining({
         method: "HEAD",
-        redirect: "follow",
+        // SECURITY: redirect is "manual" (was "follow") so attackers
+        // can't chain a public URL → 30x → internal IP for SSRF.
+        redirect: "manual",
         headers: expect.objectContaining({
           "User-Agent": "SocialPerks-UrlChecker/1.0",
         }),

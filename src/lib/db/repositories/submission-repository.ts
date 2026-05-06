@@ -4,6 +4,7 @@
  * CRUD operations for the campaign_submissions table.
  */
 
+import { safeOrderBy, safeOrder } from "../../security/order-by";
 import type { ProofType, SubmissionStatus } from "../../types";
 import {
   type PaginatedResult,
@@ -147,8 +148,13 @@ export class SubmissionRepository
 
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const orderBy = options.orderBy ?? "submitted_at";
-    const order = options.order === "asc" ? "ASC" : "DESC";
+    // SECURITY: Allowlist columns to prevent SQL injection via orderBy.
+    const orderBy = safeOrderBy(
+      options.orderBy,
+      ["submitted_at", "reviewed_at", "status", "value_awarded_cents", "created_at"] as const,
+      "submitted_at"
+    );
+    const order = safeOrder(options.order);
     const page = options.page ?? 1;
     const perPage = options.perPage ?? 50;
     const limit = perPage;

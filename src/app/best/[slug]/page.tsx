@@ -11,6 +11,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BEST_LISTICLES } from "@/lib/best-data";
 import type { BestEntry } from "@/lib/best-data";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -100,15 +101,15 @@ export default async function BestListicle({
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(itemListLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(articleLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(breadcrumbsLd) }}
       />
 
       <div className="mx-auto max-w-3xl px-6 py-16">

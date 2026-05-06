@@ -22,6 +22,7 @@ import { campaignManager } from "@/lib/campaign-state-machine";
 import type { CampaignState, CampaignLifecycle } from "@/lib/campaign-state-machine";
 import { persistLifecycle } from "@/lib/campaign-state-machine/persist";
 import { validateId, validateString, validateNumber, validateEnum } from "@/lib/security/validate";
+import { requireOwnership } from "@/lib/security/owner";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import { findAction, findPlatform } from "@/lib/platforms";
 import { pluginManager } from "@/lib/plugin-system";
@@ -314,10 +315,10 @@ export const PUT = withTiming(async (req: NextRequest) => {
     return err("CAMPAIGN_NOT_FOUND", `Campaign ${cv.data} not found`, 404);
   }
 
-  // Verify ownership: campaign must belong to the authenticated user's business
-  if (user.businessId && lifecycle.businessId !== user.businessId) {
-    return err("FORBIDDEN", "You do not have permission to modify this campaign", 403);
-  }
+  // Verify ownership: campaign must belong to the authenticated user's business.
+  // requireOwnership treats null user.businessId as no-access (was the IDOR).
+  const ownership = requireOwnership(user, lifecycle.businessId);
+  if (ownership) return ownership;
 
   // ── Lifecycle actions: pause / resume / end ───────────────────────────────
 

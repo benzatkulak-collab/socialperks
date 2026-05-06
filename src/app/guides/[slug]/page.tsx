@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GUIDES } from "@/lib/guides-data";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -95,11 +96,11 @@ export default async function GuidePage({
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(howToLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(breadcrumbsLd) }}
       />
 
       <div className="mx-auto max-w-3xl px-6 py-16">

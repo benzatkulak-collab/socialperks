@@ -11,6 +11,7 @@ import {
   influencersInCity,
 } from "@/lib/cities";
 import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 interface PageProps {
   params: Promise<{ city: string }>;
@@ -91,7 +92,7 @@ export default async function CityPage({ params }: PageProps) {
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonForScript(jsonLd) }}
         />
 
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">

@@ -66,11 +66,16 @@ export async function GET(req: NextRequest) {
       },
     }, 200, { "Cache-Control": "public, max-age=60" });
   } catch (e) {
+    // SECURITY: Don't leak raw DB error messages (schema names, connection
+    // strings, password failures) to anonymous public callers. Log
+    // server-side and return a generic mode marker.
+    console.error(
+      `[transparency] query failed: ${e instanceof Error ? e.message : String(e)}`
+    );
     return ok({
       window: "since_launch",
       generatedAt: new Date().toISOString(),
       mode: "error",
-      error: e instanceof Error ? e.message : "unknown",
       totals: { creatorEarningsDollars: 0, activeCreators: 0, activeBusinesses: 0, activeCampaigns: 0 },
     });
   }

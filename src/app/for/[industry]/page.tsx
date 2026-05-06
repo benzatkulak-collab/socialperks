@@ -8,6 +8,7 @@ import {
   INDUSTRY_MAP,
   INDUSTRY_SLUGS,
 } from "@/lib/industries";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 // ---------------------------------------------------------------------------
 // Static generation
@@ -79,7 +80,7 @@ export default async function IndustryPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: safeJsonForScript({
             "@context": "https://schema.org",
             "@type": "WebPage",
             name: `Social Perks for ${industry.name}`,

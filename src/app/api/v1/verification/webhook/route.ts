@@ -14,14 +14,22 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-const WEBHOOK_SECRET = (() => {
+/**
+ * SECURITY: WEBHOOK_SECRET is required in production. Previously this
+ * silently fell back to a hardcoded string ("dev-webhook-secret"),
+ * which would let any attacker who has read this codebase forge platform
+ * webhooks. Now we throw on first request when missing in production.
+ */
+function getWebhookSecret(): string {
   const secret = process.env.WEBHOOK_SECRET;
   if (secret) return secret;
   if (process.env.NODE_ENV === "production") {
-    console.warn("[WEBHOOK] WARNING: WEBHOOK_SECRET not set in production");
+    throw new Error(
+      "WEBHOOK_SECRET must be set in production — refusing to verify webhooks with a hardcoded fallback."
+    );
   }
   return "dev-webhook-secret";
-})();
+}
 
 // Replay protection: track recent event IDs to reject duplicates
 const recentEventIds = new Set<string>();
@@ -53,7 +61,7 @@ function verifySignature(payload: string, signatureHeader: string | null): boole
     ? signatureHeader.slice(7)
     : signatureHeader;
 
-  const expected = createHmac("sha256", WEBHOOK_SECRET)
+  const expected = createHmac("sha256", getWebhookSecret())
     .update(payload)
     .digest("hex");
 
