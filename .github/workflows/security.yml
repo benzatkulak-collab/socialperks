@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 # Security Pipeline — Audit, License Check, Dependency Review
-# Runs weekly on Monday at 9:00 UTC and on every PR to main
+# Runs weekly on Monday at 9:00 UTC and on every PR — including
+# stacked PRs whose base isn't main.
 # ─────────────────────────────────────────────────────────────
 
 name: Security
@@ -9,7 +10,7 @@ on:
   schedule:
     - cron: "0 9 * * 1" # Every Monday at 9:00 UTC
   pull_request:
-    branches: [main]
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:

@@ -1,15 +1,21 @@
 # ─────────────────────────────────────────────────────────────
 # CI Pipeline — Lint, Type Check, Test, Build
-# Runs on every push and pull request to main
+# Runs on every push and pull request, including stacked PRs.
 # ─────────────────────────────────────────────────────────────
 
 name: CI
 
 on:
+  # NOTE: "**" not "*" — single-star globs do NOT cross "/", so
+  # branches like `claude/foo` would never trigger CI under "*".
+  # Double-star matches the full ref including slashes.
   push:
-    branches: ["*"]
+    branches: ["**"]
+  # Run on every PR regardless of base branch — stacked PRs
+  # (e.g. claude/foo-pr-b → claude/foo-pr-a) need CI just as much
+  # as PRs targeting main, otherwise they merge blind.
   pull_request:
-    branches: [main]
+    branches: ["**"]
 
 concurrency:
   group: ci-${{ github.ref }}
