@@ -15,6 +15,7 @@
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { db, InMemoryConnection } from "@/lib/db/connection";
+import { audit } from "@/lib/audit-log";
 
 const usingDb = !(db instanceof InMemoryConnection);
 
@@ -285,6 +286,14 @@ export function createApiKey(args: {
 }): NewApiKey {
   const created = generateApiKey(args);
   persistApiKey(created);
+  audit({
+    action: "api_key.created",
+    actor: `business:${args.businessId}`,
+    businessId: args.businessId,
+    resourceId: created.record.id,
+    ok: true,
+    meta: { agentName: args.agentName, permissions: args.permissions ?? [] },
+  });
   return created;
 }
 
@@ -351,6 +360,13 @@ export function revokeApiKey(args: { id: string; businessId: string }): boolean 
       `UPDATE api_keys SET active = false, updated_at = now() WHERE id = $1 AND business_id = $2`,
       [args.id, args.businessId]
     );
+    audit({
+      action: "api_key.revoked",
+      actor: `business:${args.businessId}`,
+      businessId: args.businessId,
+      resourceId: args.id,
+      ok: true,
+    });
   }
   return ok;
 }
