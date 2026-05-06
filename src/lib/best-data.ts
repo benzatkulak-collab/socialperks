@@ -277,6 +277,111 @@ export const BEST_LISTICLES: BestListicle[] = [
     ],
   },
   {
+    slug: "platforms-for-salons-and-spas",
+    category: "industries",
+    title: "Best social platforms for salon and spa marketing",
+    description:
+      "Salons and spas thrive on visual-result content and verified reviews. Instagram, TikTok, Google, Yelp lead.",
+    intro:
+      "Beauty businesses run on before-and-after content. The platforms that reward that pattern (Instagram, TikTok) drive most new-customer acquisition; the platforms that capture intent (Google, Yelp) close it. Most salons and spas should run all four.",
+    entries: [
+      {
+        rank: 1,
+        name: "Instagram",
+        reason:
+          "Before-and-after carousel posts and Reels are the highest-converting format for hair, nails, lashes, brows, and skincare. Stories at $1.50 each work well for daily client content.",
+        url: "/platforms/ig",
+      },
+      {
+        rank: 2,
+        name: "TikTok",
+        reason:
+          "Process videos (transformation timelapses) reach younger demographics. Best for newer techniques and trend-driven services.",
+        url: "/platforms/tt",
+      },
+      {
+        rank: 3,
+        name: "Google",
+        reason:
+          "Local-intent search dominates beauty bookings. Reviews and photos in Business Profile drive 'near me' visibility.",
+        url: "/platforms/go",
+      },
+      {
+        rank: 4,
+        name: "Yelp",
+        reason:
+          "Strong vertical authority for spas and high-end salons. Yelp users are higher-intent and willing to travel for top-rated providers.",
+        url: "/platforms/yp",
+      },
+    ],
+  },
+  {
+    slug: "platforms-for-fitness-and-yoga",
+    category: "industries",
+    title: "Best social platforms for fitness studios, yoga, and gyms",
+    description:
+      "Fitness businesses convert through community-driven content and transformation stories. Instagram, TikTok, YouTube lead.",
+    intro:
+      "Fitness is one of the most content-rich verticals: everything is photogenic, transformations are public, community matters. Instagram dominates for lifestyle posts and progress; TikTok for trends and challenges; YouTube for long-form (workout videos accumulate views over years).",
+    entries: [
+      {
+        rank: 1,
+        name: "Instagram",
+        reason: "Daily-content sweet spot. Stories, Reels, and feed posts each cover different touchpoints.",
+        url: "/platforms/ig",
+      },
+      {
+        rank: 2,
+        name: "TikTok",
+        reason: "Quick workout clips, form-correction tips, and challenges reach huge audiences fast.",
+        url: "/platforms/tt",
+      },
+      {
+        rank: 3,
+        name: "YouTube",
+        reason: "Long-form workout content compounds for years. A free 30-minute yoga video keeps driving sign-ups across multiple cohorts.",
+        url: "/platforms/yt",
+      },
+      {
+        rank: 4,
+        name: "Google",
+        reason: "Local-intent search for 'gyms near me' or 'yoga studio + city'. Don't skip — but it's the floor, not the differentiator.",
+        url: "/platforms/go",
+      },
+    ],
+  },
+  {
+    slug: "best-perks-by-effort-level",
+    category: "actions",
+    title: "How to match perk amounts to effort levels (a tactical reference)",
+    description:
+      "Effort-to-perk matching ranked from most-aligned to least-aligned. Use this as a quick reference when designing campaigns.",
+    intro:
+      "The most common campaign-design mistake is over- or under-rewarding for effort. Aligning perk to effort gets you a campaign that runs sustainably. This list ranks the cleanest matches in the catalog.",
+    entries: [
+      { rank: 1, name: "Effort 0-1 + 5-10% off perk", reason: "Likes, follows, story tags. Sub-minute effort. The discount is more about ritual than economics — keep it small.", url: "/actions" },
+      { rank: 2, name: "Effort 2 + 10-15% off perk", reason: "Carousels, photos, comments. A few minutes of effort. 10-15% off is generous enough to motivate but doesn't kill margin.", url: "/actions" },
+      { rank: 3, name: "Effort 3 + free side or 15-20% off", reason: "Reels, review videos, longer posts. A free menu item or substantial discount feels proportional to the time invested.", url: "/actions" },
+      { rank: 4, name: "Effort 4-5 + free meal or upgraded service", reason: "Long-form video reviews, detailed Google reviews with photos. The customer is doing real work for you. Match it.", url: "/actions" },
+      { rank: 5, name: "Referral actions + escalating perk", reason: "Referrals justify higher perks because conversion is direct. $5-10 referrer credit + similar referee perk works well.", url: "/actions" },
+    ],
+  },
+  {
+    slug: "best-platforms-for-text-only-businesses",
+    category: "platforms",
+    title: "Best social platforms for businesses without good photos",
+    description:
+      "Not every business has photogenic products. Text-first platforms — Twitter/X, LinkedIn, Reddit — work for service businesses, B2B, professional services.",
+    intro:
+      "If you're a lawyer, accountant, plumber, financial advisor, or any service business without natural photo content, the visual-platform-first playbook doesn't fit. Text-first platforms reward expertise and recommendations — exactly what your business actually has to offer.",
+    entries: [
+      { rank: 1, name: "LinkedIn", reason: "Articles ($5) and Posts ($2.50) work without any visual content. The platform expects text-first content from professionals.", url: "/platforms/li" },
+      { rank: 2, name: "Twitter/X", reason: "Threads and replies work for any vertical with expertise to share. Real-time customer service via DMs and replies builds authority.", url: "/platforms/xw" },
+      { rank: 3, name: "Reddit", reason: "Niche subreddit visibility for specific verticals (r/personalfinance for advisors, r/legaladvice for lawyers). Posts must be genuinely helpful — overt promotion gets banned.", url: "/platforms/rd" },
+      { rank: 4, name: "Google", reason: "Reviews are text. Q&A on the Business Profile is text. Both work for non-photogenic services.", url: "/platforms/go" },
+    ],
+  },
+  {
     slug: "ai-agent-friendly-platforms",
     category: "agents",
     title: "Best platforms for AI agents to operate marketing campaigns on",

@@ -231,4 +231,86 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     answer:
       "The minimum needed to verify and reward a submission: the customer's social handle on the platform of the campaign, an opt-in phone number for SMS perk delivery, and a hash of their proof URL. We don't store payment information for customers (the business handles redemption directly). For businesses, we store standard account metadata plus Stripe customer ID for billing.",
   },
+  // ─── Additional getting-started ─────────────────────────────────────
+  {
+    slug: "do-i-need-a-website",
+    category: "getting-started",
+    question: "Do I need a website to use Social Perks?",
+    answer:
+      "No. Social Perks works for businesses without a website — the campaign claim flow lives on Social Perks' own domain, and the perk delivery happens via SMS or in-store QR redemption. Most coffee shops, salons, and restaurants run successful Social Perks campaigns with only a Google Business Profile and no website at all.",
+  },
+  {
+    slug: "how-fast-can-i-launch-a-campaign",
+    category: "getting-started",
+    question: "How fast can I launch my first campaign?",
+    answer:
+      "From signup to printable QR code: about 5 minutes if you pick a template, about 15 minutes if you build from scratch. The longest part is deciding what perk to offer; the platform handles everything else. Most coffee shops report their first customer scan within 24-48 hours of putting the QR code up.",
+  },
+  {
+    slug: "what-if-no-one-scans-my-qr-code",
+    category: "getting-started",
+    question: "What if no one scans my QR code?",
+    answer:
+      "First scans usually happen within 1-3 days when the QR is placed at a high-visibility post-purchase touchpoint (receipt, takeout bag, on-table card, by the register). If a week passes with zero scans, it's a placement problem — move the QR somewhere customers actually look. The dashboard tracks scan-to-submission conversion so you can iterate.",
+  },
+  // ─── Additional compliance ───────────────────────────────────────────
+  {
+    slug: "what-is-a-material-connection",
+    category: "compliance",
+    question: "What does the FTC mean by 'material connection'?",
+    answer:
+      "Per FTC guidelines (16 CFR Part 255), a material connection is any relationship between an endorser and a brand that might affect the credibility of the endorsement. This includes payment, free products, discounts, future business relationships, or any other compensation. Friend-of-the-family endorsements, employee endorsements, and incentivized customer posts ALL require disclosure under this definition.",
+  },
+  {
+    slug: "can-i-use-social-perks-internationally",
+    category: "compliance",
+    question: "Can I use Social Perks for businesses outside the US?",
+    answer:
+      "Yes, but disclosure rules differ by country. The FTC governs US endorsements; the UK's CMA, Canada's Competition Bureau, the EU's various consumer-protection authorities, and Australia's ACCC have their own (generally similar) rules. Social Perks injects appropriate disclosures based on the business's registered country. SMS perk delivery is currently US/Canada only; international campaigns use email delivery.",
+  },
+  // ─── Additional platforms ────────────────────────────────────────────
+  {
+    slug: "can-i-incentivize-tiktok",
+    category: "platforms",
+    question: "Can I incentivize TikTok posts and videos?",
+    answer:
+      "Yes, with disclosure. TikTok permits paid partnerships and incentivized content as long as the post includes #ad, #sponsored, or uses TikTok's native paid-partnership label (Branded Content Toggle). Social Perks injects the appropriate disclosure into TikTok campaign templates automatically. The Branded Content Toggle gives slightly better algorithmic distribution than hashtag-only disclosure.",
+  },
+  {
+    slug: "what-about-yelp-reviews",
+    category: "platforms",
+    question: "Can I incentivize Yelp reviews?",
+    answer:
+      "No. Yelp's Content Guidelines explicitly prohibit reviews submitted in exchange for compensation, including discounts, free items, or any other consideration. Yelp aggressively detects and removes incentivized reviews, and may also flag the business for terms violations. Social Perks routes Yelp review actions through an 'ask for organic feedback' pathway: businesses can request a Yelp review but cannot tie a perk to whether one was left.",
+  },
+  // ─── Additional pricing ──────────────────────────────────────────────
+  {
+    slug: "do-i-pay-stripe-fees",
+    category: "pricing",
+    question: "Do I pay Stripe fees on Social Perks subscriptions?",
+    answer:
+      "Stripe processing fees are included in the listed plan prices ($29 Starter, $79 Pro). What you see is what you pay. The cost of perks themselves is separate — those are paid by you to your customers via discount/free-item delivery; Social Perks doesn't take a cut of customer rewards.",
+  },
+  {
+    slug: "what-happens-if-i-hit-my-plan-limit",
+    category: "pricing",
+    question: "What happens when I hit my plan's monthly limit?",
+    answer:
+      "API requests beyond your plan's limit return a 403 with an upgrade prompt; the dashboard shows a modal with a 'See plans' button. Existing customer redemptions still process — limit hits only block NEW submissions and AI generations. Limits reset at the start of each calendar month. Upgrade applies immediately.",
+  },
+  // ─── Additional agents ───────────────────────────────────────────────
+  {
+    slug: "what-mcp-tools-are-available",
+    category: "agents",
+    question: "What tools does the Social Perks MCP server expose?",
+    answer:
+      "Five tools: getPricing (market value of any action), listActions (catalog of 125 actions), getBenchmarks (industry benchmarks), listCampaigns (the calling business's active campaigns — requires auth), and searchInfluencers (find creators by platform and follower count). The full schema is at /api/mcp (GET returns a manifest with input schemas for each tool).",
+  },
+  {
+    slug: "is-there-a-public-changelog",
+    category: "agents",
+    question: "Is there a public changelog or RSS feed for the API?",
+    answer:
+      "Yes — /changelog has the human-readable changelog with Article markup. /api/llm-context returns a JSON snapshot of platform state for agent ingestion (cached 1 day). For breaking-change notifications, register a webhook at /dashboard/settings/webhooks; the webhook fires on every API version change.",
+  },
 ];

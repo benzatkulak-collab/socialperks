@@ -181,6 +181,141 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
+    slug: "respond-to-a-fake-submission",
+    title: "How to handle a suspicious or fake campaign submission",
+    description:
+      "What to do when the verification engine flags a submission as suspicious — review checklist, reject criteria, and how to escalate.",
+    summary:
+      "Most submissions sail through automated verification. The ones that don't get flagged for review with a reason: account-history mismatch, screenshot inconsistency, URL freshness fail, ML fraud-model alert. The right response depends on which signal fired and how confident the system is.",
+    totalTime: "PT5M",
+    timeLabel: "5 minutes per submission",
+    supplies: ["A flagged submission in your dashboard"],
+    steps: [
+      {
+        name: "Open the submission and read the flag reason",
+        text: "The dashboard shows the specific signal: 'URL not freshly created', 'screenshot resolution mismatch', 'account history irregular', 'ML model flagged with 87% fraud probability'. Each tells you something different.",
+      },
+      {
+        name: "Verify against the public proof",
+        text: "Click through to the proof URL. If the post is live, public, and matches what was submitted, the flag is likely a false positive. If the post is gone, private, or mismatches, reject.",
+      },
+      {
+        name: "Reject with a clear reason if it's fake",
+        text: "Pick the most specific reject reason from the dropdown. The customer is notified with the reason and can resubmit if it was a misunderstanding. Don't write custom text in the reject reason — it's machine-readable.",
+      },
+      {
+        name: "Approve overrides if it's a false positive",
+        text: "If the proof is legitimate, click 'Approve override'. The verification engine learns from these — repeated overrides for similar patterns improve the model.",
+      },
+      {
+        name: "Escalate repeat offenders",
+        text: "Customers with multiple rejected submissions trigger an auto-suspension. You don't need to do anything — the platform handles it. If you see a pattern across customers (e.g. all from the same account network), report it to support.",
+      },
+    ],
+  },
+  {
+    slug: "set-up-referral-program",
+    title: "How to set up a referral program with Social Perks",
+    description:
+      "Use Social Perks' referral codes + revenue-share to turn your existing customers into your acquisition channel. Step-by-step setup and best practices.",
+    summary:
+      "A Social Perks referral program automatically credits referrers when their referees convert to a paid plan. The default credit is $10, applied as account credit to the referrer's next invoice. Setup is one toggle plus deciding how to share the code.",
+    totalTime: "PT10M",
+    timeLabel: "10 minutes",
+    supplies: [
+      "An active Social Perks account",
+      "A way to share a link (email list, social, in-app)",
+    ],
+    steps: [
+      {
+        name: "Find your referral code",
+        text: "GET /api/v1/referrals/me returns your code (REF-XXXX-XXXX format) and a share URL. The dashboard at /dashboard/referrals also shows it.",
+        url: "/api/v1/referrals/me",
+      },
+      {
+        name: "Share the URL via your existing channels",
+        text: "Best channels in order of conversion rate: customer email newsletter > in-app banner > social-media-personal-share > paid traffic. The link goes to /ref/[code] which captures attribution before redirecting to signup.",
+      },
+      {
+        name: "Track conversions in the dashboard",
+        text: "Every signup with your code is tracked. Status flows: pending (link clicked) → signed_up (account created) → activated (first campaign launched) → credited (paid conversion). You see the funnel live.",
+      },
+      {
+        name: "Watch for the credit on your next invoice",
+        text: "When a referee converts to a paid plan, your account is credited automatically. Default $10 per credited referral. The credit applies to your next Stripe invoice — no manual step.",
+      },
+    ],
+    related: ["choose-perk-amount"],
+  },
+  {
+    slug: "switch-from-paid-ads-to-incentivized-marketing",
+    title: "How to migrate from paid social ads to incentivized marketing",
+    description:
+      "Step-by-step migration from a $1,000/month paid-ads budget to an incentivized-marketing campaign that delivers better ROI by paying customers, not Meta or Google.",
+    summary:
+      "A typical $1,000/month paid social budget delivers maybe 50 conversions if you're optimized. Reallocating that same $1,000 to incentivized marketing — paying customers $20 each for a Reel + a Google review — often delivers 50+ posts and ~25 reviews while keeping the dollars circulating to your customers, not the ad platforms.",
+    totalTime: "PT30M",
+    timeLabel: "30 minutes setup, 2 weeks to first results",
+    supplies: [
+      "An existing customer base (50+ regulars or 200+ followers)",
+      "An ad budget you're currently spending",
+      "A Social Perks account",
+    ],
+    steps: [
+      {
+        name: "Pause your existing ads",
+        text: "Pause, don't delete. You'll want to compare ROI 30 days from now and the historical ad data is worth keeping. Pausing buys you time without burning the audiences you've built.",
+      },
+      {
+        name: "Calculate your effective per-conversion ad cost",
+        text: "(Total ad spend last 30 days) / (Conversions last 30 days). Most small businesses run $15-50 per conversion on Meta/Google. Whatever your number is, that's the budget you have per Social Perks completion.",
+      },
+      {
+        name: "Pick the action that matches your conversion",
+        text: "If your conversions are reviews: switch to a Google review ask + 10% off. If conversions are followers: a Story Tag campaign at $1.50 each scales 10x more units. If conversions are sales: a referral program with a $5 referrer credit + $5 referee discount.",
+      },
+      {
+        name: "Set the perk equal to your old per-conversion cost",
+        text: "If you were spending $25 per conversion, offer a $20-25 perk. The math nets out the same per acquisition but the perk goes to the customer, not the ad platform. Customers also tend to refer others when they get a meaningful perk.",
+      },
+      {
+        name: "Run for 30 days, compare ROI",
+        text: "After 30 days, compare: total cost (perks delivered + Social Perks subscription) vs total conversion value. Most businesses see 2-4x better ROI than ads because the marketing surface (customer-made content) compounds.",
+      },
+    ],
+    related: ["choose-perk-amount", "set-up-referral-program"],
+  },
+  {
+    slug: "explain-incentivized-marketing-to-skeptical-customer",
+    title:
+      "How to explain incentivized marketing to a skeptical customer (or staff member)",
+    description:
+      "Plain-language scripts for explaining 'why am I being paid to post' to customers who haven't seen incentivized marketing before. Includes FTC disclosure framing.",
+    summary:
+      "Incentivized marketing feels weird to customers the first time they encounter it — until it's framed as exactly what it is: 'thank you for sharing, here's a discount as a thank-you'. The framing matters because it sets the tone for FTC disclosure too. Three scripts cover the main objections.",
+    totalTime: "PT5M",
+    timeLabel: "5 minute conversation",
+    supplies: ["A customer or staff member with questions"],
+    steps: [
+      {
+        name: "When asked 'why are you paying me?'",
+        text: "Say: 'It's a thank-you for sharing — same way a coffee shop might give regulars a free drink on their birthday. The post is helpful to other customers thinking about trying us, so we figured we'd share the value.'",
+      },
+      {
+        name: "When asked 'is this legal?'",
+        text: "Say: 'Yes — the FTC requires disclosure when there's a thank-you tied to a post (we add #ad or #partner automatically) but it's a normal thing brands do. Way more honest than a paid ad you can't tell is paid.'",
+      },
+      {
+        name: "When asked 'will my friends know?'",
+        text: "Say: 'Yes — there's an #ad or #sponsored tag on the post, so it's clear. People are usually fine with it because it's a real recommendation, not a fake testimonial.'",
+      },
+      {
+        name: "When asked 'what's the catch?'",
+        text: "Say: 'No catch. You post, you get [perk]. We don't ask for review-or-don't-pay; you can post whatever you actually think. If you don't end up posting, no perk — that's the only consequence.'",
+      },
+    ],
+  },
+  {
     slug: "build-mcp-agent-for-social-perks",
     title: "How to build an MCP agent that operates on Social Perks",
     description:

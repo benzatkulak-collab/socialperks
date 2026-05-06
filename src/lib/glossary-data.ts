@@ -139,6 +139,58 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     "An HTTP callback sent by Social Perks to a business's registered URL when a relevant event happens (campaign launched, submission approved, perk redeemed, payout completed, etc.). Webhooks are HMAC-SHA256 signed with a per-business secret and include a five-minute replay window. Businesses register webhook URLs at /dashboard/settings/webhooks.",
     { category: "agents" }
   ),
+  // ─── Platform-specific terms ─────────────────────────────────────────
+  entry(
+    "Instagram Reel",
+    "Instagram's short-form vertical video format (15-90 seconds), introduced in 2020 as a TikTok competitor. On Social Perks, Reels are valued at $4 per completion (effort 3/5) — one of the highest-leverage Instagram actions because Reels reach the Explore feed and accrue impressions over weeks. Both #ad disclosure and Instagram's native Branded Content label work.",
+    { category: "platforms", related: ["instagram-story-tag", "tiktok-stitch"] }
+  ),
+  entry(
+    "Instagram Story Tag",
+    "An Instagram Story that includes a tag of a business's account, often using the @-mention sticker or location sticker. Effort 1/5 (under a minute), value $1.50. Most popular incentivized Instagram action because of how easy it is for customers to complete. Disappears after 24 hours but can be saved as a Highlight for permanent visibility.",
+    { category: "platforms", related: ["instagram-reel"] }
+  ),
+  entry(
+    "TikTok Stitch",
+    "A TikTok feature that lets users incorporate clips of another video into their own — replying, reacting, or extending the original. On Social Perks, Stitches are valued at $3 per completion (effort 2/5). Higher organic reach than a stand-alone TikTok because the algorithm boosts videos with engagement signals.",
+    { category: "platforms", related: ["instagram-reel"] }
+  ),
+  entry(
+    "Branded Content Toggle",
+    "TikTok's native paid-partnership disclosure label. When enabled on a post, TikTok displays 'Paid partnership with [brand]' above the video. Required for incentivized TikTok content under the platform's Branded Content Policy. Slightly better algorithmic distribution than hashtag-only disclosure.",
+    { category: "platforms", related: ["disclosure"] }
+  ),
+  entry(
+    "Google Business Profile",
+    "Google's free business listing that powers Google Maps, Search local results, and Google Reviews. Foundational for any local business — without a verified Google Business Profile, you can't receive Google Reviews and won't show up in 'near me' searches. Social Perks integrates with the Business Profile API for review submission tracking.",
+    { category: "platforms", related: ["ftc"] }
+  ),
+  // ─── Additional marketing terms ──────────────────────────────────────
+  entry(
+    "Conversion rate",
+    "The percentage of campaign starts that turn into approved completions. Social Perks measures conversion at three points: scan-to-submission (the customer scanned the QR and submitted proof) and submission-to-approval (the proof passed verification). Industry benchmark: 45-55% scan-to-approval rate for restaurants and coffee shops.",
+    { category: "marketing", related: ["completion", "submission"] }
+  ),
+  entry(
+    "Engagement rate",
+    "The percentage of an influencer's audience that interacts with their content (likes, comments, shares, saves). Calculated as (engagement / followers) × 100. A typical micro-influencer (1K-10K followers) has 3-8% engagement; mid-tier 1-3%; macro 0.5-2%. Higher engagement at lower follower counts often delivers better incentivized-marketing ROI than mega-influencers.",
+    { category: "marketing", related: ["influencer", "follower-tier"] }
+  ),
+  entry(
+    "Follower tier",
+    "Social Perks' classification of influencers by follower count: micro (1K-10K), mid (10K-100K), macro (100K-1M), mega (1M+). Different tiers get different perk multipliers in incentivized campaigns: anyone (0-499) gets the base perk; 500+ gets 5% more; 2K+ gets 10%; 10K+ gets 15%; 50K+ gets 25%. The multipliers reflect the audience reach difference.",
+    { category: "marketing", related: ["influencer"] }
+  ),
+  entry(
+    "ROI multiplier",
+    "The marketing-equivalent value of a campaign divided by its total cost. A 3x ROI means $3 of marketing value for every $1 spent. Calculated as (sum of action market values) / (total perk cost + Social Perks subscription). Industry benchmark: 3-6x for incentivized campaigns vs 1.5-3x for paid social ads.",
+    { category: "marketing", related: ["benchmark"], slug: "roi-multiplier" }
+  ),
+  entry(
+    "Punch-card perk",
+    "A perk model where customers accumulate progress toward a single high-value reward — e.g., 'every 10 follows = 1 free coffee' instead of $0.30 per follow. Better fit than per-action perks for low-value actions (likes, follows, check-ins) where individual rewards are too small to motivate. Reduces transaction overhead and feels more game-like to customers.",
+    { category: "perks", related: ["perk"] }
+  ),
 ];
 
 // Sort entries alphabetically by term once at module load.

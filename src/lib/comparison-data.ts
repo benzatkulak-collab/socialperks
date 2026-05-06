@@ -184,6 +184,50 @@ export const COMPARISONS: PlatformComparison[] = [
       "Both, weighted by your business radius. NextDoor punches above its weight for tight-radius services because trust is concentrated. Facebook works for everything else.",
   },
   {
+    slug: "youtube-vs-twitch",
+    platformAId: "yt",
+    platformBId: "tw",
+    title: "YouTube vs Twitch for incentivized creator marketing",
+    description:
+      "YouTube vs Twitch for product reviews and brand partnerships. Long-form video vs live-stream interaction — different audiences, different value patterns.",
+    summary:
+      "YouTube creators reach broader audiences with longer-tail content; Twitch streamers reach narrower audiences with deeper engagement. For B2C product reviews YouTube wins (a $12 review video keeps earning views for years). For game-adjacent or creator-tool products, Twitch wins because viewers literally watch the streamer use the product live.",
+    bestForA: [
+      "Long-tail product reviews",
+      "Tutorial-driven verticals",
+      "Anyone whose product benefits from search-engine traffic over time",
+    ],
+    bestForB: [
+      "Game-adjacent and creator-tool products",
+      "Live-event-driven brands",
+      "Software with watch-and-replicate value",
+    ],
+    recommendation:
+      "YouTube for almost every B2C product. Twitch only when your product is something a streamer would naturally use on stream (gaming gear, creator software, energy drinks). The Twitch audience is loyal but small.",
+  },
+  {
+    slug: "threads-vs-bluesky",
+    platformAId: "th",
+    platformBId: "bs",
+    title: "Threads vs Bluesky for emerging-platform marketing",
+    description:
+      "Threads vs Bluesky for early-mover marketing on the post-Twitter platforms. Action availability, audience size, and which is actually worth building on now.",
+    summary:
+      "Both Threads (Meta) and Bluesky (decentralized AT Protocol) emerged as Twitter alternatives. Threads has 100M+ users by virtue of Instagram cross-promotion; Bluesky is smaller but has higher engagement-per-post and a dev-savvy audience. Both permit incentivized content with disclosure.",
+    bestForA: [
+      "Brands already on Instagram looking to extend reach",
+      "Older / wider demographic appeal",
+      "Visual-friendly content (Threads supports image-heavy posts)",
+    ],
+    bestForB: [
+      "Tech and developer-focused brands",
+      "Privacy-aware audiences",
+      "Brands that want to be early on a smaller, denser network",
+    ],
+    recommendation:
+      "Threads if you already have an Instagram audience to cross-promote (free distribution). Bluesky as a cheap hedge if you're tech-adjacent. Most non-tech brands can skip Bluesky for now.",
+  },
+  {
     slug: "pinterest-vs-instagram",
     platformAId: "pi",
     platformBId: "ig",
