@@ -17,7 +17,7 @@ import {
   withTiming,
 } from "../../_shared";
 import { findPlatform } from "@/lib/platforms";
-import { generateCsrfToken } from "@/lib/security/csrf";
+import { generateCsrfToken, recordPendingOAuthFlow } from "@/lib/security/csrf";
 import { getOAuthClientId } from "@/lib/oauth/env";
 
 // ─── OAuth URL templates per platform ───────────────────────────────────────
@@ -131,8 +131,12 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("INVALID_REDIRECT_URI", "redirectUri must be a valid URL", 400);
   }
 
-  // Generate state token using CSRF (binds to user session)
+  // Generate state token using CSRF (HMAC-bound to user session) AND
+  // record a server-side pending-flow entry. The callback validates by
+  // CONSUMING the entry (atomic single-use) — was previously a self-
+  // referential tautology that let attackers replay states.
   const state = generateCsrfToken(user.id);
+  recordPendingOAuthFlow(state, user.id, platformId);
 
   // Build the OAuth authorization URL. Reads from canonical
   // OAUTH_<ID>_CLIENT_ID, falls back to legacy long-form names

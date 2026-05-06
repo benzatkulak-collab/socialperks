@@ -18,6 +18,12 @@ import {
   type ImageType,
   type ExifData,
 } from "./image-parser";
+import { isSafeUrl } from "@/lib/security/url";
+import {
+  hashImage,
+  findSimilarImages,
+  findExactDuplicate,
+} from "./image-hash";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -128,8 +134,16 @@ export async function analyzeScreenshotUrl(url: string): Promise<ScreenshotAnaly
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
 
+    // SECURITY: SSRF guard. Reject internal-IP URLs and disable
+    // redirect-follow.
+    const safety = isSafeUrl(url);
+    if (safety !== null) {
+      warnings.push(`Unsafe URL: ${safety}`);
+      return emptyAnalysis(0, `Unsafe URL: ${safety}`, checks, warnings);
+    }
     response = await fetch(url, {
       signal: controller.signal,
+      redirect: "manual",
       headers: { "User-Agent": "SocialPerks-Verification/1.0" },
     });
 
@@ -178,6 +192,31 @@ export function analyzeScreenshotBuffer(buffer: Buffer, filename?: string): Scre
   const warnings: string[] = [];
   const platformIndicators: PlatformIndicator[] = [];
   let confidence = 0;
+
+  // ── Image-similarity check (perceptual hash) ────────────────────────────
+  // Detects the most common screenshot fraud: same image submitted under
+  // different usernames. Both exact-byte (sha256) and visual-similarity
+  // (pHash with Hamming distance) checked.
+  const hashResult = hashImage(new Uint8Array(buffer));
+  if (hashResult) {
+    const exact = findExactDuplicate(hashResult.sha256);
+    if (exact) {
+      warnings.push(
+        `Exact duplicate of submission ${exact.submissionId} (sha256 match)`
+      );
+      checks.push("image-hash: exact-duplicate-detected");
+    } else {
+      const similar = findSimilarImages(hashResult.pHash, 5);
+      if (similar.length > 0) {
+        warnings.push(
+          `Visually similar to ${similar.length} prior submission(s); review carefully`
+        );
+        checks.push("image-hash: near-duplicate-detected");
+      } else {
+        checks.push("image-hash: novel");
+      }
+    }
+  }
 
   // ── File size check ─────────────────────────────────────────────────────
   const fileSize = buffer.length;
