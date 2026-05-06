@@ -41,3 +41,53 @@ export function validateCsrfToken(token: string, sessionId: string): boolean {
   }
   return mismatch === 0;
 }
+
+/**
+ * Server-side single-use store for OAuth state tokens. The OAuth
+ * callback at /api/v1/oauth/[platform] previously validated state by
+ * comparing it to itself (the sessionId came from the same token),
+ * which is a tautology.
+ *
+ * Use these helpers from the OAuth start route to record a pending
+ * flow, and from the callback to consume it. Once consumed, the state
+ * cannot be replayed.
+ *
+ * In-memory only — for cross-instance safety, replays would need a
+ * Postgres-backed pending_oauth_flows table. The 1-hour TTL bounds
+ * the risk in the meantime.
+ */
+interface PendingFlow {
+  userId: string;
+  platformId: string;
+  expiresAt: number;
+}
+const _pendingFlows = new Map<string, PendingFlow>();
+
+export function recordPendingOAuthFlow(state: string, userId: string, platformId: string): void {
+  _pendingFlows.set(state, {
+    userId,
+    platformId,
+    expiresAt: Date.now() + TOKEN_EXPIRY,
+  });
+  // Opportunistic prune.
+  if (_pendingFlows.size > 1000) {
+    const now = Date.now();
+    for (const [k, v] of _pendingFlows) {
+      if (v.expiresAt < now) _pendingFlows.delete(k);
+    }
+  }
+}
+
+/**
+ * Atomic consume — returns the flow if present and not-expired, then
+ * deletes it (single-use). Returns null on any failure (unknown state,
+ * expired, or platform mismatch).
+ */
+export function consumePendingOAuthFlow(state: string, expectedPlatformId: string): { userId: string } | null {
+  const flow = _pendingFlows.get(state);
+  if (!flow) return null;
+  _pendingFlows.delete(state);
+  if (flow.expiresAt < Date.now()) return null;
+  if (flow.platformId !== expectedPlatformId) return null;
+  return { userId: flow.userId };
+}

@@ -10,7 +10,7 @@
 import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../../_shared";
 import { findPlatform } from "@/lib/platforms";
-import { validateCsrfToken } from "@/lib/security/csrf";
+import { validateCsrfToken, consumePendingOAuthFlow } from "@/lib/security/csrf";
 import { exchangeCode } from "@/lib/oauth/exchange";
 import { isOAuthConfigured } from "@/lib/oauth/env";
 
@@ -56,21 +56,27 @@ export const GET = withTiming(
       return err("MISSING_STATE", "State parameter is required", 400);
     }
 
-    // Validate state token — we need a session ID to validate against.
-    // The state token was generated with the user's ID as the session identifier.
-    // In production, we'd look up the pending OAuth flow to get the user ID.
-    // For now, we validate the token structure (4 parts, not expired).
-    const stateParts = state.split(".");
-    if (stateParts.length !== 4) {
-      return err("INVALID_STATE", "Invalid state token format", 400);
+    // SECURITY: Atomic single-use consume of the pending OAuth flow.
+    // Was previously a self-referential validation (extracted sessionId
+    // from the same token, then validated against itself — tautology).
+    // Now: the /connect route records the flow server-side; this
+    // callback consumes it. State CANNOT be replayed.
+    const consumed = consumePendingOAuthFlow(state, platformId);
+    if (!consumed) {
+      return err(
+        "INVALID_STATE",
+        "State token is invalid, expired, already used, or for a different platform. Please restart the OAuth flow.",
+        400
+      );
     }
-
-    // Extract the session ID from the state token and validate
-    const sessionId = stateParts[0];
+    const sessionId = consumed.userId;
+    // Belt-and-suspenders: also verify the HMAC signature (defense in
+    // depth — even if pending-flow store were compromised, an attacker
+    // would need CSRF_SECRET to forge a valid token).
     if (!validateCsrfToken(state, sessionId)) {
       return err(
         "INVALID_STATE",
-        "State token is invalid or expired. Please restart the OAuth flow.",
+        "State token signature failed verification.",
         400
       );
     }

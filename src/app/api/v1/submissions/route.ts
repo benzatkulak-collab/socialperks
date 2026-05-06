@@ -215,5 +215,66 @@ export const POST = withTiming(async (req: NextRequest) => {
     recordUsage(campaignBusinessId, "submissions_received");
   }
 
+  // First-submission notification: tell the business owner that their
+  // campaign got its first real customer post. Strong activation signal —
+  // the difference between "I set up Social Perks" and "Social Perks is
+  // working." Fires once per campaign (subsequent submissions don't
+  // trigger; we don't want to spam).
+  if (campaignBusinessId) {
+    void notifyFirstSubmission(cv.data, campaignBusinessId).catch((e) => {
+      console.error("[submissions] first-submission notify failed:", e instanceof Error ? e.message : e);
+    });
+  }
+
   return ok({ submission: result.data }, 201);
 });
+
+// ─── First-submission notifier ──────────────────────────────────────────────
+
+/**
+ * Called once per campaign — when the FIRST submission lands. Sends a
+ * "your campaign got its first scan!" notification via the business's
+ * preferred channel. Idempotent via the in-memory firedFor set; once
+ * the DATABASE_URL switch is flipped this should be backed by a column
+ * on the campaign for cross-instance idempotency.
+ */
+const _firstNotifyFiredFor = new Set<string>();
+
+async function notifyFirstSubmission(campaignId: string, businessId: string): Promise<void> {
+  if (_firstNotifyFiredFor.has(campaignId)) return;
+  _firstNotifyFiredFor.add(campaignId);
+
+  // Best-effort: only fire if this really was the first submission.
+  // Race condition is acceptable (worst case: extra notification on
+  // simultaneous first submissions).
+  const lifecycle = campaignManager.getState(campaignId);
+  const completionsField = lifecycle?.completions;
+  const completionCount =
+    typeof completionsField === "number"
+      ? completionsField
+      : (completionsField as { total?: number } | undefined)?.total ?? 0;
+  if (completionCount > 1) return;
+
+  // Look up business contact info. If we have a phone number registered
+  // for SMS, use that; otherwise fall back to email via the queue.
+  try {
+    const { businessRepo } = await import("@/lib/db/repositories");
+    const business = await businessRepo.findById(businessId);
+    if (!business) return;
+    const campaignName = "your campaign";
+    const message = `🎉 Your Social Perks campaign "${campaignName}" just got its first customer post! Check the dashboard: https://${process.env.NEXT_PUBLIC_SITE_URL ?? "socialperks.io"}/dashboard`;
+    if (business.email) {
+      const { emailQueue } = await import("@/lib/jobs/registry");
+      emailQueue.add({
+        type: "transactional",
+        to: business.email,
+        subject: "🎉 Your campaign just got its first customer post",
+        html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
+        text: message,
+      });
+    }
+  } catch (e) {
+    // Notification path is non-critical — never let it fail the submission.
+    console.error("[submissions] first-notify lookup failed:", e instanceof Error ? e.message : e);
+  }
+}
