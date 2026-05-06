@@ -42,6 +42,11 @@ const referrerIndex = new Map<string, Set<string>>();
 /** Lookup: businessId -> referral code (one code per business) */
 const businessCodeIndex = new Map<string, string>();
 
+/** Lookup: refereeId -> referral id (referee can only have one). Populated
+ *  when trackReferralSignup runs. Used by the billing webhook to credit
+ *  the referrer when the referee converts to a paid plan. */
+const refereeIndex = new Map<string, string>();
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -181,6 +186,7 @@ export function trackReferralSignup(
       existing.refereeId = refereeId;
       existing.status = "signed_up";
       existing.convertedAt = new Date().toISOString();
+      refereeIndex.set(refereeId, existingId);
       return existing;
     }
   }
@@ -211,6 +217,7 @@ export function trackReferralSignup(
 
   referrals.set(id, referral);
   codeIndex.set(`${code}:${refereeEmail}`, id);
+  refereeIndex.set(refereeId, id);
 
   if (referrerId) {
     let refs = referrerIndex.get(referrerId);
@@ -222,6 +229,17 @@ export function trackReferralSignup(
   }
 
   return referral;
+}
+
+/**
+ * Look up a referral by the referee's business ID.
+ * Returns null if this business wasn't referred. Used by the billing
+ * webhook to credit the referrer when the referee converts to paid.
+ */
+export function findReferralByReferee(refereeId: string): Referral | null {
+  const id = refereeIndex.get(refereeId);
+  if (!id) return null;
+  return referrals.get(id) ?? null;
 }
 
 /**
@@ -239,6 +257,8 @@ export function creditReferral(referralId: string): Referral {
     throw new Error("Cannot credit a referral that has not been converted yet");
   }
 
+  // signed_up → credited (skip "activated" intermediate; Stripe payment is
+  // a stronger conversion signal than activation).
   referral.status = "credited";
   referral.creditedAt = new Date().toISOString();
   return referral;
@@ -272,4 +292,5 @@ export function _resetReferrals(): void {
   codeIndex.clear();
   referrerIndex.clear();
   businessCodeIndex.clear();
+  refereeIndex.clear();
 }

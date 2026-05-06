@@ -226,8 +226,16 @@ export function QRGenerator({ campaigns }: QRGeneratorProps) {
               ))}
             </select>
           ) : (
-            <div className="text-xs text-brand-muted font-body px-3.5 py-2.5 rounded-md border border-brand-border bg-brand-bg max-w-sm">
-              No campaigns yet — launch one first
+            <div className="flex items-center gap-3 max-w-sm">
+              <div className="text-xs text-brand-muted font-body px-3.5 py-2.5 rounded-md border border-brand-border bg-brand-bg flex-1">
+                No campaigns yet
+              </div>
+              <a
+                href="/dashboard"
+                className="text-xs px-3 py-2.5 bg-brand-cyan text-brand-bg font-medium rounded-md hover:bg-brand-cyan/90 shrink-0"
+              >
+                Launch one →
+              </a>
             </div>
           )}
         </div>

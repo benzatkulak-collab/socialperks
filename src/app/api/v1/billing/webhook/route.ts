@@ -16,6 +16,9 @@ import {
   type Subscription,
 } from "@/lib/billing/store";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { businessRepo } from "@/lib/db/repositories";
+import { emailQueue } from "@/lib/jobs/registry";
+import { creditReferral, findReferralByReferee } from "@/lib/referrals";
 
 // ─── Replay Protection ──────────────────────────────────────────────────────
 
@@ -148,6 +151,40 @@ export const POST = withTiming(async (req: NextRequest) => {
           processedEvents.delete(eventId);
           console.error(`[Billing Webhook] Failed to create subscription — event=${eventId}`, e);
           return err("PROCESSING_FAILED", "Failed to process checkout event", 500);
+        }
+
+        // ── Welcome email (Stripe sends its own receipt; this is the
+        // product-side onboarding email with next steps).
+        // Failures here must NOT fail the webhook — Stripe will retry
+        // and we'd end up double-creating the subscription. Best-effort.
+        try {
+          const business = await businessRepo.findById(businessId);
+          if (business?.email && business?.name) {
+            emailQueue.add({
+              type: "subscription-started",
+              to: business.email,
+              name: business.name,
+              plan,
+              billingPeriod,
+            });
+          }
+        } catch (e) {
+          console.error(`[Billing Webhook] Failed to enqueue welcome email — event=${eventId}`, e);
+        }
+
+        // ── Referral credit. If this customer was referred, the referrer
+        // earns the credit at the moment of paid conversion. Best-effort
+        // for the same reason as above.
+        try {
+          const referral = findReferralByReferee(businessId);
+          if (referral && referral.status !== "credited") {
+            creditReferral(referral.id);
+            console.warn(
+              `[Billing Webhook] Credited referral ${referral.id} (referrer ${referral.referrerId}) for paid conversion of ${businessId}`
+            );
+          }
+        } catch (e) {
+          console.error(`[Billing Webhook] Failed to credit referral — event=${eventId}`, e);
         }
       }
       break;

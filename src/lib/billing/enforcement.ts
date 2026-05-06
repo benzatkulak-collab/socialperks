@@ -240,6 +240,75 @@ export function checkFeatureAccess(
   return Boolean(limits[key]);
 }
 
+// ─── Lazy import to avoid module cycle ──────────────────────────────────────
+
+/**
+ * Tiny import wrapper so the lazy require can stay typed without leaking
+ * a top-of-file import that would create a cycle (campaign-state-machine
+ * depends on enforcement transitively).
+ */
+function importCampaignManager(): {
+  campaignManager: { listByBusiness: (id: string) => unknown[] };
+} {
+  // Use dynamic require here intentionally; static import would cycle.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require("../campaign-state-machine") as {
+    campaignManager: { listByBusiness: (id: string) => unknown[] };
+  };
+}
+
+// ─── Public usage summary ───────────────────────────────────────────────────
+
+export interface UsageSummary {
+  /** YYYY-MM identifier for the current period. */
+  month: string;
+  campaigns: { used: number; limit: number };
+  completions: { used: number; limit: number };
+  aiGenerations: { used: number; limit: number };
+}
+
+/**
+ * Snapshot the calling business's usage for the current month, paired
+ * with the plan's limits. Used by the billing dashboard to render usage
+ * bars and trigger upgrade prompts when thresholds are crossed.
+ *
+ * Campaign count is derived live from the campaign manager since
+ * campaigns aren't tracked in the monthly usageMap.
+ */
+export function getUsageSummary(businessId: string): UsageSummary {
+  const plan = getBusinessPlan(businessId);
+  const limits = getPlanLimits(plan);
+  const usage = getUsage(businessId);
+
+  // Live count of campaigns for this business — read from the campaign
+  // state machine which is the source of truth for active campaigns.
+  // Imported lazily inside a try to avoid a module cycle (campaigns
+  // depend on enforcement for the limit check).
+  let campaignsUsed = 0;
+  try {
+    const { campaignManager } = importCampaignManager();
+    campaignsUsed = campaignManager.listByBusiness(businessId).length;
+  } catch {
+    campaignsUsed = 0;
+  }
+
+  return {
+    month: usage.month,
+    campaigns: {
+      used: campaignsUsed,
+      limit: limits.maxCampaigns === Infinity ? Number.POSITIVE_INFINITY : limits.maxCampaigns,
+    },
+    completions: {
+      used: usage.completions,
+      limit: limits.maxCompletionsPerMonth === Infinity ? Number.POSITIVE_INFINITY : limits.maxCompletionsPerMonth,
+    },
+    aiGenerations: {
+      used: usage.aiGenerations,
+      limit: limits.aiGenerations === Infinity ? Number.POSITIVE_INFINITY : limits.aiGenerations,
+    },
+  };
+}
+
 // ─── Testing Helpers ────────────────────────────────────────────────────────
 
 /** Clear all usage tracking. For testing only. */

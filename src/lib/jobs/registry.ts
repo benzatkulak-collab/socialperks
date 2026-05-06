@@ -11,18 +11,27 @@ import type { Job } from "./queue";
 // ─── Email Queue ────────────────────────────────────────────────────────────
 
 export interface EmailJobData {
-  type: "welcome" | "password-reset" | "digest" | "drip" | "transactional";
+  type:
+    | "welcome"
+    | "password-reset"
+    | "digest"
+    | "drip"
+    | "transactional"
+    | "subscription-started";
   to: string;
   subject?: string;
   html?: string;
   text?: string;
-  /** For welcome emails */
+  /** For welcome and subscription-started emails */
   name?: string;
   /** For password reset emails */
   resetLink?: string;
   /** For digest emails */
   businessId?: string;
   businessName?: string;
+  /** For subscription-started emails */
+  plan?: string;
+  billingPeriod?: "monthly" | "annual";
 }
 
 export const emailQueue = new JobQueue<EmailJobData>("email", {
@@ -36,13 +45,24 @@ export const emailQueue = new JobQueue<EmailJobData>("email", {
 
 emailQueue.process(async (job: Job<EmailJobData>) => {
   // Lazy import to avoid circular dependency at module load time
-  const { emailProvider, welcomeEmail, passwordResetEmail } = await import("@/lib/email");
+  const { emailProvider, welcomeEmail, passwordResetEmail, subscriptionStartedEmail } = await import("@/lib/email");
 
   const { type, to } = job.data;
 
   switch (type) {
     case "welcome": {
       const template = welcomeEmail(job.data.name ?? "there");
+      return emailProvider.send({ to, ...template });
+    }
+    case "subscription-started": {
+      if (!job.data.plan || !job.data.billingPeriod) {
+        throw new Error("subscription-started emails require plan and billingPeriod");
+      }
+      const template = subscriptionStartedEmail(
+        job.data.name ?? "there",
+        job.data.plan,
+        job.data.billingPeriod
+      );
       return emailProvider.send({ to, ...template });
     }
     case "password-reset": {

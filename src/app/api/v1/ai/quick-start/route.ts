@@ -16,6 +16,7 @@ import {
   parseBody,
   withTiming,
 } from "../../_shared";
+import { enforceAiLimit, recordAiUse } from "../_enforce-ai-limit";
 import { marketingAgent } from "@/lib/ai-agent";
 import type { BusinessProfile } from "@/lib/ai-agent";
 
@@ -41,6 +42,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (!body.businessType || typeof body.businessType !== "string") {
     return err("MISSING_FIELD", "businessType is required", 400);
   }
+
+  // Plan enforcement — quick-start consumes the AI generation quota
+  const limited = enforceAiLimit(user);
+  if (limited) return limited;
 
   // Build a minimal profile for quick-start
   const profile: BusinessProfile = {
@@ -69,6 +74,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     );
   }
 
+  recordAiUse(user);
   return ok({
     recommendation,
     businessType: body.businessType,
