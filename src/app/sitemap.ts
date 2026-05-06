@@ -43,6 +43,7 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/pricing-oracle", changeFrequency: "weekly", priority: 0.8 },
   { path: "/best",          changeFrequency: "weekly",  priority: 0.85 },
   { path: "/vs",            changeFrequency: "weekly",  priority: 0.8 },
+  { path: "/security",      changeFrequency: "monthly", priority: 0.7 },
   { path: "/resources",     changeFrequency: "weekly",  priority: 0.8 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
