@@ -14,6 +14,25 @@
  */
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { db, InMemoryConnection } from "@/lib/db/connection";
+
+const usingDb = !(db instanceof InMemoryConnection);
+
+/**
+ * Best-effort Postgres write — silently swallows errors. Used because
+ * api-key mutations should never fail on DB hiccups; the in-memory cache
+ * stays authoritative for the current process and the DB sync is a
+ * durability nicety.
+ */
+async function dbWrite(sql: string, params: unknown[]): Promise<void> {
+  if (!usingDb) return;
+  try {
+    await db.query(sql, params);
+  } catch (e) {
+    console.error("[api-keys] db write failed:", e instanceof Error ? e.message : e);
+  }
+}
+
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -223,9 +242,33 @@ const store = new ApiKeyStore();
 /**
  * Persist a fresh API key. Returns the same NewApiKey object passed in.
  * Called by the create-key route after generating.
+ *
+ * Writes to the in-memory cache synchronously (so the calling request
+ * sees the new key immediately) AND to Postgres in the background
+ * (so the key survives cold starts).
  */
 export function persistApiKey(input: NewApiKey): void {
-  store.insert({ ...input.record, keyHash: hashApiKey(input.plaintext) });
+  const stored: StoredApiKey = { ...input.record, keyHash: hashApiKey(input.plaintext) };
+  store.insert(stored);
+  // Fire-and-forget DB write. If it fails, we still have the in-memory
+  // copy and will retry hydration on next process boot.
+  void dbWrite(
+    `INSERT INTO api_keys (id, business_id, agent_name, key_hash, key_prefix, permissions, active, last_used_at, expires_at, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
+     ON CONFLICT (id) DO NOTHING`,
+    [
+      stored.id,
+      stored.businessId,
+      stored.agentName,
+      stored.keyHash,
+      stored.keyPrefix,
+      stored.permissions,
+      stored.active,
+      stored.lastUsedAt,
+      stored.expiresAt,
+      stored.createdAt,
+    ]
+  );
 }
 
 /**
@@ -294,13 +337,74 @@ export function listApiKeysForBusiness(businessId: string): ApiKeyRecord[] {
 /**
  * Revoke (soft-delete) a key. Returns true if revoked, false if not found
  * or if the caller doesn't own the key.
+ *
+ * Writes through to Postgres so the revocation survives cold starts
+ * (otherwise a revoked key would silently come back live on next deploy).
  */
 export function revokeApiKey(args: { id: string; businessId: string }): boolean {
   const record = store.get(args.id);
   if (!record) return false;
   if (record.businessId !== args.businessId) return false;
-  return store.setActive(args.id, false);
+  const ok = store.setActive(args.id, false);
+  if (ok) {
+    void dbWrite(
+      `UPDATE api_keys SET active = false, updated_at = now() WHERE id = $1 AND business_id = $2`,
+      [args.id, args.businessId]
+    );
+  }
+  return ok;
 }
+
+/**
+ * Asynchronously load ALL active api_keys from Postgres into the in-memory
+ * cache. Called once per process at first import. Runs in the background
+ * — verifyApiKey calls during the initial hydration window may return
+ * null until the cache is warm, which is acceptable because Vercel's
+ * instance affinity means most subsequent requests on the same instance
+ * will hit a warm cache.
+ */
+async function hydrateFromDb(): Promise<void> {
+  if (!usingDb) return;
+  try {
+    const result = await db.query<{
+      id: string; business_id: string; agent_name: string; key_hash: string;
+      key_prefix: string; permissions: string[]; active: boolean;
+      last_used_at: string | null; expires_at: string | null;
+      created_at: string;
+    }>(
+      `SELECT id, business_id, agent_name, key_hash, key_prefix, permissions, active, last_used_at, expires_at, created_at
+       FROM api_keys WHERE active = true`
+    );
+    for (const r of result.rows) {
+      store.insert({
+        id: r.id,
+        businessId: r.business_id,
+        agentName: r.agent_name,
+        keyHash: r.key_hash,
+        keyPrefix: r.key_prefix,
+        env: "live",
+        permissions: r.permissions ?? [],
+        active: r.active,
+        lastUsedAt: r.last_used_at ? new Date(r.last_used_at) : null,
+        createdAt: new Date(r.created_at),
+        expiresAt: r.expires_at ? new Date(r.expires_at) : null,
+      });
+    }
+  } catch (e) {
+    console.error("[api-keys] hydrate failed:", e instanceof Error ? e.message : e);
+  }
+}
+
+// Trigger hydration on module load. Runs in parallel with first request
+// handling — the cache is empty for the first ~100ms but warms quickly.
+let _hydratePromise: Promise<void> | null = null;
+function ensureHydrated(): Promise<void> {
+  if (!_hydratePromise) _hydratePromise = hydrateFromDb();
+  return _hydratePromise;
+}
+// Eagerly start hydration so the cache is warm by the time the first
+// auth check runs.
+void ensureHydrated();
 
 /** Test helper. Do not call from production code. */
 export function _resetApiKeyStore(): void {

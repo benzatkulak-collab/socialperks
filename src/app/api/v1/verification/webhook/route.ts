@@ -11,6 +11,7 @@
 import type { NextRequest } from "next/server";
 import { ok, err, getQuery, withTiming } from "../../_shared";
 import { createHmac, timingSafeEqual } from "crypto";
+import { markEventProcessed } from "@/lib/webhook-dedup";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -155,11 +156,18 @@ export const POST = withTiming(async (req: NextRequest) => {
     req.headers.get("x-platform") ??
     "unknown";
 
-  // Replay protection
-  if (!trackEventId(eventId)) {
+  // Replay protection — atomic, cross-instance via Postgres.
+  // Was per-instance Set; an attacker with multiple replays could land
+  // on different cold-start instances and bypass dedup.
+  const sourceLabel = (req.headers.get("x-platform") ?? "verification").toLowerCase();
+  const isFirst = await markEventProcessed(eventId, sourceLabel);
+  if (!isFirst) {
     console.warn("[WEBHOOK] Duplicate event rejected", { eventId, eventType });
     return ok({ received: true, duplicate: true });
   }
+  // Keep in-memory tracking for the dev fallback path (already handled
+  // inside markEventProcessed when usingDb=false).
+  trackEventId(eventId);
 
   // Log the event (structured JSON logging)
   console.warn(

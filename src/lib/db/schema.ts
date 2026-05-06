@@ -898,6 +898,72 @@ export const SCHEMA = {
     ],
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MONTHLY USAGE (plan enforcement, free-tier rate gates)
+  // Per-business per-month counters for AI generations + completions.
+  // Was in-memory only — wiped on every Vercel cold start, breaking
+  // limit enforcement.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  monthly_usage: {
+    columns: {
+      business_id: { type: "varchar(100)", nullable: false },
+      month: { type: "varchar(50)", nullable: false }, // YYYY-MM (varchar(50) for type-system simplicity)
+      ai_generations: { type: "int", nullable: false, default: "0" },
+      completions: { type: "int", nullable: false, default: "0" },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["business_id", "month"], unique: true, name: "monthly_usage_pk" },
+      { columns: ["month"], unique: false, name: "monthly_usage_month_idx" },
+    ],
+    relations: [],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTH SESSIONS (JWT/cookie-backed user sessions)
+  // Was in-memory — sessions invalidated arbitrarily on cold starts.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  auth_sessions: {
+    columns: {
+      token: { type: "varchar(100)", nullable: false },
+      user_id: { type: "varchar(100)", nullable: false },
+      user_role: { type: "varchar(50)", nullable: false },
+      email: { type: "varchar(255)", nullable: false },
+      business_id: { type: "varchar(100)", nullable: true },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+      expires_at: { type: "timestamptz", nullable: false },
+      last_activity_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["token"], unique: true, name: "auth_sessions_pkey" },
+      { columns: ["user_id"], unique: false, name: "auth_sessions_user_idx" },
+      { columns: ["expires_at"], unique: false, name: "auth_sessions_expires_idx" },
+    ],
+    relations: [],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WEBHOOK EVENT DEDUPLICATION
+  // Both Stripe webhook idempotency and social-platform webhook replay
+  // protection live here. Was in-memory — meant a malicious replay
+  // hitting a different cold instance would succeed.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  webhook_events: {
+    columns: {
+      event_id: { type: "varchar(255)", nullable: false },
+      source: { type: "varchar(50)", nullable: false }, // stripe | meta | tiktok | google | …
+      received_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["event_id", "source"], unique: true, name: "webhook_events_pkey" },
+      { columns: ["received_at"], unique: false, name: "webhook_events_received_idx" },
+    ],
+    relations: [],
+  },
+
 } as const satisfies Record<string, TableDef>;
 
 // ─── Helper Types ────────────────────────────────────────────────────────────
