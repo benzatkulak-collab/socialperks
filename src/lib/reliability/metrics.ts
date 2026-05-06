@@ -77,6 +77,18 @@ class MetricsCollector {
     return { total: counter.total, windowRate: windowSum / windowSeconds };
   }
 
+  /**
+   * Return the raw windowed points for a counter so callers can do
+   * label-scoped aggregation (e.g. "errors on this route in the last
+   * 5 minutes"). Used by route-level alert evaluators.
+   */
+  getCounterPoints(name: string): readonly MetricPoint[] {
+    const counter = this.counters.get(name);
+    if (!counter) return [];
+    this.prunePoints(counter.windowPoints);
+    return counter.windowPoints;
+  }
+
   // ── Histogram Operations (for latency, durations) ──────────────────────
 
   observe(name: string, value: number, labels?: Record<string, string>): void {

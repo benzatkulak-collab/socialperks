@@ -10,6 +10,10 @@ import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { verifyJWT, sessionStore } from "@/lib/auth";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
+// Importing the observability barrel here means every API route picks
+// up the high-stakes alert registration on first load — no per-route
+// opt-in required.
+import "@/lib/observability";
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
 
@@ -194,20 +198,76 @@ export function withTiming(handler: Handler): Handler {
   return async (req, ctx) => {
     const start = performance.now();
     const path = new URL(req.url).pathname;
+    const requestId = crypto.randomUUID();
 
     metrics.increment(METRIC.API_REQUEST, 1, { path, method: req.method });
 
-    const res = await handler(req, ctx);
+    let res: NextResponse;
+    try {
+      res = await handler(req, ctx);
+    } catch (handlerError) {
+      // Uncaught throw inside the handler — convert to a 500 and capture
+      // it. Routes that handle their own errors via err() never hit this
+      // path; this exists so a forgotten throw or a database connection
+      // blowing up doesn't crash the worker.
+      const { captureException } = await import(
+        "@/lib/observability/error-tracker"
+      );
+      const captured = captureException(handlerError, {
+        route: path,
+        method: req.method,
+        status: 500,
+        requestId,
+      });
+      const durationMs = performance.now() - start;
+      metrics.observe(METRIC.API_LATENCY, durationMs, { path });
+      metrics.increment(METRIC.API_ERROR, 1, { path, status: "500" });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "An unexpected error occurred. Reference: " + captured.id,
+          },
+        },
+        {
+          status: 500,
+          headers: {
+            "X-Request-Id": requestId,
+            "X-Response-Time": `${durationMs.toFixed(1)}ms`,
+            "X-Capture-Id": captured.id,
+          },
+        }
+      );
+    }
+
     const durationMs = performance.now() - start;
     res.headers.set("X-Response-Time", `${durationMs.toFixed(1)}ms`);
     if (!res.headers.has("X-Request-Id")) {
-      res.headers.set("X-Request-Id", crypto.randomUUID());
+      res.headers.set("X-Request-Id", requestId);
     }
 
     // Record latency and errors
     metrics.observe(METRIC.API_LATENCY, durationMs, { path });
     if (res.status >= 400) {
       metrics.increment(METRIC.API_ERROR, 1, { path, status: String(res.status) });
+      // Capture 5xx as exceptions even when the route returned them via
+      // err() — those are still production incidents worth tracking.
+      // 4xx are intentional and are not captured.
+      if (res.status >= 500) {
+        const { captureException } = await import(
+          "@/lib/observability/error-tracker"
+        );
+        captureException(
+          new Error(`Route returned ${res.status}`),
+          {
+            route: path,
+            method: req.method,
+            status: res.status,
+            requestId,
+          }
+        );
+      }
     }
 
     return res;
