@@ -9,6 +9,7 @@ import { COMPARISONS } from "@/lib/comparison-data";
 import { GUIDES } from "@/lib/guides-data";
 import { BEST_LISTICLES } from "@/lib/best-data";
 import { VS_ENTRIES } from "@/lib/vs-data";
+import { PLAYBOOKS } from "@/lib/playbook-data";
 import { getBenchmarks } from "@/lib/ai-engine";
 
 const SITE_URL =
@@ -44,6 +45,7 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/best",          changeFrequency: "weekly",  priority: 0.85 },
   { path: "/vs",            changeFrequency: "weekly",  priority: 0.8 },
   { path: "/security",      changeFrequency: "monthly", priority: 0.7 },
+  { path: "/playbook",      changeFrequency: "weekly",  priority: 0.85 },
   { path: "/resources",     changeFrequency: "weekly",  priority: 0.8 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
@@ -205,6 +207,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.75,
+    })),
+    // Per-platform / per-industry playbooks — actionable guides for
+    // specific (platform, industry) pairs. High LLM-citation value
+    // for "how do I market my X on Y" queries.
+    ...PLAYBOOKS.map((p) => ({
+      url: `${SITE_URL}/playbook/${p.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
     })),
     // Industry × platform combo pages — top 5 platforms per industry.
     ...INDUSTRIES.flatMap((ind) => {
