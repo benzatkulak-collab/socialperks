@@ -160,5 +160,32 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     actions,
   };
 
+  // Funnel: claim.landing_viewed. distinctId here is anonymous — we use
+  // a hash of (claimCode + IP) so a single customer hitting the same
+  // sticker repeatedly counts as one viewer in the funnel without ever
+  // needing a cookie. The client pixel will fire a richer view event
+  // tied to a real distinctId; this server-side fire is the floor.
+  try {
+    const ip =
+      req.headers.get("x-real-ip") ??
+      req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+    const { createHash } = await import("node:crypto");
+    const distinctId =
+      "anon:" +
+      createHash("sha256")
+        .update(`${program.claimCode}:${ip}`)
+        .digest("hex")
+        .slice(0, 16);
+    const { funnel } = await import("@/lib/analytics");
+    funnel.claimLandingViewed(distinctId, {
+      businessId: program.businessId,
+      programId: program.id,
+      claimCode: program.claimCode,
+    });
+  } catch {
+    // Non-blocking.
+  }
+
   return ok(payload);
 });
