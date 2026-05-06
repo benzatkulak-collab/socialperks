@@ -19,6 +19,7 @@ import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { businessRepo } from "@/lib/db/repositories";
 import { emailQueue } from "@/lib/jobs/registry";
 import { creditReferral, findReferralByReferee } from "@/lib/referrals";
+import { markEventProcessed } from "@/lib/webhook-dedup";
 
 // ─── Replay Protection ──────────────────────────────────────────────────────
 
@@ -105,12 +106,16 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("MISSING_EVENT_TYPE", "Event type is required", 400);
   }
 
-  // Check for duplicate event
-  if (++pruneCounter % 50 === 0) pruneProcessedEvents();
-  if (processedEvents.has(eventId)) {
-    // Idempotent: return 200 but do nothing
+  // Check for duplicate event — atomic, cross-instance via Postgres.
+  // Was per-instance Map; a replay hitting a different cold-start
+  // instance would have succeeded.
+  const isFirst = await markEventProcessed(eventId, "stripe");
+  if (!isFirst) {
     return ok({ received: true, duplicate: true });
   }
+  // Keep the in-memory map for the legacy prune logic — the DB is
+  // authoritative now but this stays to avoid regressing in dev mode.
+  if (++pruneCounter % 50 === 0) pruneProcessedEvents();
   processedEvents.set(eventId, Date.now());
 
   const eventData = (body.data as Record<string, unknown>)?.object as Record<string, unknown> | undefined;

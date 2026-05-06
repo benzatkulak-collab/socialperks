@@ -7,6 +7,9 @@
 
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { subscriptions } from "@/lib/billing/store";
+import { db, InMemoryConnection } from "@/lib/db/connection";
+
+const usingDb = !(db instanceof InMemoryConnection);
 
 // ─── Plan Limits ────────────────────────────────────────────────────────────
 
@@ -81,6 +84,10 @@ function getUsage(businessId: string): MonthlyUsage {
   if (!usage || usage.month !== month) {
     usage = { aiGenerations: 0, completions: 0, month };
     usageMap.set(businessId, usage);
+    // First time we've seen this (business, month) tuple this process —
+    // schedule a background load from Postgres to merge any usage that
+    // happened on previous instances. Idempotent across calls.
+    scheduleHydration(businessId, month, usage);
   }
   return usage;
 }
@@ -187,10 +194,15 @@ export function checkCompletionLimit(
 /**
  * Increment the monthly completion counter for a business.
  * Call this after a submission is approved and perk awarded.
+ *
+ * Writes to in-memory cache synchronously AND fires a write-through to
+ * Postgres so the counter survives cold starts (was the revenue leak —
+ * free tier got effectively unlimited completions across redeploys).
  */
 export function recordCompletion(businessId: string): void {
   const usage = getUsage(businessId);
   usage.completions += 1;
+  void persistUsageDelta(businessId, usage.month, "completions");
 }
 
 // ─── AI Generation Limit ───────────────────────────────────────────────────
@@ -214,10 +226,94 @@ export function checkAiGenerationLimit(
 /**
  * Increment the monthly AI generation counter for a business.
  * Call this after a successful AI generation.
+ *
+ * Writes to in-memory cache synchronously AND fires a write-through to
+ * Postgres so the counter survives cold starts.
  */
 export function recordAiGeneration(businessId: string): void {
   const usage = getUsage(businessId);
   usage.aiGenerations += 1;
+  void persistUsageDelta(businessId, usage.month, "aiGenerations");
+}
+
+// ─── Postgres write-through + read-through hydration ───────────────────────
+
+/**
+ * Atomically increment a usage counter in Postgres. Uses ON CONFLICT
+ * upsert so first increment of the month creates the row.
+ *
+ * Best-effort — silently swallows errors. The in-memory cache stays
+ * authoritative for the current process; the DB sync is for durability
+ * across cold starts.
+ */
+async function persistUsageDelta(
+  businessId: string,
+  month: string,
+  counter: "aiGenerations" | "completions"
+): Promise<void> {
+  if (!usingDb) return;
+  const column = counter === "aiGenerations" ? "ai_generations" : "completions";
+  try {
+    await db.query(
+      `INSERT INTO monthly_usage (business_id, month, ${column}, updated_at)
+       VALUES ($1, $2, 1, now())
+       ON CONFLICT (business_id, month)
+       DO UPDATE SET ${column} = monthly_usage.${column} + 1, updated_at = now()`,
+      [businessId, month]
+    );
+  } catch (e) {
+    console.error(`[enforcement] usage write failed:`, e instanceof Error ? e.message : e);
+  }
+}
+
+/**
+ * Load this month's usage counters from Postgres. Called lazily by
+ * getUsage on first access for a (business, month) tuple in this
+ * process. After that the in-memory map is the source of truth for the
+ * process's lifetime.
+ */
+async function hydrateUsageFromDb(businessId: string, month: string): Promise<MonthlyUsage | null> {
+  if (!usingDb) return null;
+  try {
+    const result = await db.query<{ ai_generations: number; completions: number }>(
+      `SELECT ai_generations, completions FROM monthly_usage
+       WHERE business_id = $1 AND month = $2`,
+      [businessId, month]
+    );
+    if (result.rows.length === 0) return null;
+    return {
+      aiGenerations: Number(result.rows[0].ai_generations),
+      completions: Number(result.rows[0].completions),
+      month,
+    };
+  } catch (e) {
+    console.error(`[enforcement] usage read failed:`, e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+/**
+ * Hydration scheduler — kicks off a background load whenever a new
+ * (business, month) tuple appears in getUsage. Once hydration completes
+ * the in-memory counters are updated to match the DB.
+ *
+ * Note: there's a brief window where the counter is 0-locally but
+ * non-zero in the DB. Callers reading immediately after cold start may
+ * pass a limit check that should fail. The window is bounded by DB
+ * round-trip (~50ms) and is acceptable given (a) the alternative is
+ * making every getUsage call async, (b) the leak is tiny per cold start.
+ */
+const _hydratedKeys = new Set<string>();
+function scheduleHydration(businessId: string, month: string, target: MonthlyUsage): void {
+  const key = `${businessId}:${month}`;
+  if (_hydratedKeys.has(key)) return;
+  _hydratedKeys.add(key);
+  void hydrateUsageFromDb(businessId, month).then((row) => {
+    if (row) {
+      target.aiGenerations = Math.max(target.aiGenerations, row.aiGenerations);
+      target.completions = Math.max(target.completions, row.completions);
+    }
+  });
 }
 
 // ─── Feature Access ─────────────────────────────────────────────────────────
