@@ -4,6 +4,7 @@ import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { TrackingPixels } from "@/components/shared/tracking-pixels";
 import { RefCapture } from "@/components/shared/ref-capture";
+import { FunnelTracker } from "@/components/shared/funnel-tracker";
 import "./globals.css";
 import { safeJsonForScript } from "@/lib/security/json-ld";
 
@@ -226,6 +227,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
         <SWRegister />
         <RefCapture />
+        <FunnelTracker />
         {children}
         <OfflineIndicator />
         <Analytics />

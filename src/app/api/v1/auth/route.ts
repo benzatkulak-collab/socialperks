@@ -286,6 +286,15 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       eventPublisher.publish("user.created", { userId, email: sanitizedEmail, role: userRole });
 
+      // Funnel: signup completed — distinctId is the userId so subsequent
+      // events stay attached to the same person.
+      try {
+        const { funnel } = await import("@/lib/analytics");
+        funnel.signupCompleted(userId, { businessId: businessId ?? undefined, role: userRole });
+      } catch {
+        // Non-blocking — analytics is never on the critical path.
+      }
+
       // Track referral signup if a referral code was provided
       if (body.referralCode && typeof body.referralCode === "string") {
         try {
@@ -332,6 +341,15 @@ export const POST = withTiming(async (req: NextRequest) => {
             metrics.increment(METRIC.AUTH_SUCCESS, 1, { method: "password" });
             const session = sessionStore.create(storedUser.id, storedUser.role, storedUser.email, storedUser.businessId);
             const { tokens, headers } = buildCookieHeaders(storedUser.id, storedUser.role, storedUser.email, storedUser.businessId);
+            try {
+              const { funnel } = await import("@/lib/analytics");
+              funnel.loginCompleted(storedUser.id, {
+                businessId: storedUser.businessId ?? undefined,
+                role: storedUser.role,
+              });
+            } catch {
+              // Non-blocking.
+            }
             return ok(
               {
                 user: { id: storedUser.id, email: storedUser.email, name: storedUser.name, role: storedUser.role, businessId: storedUser.businessId },

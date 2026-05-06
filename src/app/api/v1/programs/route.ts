@@ -165,5 +165,23 @@ export const POST = withTiming(async (req: NextRequest) => {
   programs.set(program.id, program);
   registerClaimCode(claimCode, program.id);
 
+  // Funnel: program.created. The activation step that gets a business
+  // out of "looking around" and into "actually has something to share."
+  // isFirst lets the funnel report distinguish first-time activators
+  // from existing accounts spinning up additional programs.
+  try {
+    const isFirst = !Array.from(programs.values()).some(
+      (p) => p.businessId === businessId && p.id !== program.id
+    );
+    const { funnel } = await import("@/lib/analytics");
+    funnel.programCreated(user.id, {
+      businessId,
+      programId: program.id,
+      isFirst,
+    });
+  } catch {
+    // Non-blocking.
+  }
+
   return ok({ program }, 201);
 });
