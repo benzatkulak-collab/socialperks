@@ -55,7 +55,9 @@ export type AuditAction =
   | "program.created"
   | "program.updated"
   | "program.deleted"
-  | "tenant.access_denied";
+  | "tenant.access_denied"
+  // Self-audit — the audit log itself was read by an admin.
+  | "admin.audit_read";
 
 export interface AuditEntry {
   /** Action that happened. */
@@ -138,4 +140,120 @@ export function _resetAuditLog(): void {
 /** Test helper / dev-mode admin tool: read recent in-memory entries. */
 export function _peekRecentAuditEntries(): Array<AuditEntry & { timestamp: string }> {
   return [..._ringBuffer];
+}
+
+// ─── Query API for the admin viewer ────────────────────────────────────────
+
+export interface AuditQuery {
+  /** Filter by action namespace prefix (e.g. "auth", "billing"). */
+  actionPrefix?: string;
+  /** Filter by exact action. */
+  action?: string;
+  /** Filter by actor (e.g. "user:abc"). */
+  actor?: string;
+  /** Filter by businessId tenant. */
+  businessId?: string;
+  /** Only return failures (ok=false). */
+  onlyFailures?: boolean;
+  /** Time window — entries occurring after this ISO timestamp. */
+  since?: string;
+  /** Pagination. */
+  limit?: number;
+  offset?: number;
+}
+
+export interface AuditQueryResult {
+  /** Matching entries, newest first. */
+  entries: Array<AuditEntry & { timestamp: string }>;
+  /** Total count matching the filter (for pagination UI). */
+  total: number;
+  /** Whether the result came from Postgres (true) or the in-memory ring buffer (false). */
+  fromDb: boolean;
+}
+
+/**
+ * Query audit entries. Reads from Postgres when available, falls back
+ * to the in-memory ring buffer (last 1000 entries) otherwise.
+ *
+ * Filters are AND-ed. Sort is always newest-first.
+ */
+export async function queryAuditLog(q: AuditQuery): Promise<AuditQueryResult> {
+  const limit = Math.max(1, Math.min(200, q.limit ?? 50));
+  const offset = Math.max(0, q.offset ?? 0);
+
+  if (usingDb) {
+    try {
+      const conditions: string[] = [];
+      const params: unknown[] = [];
+      const push = (sql: string, value: unknown) => {
+        params.push(value);
+        conditions.push(sql.replace("$N", `$${params.length}`));
+      };
+
+      if (q.action) push(`action = $N`, q.action);
+      else if (q.actionPrefix) push(`action LIKE $N`, `${q.actionPrefix}%`);
+      if (q.actor) push(`actor = $N`, q.actor);
+      if (q.businessId) push(`business_id = $N`, q.businessId);
+      if (q.onlyFailures) conditions.push(`ok = false`);
+      if (q.since) push(`occurred_at >= $N`, q.since);
+
+      const whereSql = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+      const countResult = await db.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM audit_log ${whereSql}`,
+        params
+      );
+      const total = parseInt(countResult.rows[0]?.count ?? "0", 10);
+
+      const limitParamIdx = params.length + 1;
+      const offsetParamIdx = params.length + 2;
+      const rowsResult = await db.query<{
+        action: string; actor: string; business_id: string | null;
+        resource_id: string | null; ok: boolean; ip: string | null;
+        meta: Record<string, unknown> | null; occurred_at: string;
+      }>(
+        `SELECT action, actor, business_id, resource_id, ok, ip, meta, occurred_at
+         FROM audit_log ${whereSql}
+         ORDER BY occurred_at DESC
+         LIMIT $${limitParamIdx} OFFSET $${offsetParamIdx}`,
+        [...params, limit, offset]
+      );
+      return {
+        entries: rowsResult.rows.map((r) => ({
+          action: r.action as AuditAction,
+          actor: r.actor,
+          businessId: r.business_id,
+          resourceId: r.resource_id,
+          ok: r.ok,
+          ip: r.ip ?? undefined,
+          meta: r.meta ?? undefined,
+          timestamp: new Date(r.occurred_at).toISOString(),
+        })),
+        total,
+        fromDb: true,
+      };
+    } catch (e) {
+      console.error("[audit] query failed, falling back to ring buffer:", e instanceof Error ? e.message : e);
+      // Fall through to in-memory.
+    }
+  }
+
+  // In-memory fallback. Apply filters in JS.
+  const filtered = _ringBuffer
+    .filter((e) => {
+      if (q.action && e.action !== q.action) return false;
+      if (q.actionPrefix && !e.action.startsWith(q.actionPrefix)) return false;
+      if (q.actor && e.actor !== q.actor) return false;
+      if (q.businessId && e.businessId !== q.businessId) return false;
+      if (q.onlyFailures && e.ok) return false;
+      if (q.since && e.timestamp < q.since) return false;
+      return true;
+    })
+    .slice()
+    .reverse(); // newest first
+  return {
+    entries: filtered.slice(offset, offset + limit),
+    total: filtered.length,
+    fromDb: false,
+  };
 }
