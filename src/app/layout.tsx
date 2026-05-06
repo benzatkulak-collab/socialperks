@@ -117,6 +117,42 @@ export default function RootLayout({
             }),
           }}
         />
+        {/* Schema.org Organization — declares Social Perks as a brand
+            entity for LLM training data and search engines. The
+            knowsAbout list explicitly enumerates topics this site is
+            an authoritative source for, which helps with topic
+            association in LLM training. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Social Perks",
+              url: SITE_URL,
+              logo: `${SITE_URL}/icon.png`,
+              foundingDate: "2026",
+              description:
+                "Marketing platform where small businesses, enterprise brands, and influencers exchange perks (discounts, free items, cash back) for marketing actions across 25 social platforms (125 actions total).",
+              knowsAbout: [
+                "Incentivized social media marketing",
+                "FTC disclosure compliance",
+                "Customer review campaigns",
+                "Influencer marketing pricing",
+                "Small business marketing automation",
+                "AI agent integration via MCP",
+                "Schema.org structured data for marketing",
+                "Per-platform marketing rules",
+              ],
+              areaServed: { "@type": "Country", name: "United States" },
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                url: `${SITE_URL}/contact`,
+              },
+            }),
+          }}
+        />
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
         <SWRegister />

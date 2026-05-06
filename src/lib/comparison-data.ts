@@ -119,6 +119,92 @@ export const COMPARISONS: PlatformComparison[] = [
     recommendation:
       "Start with TikTok if you can produce video at all — the iteration speed is unmatched. Layer YouTube on top once you have a few videos that work, since YouTube's per-view value compounds over years (TikTok's lifecycle is days).",
   },
+  {
+    slug: "yelp-vs-tripadvisor",
+    platformAId: "yp",
+    platformBId: "ta",
+    title: "Yelp vs TripAdvisor for restaurant and hospitality marketing",
+    description:
+      "Yelp vs TripAdvisor for review-driven marketing in restaurants, hotels, and tourism. Both prohibit incentivized reviews — here's how to navigate that.",
+    summary:
+      "Yelp dominates US local-restaurant intent; TripAdvisor dominates travel and hospitality, especially internationally. Both prohibit incentivized reviews — Yelp particularly aggressive about flagging suspicious patterns. The legal pattern on both is to reward customer willingness to share feedback, not the review itself. Combined Yelp + TripAdvisor coverage is essential for any hospitality business with non-local customers.",
+    bestForA: [
+      "US local restaurants, bars, salons",
+      "Businesses with strong existing Yelp presence",
+    ],
+    bestForB: [
+      "Hotels, vacation rentals, tourism-driven businesses",
+      "Businesses with international or out-of-town customers",
+    ],
+    recommendation:
+      "Both, if you're in hospitality. Yelp for locals, TripAdvisor for travelers. Run organic-feedback campaigns on both — never incentivize the review itself.",
+  },
+  {
+    slug: "linkedin-vs-twitter",
+    platformAId: "li",
+    platformBId: "xw",
+    title: "LinkedIn vs Twitter/X for B2B and professional marketing",
+    description:
+      "LinkedIn vs Twitter/X for B2B incentivized marketing: thought-leadership posts, professional referrals, and where to invest your time.",
+    summary:
+      "LinkedIn and Twitter both serve B2B marketing but at different points in the funnel. LinkedIn is trust-building and decision-stage — Articles ($5) and Posts ($2.50) reach professional networks where buying decisions happen. Twitter is awareness-stage with faster cycles — Threads ($3) and Posts ($1) get rapid feedback but lower conversion intent. Both permit incentivized content with disclosure.",
+    bestForA: [
+      "B2B businesses with multi-stakeholder buying processes",
+      "Professional services (legal, accounting, consulting)",
+      "Recruiting and employer-brand campaigns",
+    ],
+    bestForB: [
+      "Tech and developer-focused businesses",
+      "Brands with strong founder personalities",
+      "Real-time customer service / responsiveness signaling",
+    ],
+    recommendation:
+      "B2B with long sales cycles: LinkedIn first. B2B-tech with a strong founder voice: both. Twitter alone doesn't drive enough deal flow for most B2B businesses, but it's a great amplifier for LinkedIn content.",
+  },
+  {
+    slug: "facebook-vs-nextdoor",
+    platformAId: "fb",
+    platformBId: "nd",
+    title: "Facebook vs NextDoor for hyperlocal small-business marketing",
+    description:
+      "Facebook vs NextDoor for businesses targeting their immediate neighborhood. Local groups, recommendations, and what works on each.",
+    summary:
+      "Facebook and NextDoor both serve hyperlocal marketing but with different audience patterns. Facebook reaches a broader demographic with extensive group infrastructure (local mom groups, neighborhood pages). NextDoor is more concentrated — verified addresses limit reach to actual neighbors — and Recommendations there carry significant trust weight ($4 per action vs Facebook's $4 Recommendation). Both permit incentivized content with disclosure.",
+    bestForA: [
+      "Businesses serving a wide local radius (5-15 miles)",
+      "Brands with existing Facebook presence",
+      "Event-driven local businesses (gyms, classes, workshops)",
+    ],
+    bestForB: [
+      "Businesses serving a tight neighborhood radius (1-3 miles)",
+      "Service businesses where word-of-mouth dominates (plumbers, electricians, dog walkers)",
+      "Brands new to the neighborhood that need to establish trust",
+    ],
+    recommendation:
+      "Both, weighted by your business radius. NextDoor punches above its weight for tight-radius services because trust is concentrated. Facebook works for everything else.",
+  },
+  {
+    slug: "pinterest-vs-instagram",
+    platformAId: "pi",
+    platformBId: "ig",
+    title: "Pinterest vs Instagram for visual-product marketing",
+    description:
+      "Pinterest vs Instagram for visual-product brands: discovery patterns, action values, and which drives more traffic to your site.",
+    summary:
+      "Pinterest is search-driven; Instagram is feed-driven. Pinterest pins ($1.50) and ideas ($3) accumulate value over months — pins from a year ago still drive traffic. Instagram posts and Reels peak in 24-72 hours. Pinterest sends more click-through traffic to external sites; Instagram keeps users in-app. Both reward visual quality but Pinterest rewards repurpose-friendly assets (a great pin can be reused in 10 contexts).",
+    bestForA: [
+      "Home goods, decor, fashion, food, DIY brands",
+      "Businesses with a strong product-imagery library",
+      "Brands prioritizing long-tail search traffic",
+    ],
+    bestForB: [
+      "Lifestyle and personal-brand businesses",
+      "Time-sensitive promotions (events, drops, openings)",
+      "Brands needing rapid-feedback iteration on creative",
+    ],
+    recommendation:
+      "Pinterest if your products are visually distinct and you want traffic to compound; Instagram if your brand is personality-driven and you need fast feedback. Most visual brands benefit from running both with the same content cross-posted.",
+  },
 ];
 
 export function getPlatform(id: string): Platform | null {

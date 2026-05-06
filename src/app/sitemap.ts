@@ -6,6 +6,7 @@ import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
 import { listPosts } from "@/lib/blog";
 import { PLATFORMS } from "@/lib/platforms";
 import { COMPARISONS } from "@/lib/comparison-data";
+import { GUIDES } from "@/lib/guides-data";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -33,6 +34,8 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/glossary",      changeFrequency: "weekly",  priority: 0.8 },
   { path: "/benchmarks",    changeFrequency: "weekly",  priority: 0.8 },
   { path: "/compare",       changeFrequency: "monthly", priority: 0.7 },
+  { path: "/guides",        changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/pricing-oracle", changeFrequency: "weekly", priority: 0.8 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
   { path: "/status",        changeFrequency: "monthly", priority: 0.4 },
@@ -139,6 +142,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.75,
   }));
 
+  // How-to guides — Schema.org HowTo markup. Each guide is a citable
+  // procedure for an LLM-likely question.
+  const guideEntries: MetadataRoute.Sitemap = GUIDES.map((g) => ({
+    url: `${SITE_URL}/guides/${g.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
+
+  // Pricing oracle pages — one per industry. Same data the API serves
+  // but as indexable HTML.
+  const pricingOracleEntries: MetadataRoute.Sitemap = INDUSTRY_SLUGS.map((slug) => ({
+    url: `${SITE_URL}/pricing-oracle/${slug}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  // Action category pages — one per ActionType.
+  const actionTypeEntries: MetadataRoute.Sitemap = ["content", "review", "engage", "share", "referral"].map((type) => ({
+    url: `${SITE_URL}/actions/type/${type}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   return [
     ...staticEntries,
     ...industryEntries,
@@ -150,5 +179,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...actionEntries,
     ...platformEntries,
     ...compareEntries,
+    ...guideEntries,
+    ...pricingOracleEntries,
+    ...actionTypeEntries,
   ];
 }
