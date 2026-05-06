@@ -8,8 +8,20 @@ import {
   type PerkProgram,
 } from "@/lib/programs/store";
 
+// Public tier is 120 req/min so 8 requests is fine, but using unique
+// IPs per request keeps these tests isolated from any shared limiter
+// state if other suites also hit /api/v1/claim/* in the same run.
+let _ipCounter = 0;
 function makeReq(code: string): NextRequest {
-  return new NextRequest(new URL(`http://localhost:3000/api/v1/claim/${code}`));
+  _ipCounter += 1;
+  return new NextRequest(
+    new URL(`http://localhost:3000/api/v1/claim/${code}`),
+    {
+      headers: {
+        "x-real-ip": `127.0.${Math.floor(_ipCounter / 256)}.${_ipCounter % 256}`,
+      },
+    }
+  );
 }
 
 function makeCtx(code: string) {
