@@ -945,6 +945,35 @@ export const SCHEMA = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // AUDIT LOG (security-sensitive operations)
+  // Auth events, API key lifecycle, billing changes, submission reviews,
+  // cashback approvals, webhook signature failures. NOT routine reads.
+  // Console-logged + persisted; queryable for security incident response.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  audit_log: {
+    columns: {
+      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
+      action: { type: "varchar(100)", nullable: false },
+      actor: { type: "varchar(255)", nullable: false },
+      business_id: { type: "varchar(100)", nullable: true },
+      resource_id: { type: "varchar(255)", nullable: true },
+      ok: { type: "boolean", nullable: false },
+      ip: { type: "varchar(50)", nullable: true },
+      meta: { type: "jsonb", nullable: true },
+      occurred_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "audit_log_pkey" },
+      { columns: ["actor"], unique: false, name: "audit_log_actor_idx" },
+      { columns: ["business_id"], unique: false, name: "audit_log_business_idx" },
+      { columns: ["action"], unique: false, name: "audit_log_action_idx" },
+      { columns: ["occurred_at"], unique: false, name: "audit_log_occurred_idx" },
+    ],
+    relations: [],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // WEBHOOK EVENT DEDUPLICATION
   // Both Stripe webhook idempotency and social-platform webhook replay
   // protection live here. Was in-memory — meant a malicious replay

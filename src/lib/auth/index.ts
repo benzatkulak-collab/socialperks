@@ -48,6 +48,20 @@ interface Session {
 
 // ─── Session Store ───────────────────────────────────────────────────────────
 
+/**
+ * Session store. Two-tier: in-memory cache (synchronous reads — required
+ * by every API route's auth check) + Postgres write-through for
+ * durability across cold starts.
+ *
+ * On cold start, the cache is empty. The first request from a user
+ * with an existing valid JWT cookie will succeed via JWT verification
+ * (no session needed); only legacy session-token-only callers see a
+ * brief auth gap until hydration completes.
+ *
+ * The hydrate-on-boot pattern triggers at module load; it's
+ * fire-and-forget because making auth async would require changing
+ * every route handler.
+ */
 class SessionStore {
   private sessions = new Map<string, Session>();
   private readonly maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -63,18 +77,34 @@ class SessionStore {
     const now = Date.now();
     const session: Session = { token, userId, userRole, businessId, email, createdAt: now, expiresAt: now + this.maxAge };
     this.sessions.set(token, session);
+    // Best-effort write-through. If DB write fails, session still works
+    // for this process (and JWT cookie auth still works regardless).
+    void persistSession(session).catch(() => { /* logged inside */ });
     return session;
   }
 
   get(token: string): Session | null {
     const session = this.sessions.get(token);
     if (!session) return null;
-    if (Date.now() > session.expiresAt) { this.sessions.delete(token); return null; }
+    if (Date.now() > session.expiresAt) {
+      this.sessions.delete(token);
+      void destroySessionInDb(token);
+      return null;
+    }
     return session;
   }
 
   destroy(token: string): boolean {
-    return this.sessions.delete(token);
+    const removed = this.sessions.delete(token);
+    if (removed) void destroySessionInDb(token);
+    return removed;
+  }
+
+  /** Hydrate the cache from Postgres on cold start. Best-effort. */
+  hydrate(rows: Array<Session>): void {
+    for (const s of rows) {
+      if (Date.now() < s.expiresAt) this.sessions.set(s.token, s);
+    }
   }
 
   /** Remove all expired sessions from the store. */
@@ -95,6 +125,62 @@ class SessionStore {
 }
 
 export const sessionStore = new SessionStore();
+
+// ─── Postgres write-through ─────────────────────────────────────────────────
+
+async function persistSession(s: Session): Promise<void> {
+  const { db, InMemoryConnection } = await import("@/lib/db/connection");
+  if (db instanceof InMemoryConnection) return;
+  try {
+    await db.query(
+      `INSERT INTO auth_sessions (token, user_id, user_role, email, business_id, created_at, expires_at, last_activity_at)
+       VALUES ($1, $2, $3, $4, $5, to_timestamp($6/1000.0), to_timestamp($7/1000.0), now())
+       ON CONFLICT (token) DO NOTHING`,
+      [s.token, s.userId, s.userRole, s.email, s.businessId, s.createdAt, s.expiresAt]
+    );
+  } catch (e) {
+    console.error("[sessions] persist failed:", e instanceof Error ? e.message : e);
+  }
+}
+
+async function destroySessionInDb(token: string): Promise<void> {
+  const { db, InMemoryConnection } = await import("@/lib/db/connection");
+  if (db instanceof InMemoryConnection) return;
+  try {
+    await db.query(`DELETE FROM auth_sessions WHERE token = $1`, [token]);
+  } catch (e) {
+    console.error("[sessions] destroy failed:", e instanceof Error ? e.message : e);
+  }
+}
+
+async function hydrateSessionsFromDb(): Promise<void> {
+  const { db, InMemoryConnection } = await import("@/lib/db/connection");
+  if (db instanceof InMemoryConnection) return;
+  try {
+    const result = await db.query<{
+      token: string; user_id: string; user_role: Session["userRole"];
+      email: string; business_id: string | null;
+      created_at: string; expires_at: string;
+    }>(`SELECT token, user_id, user_role, email, business_id, created_at, expires_at
+        FROM auth_sessions WHERE expires_at > now()`);
+    sessionStore.hydrate(
+      result.rows.map((r) => ({
+        token: r.token,
+        userId: r.user_id,
+        userRole: r.user_role,
+        email: r.email,
+        businessId: r.business_id,
+        createdAt: new Date(r.created_at).getTime(),
+        expiresAt: new Date(r.expires_at).getTime(),
+      }))
+    );
+  } catch (e) {
+    console.error("[sessions] hydrate failed:", e instanceof Error ? e.message : e);
+  }
+}
+
+// Eager hydration at module load. Async — does not block first request.
+void hydrateSessionsFromDb();
 export type { Session };
 
 // ─── JWT Utilities ─────────────────────────────────────────────────────────

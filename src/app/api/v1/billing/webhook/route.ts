@@ -20,6 +20,7 @@ import { businessRepo } from "@/lib/db/repositories";
 import { emailQueue } from "@/lib/jobs/registry";
 import { creditReferral, findReferralByReferee } from "@/lib/referrals";
 import { markEventProcessed } from "@/lib/webhook-dedup";
+import { audit } from "@/lib/audit-log";
 
 // ─── Replay Protection ──────────────────────────────────────────────────────
 
@@ -72,6 +73,15 @@ export const POST = withTiming(async (req: NextRequest) => {
       eventType = event.type;
     } catch (e) {
       const message = e instanceof Error ? e.message : "Webhook signature verification failed";
+      // Audit failed signature attempts — these are security signals
+      // (someone is trying to forge Stripe events).
+      audit({
+        action: "billing.webhook_signature_failed",
+        actor: "stripe-webhook",
+        ok: false,
+        ip: req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
+        meta: { reason: message.slice(0, 200) },
+      });
       return err("INVALID_SIGNATURE", message, 400);
     }
   } else {
