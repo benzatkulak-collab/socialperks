@@ -348,6 +348,11 @@ export class SearchEngine {
    * Highlight matching terms in a text snippet by wrapping them in <mark> tags.
    * Operates on the original text, matching stemmed query terms against
    * stemmed versions of each word.
+   *
+   * SECURITY: HTML-escapes every part before emitting it. Previously
+   * emitted raw user-controlled text (e.g. campaign names) and was
+   * rendered via dangerouslySetInnerHTML — stored XSS vector. Now we
+   * escape all output, so even non-matched parts are safe.
    */
   private highlight(text: string, queryTerms: Set<string>): string {
     // Split text preserving whitespace and punctuation
@@ -355,19 +360,29 @@ export class SearchEngine {
 
     return parts
       .map((part) => {
-        // Skip whitespace / punctuation parts
-        if (/^\s+$/.test(part) || /^[^\w]+$/.test(part)) return part;
+        // Skip whitespace / punctuation parts (still escaped to be safe).
+        if (/^\s+$/.test(part) || /^[^\w]+$/.test(part)) return escapeHtml(part);
 
         const normalized = normalize(part);
         const stemmed = stem(normalized);
 
+        const safe = escapeHtml(part);
         if (queryTerms.has(stemmed)) {
-          return `<mark>${part}</mark>`;
+          return `<mark>${safe}</mark>`;
         }
-        return part;
+        return safe;
       })
       .join("");
   }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
 
 // ─── Singleton ──────────────────────────────────────────────────────────────

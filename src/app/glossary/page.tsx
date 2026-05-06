@@ -10,6 +10,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GLOSSARY_ENTRIES } from "@/lib/glossary-data";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -65,7 +66,7 @@ export default function GlossaryPage() {
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(definedTermSetLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(definedTermSetLd) }}
       />
 
       <div className="mx-auto max-w-3xl px-6 py-16">

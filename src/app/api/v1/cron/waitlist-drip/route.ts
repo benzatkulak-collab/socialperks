@@ -19,6 +19,7 @@ import { ok, err } from "../../_shared";
 import { db, InMemoryConnection } from "@/lib/db/connection";
 import { sendDripBatch, type DripEntry } from "@/lib/email/waitlist-drip";
 import { logger } from "@/lib/logging";
+import { constantTimeEqual } from "@/lib/security/order-by";
 
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -29,8 +30,10 @@ export async function GET(req: NextRequest) {
       503,
     );
   }
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${cronSecret}`) {
+  const auth = req.headers.get("authorization") ?? "";
+  // SECURITY: constant-time compare — was non-constant `!==` which is a
+  // (small) timing oracle for the secret.
+  if (!constantTimeEqual(auth, `Bearer ${cronSecret}`)) {
     return err("UNAUTHORIZED", "Invalid cron token", 401);
   }
 

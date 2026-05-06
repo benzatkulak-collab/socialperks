@@ -14,6 +14,7 @@ import {
   withTiming,
 } from "../../_shared";
 import { programs, type PerkProgram, type ProgramRule, type ProgramTier } from "@/lib/programs/store";
+import { requireOwnership } from "@/lib/security/owner";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
 
@@ -38,10 +39,9 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
-  // Tenant isolation: only the program owner can view details
-  if (user.businessId && program.businessId !== user.businessId) {
-    return err("FORBIDDEN", "You do not have access to this program", 403);
-  }
+  // Ownership: explicit (treats null user.businessId as no-access).
+  const ownership = requireOwnership(user, program.businessId);
+  if (ownership) return ownership;
 
   return ok({ program });
 });
@@ -63,6 +63,10 @@ export const PUT = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
+
+  // Ownership check — was previously missing entirely (IDOR vector).
+  const ownership = requireOwnership(user, program.businessId);
+  if (ownership) return ownership;
 
   const body = await parseBody<{
     name?: string;
@@ -110,6 +114,10 @@ export const DELETE = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
+
+  // Ownership check — was previously missing entirely (IDOR vector).
+  const ownership = requireOwnership(user, program.businessId);
+  if (ownership) return ownership;
 
   // Soft delete — set status to "ended"
   const ended: PerkProgram = {

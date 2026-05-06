@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { INDUSTRIES } from "@/lib/industries";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 // ---------------------------------------------------------------------------
 // Metadata
@@ -44,7 +45,7 @@ export default function IndustriesIndexPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: safeJsonForScript({
             "@context": "https://schema.org",
             "@type": "CollectionPage",
             name: "Social Perks — Industries",

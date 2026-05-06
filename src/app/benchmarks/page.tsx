@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { INDUSTRIES } from "@/lib/industries";
 import { getBenchmarks } from "@/lib/ai-engine";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -88,7 +89,7 @@ export default function BenchmarksPage() {
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(datasetLd) }}
       />
 
       <div className="mx-auto max-w-5xl px-6 py-16">

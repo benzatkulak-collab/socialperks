@@ -12,7 +12,7 @@ import {
   withTiming,
 } from "../../_shared";
 import { withTenant, checkResourceAccess } from "../../_tenant";
-import { reviewSubmission, calculatePerkValue } from "@/lib/submissions";
+import { reviewSubmission, calculatePerkValue, getSubmissionById } from "@/lib/submissions";
 import { awardPerk } from "@/lib/perk-wallet";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
@@ -69,12 +69,22 @@ export const POST = withTiming(async (req: NextRequest) => {
     if (!nv.success) return err("INVALID_NOTE", nv.error, 400);
   }
 
-  // Tenant isolation: verify the reviewer's tenant owns the campaign
-  // associated with this submission
-  if (body.campaign?.businessId) {
-    const accessDenied = checkResourceAccess(tenant, body.campaign.businessId);
-    if (accessDenied) return accessDenied;
+  // SECURITY: Server-side tenant resolution — never trust body.campaign.
+  // Was a bypass: omitting body.campaign skipped the tenant check entirely,
+  // letting any auth'd reviewer approve/reject any submission and award
+  // themselves perks.
+  // Look up the submission, derive its campaignId server-side, then check
+  // that the campaign's owning business matches the caller's tenant.
+  const existingSubmission = getSubmissionById(sv.data);
+  if (!existingSubmission) {
+    return err("NOT_FOUND", "Submission not found", 404);
   }
+  const campaignLifecycle = campaignManager.getState(existingSubmission.campaignId);
+  if (!campaignLifecycle) {
+    return err("NOT_FOUND", "Campaign for this submission not found", 404);
+  }
+  const accessDenied = checkResourceAccess(tenant, campaignLifecycle.businessId);
+  if (accessDenied) return accessDenied;
 
   // Perform the review
   const result = await reviewSubmission(

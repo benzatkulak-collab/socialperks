@@ -6,6 +6,8 @@
  * and AI review flow.
  */
 
+import { isSafeUrl } from "@/lib/security/url";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface UrlCheckResult {
@@ -193,6 +195,25 @@ export async function checkProofUrl(
   let redirectedUrl: string | null = null;
   let reachable = false;
 
+  // SECURITY: SSRF guard. Reject URLs pointing at private/internal IPs
+  // (RFC1918, loopback, AWS metadata 169.254.169.254, etc.) before any
+  // fetch. Disable redirect-follow because attackers can chain a public
+  // URL → 30x → internal IP and exfiltrate via the response body. We
+  // re-check after a single hop manually.
+  const safety = isSafeUrl(url);
+  if (safety !== null) {
+    return {
+      reachable: false,
+      statusCode: 0,
+      platformMatch: false,
+      detectedPlatform: null,
+      contentType: null,
+      redirectedUrl: null,
+      confidence,
+      checks: [...checks, `unsafe_url:${safety}`],
+    };
+  }
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -200,7 +221,9 @@ export async function checkProofUrl(
     const response = await fetch(url, {
       method: "HEAD",
       signal: controller.signal,
-      redirect: "follow",
+      // SECURITY: Don't auto-follow redirects — attackers can redirect
+      // public URLs to internal IPs after the safety check.
+      redirect: "manual",
       headers: {
         "User-Agent": "SocialPerks-UrlChecker/1.0",
       },

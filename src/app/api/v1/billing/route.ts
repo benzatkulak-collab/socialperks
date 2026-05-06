@@ -77,6 +77,28 @@ export const POST = withTiming(async (req: NextRequest) => {
       return err("MISSING_URLS", "successUrl and cancelUrl are required", 400);
     }
 
+    // SECURITY: Reject open-redirect URLs. Stripe will redirect users to
+    // whatever success/cancel URL is passed, so attacker-supplied values
+    // can be used for phishing (capture session_id post-checkout).
+    // Restrict both URLs to the configured site host.
+    const siteHost = (() => {
+      const u = process.env.NEXT_PUBLIC_SITE_URL;
+      if (!u) return null;
+      try { return new URL(u).host; } catch { return null; }
+    })();
+    if (siteHost) {
+      for (const [name, value] of [["successUrl", successUrl], ["cancelUrl", cancelUrl]] as const) {
+        try {
+          const u = new URL(value);
+          if (u.host !== siteHost) {
+            return err("INVALID_URL", `${name} must point at the configured site host`, 400);
+          }
+        } catch {
+          return err("INVALID_URL", `${name} is not a valid URL`, 400);
+        }
+      }
+    }
+
     const customerId = getOrCreateCustomerId(businessId);
     const planConfig = PLANS[plan];
     const priceId =

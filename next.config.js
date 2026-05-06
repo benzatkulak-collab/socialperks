@@ -59,7 +59,17 @@ const nextConfig = {
     const imgSrc = ["'self'", "data:", "blob:", "https:", pixelImgHosts]
       .filter(Boolean)
       .join(" ");
-    const connectSrc = ["'self'", "https:", pixelConnectHosts]
+    // SECURITY: connect-src was previously `https:` (any HTTPS origin),
+    // which neutralized CSP's data-exfil protection — any successful
+    // injection could exfiltrate to attacker-controlled HTTPS endpoints.
+    // Now allowlisted to only the origins the app actually talks to.
+    const connectSrc = [
+      "'self'",
+      "https://api.stripe.com",
+      "https://va.vercel-scripts.com",
+      "https://vitals.vercel-insights.com",
+      pixelConnectHosts, // FB, GA when enabled
+    ]
       .filter(Boolean)
       .join(" ");
     const csp = [
@@ -72,6 +82,10 @@ const nextConfig = {
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      // SECURITY: Block <object>, <embed>, <applet> — common XSS vectors.
+      "object-src 'none'",
+      // Force HTTPS for any subresource that's accidentally http://.
+      "upgrade-insecure-requests",
       "report-uri /api/v1/csp-report",
       "report-to csp-endpoint",
     ].join("; ");

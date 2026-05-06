@@ -5,6 +5,7 @@ import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { TrackingPixels } from "@/components/shared/tracking-pixels";
 import { RefCapture } from "@/components/shared/ref-capture";
 import "./globals.css";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 // metadataBase prefers an explicit NEXT_PUBLIC_SITE_URL env var so OG image
 // URLs resolve correctly on whatever host you're actually deployed to
@@ -123,7 +124,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonForScript({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               name: "Social Perks",
@@ -144,7 +145,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonForScript({
               "@context": "https://schema.org",
               "@type": "WebSite",
               name: "Social Perks",
@@ -169,7 +170,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonForScript({
               "@context": "https://schema.org",
               "@type": "Organization",
               name: "Social Perks",
@@ -203,7 +204,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonForScript({
               "@context": "https://schema.org",
               "@type": "WebAPI",
               name: "Social Perks API",

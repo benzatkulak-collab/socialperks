@@ -5,6 +5,7 @@ import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { createSeedData } from "@/lib/seed";
 import { buildInfluencerSlug, idFromSlug } from "@/lib/slugs";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -97,7 +98,7 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonForScript(jsonLd) }}
         />
 
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">

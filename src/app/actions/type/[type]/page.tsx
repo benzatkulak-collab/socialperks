@@ -10,6 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PLATFORMS } from "@/lib/platforms";
 import type { ActionType } from "@social-perks/shared/types";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -103,7 +104,7 @@ export default async function ActionTypePage({
     <div className="min-h-screen bg-brand-bg text-brand-text">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript(itemListLd) }}
       />
       <div className="mx-auto max-w-3xl px-6 py-16">
         <nav className="text-sm text-brand-text-dim mb-8">

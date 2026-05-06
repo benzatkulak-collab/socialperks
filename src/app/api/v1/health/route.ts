@@ -1,9 +1,13 @@
 /**
  * Health Check API Route — /api/v1/health
  *
- * GET: Returns server status, uptime, Node version, memory usage,
- * and database connectivity.
- * Rate limit: public tier
+ * GET: Returns minimal server status. Response is intentionally
+ * coarse-grained because /health is anonymous-public — exposing the
+ * exact Node version, uptime, and memory readings to attackers helps
+ * them target known CVEs and stage DoS / OOM attacks.
+ *
+ * Detailed health metrics live behind the token-gated readiness probe
+ * at /api/v1/reliability or wherever they're already token-gated.
  */
 
 import type { NextRequest } from "next/server";
@@ -14,30 +18,21 @@ export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "public");
   if (limited) return limited;
 
-  const mem = process.memoryUsage();
-
-  let database: { connected: boolean; latencyMs: number; poolSize: number };
+  let connected = false;
   try {
-    database = await db.healthCheck();
+    const h = await db.healthCheck();
+    connected = h.connected;
   } catch {
-    database = { connected: false, latencyMs: -1, poolSize: 0 };
+    connected = false;
   }
 
-  const status = database.connected ? "ok" : "degraded";
-
   return ok({
-    status,
+    status: connected ? "ok" : "degraded",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    node: process.version,
-    memory: {
-      heapUsedMB: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
-      rssMB: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
-    },
-    database: {
-      connected: database.connected,
-      latencyMs: database.latencyMs,
-      poolSize: database.poolSize,
-    },
+    database: { connected },
+    // SECURITY: Node version, memory readings, uptime, pool size all
+    // intentionally omitted from the public response. They were
+    // information-disclosure vectors. Detailed metrics are in the
+    // token-gated readiness probe.
   });
 });

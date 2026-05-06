@@ -42,6 +42,17 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const webhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
 
+  // SECURITY: In production, refuse to operate without a verified secret.
+  // Previously fell through to mock mode, which let attackers forge
+  // payout events.
+  if (process.env.NODE_ENV === "production" && (!stripe || !isStripeConfigured() || !webhookSecret)) {
+    return err(
+      "PAYOUTS_NOT_CONFIGURED",
+      "Stripe Connect webhook verification is not configured. Refusing to process events without signature verification in production.",
+      503
+    );
+  }
+
   let body: Record<string, unknown>;
   let eventId: string;
   let eventType: string;

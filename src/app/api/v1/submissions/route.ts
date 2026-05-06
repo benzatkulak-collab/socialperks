@@ -152,9 +152,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   const cv = validateId(body.campaignId);
   if (!cv.success) return err("INVALID_CAMPAIGN_ID", cv.error, 400);
 
-  // Validate userId
-  const uv = validateId(body.userId);
-  if (!uv.success) return err("INVALID_USER_ID", uv.error, 400);
+  // SECURITY: Force userId from authenticated user — never trust body.userId.
+  // Was an impersonation vector: any auth'd caller could submit on behalf
+  // of any other user by forging the userId field.
+  const uv = { success: true, data: user.id, error: undefined } as const;
 
   // Validate actionId
   const av = validateId(body.actionId);

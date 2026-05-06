@@ -129,7 +129,10 @@ function buildCookieHeaders(
   return {
     tokens,
     headers: {
-      "Set-Cookie": `${accessCookie}, ${refreshCookie}`,
+      // SECURITY: Use null-byte separator so buildResponseHeaders can
+      // emit each cookie as its own Set-Cookie header (HTTP requires
+      // multiple Set-Cookie lines, not comma-joined).
+      "Set-Cookie": `${accessCookie}\u0000${refreshCookie}`,
     },
   };
 }
@@ -158,7 +161,7 @@ function clearCookieHeaders(): Record<string, string> {
     .filter(Boolean)
     .join("; ");
 
-  return { "Set-Cookie": `${accessClear}, ${refreshClear}` };
+  return { "Set-Cookie": `${accessClear}\u0000${refreshClear}` };
 }
 
 // ─── GET /api/v1/auth — Validate Session ────────────────────────────────────
@@ -345,8 +348,17 @@ export const POST = withTiming(async (req: NextRequest) => {
         return err("INVALID_CREDENTIALS", "Invalid email or password", 401);
       }
 
-      // Legacy PIN-based login for demo accounts
+      // Legacy PIN-based login for demo accounts.
+      // SECURITY: Hard-disabled in production. Demo PINs ("1234") are
+      // public knowledge and demo emails (yoga@demo.com, etc.) are
+      // documented in the README. Allowing this branch in production
+      // would let anyone sign in to demo accounts and harvest a real
+      // session/JWT.
       if (pin) {
+        if (process.env.NODE_ENV === "production") {
+          metrics.increment(METRIC.AUTH_FAILURE, 1, { method: "pin-prod-blocked" });
+          return err("INVALID_CREDENTIALS", "Invalid email or password", 401);
+        }
         if (typeof email !== "string" || typeof pin !== "string") {
           return err("INVALID_INPUT", "email and pin must be strings");
         }

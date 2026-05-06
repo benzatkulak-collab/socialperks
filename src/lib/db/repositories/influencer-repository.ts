@@ -4,6 +4,7 @@
  * CRUD operations for the influencers table.
  */
 
+import { safeOrderBy, safeOrder } from "../../security/order-by";
 import type { InfluencerTier } from "../../types";
 import {
   type PaginatedResult,
@@ -208,8 +209,13 @@ export class InfluencerRepository
 
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const orderBy = options.orderBy ?? "created_at";
-    const order = options.order === "asc" ? "ASC" : "DESC";
+    // SECURITY: Allowlist columns to prevent SQL injection via orderBy.
+    const orderBy = safeOrderBy(
+      options.orderBy,
+      ["created_at", "updated_at", "display_name", "tier", "follower_count", "engagement_rate", "verified", "active"] as const,
+      "created_at"
+    );
+    const order = safeOrder(options.order);
     const page = options.page ?? 1;
     const perPage = options.perPage ?? 50;
     const limit = perPage;

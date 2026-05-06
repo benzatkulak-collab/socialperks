@@ -147,23 +147,54 @@ export function signJWT(payload: Omit<JWTPayload, "iat" | "exp">, expiresIn: num
   return `${header}.${body}.${signature}`;
 }
 
-export function verifyJWT(token: string): JWTPayload | null {
+/**
+ * Verify a JWT and (optionally) check its `type` claim matches.
+ *
+ * SECURITY:
+ *  - Pin alg=HS256: reject tokens whose header claims `alg` is anything else
+ *    (defense against algorithm-confusion / alg=none attacks if the verifier
+ *    is ever swapped).
+ *  - Length-check signatures before timingSafeEqual to avoid the throw-then-
+ *    catch path that produces a measurable timing side-channel for crafted
+ *    short signatures.
+ *  - Optional expectedType lets callers reject mismatches (a refresh token
+ *    used as an access token, etc.).
+ */
+export function verifyJWT(token: string, expectedType?: "access" | "refresh"): JWTPayload | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
 
     const [header, body, signature] = parts;
+
+    // Pin algorithm to HS256.
+    let alg: string | undefined;
+    try {
+      const headerObj = JSON.parse(base64urlDecode(header));
+      alg = headerObj.alg;
+    } catch {
+      return null;
+    }
+    if (alg !== "HS256") return null;
+
     const expectedSig = crypto
       .createHmac("sha256", getJwtSecret())
       .update(`${header}.${body}`)
       .digest("base64url");
 
-    // Constant-time comparison
+    // Length check before timingSafeEqual (which throws on length mismatch
+    // and produces a timing side-channel through the catch path).
+    if (signature.length !== expectedSig.length) return null;
     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
       return null;
     }
 
     const payload: JWTPayload = JSON.parse(base64urlDecode(body));
+
+    // Optional type-check (refresh-vs-access).
+    if (expectedType && payload.type !== expectedType) {
+      return null;
+    }
 
     // Check expiration
     const now = Math.floor(Date.now() / 1000);

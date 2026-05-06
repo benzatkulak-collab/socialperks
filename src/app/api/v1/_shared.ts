@@ -13,13 +13,35 @@ import { metrics, METRIC } from "@/lib/reliability/metrics";
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
 
-export function ok(data: unknown, status = 200, extra?: Record<string, string>) {
-  const headers: Record<string, string> = {
+/**
+ * Build a Headers object that allows multiple Set-Cookie entries.
+ *
+ * If `extra` includes a "Set-Cookie" value, we split on the special
+ * separator "\u0000" (null byte) so callers can pass multiple cookies
+ * by joining with that sentinel. Each cookie ends up as its own
+ * Set-Cookie header line, which is how HTTP requires multiple cookies.
+ */
+function buildResponseHeaders(extra?: Record<string, string>): Headers {
+  const headers = new Headers({
     "X-Request-Id": crypto.randomUUID(),
     "Content-Type": "application/json",
-    ...extra,
-  };
-  return NextResponse.json({ success: true, data }, { status, headers });
+  });
+  if (extra) {
+    for (const [k, v] of Object.entries(extra)) {
+      if (k.toLowerCase() === "set-cookie" && v.includes("\u0000")) {
+        for (const cookie of v.split("\u0000")) {
+          if (cookie) headers.append("Set-Cookie", cookie);
+        }
+      } else {
+        headers.set(k, v);
+      }
+    }
+  }
+  return headers;
+}
+
+export function ok(data: unknown, status = 200, extra?: Record<string, string>) {
+  return NextResponse.json({ success: true, data }, { status, headers: buildResponseHeaders(extra) });
 }
 
 export function err(
@@ -28,14 +50,9 @@ export function err(
   status = 400,
   extra?: Record<string, string>
 ) {
-  const headers: Record<string, string> = {
-    "X-Request-Id": crypto.randomUUID(),
-    "Content-Type": "application/json",
-    ...extra,
-  };
   return NextResponse.json(
     { success: false, error: { code, message } },
-    { status, headers }
+    { status, headers: buildResponseHeaders(extra) }
   );
 }
 
@@ -110,14 +127,31 @@ export function requireAuth(req: NextRequest): AuthUser | NextResponse {
 
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 
+/**
+ * Resolve the client's IP from request headers.
+ *
+ * SECURITY: Previously trusted the leftmost X-Forwarded-For value, which
+ * is attacker-spoofable. On Vercel the trusted client IP lives in
+ * `x-real-ip` (set by the edge); we prefer that, then fall back to
+ * `x-vercel-forwarded-for` (set by Vercel and not attacker-controlled),
+ * and only finally to XFF (which is spoofable but better than 'unknown'
+ * for non-Vercel deployments).
+ */
+function getClientIp(req: NextRequest): string {
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  const vercelXff = req.headers.get("x-vercel-forwarded-for");
+  if (vercelXff) return vercelXff.split(",")[0]?.trim() ?? "unknown";
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0]?.trim() ?? "unknown";
+  return "unknown";
+}
+
 export function rateLimit(
   req: NextRequest,
   tier: RateLimitTier = "standard"
 ): NextResponse | null {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
+  const ip = getClientIp(req);
   const endpoint = new URL(req.url).pathname;
   const result = checkRateLimit(ip, endpoint, tier);
 
