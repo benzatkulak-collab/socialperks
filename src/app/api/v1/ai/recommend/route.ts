@@ -18,6 +18,7 @@ import {
   parseBody,
   withTiming,
 } from "../../_shared";
+import { enforceAiLimit, recordAiUse } from "../_enforce-ai-limit";
 import {
   getRecommendations,
   type RecommendationInput,
@@ -70,6 +71,10 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
   }
 
+  // Plan enforcement — recommendations consume the AI generation quota
+  const limited = enforceAiLimit(user);
+  if (limited) return limited;
+
   // Build input
   const input: RecommendationInput = {
     businessType: body.businessType,
@@ -80,6 +85,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   };
 
   const recommendations = getRecommendations(input);
+  recordAiUse(user);
 
   return ok({
     recommendations,

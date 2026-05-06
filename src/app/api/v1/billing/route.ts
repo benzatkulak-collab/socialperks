@@ -230,5 +230,49 @@ export const POST = withTiming(async (req: NextRequest) => {
     });
   }
 
-  return err("INVALID_ACTION", `Unknown action: '${action}'. Valid actions: create_checkout, create_portal, get_subscription`, 400);
+  // ── get_usage ───────────────────────────────────────────────────────────
+  // Returns current-month usage (campaigns / completions / AI generations)
+  // alongside the plan's limits so the dashboard can render usage bars and
+  // upgrade prompts. Tenant-isolated — only the caller's own business.
+  if (action === "get_usage") {
+    const { businessId } = body;
+    if (!businessId) {
+      return err("MISSING_BUSINESS_ID", "businessId is required", 400);
+    }
+    const usageAccess = checkResourceAccess(tenant, businessId);
+    if (usageAccess) return usageAccess;
+
+    // Lazy import to keep getUsageSummary out of the critical path of
+    // create_checkout/create_portal which don't need it.
+    const { getUsageSummary, getBusinessPlan, getPlanLimits } = await import(
+      "@/lib/billing/enforcement"
+    );
+    const plan = getBusinessPlan(businessId);
+    const limits = getPlanLimits(plan);
+    const usage = getUsageSummary(businessId);
+
+    // Replace Infinity with null for JSON-friendly transport. Clients
+    // render "unlimited" when limit is null.
+    const safe = (n: number) => (Number.isFinite(n) ? n : null);
+    return ok({
+      plan,
+      limits: {
+        maxCampaigns: safe(limits.maxCampaigns),
+        maxCompletionsPerMonth: safe(limits.maxCompletionsPerMonth),
+        maxActions: safe(limits.maxActions),
+        aiGenerations: safe(limits.aiGenerations),
+        hasAnalytics: limits.hasAnalytics,
+        hasApiAccess: limits.hasApiAccess,
+        hasQrCodes: limits.hasQrCodes,
+      },
+      usage: {
+        month: usage.month,
+        campaigns: { used: usage.campaigns.used, limit: safe(usage.campaigns.limit) },
+        completions: { used: usage.completions.used, limit: safe(usage.completions.limit) },
+        aiGenerations: { used: usage.aiGenerations.used, limit: safe(usage.aiGenerations.limit) },
+      },
+    });
+  }
+
+  return err("INVALID_ACTION", `Unknown action: '${action}'. Valid actions: create_checkout, create_portal, get_subscription, get_usage`, 400);
 });

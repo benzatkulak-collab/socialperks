@@ -176,6 +176,72 @@ export function AuthForm({
           size: "small", location: "", industry: type,
         };
         save({ ...data, businesses: [...(data.businesses ?? []), biz] });
+
+        // ── Plan-intent handoff to Stripe checkout ─────────────────────
+        // The user picked a paid plan on the pricing page before signing
+        // up. Hand them off directly to Stripe checkout instead of dropping
+        // them on the dashboard — the funnel was previously broken here
+        // and we'd lose the conversion. Free and enterprise tiers skip
+        // checkout (free needs no payment; enterprise routes via /contact).
+        if (
+          planIntent &&
+          (planIntent.plan === "starter" || planIntent.plan === "professional")
+        ) {
+          try {
+            const origin = window.location.origin;
+            const checkoutRes = await fetch("/api/v1/billing", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                action: "create_checkout",
+                plan: planIntent.plan,
+                billingPeriod: planIntent.period,
+                businessId: biz.id,
+                successUrl: `${origin}/dashboard?welcome=1&checkout=success`,
+                cancelUrl: `${origin}/dashboard?checkout=cancelled`,
+              }),
+            });
+            const checkoutJson: {
+              success: boolean;
+              data?: { url?: string; mock?: boolean };
+              error?: { code: string; message: string };
+            } = await checkoutRes.json();
+
+            if (checkoutJson.success && checkoutJson.data?.url) {
+              // Clear the intent so a back-button doesn't re-trigger.
+              try {
+                window.localStorage.removeItem("sp:planIntent");
+              } catch { /* ignore */ }
+              // For mock URLs in dev/staging, still surface the URL but
+              // log a warning so the developer knows it's not real.
+              if (checkoutJson.data.mock) {
+                console.warn(
+                  "[billing] redirecting to mock Stripe URL — Stripe is not configured on this server"
+                );
+              }
+              window.location.href = checkoutJson.data.url;
+              return;
+            }
+
+            // Checkout failed: don't block the signup. The user is fully
+            // authenticated; surface the message and drop them on the
+            // dashboard where they can retry from /dashboard/billing.
+            const billingMessage =
+              checkoutJson.error?.code === "BILLING_UNAVAILABLE"
+                ? "Your account is created. Billing isn't quite set up yet — we'll email you when it's live."
+                : `Your account is created. We couldn't start checkout (${checkoutJson.error?.message ?? "unknown error"}). You can retry from your dashboard.`;
+            setError(billingMessage);
+          } catch (e) {
+            // Network error mid-checkout. Same recovery: signup succeeded,
+            // just couldn't redirect.
+            console.error("[billing] checkout handoff failed", e);
+            setError(
+              "Your account is created, but we couldn't start checkout. You can retry from your dashboard."
+            );
+          }
+        }
+
         onAuth(biz, "business");
       } else {
         const inf: SeedInfluencer = {
@@ -192,7 +258,7 @@ export function AuthForm({
     } finally {
       setLoading(false);
     }
-  }, [name, signupRole, type, email, password, data, save, onAuth]);
+  }, [name, signupRole, type, email, password, data, save, onAuth, planIntent]);
 
   const handleForgotPassword = useCallback(async () => {
     setError("");
@@ -404,7 +470,10 @@ export function AuthForm({
             {/* Plan intent banner — shows the plan/period the user picked
                 on the pricing page so they know it carried through. After
                 signup completes we'll route them to checkout with the
-                same selection. */}
+                same selection. If the user picked monthly, surface the
+                annual upsell inline — switching costs nothing here and
+                the savings are typically ~17% (2 months free at our
+                price points). */}
             {planIntent && (
               <div
                 className="mb-6 rounded-xl border border-brand-cyan/30 bg-brand-cyan/5 px-4 py-3 text-sm"
@@ -424,6 +493,30 @@ export function AuthForm({
                   <strong>{planIntent.period === "annual" ? "annually" : "monthly"}</strong>
                   .
                 </p>
+                {planIntent.period === "monthly" && planIntent.plan !== "enterprise" && (
+                  <div className="mt-3 pt-3 border-t border-brand-cyan/20 flex items-start justify-between gap-3">
+                    <p className="text-xs text-brand-text-dim">
+                      <strong className="text-brand-text">Save ~17%</strong> on annual billing —
+                      that&apos;s {planIntent.plan === "professional" ? "$158" : "$58"} off per
+                      year (two months free).
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = { ...planIntent, period: "annual" as const };
+                        setPlanIntent(next);
+                        try {
+                          window.localStorage.setItem("sp:planIntent", JSON.stringify(next));
+                        } catch {
+                          /* ignore */
+                        }
+                      }}
+                      className="shrink-0 px-3 py-1.5 bg-brand-cyan text-black text-xs font-medium rounded hover:bg-brand-cyan/90"
+                    >
+                      Switch to annual
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

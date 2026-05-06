@@ -19,6 +19,7 @@ import {
   parseBody,
   withTiming,
 } from "../../_shared";
+import { enforceAiLimit, recordAiUse } from "../_enforce-ai-limit";
 import { marketingAgent } from "@/lib/ai-agent";
 import type { BusinessProfile } from "@/lib/ai-agent";
 
@@ -74,6 +75,10 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("INVALID_FIELD", "size must be solo, small, medium, or large", 400);
   }
 
+  // Plan enforcement — full marketing plan is a heavy AI op
+  const limited = enforceAiLimit(user);
+  if (limited) return limited;
+
   // Build profile
   const profile: BusinessProfile = {
     businessId: body.businessId,
@@ -92,6 +97,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   };
 
   const plan = marketingAgent.generatePlan(profile);
+  recordAiUse(user);
 
   return ok({
     plan,

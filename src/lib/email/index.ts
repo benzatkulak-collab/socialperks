@@ -155,6 +155,30 @@ export function welcomeEmail(userName: string): EmailTemplate {
   return { subject, html, text };
 }
 
+export function subscriptionStartedEmail(
+  businessName: string,
+  plan: string,
+  billingPeriod: "monthly" | "annual"
+): EmailTemplate {
+  const safeName = escapeHtml(businessName);
+  const safePlan = escapeHtml(plan.charAt(0).toUpperCase() + plan.slice(1));
+  const subject = `Welcome to Social Perks ${safePlan} — your subscription is active`;
+  const html = wrapHtml(
+    `<h1 style="color: #34D399; font-family: 'Instrument Serif', serif; font-style: italic;">Subscription active</h1>
+<p style="color: #94A3B8; line-height: 1.6;">Hi ${safeName} — your Social Perks <strong style="color: #E2E8F0;">${safePlan}</strong> plan is live, billed ${billingPeriod}.</p>
+<p style="color: #94A3B8; line-height: 1.6;">Stripe will email you a receipt separately. From here, the fastest path to your first real customer post is:</p>
+<ol style="color: #94A3B8; line-height: 1.8; padding-left: 20px;">
+  <li>Pick a campaign template that matches your goal</li>
+  <li>Print the QR code and put it where customers will see it</li>
+  <li>The first time someone scans, you'll get an email — that's how you'll know it's working</li>
+</ol>
+<a href="https://socialperks.app/dashboard?welcome=1" style="display: inline-block; padding: 12px 24px; background-color: #34D399; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">Launch your first campaign</a>
+<p style="color: #94A3B8; line-height: 1.6; margin-top: 24px; font-size: 14px;">Manage your subscription, update payment, or cancel any time from <a href="https://socialperks.app/dashboard/billing" style="color: #22D3EE;">/dashboard/billing</a>.</p>`
+  );
+  const text = `Hi ${businessName} — your Social Perks ${plan} plan is active, billed ${billingPeriod}. Stripe will email a receipt separately. Launch your first campaign at https://socialperks.app/dashboard?welcome=1 — manage subscription at https://socialperks.app/dashboard/billing`;
+  return { subject, html, text };
+}
+
 export function submissionApprovedEmail(
   userName: string,
   campaignName: string,

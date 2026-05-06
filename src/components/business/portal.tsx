@@ -11,6 +11,8 @@ import { PortalCreate } from "./portal-create";
 import { PortalAnalytics } from "./portal-analytics";
 import { OnboardingWizard } from "./onboarding-wizard";
 import { CampaignEditModal } from "./campaign-edit-modal";
+import { CheckoutBanner } from "./checkout-banner";
+import { PlanLimitModal, reportPlanLimit } from "./plan-limit-modal";
 import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
 import { DashboardSkeleton } from "@/components/ui/portal-skeletons";
 import { NotificationCenter } from "@/components/shared/notification-center";
@@ -222,6 +224,11 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
         }),
       });
       if (!res.ok) {
+        // Plan-limit failures get the upgrade modal instead of a toast.
+        if (await reportPlanLimit(res)) {
+          setLaunching(false);
+          return;
+        }
         showToast("Failed to launch campaign. Please try again.");
         setLaunching(false);
         return;
@@ -394,6 +401,16 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
           </div>
         </div>
       </div>
+
+      {/* Stripe checkout return banner — confirms payment so the user
+          doesn't email support asking "did it go through?". Renders only
+          if ?checkout=success or ?checkout=cancelled is in the URL. */}
+      <CheckoutBanner />
+
+      {/* Plan-limit modal — listens for sp:plan-limit window events
+          dispatched by reportPlanLimit() after a 403 PLAN_LIMIT_EXCEEDED
+          response. Single mount; routes don't need their own modal. */}
+      <PlanLimitModal />
 
       {/* Toast */}
       {toast && (
