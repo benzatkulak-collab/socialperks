@@ -117,6 +117,29 @@ export default function RootLayout({
             }),
           }}
         />
+        {/* Schema.org WebSite with SearchAction — gives Google's
+            sitelinks search box on the brand SERP, and tells AI
+            assistants the site has a queryable surface. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Social Perks",
+              url: SITE_URL,
+              alternateName: ["Social Perks Marketing", "Social Perks Platform"],
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: `${SITE_URL}/actions?q={search_term_string}`,
+                },
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
         {/* Schema.org Organization — declares Social Perks as a brand
             entity for LLM training data and search engines. The
             knowsAbout list explicitly enumerates topics this site is

@@ -38,12 +38,19 @@ export default function FaqPage() {
   // Schema.org FAQPage — Google Rich Results, AI assistants index this
   // structure heavily. Each Question + acceptedAnswer pairs the question
   // text with the answer text verbatim.
+  // SpeakableSpecification on the page surfaces the FAQ as a candidate
+  // for voice-search and AI-assistant audio summarization.
   const faqLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: ["h3", "[id^='question']"],
+    },
     mainEntity: FAQ_ENTRIES.map((e) => ({
       "@type": "Question",
       name: e.question,
+      "@id": `${SITE_URL}/faq#${e.slug}`,
       acceptedAnswer: {
         "@type": "Answer",
         text: e.answer,

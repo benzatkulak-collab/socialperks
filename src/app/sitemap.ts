@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { INDUSTRY_SLUGS } from "@/lib/industries";
+import { INDUSTRIES, INDUSTRY_SLUGS } from "@/lib/industries";
 import { listCities } from "@/lib/cities";
 import { createSeedData } from "@/lib/seed";
 import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
@@ -7,6 +7,8 @@ import { listPosts } from "@/lib/blog";
 import { PLATFORMS } from "@/lib/platforms";
 import { COMPARISONS } from "@/lib/comparison-data";
 import { GUIDES } from "@/lib/guides-data";
+import { BEST_LISTICLES } from "@/lib/best-data";
+import { getBenchmarks } from "@/lib/ai-engine";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -36,6 +38,7 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/compare",       changeFrequency: "monthly", priority: 0.7 },
   { path: "/guides",        changeFrequency: "weekly",  priority: 0.85 },
   { path: "/pricing-oracle", changeFrequency: "weekly", priority: 0.8 },
+  { path: "/best",          changeFrequency: "weekly",  priority: 0.85 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
   { path: "/status",        changeFrequency: "monthly", priority: 0.4 },
@@ -182,5 +185,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...guideEntries,
     ...pricingOracleEntries,
     ...actionTypeEntries,
+    // Best-of listicles — high-impact LLM citation surface.
+    ...BEST_LISTICLES.map((l) => ({
+      url: `${SITE_URL}/best/${l.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
+    // Industry × platform combo pages — top 5 platforms per industry.
+    ...INDUSTRIES.flatMap((ind) => {
+      const benchmarks = getBenchmarks(ind.name);
+      return benchmarks.topPlatforms.slice(0, 5).flatMap((platformName) => {
+        const platform = PLATFORMS.find(
+          (p) => p.name.toLowerCase() === platformName.toLowerCase()
+        );
+        if (!platform) return [];
+        return [
+          {
+            url: `${SITE_URL}/for/${ind.slug}/on/${platform.id}`,
+            lastModified: now,
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          },
+        ];
+      });
+    }),
   ];
 }
