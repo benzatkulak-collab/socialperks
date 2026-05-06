@@ -993,6 +993,30 @@ export const SCHEMA = {
     relations: [],
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CUSTOMER OTP (passwordless claim auth)
+  // Short-lived (5 min) one-time codes scoped to (program, channel, contact).
+  // No FK to programs because the perk-program persistence layer hasn't
+  // landed yet (it currently lives in an in-memory Map). When that's
+  // backed by Postgres this should add ON DELETE CASCADE on program_id.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  customer_otp: {
+    columns: {
+      program_id: { type: "varchar(255)", nullable: false },
+      channel: { type: "varchar(50)", nullable: false }, // sms | email
+      contact: { type: "varchar(255)", nullable: false }, // E.164 phone or lc email
+      code_hash: { type: "varchar(100)", nullable: false }, // sha256 hex (64 chars)
+      attempts: { type: "int", nullable: false, default: "0" },
+      expires_at: { type: "timestamptz", nullable: false },
+    },
+    indexes: [
+      { columns: ["program_id", "channel", "contact"], unique: true, name: "customer_otp_pkey" },
+      { columns: ["expires_at"], unique: false, name: "customer_otp_expires_idx" },
+    ],
+    relations: [],
+  },
+
 } as const satisfies Record<string, TableDef>;
 
 // ─── Helper Types ────────────────────────────────────────────────────────────
