@@ -45,6 +45,20 @@ export async function generateMetadata({
       title: `${platform.name} marketing actions on Social Perks`,
       description,
       url: `${SITE_URL}/platforms/${platformId}`,
+      images: [
+        {
+          url: `${SITE_URL}/api/og/platform?id=${platformId}`,
+          width: 1200,
+          height: 630,
+          alt: `${platform.name} marketing actions — Social Perks`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`${SITE_URL}/api/og/platform?id=${platformId}`],
     },
   };
 }

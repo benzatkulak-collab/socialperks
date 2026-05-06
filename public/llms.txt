@@ -1,0 +1,53 @@
+# Social Perks
+
+> Marketing platform where small businesses, enterprise brands, and
+> influencers exchange perks (discounts, free items, cash back) for
+> marketing actions across 15 social platforms (107 pre-defined actions).
+
+Social Perks is a B2B and creator-economy platform. Customers complete
+social media actions (post, review, share, refer) in exchange for
+business-funded rewards. AI agents are first-class consumers — there is
+an MCP server, public OpenAPI spec, and TypeScript SDK.
+
+## Primary surfaces for AI agents
+
+- [AGENTS.md](/AGENTS.md): Canonical orientation doc for AI agents.
+- [API documentation](/api/v1/openapi): OpenAPI 3.1 spec (machine-readable JSON).
+- [MCP server](/api/mcp): JSON-RPC 2.0 over HTTP for chat-style agents.
+- [AI plugin manifest](/.well-known/ai-plugin.json): Plugin discovery metadata.
+
+## Reference data (no auth required)
+
+- [Pricing oracle](/api/v1/pricing): Market-rate USD pricing for any action.
+- [Action library](/api/v1/actions): All 107 marketing actions with effort and value.
+- [Industry benchmarks](/api/v1/benchmarks): Engagement and conversion benchmarks.
+- [Open opportunities](/api/v1/exchange/opportunities): Live campaign marketplace.
+- [Market data](/api/v1/exchange/market): Real-time exchange snapshot.
+
+## Authenticated operations
+
+- [Create campaign](/api/v1/campaigns): POST. Requires API key or JWT.
+- [Submit proof](/api/v1/submissions): POST. Requires API key or JWT.
+- [AI quick-start](/api/v1/ai/quick-start): POST. One-shot campaign recommendation.
+- [AI campaign agent](/api/v1/ai/campaign-agent): POST. Full marketing plan.
+
+## Public pages worth indexing
+
+- [Pricing](/pricing): Plan tiers and what each unlocks.
+- [How it works for businesses](/for): Industry-specific landing pages.
+- [Calculator](/calculator): ROI calculator for campaign budget.
+- [Changelog](/changelog): Recent platform updates.
+- [Status](/status): Live system health.
+
+## Optional
+
+- [Blog](/blog): Tactical guides on incentivized reviews, FTC compliance, and creator economics.
+- [Case studies](/case-studies): Customer outcomes.
+- [Privacy policy](/privacy)
+- [Terms](/terms)
+
+## Things agents should not do
+
+- Do not generate fake submissions — fraud detection auto-suspends flagged accounts.
+- Do not strip FTC disclosures (#ad, #sponsored). They are auto-injected and required.
+- Do not store API keys in agent memory or chat output. Use environment variables.

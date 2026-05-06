@@ -98,8 +98,21 @@ export async function generateMetadata({
       description,
       url: `${SITE_URL}/actions/${actionId}`,
       type: "article",
+      images: [
+        {
+          url: `${SITE_URL}/api/og/action?id=${actionId}`,
+          width: 1200,
+          height: 630,
+          alt: `${action.platformName} ${action.label} — $${action.value.toFixed(2)} per completion`,
+        },
+      ],
     },
-    twitter: { card: "summary", title, description },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`${SITE_URL}/api/og/action?id=${actionId}`],
+    },
   };
 }
 
