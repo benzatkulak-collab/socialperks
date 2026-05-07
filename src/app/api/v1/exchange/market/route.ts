@@ -1,14 +1,80 @@
 /**
  * GET /api/v1/exchange/market
  *
- * Public real-time market data endpoint. Returns pricing,
- * action depth, movers, stats, and history based on platforms data.
- * Cached for 60 seconds.
+ * Public market data endpoint. Returns pricing depth, movers, stats,
+ * and history per action.
+ *
+ * IMPORTANT — DATA HONESTY:
+ * The numbers returned today are SYNTHETIC. They're derived from each
+ * action's static `value` field with deterministic seeded randomness
+ * applied per hour bucket, NOT from a live order book (no live order
+ * book exists yet — the exchange is launching). Every response carries
+ * a top-level `meta.mode: "demo"` plus a `meta.disclaimer` so callers
+ * (especially autonomous agents) can detect the data is illustrative
+ * and not commit to it as a real price.
+ *
+ * Without this disclosure, an agent reading the JSON would treat the
+ * mid-prices and volumes as live signal — which they aren't. Mirrors
+ * the same `mode: "demo" | "live"` pattern that `/api/v1/transparency`
+ * uses; flagged by the agent-attraction audit (PR #42).
+ *
+ * When the real exchange ships, the path forward is:
+ *   1. Set EXCHANGE_LIVE=1 in the env (or DB-detection like transparency).
+ *   2. Swap the synthetic helpers for live order-book reads.
+ *   3. Flip `meta.mode` to `"live"` and drop the disclaimer automatically.
+ *
+ * Cached 60s.
  */
 
 import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, getQuery, withTiming } from "../../_shared";
 import { ALL_ACTIONS, findAction, findPlatform } from "@/lib/platforms";
+
+// ─── Mode + Disclosure ──────────────────────────────────────────────────────
+
+type MarketMode = "demo" | "live";
+
+/**
+ * Resolve the current market data mode. Today this is hardcoded to
+ * "demo" because no live order book exists. Reading from an env flag
+ * lets ops flip the disclosure off the moment real data is wired in
+ * without a code change.
+ */
+function getMarketMode(): MarketMode {
+  if (process.env.EXCHANGE_LIVE === "1") return "live";
+  return "demo";
+}
+
+const DEMO_DISCLAIMER =
+  "This data is synthetic. Prices, depth, and volumes are deterministic " +
+  "estimates derived from each action's static value field, not from a " +
+  "live order book. Do not commit to these numbers in real bookings — " +
+  "use /api/v1/pricing for the canonical pricing oracle, or wait for " +
+  "meta.mode to flip to 'live' once the real exchange launches.";
+
+interface MarketMeta {
+  mode: MarketMode;
+  dataSource: "synthetic_seeded" | "live_orderbook";
+  generatedAt: string;
+  cacheTtlSeconds: number;
+  disclaimer?: string;
+  oracleEndpoint: string;
+  schemaVersion: "social-perks-market-v1";
+}
+
+function buildMeta(): MarketMeta {
+  const mode = getMarketMode();
+  const meta: MarketMeta = {
+    mode,
+    dataSource: mode === "live" ? "live_orderbook" : "synthetic_seeded",
+    generatedAt: new Date().toISOString(),
+    cacheTtlSeconds: 60,
+    oracleEndpoint: "/api/v1/pricing",
+    schemaVersion: "social-perks-market-v1",
+  };
+  if (mode === "demo") meta.disclaimer = DEMO_DISCLAIMER;
+  return meta;
+}
 
 // ─── Synthetic market helpers ───────────────────────────────────────────────
 
@@ -89,7 +155,7 @@ export const GET = withTiming(async (req: NextRequest) => {
       };
     });
     return ok(
-      { view: "depth", depth },
+      { meta: buildMeta(), view: "depth", depth },
       200,
       { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
     );
@@ -116,6 +182,7 @@ export const GET = withTiming(async (req: NextRequest) => {
     const sorted = withChange.sort((a, b) => b.changePercent - a.changePercent);
     return ok(
       {
+        meta: buildMeta(),
         view: "movers",
         gainers: sorted.slice(0, 10),
         losers: sorted.slice(-10).reverse(),
@@ -149,7 +216,7 @@ export const GET = withTiming(async (req: NextRequest) => {
     });
 
     return ok(
-      { view: "history", hours, history },
+      { meta: buildMeta(), view: "history", hours, history },
       200,
       { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
     );
@@ -207,6 +274,7 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   return ok(
     {
+      meta: buildMeta(),
       view: "stats",
       market: {
         totalActions: actions.length,
