@@ -14,6 +14,8 @@ import {
 import { withTenant, checkResourceAccess } from "../../_tenant";
 import { reviewSubmission, calculatePerkValue, getSubmissionById } from "@/lib/submissions";
 import { awardPerk } from "@/lib/perk-wallet";
+import { signReceipt, type SignedReceipt } from "@/lib/receipts";
+import { findAction } from "@/lib/platforms";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
 import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
@@ -103,6 +105,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   // If approving and campaign data is provided, calculate and award perk
   let perk = null;
+  let receipt: SignedReceipt | null = null;
   if (dv.data === "approve" && body.campaign) {
     const campaign = body.campaign;
     const followerCount = body.followerCount ?? 0;
@@ -153,6 +156,34 @@ export const POST = withTiming(async (req: NextRequest) => {
         ...awardResult.data,
         calculation: perkCalc,
       };
+
+      // Issue a signed attestation receipt — portable, tamper-evident
+      // proof that this submission was approved. Agents on either
+      // side can verify it independently via /api/v1/receipts/verify.
+      try {
+        const actionMeta = findAction(submission.actionId);
+        receipt = signReceipt({
+          submissionId: submission.id,
+          campaignId: submission.campaignId,
+          businessId: campaign.businessId,
+          submitterUserId: submission.userId ?? null,
+          actionId: submission.actionId,
+          // Submission doesn't carry platformId; derive from the action
+          // registry. Falls back to "unknown" if the action id was somehow
+          // accepted but isn't registered (defensive — shouldn't happen).
+          platformId: actionMeta?.platformId ?? "unknown",
+          proofUrl: submission.proofUrl,
+          perkValue: perkCalc.totalValue,
+          perkType: perkCalc.baseType,
+          approvedAt: submission.reviewedAt ?? new Date().toISOString(),
+        });
+      } catch (e) {
+        // Never let receipt issuance break approval — log and continue.
+        console.warn(
+          "[Receipts] Failed to issue receipt:",
+          e instanceof Error ? e.message : e
+        );
+      }
     }
   }
 
@@ -180,5 +211,6 @@ export const POST = withTiming(async (req: NextRequest) => {
   return ok({
     submission,
     perk,
+    receipt,
   });
 });

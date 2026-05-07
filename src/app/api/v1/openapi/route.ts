@@ -362,6 +362,42 @@ function buildSpec() {
           },
         },
       },
+      "/submissions/{submissionId}/receipt": {
+        get: {
+          tags: ["Submissions", "Agents"],
+          summary: "Signed attestation receipt",
+          description:
+            "Public, cacheable retrieval of a signed HMAC-SHA256 attestation receipt for an approved submission. Returned as a sprcpt-prefixed JWT-shaped triple. Verify standalone via POST /api/v1/receipts/verify — anyone holding the token + the signing key id can confirm authenticity without round-tripping back to Social Perks.",
+          parameters: [
+            { name: "submissionId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Receipt found, 5-minute cache" },
+            "404": { description: "No receipt available (submission unapproved or evicted from cache)" },
+          },
+        },
+      },
+      "/receipts/verify": {
+        post: {
+          tags: ["Receipts", "Agents"],
+          summary: "Verify a signed attestation receipt",
+          description:
+            "Public verification of a signed receipt token. Returns { valid: true, payload } on success or { valid: false, error: 'invalid_or_expired_receipt' } otherwise (generic error on this surface).",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["token"],
+                  properties: { token: { type: "string", maxLength: 4096 } },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Verification result" } },
+        },
+      },
       "/submissions": {
         get: {
           tags: ["Submissions"],
