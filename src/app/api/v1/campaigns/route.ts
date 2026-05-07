@@ -10,6 +10,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   getQuery,
@@ -109,7 +110,13 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth + tenant isolation
   const tenantResult = withTenant(req);
   if (tenantResult instanceof NextResponse) return tenantResult;
-  const { tenant } = tenantResult;
+  const { tenant, user } = tenantResult;
+
+  // Agent api-keys must hold "write" scope to mutate. Self-minted keys
+  // (POST /api/v1/agents/register) are read-only by default — write
+  // requires a human-mediated upgrade.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   // Rate limit — standard for writes
   const limited = rateLimit(req, "standard");
