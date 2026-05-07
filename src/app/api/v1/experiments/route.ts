@@ -7,6 +7,7 @@ import type { NextRequest } from "next/server";
 import {
   ok,
   err,
+  getUser,
   rateLimit,
   parseBody,
   getQuery,
@@ -50,11 +51,22 @@ export const GET = withTiming(async (req: NextRequest) => {
 });
 
 // ─── POST ───────────────────────────────────────────────────────────────────
+//
+// SECURITY: this endpoint multiplexes both client-driven actions
+// (`assign`, `convert` — fired by the in-page experiment runner with
+// no logged-in user) and admin operations (`create`, `start`,
+// `results`, `auto-winner`). Until this PR landed there was zero
+// auth on the route, which let any caller create experiments,
+// inspect business intel via `results`, and force-pick winners.
+//
+// New gating:
+//   - `assign` / `convert`: NO auth required. These run from the
+//     public experiment runner. Strict-tier rate limit (5/min/IP)
+//     prevents ballot-stuffing the assignment distribution.
+//   - everything else (`create`, `start`, `results`, `auto-winner`):
+//     authenticated business or admin role. Standard rate limit.
 
 export const POST = withTiming(async (req: NextRequest) => {
-  const limited = rateLimit(req, "standard");
-  if (limited) return limited;
-
   const body = await parseBody<{
     action?: string;
     // create
@@ -77,6 +89,35 @@ export const POST = withTiming(async (req: NextRequest) => {
     ["create", "start", "assign", "convert", "results", "auto-winner"] as const
   );
   if (!actionV.success) return err("INVALID_ACTION", actionV.error, 400);
+
+  const isPublicAction = actionV.data === "assign" || actionV.data === "convert";
+
+  if (isPublicAction) {
+    // Strict tier defends the assignment distribution against stuffing.
+    const limited = rateLimit(req, "strict");
+    if (limited) return limited;
+  } else {
+    // Auth required for create / start / results / auto-winner. Each of
+    // these either mutates global experiment state or surfaces business
+    // intel that must not be public.
+    const user = getUser(req);
+    if (!user) {
+      return err(
+        "NO_TOKEN",
+        "Authentication required for experiment management actions",
+        401
+      );
+    }
+    if (user.role !== "admin" && user.role !== "business" && user.role !== "enterprise") {
+      return err(
+        "FORBIDDEN",
+        "Only admin / business / enterprise roles can manage experiments",
+        403
+      );
+    }
+    const limited = rateLimit(req, "standard");
+    if (limited) return limited;
+  }
 
   switch (actionV.data) {
     // ── Create ──────────────────────────────────────────────────────────

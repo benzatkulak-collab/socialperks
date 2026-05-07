@@ -442,9 +442,16 @@ class CampaignStateMachine {
 
   /**
    * Record spending against the campaign budget.
-   * Call this after a perk is awarded.
+   *
+   * SECURITY: this method is private because it does NOT acquire the
+   * per-campaign budget lock. Calling it from outside the
+   * `checkAndSpendBudget` flow opens a check-then-write race that lets
+   * concurrent perk awards push `budget.spent` past `budget.allocated`
+   * (the architecture audit, PR #43, flagged this exact path as P0).
+   * If you need to spend, use `checkAndSpendBudget()` — it wraps this
+   * call in a lock alongside the budget check.
    */
-  recordSpend(campaignId: string, amount: number): void {
+  private recordSpend(campaignId: string, amount: number): void {
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0) {
       throw new Error("Spend amount must be a finite non-negative number");
     }
