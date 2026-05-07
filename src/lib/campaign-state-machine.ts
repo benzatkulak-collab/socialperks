@@ -113,6 +113,15 @@ export interface LaunchConfig {
   maxCompletions: number | null;
   /** Number of days until the campaign expires. */
   expiresInDays: number;
+  /**
+   * Action IDs accepted by this campaign. Optional for backwards
+   * compatibility — older callers don't pass it. When present, the IDs
+   * are persisted on the `campaign.created` event so the public brief
+   * endpoint (/api/v1/campaigns/:id/brief) can recover the ask later.
+   */
+  actions?: readonly string[];
+  /** Optional human-readable submission guidelines. */
+  guidelines?: string;
 }
 
 // ─── State Machine ──────────────────────────────────────────────────────────
@@ -180,13 +189,17 @@ class CampaignStateMachine {
 
     this.campaigns.set(campaignId, lifecycle);
 
-    // Emit created event
+    // Emit created event. We include actions + guidelines when supplied
+    // so the public brief endpoint can later recover the ask without
+    // re-reading the campaigns table (and so cold starts don't lose it).
     emitCampaignEvent("campaign.created", campaignId, businessId, {
       name: config.name,
       budgetAllocated: config.budgetAllocated,
       budgetType: config.budgetType,
       maxCompletions: config.maxCompletions,
       expiresInDays: config.expiresInDays,
+      ...(config.actions ? { actions: [...config.actions] } : {}),
+      ...(config.guidelines ? { guidelines: config.guidelines } : {}),
     });
 
     // Transition draft → active

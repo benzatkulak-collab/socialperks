@@ -362,6 +362,24 @@ function buildSpec() {
           },
         },
       },
+      "/campaigns/{campaignId}/brief": {
+        get: {
+          tags: ["Campaigns", "Agents"],
+          summary: "Machine-readable campaign brief",
+          description:
+            "Public, cacheable, schema.org Offer-typed campaign brief for autonomous agents. Returns the structured 'ask' (actions, compliance), the reward, budget remaining, eligibility hints, and an explicit agentInstructions block pointing at the submit + pricing endpoints. Designed as the artifact a creator-side agent reasons about before deciding to participate.",
+          parameters: [
+            { name: "campaignId", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description: "Campaign brief, 5-minute cache",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } },
+            },
+            "404": { description: "Campaign not found" },
+          },
+        },
+      },
       "/submissions": {
         get: {
           tags: ["Submissions"],
