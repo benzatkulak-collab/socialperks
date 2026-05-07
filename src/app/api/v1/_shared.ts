@@ -9,6 +9,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { verifyJWT, sessionStore } from "@/lib/auth";
+import { verifyApiKey } from "@/lib/auth/api-keys";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
@@ -63,6 +64,15 @@ export interface AuthUser {
   email: string;
   role: string;
   businessId: string | null;
+  /**
+   * Capability scopes — only populated when the caller authenticated via
+   * an x-api-key header. JWT/session callers have all scopes implicitly
+   * (their role gates access at the route level).
+   *
+   * Allowed values today: "read" | "write" | "admin". Use {@link requireScope}
+   * inside a mutation handler to gate access.
+   */
+  permissions?: string[];
 }
 
 /**
@@ -113,7 +123,52 @@ export function getUser(req: NextRequest): AuthUser | null {
     }
   }
 
+  // 3. Check x-api-key header — agent / partner integrations.
+  // Agents authenticate as `role: "agent"` with the scopes baked into
+  // their key. Mutation routes should gate via {@link requireScope}.
+  const apiKeyHeader = req.headers.get("x-api-key");
+  if (apiKeyHeader) {
+    const record = verifyApiKey(apiKeyHeader);
+    if (record) {
+      return {
+        id: `api-key:${record.id}`,
+        email: "",
+        role: "agent",
+        businessId: record.businessId,
+        permissions: record.permissions,
+      };
+    }
+  }
+
   return null;
+}
+
+/**
+ * Reject a request if the authenticated caller is missing a required
+ * scope. Returns null when access is allowed, or an err() Response that
+ * the route should return immediately.
+ *
+ * For non-agent callers (JWT/session/cookie) this is a pass-through —
+ * scope checks only apply to api-key-authenticated agents. Human users
+ * are gated by `role` at the route level.
+ */
+export function requireScope(
+  user: AuthUser,
+  scope: "read" | "write" | "admin"
+): NextResponse | null {
+  // Non-agent auth implicitly has every scope. Route-level role checks
+  // take care of admin/business/agent separation for those flows.
+  if (user.role !== "agent") return null;
+  const perms = user.permissions ?? [];
+  if (perms.includes("admin")) return null;
+  if (perms.includes(scope)) return null;
+  // "write" is also implied by "admin"; "read" is implied by "write".
+  if (scope === "read" && perms.includes("write")) return null;
+  return err(
+    "INSUFFICIENT_SCOPE",
+    `This API key does not have '${scope}' scope. Request scope upgrade or use an authenticated dashboard session.`,
+    403
+  );
 }
 
 /**

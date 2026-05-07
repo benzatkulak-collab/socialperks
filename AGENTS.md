@@ -99,9 +99,32 @@ Three methods, listed in order of preference for programmatic use:
 2. **Bearer tokens** (`Authorization: Bearer <jwt>`) — for user-scoped flows
 3. **Cookies** — only relevant if you're embedded in a browser session
 
-To provision an API key, a human user must sign in and create one in the
-business dashboard at `/dashboard/settings/api-keys`. (Self-service key
-provisioning for agents without a human in the loop is on the roadmap.)
+### Self-service registration
+
+`POST /api/v1/agents/register` (public, no auth) lets an autonomous agent
+mint its own read-only API key without a human in the loop. Body:
+
+```json
+{
+  "agentName": "Acme Booking Agent",
+  "contactEmail": "ops@acme.example",
+  "purposeStatement": "Search creators by niche and place sponsorship requests on behalf of Acme clients.",
+  "homepage": "https://acme.example/agent"
+}
+```
+
+Response 201 returns `{ apiKey, agentId, scopes: ["read"], ... }`. The
+plaintext key is shown ONCE — store it in an environment variable.
+
+The self-minted key has **`read` scope only**. Mutation endpoints
+(campaigns POST, submissions POST, programs POST, etc.) gate via
+`requireScope("write")` and will return `403 INSUFFICIENT_SCOPE` for a
+read-only key. Write-scope upgrades require a human-mediated review;
+that surface is documented separately.
+
+For a human-in-the-loop business account, sign in at the dashboard and
+mint keys at `/dashboard/api-keys`. Those keys carry whatever permissions
+the human grants.
 
 ---
 

@@ -142,6 +142,39 @@ function buildSpec() {
       },
     },
     paths: {
+      "/agents/register": {
+        post: {
+          tags: ["Agents"],
+          summary: "Self-service agent registration",
+          description:
+            "Public endpoint that mints a read-only API key for an autonomous agent without a human in the loop. The plaintext key is shown ONCE in the response. Strict-rate-limited per IP. Mutation endpoints require a write-scope upgrade obtained via human-mediated review.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["agentName", "contactEmail", "purposeStatement"],
+                  properties: {
+                    agentName: { type: "string", minLength: 3, maxLength: 100 },
+                    contactEmail: { type: "string", format: "email" },
+                    purposeStatement: { type: "string", minLength: 20, maxLength: 500 },
+                    homepage: { type: "string", format: "uri" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Agent registered, API key issued (read scope)",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } },
+            },
+            "400": { description: "Invalid registration body" },
+            "429": { description: "Rate limit exceeded" },
+          },
+        },
+      },
       "/health": {
         get: {
           tags: ["Infrastructure"],
