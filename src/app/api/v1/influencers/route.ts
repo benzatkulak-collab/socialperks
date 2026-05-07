@@ -101,8 +101,15 @@ export const GET = withTiming(async (req: NextRequest) => {
   const start = (page - 1) * perPage;
   const paged = results.slice(start, start + perPage);
 
+  // SECURITY: strip email + pin before serializing. The GET is public
+  // (relaxed-tier rate limit, no auth) and the full SeedInfluencer
+  // shape includes both — public listing must NOT leak PII or the
+  // (deprecated) PIN. Brand-side agents that need contact info should
+  // use the booking flow, which routes through the platform.
+  const sanitized = paged.map(({ email: _e, pin: _p, ...rest }) => rest);
+
   return ok({
-    influencers: paged,
+    influencers: sanitized,
     total,
     page,
     perPage,
