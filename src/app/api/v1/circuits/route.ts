@@ -10,6 +10,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   withTiming,
@@ -39,6 +40,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof NextResponse) return user;
+
+  // Circuit reset is a destructive admin operation.
+  const scopeErr = requireScope(user, "admin");
+  if (scopeErr) return scopeErr;
 
   // Rate limit — strict (destructive admin action)
   const limited = rateLimit(req, "strict");

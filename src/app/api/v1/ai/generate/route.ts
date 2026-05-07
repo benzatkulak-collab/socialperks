@@ -14,6 +14,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   withTiming,
@@ -39,6 +40,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // AI calls consume paid quota — read-only agents cannot trigger them.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   // Rate limit
   const rl = rateLimit(req, "standard");

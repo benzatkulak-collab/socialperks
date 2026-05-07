@@ -6,7 +6,7 @@
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, requireAuth, rateLimit, parseBody, withTiming } from "../_shared";
+import { ok, err, requireAuth, requireScope, rateLimit, parseBody, withTiming } from "../_shared";
 import {
   generateReferralCode,
   createReferralLink,
@@ -50,6 +50,10 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
+
+  // Agent api-keys must hold "write" scope.
+  const scopeErr = requireScope(auth, "write");
+  if (scopeErr) return scopeErr;
 
   const body = await parseBody<{
     action?: string;

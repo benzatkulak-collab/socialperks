@@ -9,6 +9,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   getQuery,
@@ -89,6 +90,10 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // Agent api-keys must hold "write" scope. Cash payouts move real money.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   // Standard rate limit
   const limited = rateLimit(req, "standard");

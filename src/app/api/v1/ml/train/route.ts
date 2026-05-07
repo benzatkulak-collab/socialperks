@@ -12,6 +12,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   withTiming,
@@ -57,6 +58,10 @@ interface TrainBody {
 export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // Model training requires admin scope — agent api-keys cannot self-elevate.
+  const scopeErr = requireScope(user, "admin");
+  if (scopeErr) return scopeErr;
 
   const rl = rateLimit(req, "strict");
   if (rl) return rl;

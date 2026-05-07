@@ -9,6 +9,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   withTiming,
@@ -52,6 +53,10 @@ export const PUT = withTiming(async (req: NextRequest, ctx?: unknown) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // Agent api-keys must hold "write" scope to mutate programs.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   // Standard rate limit
   const limited = rateLimit(req, "standard");
@@ -103,6 +108,10 @@ export const DELETE = withTiming(async (req: NextRequest, ctx?: unknown) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // Agent api-keys must hold "write" scope to delete programs.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   // Standard rate limit
   const limited = rateLimit(req, "standard");

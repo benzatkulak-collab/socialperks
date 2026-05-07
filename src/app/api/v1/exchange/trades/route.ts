@@ -11,6 +11,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   getQuery,
@@ -97,6 +98,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // Agent api-keys must hold "write" scope to take trade actions.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   // Standard rate limit
   const limited = rateLimit(req, "standard");

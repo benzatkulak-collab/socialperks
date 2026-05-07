@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import {
   ok,
   err,
+  requireScope,
   rateLimit,
   parseBody,
   withTiming,
@@ -32,7 +33,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth + tenant isolation
   const tenantResult = withTenant(req);
   if (tenantResult instanceof NextResponse) return tenantResult;
-  const { tenant } = tenantResult;
+  const { tenant, user } = tenantResult;
+
+  // Agent api-keys must hold "write" scope. Approvals award real perks.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   // Rate limit — standard
   const limited = rateLimit(req, "standard");
