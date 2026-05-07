@@ -12,6 +12,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireScope,
   rateLimit,
   parseBody,
   getQuery,
@@ -57,6 +58,10 @@ export const GET = withTiming(async (req: NextRequest) => {
 export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  // Payouts move real money. Read-only agents cannot trigger them.
+  const scopeErr = requireScope(user, "write");
+  if (scopeErr) return scopeErr;
 
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
