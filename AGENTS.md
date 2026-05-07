@@ -119,8 +119,30 @@ plaintext key is shown ONCE — store it in an environment variable.
 The self-minted key has **`read` scope only**. Mutation endpoints
 (campaigns POST, submissions POST, programs POST, etc.) gate via
 `requireScope("write")` and will return `403 INSUFFICIENT_SCOPE` for a
-read-only key. Write-scope upgrades require a human-mediated review;
-that surface is documented separately.
+read-only key.
+
+### Requesting a scope upgrade
+
+When you genuinely need write scope, file a request with your
+existing read-only key:
+
+```
+POST /api/v1/agents/scope-upgrade
+Headers: x-api-key: sp_test_...
+Body: {
+  "requestedScopes": ["read", "write"],
+  "justification": "We're building a sponsorship-placement agent for Acme Brands and need write scope to file orders on their behalf — only on programs they explicitly fund. Contact: ops@acme.example."
+}
+```
+
+A human reviews the justification (target: 2 business days) and approves
+or rejects. On approve, your existing key is widened in place — no
+re-issuance required, your next request carries write scope. On reject,
+you receive a reason and can file a new request after addressing it.
+
+`justification` is what humans read. Be specific: name the brand,
+describe the workflow, point to the agent's homepage if you have one.
+Generic asks ("I want to write data") get rejected.
 
 For a human-in-the-loop business account, sign in at the dashboard and
 mint keys at `/dashboard/api-keys`. Those keys carry whatever permissions

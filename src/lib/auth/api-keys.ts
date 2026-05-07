@@ -224,6 +224,18 @@ class ApiKeyStore {
     return true;
   }
 
+  /**
+   * Update the permission set on an existing key in place. Used by the
+   * scope-upgrade flow when an admin grants an agent additional scopes.
+   * Returns the updated record or null if not found.
+   */
+  setPermissions(id: string, permissions: string[]): StoredApiKey | null {
+    const r = this.byId.get(id);
+    if (!r) return null;
+    r.permissions = [...permissions];
+    return r;
+  }
+
   touchLastUsed(id: string, now: Date = new Date()): void {
     const r = this.byId.get(id);
     if (r) r.lastUsedAt = now;
@@ -369,6 +381,44 @@ export function revokeApiKey(args: { id: string; businessId: string }): boolean 
     });
   }
   return ok;
+}
+
+/**
+ * Update the permission set on an existing key. Used by the scope-upgrade
+ * flow: an admin reviews an agent's justification and grants additional
+ * scopes (e.g. ["read"] → ["read", "write"]). Returns the updated record
+ * or null if not found.
+ *
+ * This intentionally does NOT take a businessId guard — scope upgrades
+ * are an admin operation and the caller is responsible for confirming
+ * authorization. The audit log captures who actor was.
+ */
+export function updateApiKeyPermissions(args: {
+  id: string;
+  permissions: string[];
+  actor: string;
+}): ApiKeyRecord | null {
+  const updated = store.setPermissions(args.id, args.permissions);
+  if (!updated) return null;
+
+  void dbWrite(
+    `UPDATE api_keys SET permissions = $2, updated_at = now() WHERE id = $1`,
+    [args.id, args.permissions]
+  );
+
+  audit({
+    action: "api_key.created", // closest existing action — meta records the actual upgrade
+    actor: args.actor,
+    businessId: updated.businessId,
+    resourceId: args.id,
+    ok: true,
+    meta: {
+      origin: "scope_upgrade",
+      newPermissions: args.permissions,
+    },
+  });
+
+  return stripHash(updated);
 }
 
 /**
