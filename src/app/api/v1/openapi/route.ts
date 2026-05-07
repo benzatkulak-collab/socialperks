@@ -362,6 +362,24 @@ function buildSpec() {
           },
         },
       },
+      "/influencers/{id}/media-kit": {
+        get: {
+          tags: ["Reference", "Agents"],
+          summary: "Machine-readable creator media kit",
+          description:
+            "Public, cacheable, schema.org-typed media kit for an influencer. Returns identity, reach, derived rate card (from /pricing oracle × tier multiplier), audience-fit hints, trust signals, and an explicit agentInstructions block pointing at the booking and negotiation endpoints. Designed as the structured artifact a brand-side agent reasons about when deciding whether to book.",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description: "Media kit JSON, 5-minute cache",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/SuccessEnvelope" } } },
+            },
+            "404": { description: "Influencer not found" },
+          },
+        },
+      },
       "/submissions": {
         get: {
           tags: ["Submissions"],
