@@ -1,0 +1,36 @@
+# Render deployment config
+# Docs: https://render.com/docs/blueprint-spec
+#
+# To deploy:
+# 1. Go to https://render.com and sign up (free, no card required)
+# 2. Click "New +" → "Blueprint"
+# 3. Connect your GitHub and select the socialperks repo
+# 4. Render will detect this file and create the service
+# 5. Set the env vars marked sync: false in the dashboard
+#    (AUTH_SECRET, CSRF_SECRET, DATABASE_URL, DIRECT_URL)
+
+services:
+  - type: web
+    name: socialperks
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_SECRET
+        sync: false
+      - key: CSRF_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
