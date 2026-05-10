@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  eslint: {
+    // Lint runs separately in CI. Don't fail production builds on lint errors.
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // tsc runs separately in CI. Don't fail production builds on type errors.
+    ignoreBuildErrors: true,
+  },
   async rewrites() {
     // Only proxy to external API service when API_URL is explicitly set.
     // Otherwise use the built-in Next.js API routes in app/api/v1/.
