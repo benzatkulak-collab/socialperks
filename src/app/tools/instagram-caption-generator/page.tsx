@@ -18,9 +18,48 @@ export const metadata: Metadata = {
   },
 };
 
+const howToSchema = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "How to generate Instagram captions for your small business",
+  description:
+    "Use the free Social Perks Instagram caption generator to produce three caption options with relevant hashtags for your business in under a minute.",
+  totalTime: "PT1M",
+  step: [
+    {
+      "@type": "HowToStep",
+      position: 1,
+      name: "Pick your business type",
+      text: "Choose the business category that matches your brand — coffee shop, restaurant, salon, boutique, fitness, or more.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 2,
+      name: "Pick a vibe",
+      text: "Select the tone you want — playful, professional, aspirational, or casual.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 3,
+      name: "Generate captions",
+      text: "Click generate to produce three caption options, each with relevant, narrow hashtags suited to your business and vibe.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 4,
+      name: "Copy your favorite",
+      text: "Copy the caption you like to your clipboard and paste it directly into Instagram. No signup required.",
+    },
+  ],
+};
+
 export default function InstagramCaptionGeneratorPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-brand-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+      />
       <Nav />
       <main id="main-content">
         <section className="relative pt-32 pb-12 sm:pt-40">

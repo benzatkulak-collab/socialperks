@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { NewsletterForm } from "@/components/shared/newsletter-form";
 
 const FOOTER_LINKS = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
   { label: "Agents", href: "/agents" },
+  { label: "Newsletter", href: "/newsletter" },
+  { label: "Free Guides", href: "/guides" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Privacy", href: "/privacy" },
@@ -17,6 +20,22 @@ export function Footer() {
       role="contentinfo"
     >
       <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
+        {/* Newsletter signup — sits above the link row */}
+        <div className="mb-10 grid gap-4 border-b border-brand-border/40 pb-10 md:grid-cols-[1fr_minmax(0,420px)] md:items-center">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-brand-cyan">
+              Free Newsletter
+            </p>
+            <h3 className="mt-1 font-heading text-xl italic text-brand-white">
+              Weekly small business marketing tips.
+            </h3>
+            <p className="mt-1 text-sm text-brand-dim">
+              One tactic per email. No fluff.
+            </p>
+          </div>
+          <NewsletterForm source="footer" variant="inline" submitLabel="Subscribe" />
+        </div>
+
         <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
           {/* Logo */}
           <Link

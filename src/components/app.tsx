@@ -38,7 +38,6 @@ const CtaSection = dynamic(() => import("@/components/landing/cta-section").then
 // ── UI & Data ────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ToastContainer } from "@/components/ui/toast";
 import { useLocalStorage } from "@/lib/hooks/use-store";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
@@ -338,7 +337,6 @@ function SocialPerksAppContent() {
           />
         )}
       </main>
-      <ToastContainer />
     </ErrorBoundary>
   );
 }

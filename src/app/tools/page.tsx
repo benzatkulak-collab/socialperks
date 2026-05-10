@@ -86,6 +86,87 @@ const TOOLS: Tool[] = [
     badgeColor: "cyan",
     example: "12 checks · localStorage progress",
   },
+  {
+    slug: "utm-link-generator",
+    title: "UTM Link Generator",
+    description:
+      "Build properly-tagged campaign URLs in seconds. Copy, paste, track. Saves your last 5 links locally.",
+    badge: "Generator",
+    badgeColor: "green",
+    example: "17 sources · 12 mediums · history",
+  },
+  {
+    slug: "viral-coefficient-calculator",
+    title: "Viral Coefficient Calculator",
+    description:
+      "K-factor in one number. See if your referral loop will compound — with a 10-cycle growth projection.",
+    badge: "Calculator",
+    badgeColor: "amber",
+    example: "K-factor + 10-cycle growth table",
+  },
+  {
+    slug: "saas-pricing-comparison",
+    title: "SaaS Pricing Comparison",
+    description:
+      "How much would you save switching from Yotpo, Brandbassador, or Aspire? Add up your spend and see the gap.",
+    badge: "Calculator",
+    badgeColor: "cyan",
+    example: "8 competitors · monthly + yearly savings",
+  },
+  {
+    slug: "clv-calculator",
+    title: "Customer Lifetime Value Calculator",
+    description:
+      "What is one customer worth over their lifetime? CLV in 5 seconds + benchmarks for 10 industries.",
+    badge: "Calculator",
+    badgeColor: "green",
+    example: "10 industry benchmarks · CAC ceiling",
+  },
+  {
+    slug: "conversion-rate-calculator",
+    title: "Conversion Rate Calculator",
+    description:
+      "Visitors in, customers out. See your conversion rate, compare to your industry, and get 6 proven ways to lift it.",
+    badge: "Calculator",
+    badgeColor: "cyan",
+    example: "10 industry benchmarks · 6 lift tips",
+  },
+  {
+    slug: "email-subject-line-tester",
+    title: "Email Subject Line Tester",
+    description:
+      "Score any subject line 0-100. Detects spam triggers, length, urgency, and personalization. Predicts open rate.",
+    badge: "Tester",
+    badgeColor: "amber",
+    example: "score · predicted open rate · suggestions",
+  },
+  {
+    slug: "hashtag-research",
+    title: "Hashtag Research Tool",
+    description:
+      "30 categorized hashtags per search. High volume, mid volume, niche, and branded — copy with one click.",
+    badge: "Generator",
+    badgeColor: "green",
+    example: "30 hashtags · 4 categories · 10 industries",
+  },
+  {
+    slug: "nps-calculator",
+    title: "NPS Calculator",
+    description:
+      "Net Promoter Score in seconds. Plus 12 industry benchmarks and 6 ways to actually move the number.",
+    badge: "Calculator",
+    badgeColor: "cyan",
+    example: "12 benchmarks · interpretation · tips",
+  },
+  {
+    slug: "marketing-budget-allocator",
+    title: "Marketing Budget Allocator",
+    description:
+      "Drop in your monthly budget. Get a proven split across ads, content, email, tools, and customer perks. Saves locally.",
+    badge: "Allocator",
+    badgeColor: "amber",
+    example: "5 channels · adjustable · revenue projection",
+  },
 ];
 
 const BADGE_CLASSES: Record<Tool["badgeColor"], string> = {

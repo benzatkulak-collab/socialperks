@@ -18,9 +18,48 @@ export const metadata: Metadata = {
   },
 };
 
+const howToSchema = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "How to send a customer review request via SMS",
+  description:
+    "Use the free Social Perks SMS review templates to pick a pre-written, under-160-character message and send it to your customer in seconds.",
+  totalTime: "PT30S",
+  step: [
+    {
+      "@type": "HowToStep",
+      position: 1,
+      name: "Pick the occasion",
+      text: "Choose the occasion that matches the customer interaction — post-purchase, post-service, post-event, or post-meal.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 2,
+      name: "Browse templates",
+      text: "Scroll through the 27 pre-written SMS templates, each under 160 characters and ready to send.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 3,
+      name: "Customize the placeholders",
+      text: "Replace placeholders like [Customer], [Business], and [Review Link] with your own details.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 4,
+      name: "Copy and send",
+      text: "Copy the final SMS to your clipboard and paste it into your messaging app or SMS marketing tool. No signup required.",
+    },
+  ],
+};
+
 export default function SmsReviewTemplatesPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-brand-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+      />
       <Nav />
       <main id="main-content">
         <section className="relative pt-32 pb-12 sm:pt-40">

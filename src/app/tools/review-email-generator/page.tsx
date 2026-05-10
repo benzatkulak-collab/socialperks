@@ -18,9 +18,48 @@ export const metadata: Metadata = {
   },
 };
 
+const howToSchema = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "How to generate a Google review request email",
+  description:
+    "Use the free Social Perks review email generator to draft a polite, effective Google review request email in under a minute.",
+  totalTime: "PT1M",
+  step: [
+    {
+      "@type": "HowToStep",
+      position: 1,
+      name: "Pick a tone",
+      text: "Choose the tone that matches your brand — friendly, professional, or casual.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 2,
+      name: "Fill in your business details",
+      text: "Enter your business name, the customer's first name, and a one-line detail about their visit.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 3,
+      name: "Generate the email",
+      text: "Click generate to produce a complete review request email with your Google review link inserted.",
+    },
+    {
+      "@type": "HowToStep",
+      position: 4,
+      name: "Copy and send",
+      text: "Copy the generated email to your clipboard and paste it into your email client. No signup required.",
+    },
+  ],
+};
+
 export default function ReviewEmailGeneratorPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-brand-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+      />
       <Nav />
       <main id="main-content">
         {/* Hero */}
