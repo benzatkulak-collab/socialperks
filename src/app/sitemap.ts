@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { CITIES, INDUSTRIES } from "@/lib/programmatic-seo/data";
+import { allPosts } from "@/lib/blog/posts";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
@@ -67,7 +68,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
   ];
+
+  // Blog post pages
+  const blogEntries: MetadataRoute.Sitemap = allPosts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt ?? post.publishedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
 
   // City index pages (50)
   const cityEntries: MetadataRoute.Sitemap = CITIES.map((c) => ({
@@ -90,5 +105,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
-  return [...staticEntries, ...cityEntries, ...localEntries];
+  return [...staticEntries, ...blogEntries, ...cityEntries, ...localEntries];
 }
