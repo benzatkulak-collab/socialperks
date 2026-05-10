@@ -3,6 +3,7 @@ import Script from "next/script";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { SkipLinks } from "@/components/shared/skip-links";
+import { GlobalChrome } from "@/components/shared/global-chrome";
 import { getRootSchemas } from "@/lib/seo/json-ld";
 import "./globals.css";
 
@@ -115,6 +116,7 @@ export default function RootLayout({
         <SWRegister />
         {children}
         <OfflineIndicator />
+        <GlobalChrome />
         {plausibleDomain && (
           <Script
             defer

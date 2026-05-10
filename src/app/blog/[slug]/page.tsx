@@ -4,6 +4,8 @@ import Link from "next/link";
 import { allPosts, getPostBySlug, getRelatedPosts } from "@/lib/blog/posts";
 import { renderMarkdown, estimateReadingTime } from "@/lib/blog/render";
 import { EmailCapture } from "./email-capture";
+import { NewsletterForm } from "@/components/shared/newsletter-form";
+import { ShareButtons } from "@/components/shared/share-buttons";
 
 interface PageParams {
   params: Promise<{ slug: string }>;
@@ -171,6 +173,15 @@ export default async function BlogPostPage({ params }: PageParams) {
               </details>
             )}
 
+            {/* Share */}
+            <div className="mt-6">
+              <ShareButtons
+                url={url}
+                title={post.title}
+                summary={post.description}
+              />
+            </div>
+
             {/* Body */}
             <div className="blog-body mt-8">
               <div
@@ -180,6 +191,11 @@ export default async function BlogPostPage({ params }: PageParams) {
               />
               <EmailCapture />
               <div dangerouslySetInnerHTML={{ __html: secondHalf }} />
+            </div>
+
+            {/* Bottom-of-post newsletter signup (server-validated) */}
+            <div className="mt-12">
+              <NewsletterForm source="blog-post" showTooltip />
             </div>
 
             {/* Bottom CTA */}
