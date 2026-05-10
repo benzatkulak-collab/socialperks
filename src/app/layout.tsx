@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { SkipLinks } from "@/components/shared/skip-links";
@@ -7,10 +8,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://socialperks.io"),
-  title: "Social Perks — Turn Customers Into Your Marketing Team",
+  title: "Social Perks — AI Marketing for Small Business",
   description:
-    "Offer perks. Customers post, review, and share. You grow. From neighborhood coffee shops to national brands. 25 platforms, 125 marketing actions, one simple dashboard.",
+    "AI marketing manager for small business. Customers post, review, and share for perks. 25 platforms, 125 actions, one dashboard. Free 14 days.",
   keywords: [
+    "AI marketing",
+    "small business marketing",
     "social media marketing",
     "customer referrals",
     "review generation",
@@ -20,19 +23,31 @@ export const metadata: Metadata = {
     "customer perks",
     "loyalty marketing",
   ],
+  alternates: {
+    canonical: "https://socialperks.io",
+  },
   openGraph: {
-    title: "Social Perks — Turn Customers Into Your Marketing Team",
+    title: "Social Perks — AI Marketing for Small Business",
     description:
-      "Offer perks. Customers post, review, and share. You grow. Works for any business.",
+      "AI marketing manager for small business owners. Turn customers into your marketing team.",
     type: "website",
     siteName: "Social Perks",
     url: "https://socialperks.io",
     locale: "en_US",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Social Perks — AI marketing for small business",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Social Perks",
-    description: "Turn customers into your marketing team. Start free.",
+    title: "Social Perks — AI Marketing for Small Business",
+    description: "AI marketing manager for small business. Start free.",
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -73,6 +88,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
+
   return (
     <html lang="en" className="dark scroll-smooth">
       <head>
@@ -96,6 +113,14 @@ export default function RootLayout({
         <SWRegister />
         {children}
         <OfflineIndicator />
+        {plausibleDomain && (
+          <Script
+            defer
+            data-domain={plausibleDomain}
+            src="https://plausible.io/js/script.js"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );
