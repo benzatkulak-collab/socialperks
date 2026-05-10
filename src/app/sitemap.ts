@@ -3,6 +3,7 @@ import { CITIES, INDUSTRIES } from "@/lib/programmatic-seo/data";
 import { allPosts } from "@/lib/blog/posts";
 import { COMPETITORS } from "@/lib/comparison/competitors";
 import { GLOSSARY } from "@/lib/glossary/terms";
+import { GUIDES as HOWTO_GUIDES } from "@/lib/howto/guides";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
@@ -227,6 +228,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/how-to`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/roadmap`,
       lastModified,
       changeFrequency: "weekly",
@@ -298,6 +305,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
+  // How-to guide pages
+  const howToEntries: MetadataRoute.Sitemap = HOWTO_GUIDES.map((g) => ({
+    url: `${baseUrl}/how-to/${g.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
   // Integration platform pages
   const integrationSlugs = [
     "instagram",
@@ -356,6 +371,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...integrationEntries,
     ...vsEntries,
     ...glossaryEntries,
+    ...howToEntries,
     ...blogEntries,
     ...cityEntries,
     ...localEntries,
