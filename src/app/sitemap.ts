@@ -4,6 +4,7 @@ import { allPosts } from "@/lib/blog/posts";
 import { COMPETITORS } from "@/lib/comparison/competitors";
 import { GLOSSARY } from "@/lib/glossary/terms";
 import { GUIDES as HOWTO_GUIDES } from "@/lib/howto/guides";
+import { INDUSTRY_PAGE_SLUGS } from "@/lib/industry-pages/data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
@@ -287,7 +288,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    {
+      url: `${baseUrl}/industries`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
   ];
+
+  // Industry-specific marketing software landing pages (20)
+  const industryPageEntries: MetadataRoute.Sitemap = INDUSTRY_PAGE_SLUGS.map(
+    (slug) => ({
+      url: `${baseUrl}/industries/${slug}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }),
+  );
 
   // Competitor comparison pages
   const vsEntries: MetadataRoute.Sitemap = COMPETITORS.map((c) => ({
@@ -368,6 +385,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticEntries,
+    ...industryPageEntries,
     ...integrationEntries,
     ...vsEntries,
     ...glossaryEntries,
