@@ -5,6 +5,7 @@ import { COMPETITORS } from "@/lib/comparison/competitors";
 import { GLOSSARY } from "@/lib/glossary/terms";
 import { GUIDES as HOWTO_GUIDES } from "@/lib/howto/guides";
 import { INDUSTRY_PAGE_SLUGS } from "@/lib/industry-pages/data";
+import { TEMPLATES } from "@/lib/templates/data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
@@ -56,6 +57,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/tools`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/templates`,
       lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
@@ -370,6 +377,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  // Template library pages
+  const templateEntries: MetadataRoute.Sitemap = TEMPLATES.map((t) => ({
+    url: `${baseUrl}/templates/${t.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
   // City × industry pages (50 × 20 = 1,000)
   const localEntries: MetadataRoute.Sitemap = [];
   for (const c of CITIES) {
@@ -391,6 +406,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...glossaryEntries,
     ...howToEntries,
     ...blogEntries,
+    ...templateEntries,
     ...cityEntries,
     ...localEntries,
   ];
