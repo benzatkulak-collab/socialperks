@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { CITIES, INDUSTRIES } from "@/lib/programmatic-seo/data";
 import { allPosts } from "@/lib/blog/posts";
+import { COMPETITORS } from "@/lib/comparison/competitors";
+import { GLOSSARY } from "@/lib/glossary/terms";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
@@ -104,7 +106,47 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/vs`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/glossary`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/roadmap`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/changelog`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    },
   ];
+
+  // Competitor comparison pages
+  const vsEntries: MetadataRoute.Sitemap = COMPETITORS.map((c) => ({
+    url: `${baseUrl}/vs/${c.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  // Glossary term pages
+  const glossaryEntries: MetadataRoute.Sitemap = GLOSSARY.map((t) => ({
+    url: `${baseUrl}/glossary/${t.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
 
   // Integration platform pages
   const integrationSlugs = [
@@ -162,6 +204,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...staticEntries,
     ...integrationEntries,
+    ...vsEntries,
+    ...glossaryEntries,
     ...blogEntries,
     ...cityEntries,
     ...localEntries,
