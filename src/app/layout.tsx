@@ -89,6 +89,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
+  const cloudflareAnalyticsToken =
+    process.env.NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN;
 
   return (
     <html lang="en" className="dark scroll-smooth">
@@ -118,6 +120,14 @@ export default function RootLayout({
             defer
             data-domain={plausibleDomain}
             src="https://plausible.io/js/script.js"
+            strategy="afterInteractive"
+          />
+        )}
+        {cloudflareAnalyticsToken && (
+          <Script
+            defer
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon={`{"token": "${cloudflareAnalyticsToken}"}`}
             strategy="afterInteractive"
           />
         )}

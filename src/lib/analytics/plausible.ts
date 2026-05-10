@@ -1,3 +1,7 @@
+// Plausible-style event tracking. The runtime detects window.plausible.
+// If you switch to Cloudflare Analytics (which doesn't support custom events on the free tier),
+// these calls will simply no-op. To get custom events, install PostHog instead.
+
 /**
  * Plausible Analytics — privacy-friendly, lightweight event tracking.
  *
