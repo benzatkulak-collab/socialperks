@@ -54,6 +54,38 @@ const TOOLS: Tool[] = [
     badgeColor: "amber",
     example: "25+ templates · 4 categories · char-counted",
   },
+  {
+    slug: "cac-calculator",
+    title: "Customer Acquisition Cost Calculator",
+    description: "See your real CAC and how it compares to industry benchmarks. Updates as you type.",
+    badge: "Calculator",
+    badgeColor: "cyan",
+    example: "9 industry benchmarks · shareable result link",
+  },
+  {
+    slug: "review-roi-calculator",
+    title: "Review ROI Calculator",
+    description: "Estimate the extra revenue you'd earn from a higher Google rating. Conservative numbers backed by Harvard research.",
+    badge: "Calculator",
+    badgeColor: "green",
+    example: "monthly + yearly impact",
+  },
+  {
+    slug: "loyalty-program-generator",
+    title: "Loyalty Program Idea Generator",
+    description: "Get 5 customized loyalty program ideas tailored to your business type and customer goal.",
+    badge: "Generator",
+    badgeColor: "amber",
+    example: "20 business types · 3 goals",
+  },
+  {
+    slug: "google-business-checker",
+    title: "Google Business Profile Audit",
+    description: "12-point checklist to find what's hurting your local search ranking. Saves your progress as you go.",
+    badge: "Audit",
+    badgeColor: "cyan",
+    example: "12 checks · localStorage progress",
+  },
 ];
 
 const BADGE_CLASSES: Record<Tool["badgeColor"], string> = {

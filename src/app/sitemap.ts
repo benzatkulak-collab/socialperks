@@ -51,6 +51,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/tools/cac-calculator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/review-roi-calculator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/loyalty-program-generator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/google-business-checker`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/integrations`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/api/v1/docs`,
       lastModified,
       changeFrequency: "weekly",
@@ -75,6 +105,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
   ];
+
+  // Integration platform pages
+  const integrationSlugs = [
+    "instagram",
+    "tiktok",
+    "google-business",
+    "facebook",
+    "yelp",
+    "youtube",
+    "twitter",
+    "pinterest",
+    "linkedin",
+    "snapchat",
+    "threads",
+    "reddit",
+  ];
+  const integrationEntries: MetadataRoute.Sitemap = integrationSlugs.map(
+    (slug) => ({
+      url: `${baseUrl}/integrations/${slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }),
+  );
 
   // Blog post pages
   const blogEntries: MetadataRoute.Sitemap = allPosts.map((post) => ({
@@ -105,5 +159,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
-  return [...staticEntries, ...blogEntries, ...cityEntries, ...localEntries];
+  return [
+    ...staticEntries,
+    ...integrationEntries,
+    ...blogEntries,
+    ...cityEntries,
+    ...localEntries,
+  ];
 }
