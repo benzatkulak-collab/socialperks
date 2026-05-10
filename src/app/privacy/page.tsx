@@ -77,6 +77,12 @@ export default function PrivacyPage() {
               <li>Payment and billing information (processed by Stripe)</li>
               <li>Campaign content and submissions</li>
               <li>Communications with our support team</li>
+              <li>
+                Newsletter signup email addresses (collected when you opt in to
+                our marketing newsletter; used only to send the newsletter and
+                related product updates, never sold or shared with third
+                parties — you can unsubscribe at any time)
+              </li>
             </ul>
             <h3 className="mb-1 font-semibold text-brand-text">
               Information Collected Automatically

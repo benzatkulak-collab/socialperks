@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
+import { NewsletterForm } from "@/components/shared/newsletter-form";
 
 export const metadata: Metadata = {
   title: "Free Tools for Small Business Owners · Social Perks",
@@ -256,8 +257,18 @@ export default function ToolsIndexPage() {
               ))}
             </div>
 
+            {/* Newsletter signup — "get more marketing tips weekly" */}
+            <div className="mx-auto mt-20 max-w-2xl">
+              <NewsletterForm
+                source="tools-page"
+                variant="card"
+                heading="Get more marketing tips weekly."
+                description="One tactic per email. The same playbook these tools are built from."
+              />
+            </div>
+
             {/* Bottom CTA */}
-            <div className="mt-20 rounded-2xl border border-brand-border bg-brand-surface/30 p-8 text-center sm:p-12">
+            <div className="mt-12 rounded-2xl border border-brand-border bg-brand-surface/30 p-8 text-center sm:p-12">
               <h2 className="font-heading text-3xl italic leading-tight text-brand-white sm:text-4xl">
                 Want this on autopilot?
               </h2>

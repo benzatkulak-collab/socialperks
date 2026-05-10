@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { allPosts, getPostBySlug, getRelatedPosts } from "@/lib/blog/posts";
 import { renderMarkdown, estimateReadingTime } from "@/lib/blog/render";
-import { EmailCapture } from "./email-capture";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
 import { ShareButtons } from "@/components/shared/share-buttons";
 
@@ -189,7 +188,9 @@ export default async function BlogPostPage({ params }: PageParams) {
                 // set of safe HTML elements (h2/h3/p/ul/ol/li/strong/em/a/blockquote).
                 dangerouslySetInnerHTML={{ __html: firstHalf }}
               />
-              <EmailCapture />
+              <div className="my-10">
+                <NewsletterForm source="blog-post-midarticle" variant="card" />
+              </div>
               <div dangerouslySetInnerHTML={{ __html: secondHalf }} />
             </div>
 

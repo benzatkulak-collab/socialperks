@@ -25,13 +25,14 @@ export interface ShareButtonsProps {
   label?: string;
 }
 
-interface PlausibleWindow extends Window {
-  plausible?: (event: string, opts?: { props?: Record<string, string> }) => void;
-}
+type PlausibleFn = (
+  event: string,
+  opts?: { props?: Record<string, string> },
+) => void;
 
 function trackShare(channel: ShareChannel, url: string) {
   if (typeof window === "undefined") return;
-  const w = window as PlausibleWindow;
+  const w = window as Window & { plausible?: PlausibleFn };
   try {
     w.plausible?.("Share", { props: { channel, url } });
   } catch {
