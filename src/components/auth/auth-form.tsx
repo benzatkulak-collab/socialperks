@@ -109,6 +109,15 @@ export function AuthForm({
 
     setLoading(true);
     try {
+      // Pull the affiliate code from the cookie set by /api/v1/affiliate/track,
+      // so the signup is attributed to the right affiliate. Non-fatal — if the
+      // cookie isn't set we just signup normally.
+      let affiliateCode: string | undefined;
+      if (typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|;\s*)sp_affiliate=([^;]+)/);
+        if (match) affiliateCode = decodeURIComponent(match[1]).slice(0, 16);
+      }
+
       const res = await fetch("/api/v1/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,6 +125,7 @@ export function AuthForm({
         body: JSON.stringify({
           action: "signup", email, password, name,
           role: signupRole === "business" ? "business" : "influencer",
+          ...(affiliateCode ? { affiliateCode, referralCode: affiliateCode } : {}),
         }),
       });
       const json = await res.json();

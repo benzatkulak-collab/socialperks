@@ -209,6 +209,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     token?: string;
     newPassword?: string;
     referralCode?: string;
+    affiliateCode?: string;
   }>(req);
   if (body instanceof Response) return body;
 
@@ -280,6 +281,22 @@ export const POST = withTiming(async (req: NextRequest) => {
           trackReferralSignup(body.referralCode, userId, sanitizedEmail);
         } catch {
           // Non-blocking: don't fail signup if referral tracking fails
+        }
+      }
+
+      // Track affiliate-program referral (separate from business referrals).
+      // Read from `affiliateCode` (preferred) or fall back to `referralCode`
+      // since the signup form sets both for legacy compatibility.
+      const affCode =
+        (typeof body.affiliateCode === "string" ? body.affiliateCode : null) ??
+        (typeof body.referralCode === "string" ? body.referralCode : null);
+      if (affCode) {
+        try {
+          // Lazy-import to keep auth.ts dependency-light.
+          const { recordReferral } = await import("@/lib/affiliate");
+          recordReferral(affCode, userId);
+        } catch {
+          // Non-blocking — affiliate tracking failures must not block signup.
         }
       }
 
