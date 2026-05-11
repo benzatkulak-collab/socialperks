@@ -110,10 +110,6 @@ const POPULAR: RelatedLink[] = [
 // Small helpers
 // ---------------------------------------------------------------------------
 
-function _shuffle<T>(arr: T[]): T[] {
-  // Stable order is fine — keep deterministic so SSR matches CSR.
-  return [...arr];
-}
 
 function uniqueByHref(links: RelatedLink[]): RelatedLink[] {
   const seen = new Set<string>();

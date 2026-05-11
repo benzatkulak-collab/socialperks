@@ -310,7 +310,6 @@ export function getStateCampaignIdeas(
   industry: StateIndustry,
 ): string[] {
   const industrySingular = industry.singular.toLowerCase();
-  const industryPlural = industry.plural.toLowerCase();
   const [p1, p2, p3] = industry.platforms;
   const word = state.tourismTaglineWord;
   const angle = STATE_ANGLES[state.slug];

@@ -194,7 +194,7 @@ export interface ServiceFAQ {
 
 export interface Service {
   slug: string;
-  name; // populated below — split for length
+  name: string; // populated below — split for length
   oneLiner: string;
   outcome: string;
   deliverables: [string, string, string, string, string];

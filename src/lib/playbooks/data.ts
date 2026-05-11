@@ -585,7 +585,7 @@ const CAMPAIGNS_RAW: Campaign[] = [
       `Location-tagged Instagram posts feed into the Instagram place page for your ${i.singular} — a discovery surface most owners don't realize exists or invest in.`,
       `Google check-ins boost your Google Maps prominence score, lifting your ranking in the local pack for your category keywords.`,
     ],
-    playbook: (i) => [
+    playbook: () => [
       {
         title: "Decide which platforms count",
         body: `Recommended: Instagram location tag, TikTok location tag, Google check-in. Don't try to cover everything — three platforms is plenty. List the accepted check-ins on a tabletop sign.`,
