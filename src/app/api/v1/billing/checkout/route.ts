@@ -32,6 +32,19 @@ const PRICE_ID_MAP: Record<Plan, Record<Interval, string | undefined>> = {
   },
 };
 
+// Payment Links — simpler than the Checkout Session API. Set these in Render env
+// and we'll redirect directly. Avoids needing STRIPE_SECRET_KEY at all.
+const PAYMENT_LINK_MAP: Record<Plan, Record<Interval, string | undefined>> = {
+  pro: {
+    monthly: process.env.STRIPE_PAYMENT_LINK_PRO_MONTHLY,
+    annual: process.env.STRIPE_PAYMENT_LINK_PRO_ANNUAL,
+  },
+  enterprise: {
+    monthly: process.env.STRIPE_PAYMENT_LINK_ENTERPRISE_MONTHLY,
+    annual: process.env.STRIPE_PAYMENT_LINK_ENTERPRISE_ANNUAL,
+  },
+};
+
 function getAppUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
@@ -55,6 +68,22 @@ export const POST = withTiming(async (req: NextRequest) => {
   const appUrl = getAppUrl();
   const successUrl = `${appUrl}/upgrade/success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${appUrl}/upgrade?cancelled=1`;
+
+  // ─── Payment Link mode (simplest): just redirect to hosted Stripe page ───
+  const paymentLink = PAYMENT_LINK_MAP[plan][interval];
+  if (paymentLink) {
+    // Append metadata via Stripe's client_reference_id query param so the
+    // webhook can attribute the purchase back to this user.
+    const url = new URL(paymentLink);
+    url.searchParams.set("client_reference_id", user.id);
+    if (user.email) url.searchParams.set("prefilled_email", user.email);
+    return ok({
+      url: url.toString(),
+      sessionId: `pl_${Date.now()}`,
+      mock: false,
+      mode: "payment_link",
+    });
+  }
 
   // ─── Mock mode: no Stripe configured ─────────────────────────────────────
   if (!stripe || !isStripeConfigured()) {
