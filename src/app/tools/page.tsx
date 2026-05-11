@@ -168,6 +168,60 @@ const TOOLS: Tool[] = [
     badgeColor: "amber",
     example: "5 channels · adjustable · revenue projection",
   },
+  {
+    slug: "break-even-calculator",
+    title: "Break-Even Calculator",
+    description:
+      "Find your break-even point in units and revenue. 4 industry presets pre-fill typical numbers, share-link encodes inputs.",
+    badge: "Calculator",
+    badgeColor: "cyan",
+    example: "4 industry presets · reactive · shareable",
+  },
+  {
+    slug: "profit-margin-calculator",
+    title: "Profit Margin Calculator",
+    description:
+      "Gross and net margin in seconds — compared to typical SMB benchmarks for restaurants, salons, retail, and services.",
+    badge: "Calculator",
+    badgeColor: "green",
+    example: "6 industry benchmarks · gross + net",
+  },
+  {
+    slug: "social-media-roi-calculator",
+    title: "Social Media ROI Calculator",
+    description:
+      "Are your Instagram hours paying off? Plug in time, customers, and LTV. Get monthly ROI plus 6 ways to improve it.",
+    badge: "Calculator",
+    badgeColor: "amber",
+    example: "monthly ROI · breakeven hours · 6 tips",
+  },
+  {
+    slug: "customer-lifetime-value-calculator",
+    title: "Customer Lifetime Value Calculator",
+    description:
+      "AOV × purchases × years. The simple formula plus benchmarks for 10 SMB industries so you know where you stand.",
+    badge: "Calculator",
+    badgeColor: "cyan",
+    example: "10 industry benchmarks · simple formula",
+  },
+  {
+    slug: "marketing-budget-calculator",
+    title: "Marketing Budget Calculator",
+    description:
+      "How much should you spend on marketing? Based on revenue, type, and stage — with a channel-by-channel breakdown.",
+    badge: "Calculator",
+    badgeColor: "green",
+    example: "8 business types · 3 stages · 5 channels",
+  },
+  {
+    slug: "breakeven-on-perks-calculator",
+    title: "Break-Even on Perks Calculator",
+    description:
+      "If you offer a $10 perk for a referral, how many before you break even on LTV? Plus first-100 projection and LTV:CAC ratio.",
+    badge: "Calculator",
+    badgeColor: "amber",
+    example: "LTV:CAC ratio · 100-customer projection",
+  },
 ];
 
 const BADGE_CLASSES: Record<Tool["badgeColor"], string> = {

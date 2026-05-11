@@ -24,6 +24,13 @@ import {
 } from "@/lib/playbooks/data";
 import { DIY_METHODS } from "@/lib/instead-of/data";
 import { SERVICES, SERVICE_CITIES } from "@/lib/services/data";
+import { PLATFORM_INTEGRATIONS } from "@/lib/platform-integrations/data";
+import { HOOKS } from "@/lib/hooks/data";
+import {
+  LOCAL_NICHES,
+  LOCAL_CITIES,
+  LOCAL_OUTCOMES,
+} from "@/lib/local-niche/data";
 
 const NEIGHBORHOOD_INDUSTRY_SLUGS = [
   "restaurants",
@@ -212,6 +219,42 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/tools/marketing-budget-allocator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/break-even-calculator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/profit-margin-calculator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/social-media-roi-calculator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/customer-lifetime-value-calculator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/marketing-budget-calculator`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/tools/breakeven-on-perks-calculator`,
       lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
@@ -662,6 +705,79 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  // Platform integration pages: 1 index + 15 detail
+  const platformIntegrationIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/integrations/platform`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+  ];
+  const platformIntegrationEntries: MetadataRoute.Sitemap =
+    PLATFORM_INTEGRATIONS.map((p) => ({
+      url: `${baseUrl}/integrations/platform/${p.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }));
+
+  // Hook squeeze pages: 1 index + 25 hooks (TikTok-bio link destinations)
+  const hookIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/h`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    },
+  ];
+  const hookEntries: MetadataRoute.Sitemap = HOOKS.map((h) => ({
+    url: `${baseUrl}/h/${h.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  // Local niche × city × outcome (8 × 15 × 5 = 600) + index + niche + niche×city
+  const localNicheIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/local-niche`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+  ];
+  const localNicheEntries: MetadataRoute.Sitemap = LOCAL_NICHES.map((n) => ({
+    url: `${baseUrl}/local-niche/${n.slug}`,
+    lastModified,
+    changeFrequency: "weekly" as const,
+    priority: 0.75,
+  }));
+  const localNicheCityEntries: MetadataRoute.Sitemap = [];
+  for (const n of LOCAL_NICHES) {
+    for (const c of LOCAL_CITIES) {
+      localNicheCityEntries.push({
+        url: `${baseUrl}/local-niche/${n.slug}/${c.slug}`,
+        lastModified,
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      });
+    }
+  }
+  const localNicheLeafEntries: MetadataRoute.Sitemap = [];
+  for (const n of LOCAL_NICHES) {
+    for (const c of LOCAL_CITIES) {
+      for (const o of LOCAL_OUTCOMES) {
+        localNicheLeafEntries.push({
+          url: `${baseUrl}/local-niche/${n.slug}/${c.slug}/${o.slug}`,
+          lastModified,
+          changeFrequency: "monthly" as const,
+          priority: 0.6,
+        });
+      }
+    }
+  }
+
   return [
     ...staticEntries,
     ...industryPageEntries,
@@ -691,5 +807,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...insteadOfEntries,
     ...serviceEntries,
     ...serviceCityEntries,
+    ...platformIntegrationIndexEntry,
+    ...platformIntegrationEntries,
+    ...hookIndexEntry,
+    ...hookEntries,
+    ...localNicheIndexEntry,
+    ...localNicheEntries,
+    ...localNicheCityEntries,
+    ...localNicheLeafEntries,
   ];
 }
