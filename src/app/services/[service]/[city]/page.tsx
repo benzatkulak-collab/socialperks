@@ -13,10 +13,17 @@ import {
 const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL || "https://socialperks.onrender.com";
 
+// ISR: prebuild top 5 services × top 5 cities = 25 pages (was 160).
+// Other service/city combinations render on-demand and cache for 24h.
+export const dynamicParams = true;
+export const revalidate = 86400;
+
 export function generateStaticParams() {
+  const topServices = SERVICES.slice(0, 5);
+  const topCities = SERVICE_CITIES.slice(0, 5);
   const params: { service: string; city: string }[] = [];
-  for (const s of SERVICES) {
-    for (const c of SERVICE_CITIES) {
+  for (const s of topServices) {
+    for (const c of topCities) {
       params.push({ service: s.slug, city: c.slug });
     }
   }

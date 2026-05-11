@@ -17,10 +17,17 @@ interface Params {
   campaign: string;
 }
 
+// ISR: prebuild top 5 industries × top 5 campaigns = 25 pages (was 100).
+// Other industry/campaign combinations render on-demand and cache for 24h.
+export const dynamicParams = true;
+export const revalidate = 86400;
+
 export function generateStaticParams(): Params[] {
+  const topIndustries = INDUSTRIES.slice(0, 5);
+  const topCampaigns = CAMPAIGNS.slice(0, 5);
   const out: Params[] = [];
-  for (const i of INDUSTRIES) {
-    for (const c of CAMPAIGNS) {
+  for (const i of topIndustries) {
+    for (const c of topCampaigns) {
       out.push({ industry: i.slug, campaign: c.slug });
     }
   }

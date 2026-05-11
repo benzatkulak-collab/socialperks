@@ -13,13 +13,19 @@ import {
 } from "@/lib/programmatic-seo/data";
 
 // ---------------------------------------------------------------------------
-// Static generation: 50 cities × 20 industries = 1,000 pages
+// ISR: prebuild top 10 cities × top 5 industries = 50 pages (was up to 1,000).
+// Other city/industry combinations render on-demand and cache for 24h.
 // ---------------------------------------------------------------------------
 
+export const dynamicParams = true;
+export const revalidate = 86400;
+
 export function generateStaticParams() {
+  const topCities = CITIES.slice(0, 10);
+  const topIndustries = INDUSTRIES.slice(0, 5);
   const params: { city: string; industry: string }[] = [];
-  for (const c of CITIES) {
-    for (const i of INDUSTRIES) {
+  for (const c of topCities) {
+    for (const i of topIndustries) {
       params.push({ city: c.slug, industry: i.slug });
     }
   }

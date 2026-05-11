@@ -20,12 +20,17 @@ import {
 } from "@/lib/programmatic-seo/state-content";
 
 // ---------------------------------------------------------------------------
-// Static generation: 50 states × 8 industries = 400 pages
+// ISR: prebuild top 10 states × 8 industries = 80 pages (was 400).
+// Other state/industry combinations render on-demand and cache for 24h.
 // ---------------------------------------------------------------------------
 
+export const dynamicParams = true;
+export const revalidate = 86400;
+
 export function generateStaticParams() {
+  const topStates = STATES.slice(0, 10);
   const params: { state: string; industry: string }[] = [];
-  for (const s of STATES) {
+  for (const s of topStates) {
     for (const i of STATE_INDUSTRIES) {
       params.push({ state: s.slug, industry: i.slug });
     }

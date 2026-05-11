@@ -10,15 +10,24 @@ import {
   getOutcome,
 } from "@/lib/local-niche/data";
 
+// ISR: prebuild only the top combinations to keep build memory manageable.
+// Long-tail slugs render on-demand on first request, then cache for 24h.
+export const dynamicParams = true;
+export const revalidate = 86400;
+
 interface PageProps {
   params: Promise<{ niche: string; city: string; outcome: string }>;
 }
 
 export async function generateStaticParams() {
+  // Top 8 niches × top 3 cities × top 5 outcomes = 120 (was 600)
+  const topNiches = LOCAL_NICHES.slice(0, 8);
+  const topCities = LOCAL_CITIES.slice(0, 3);
+  const topOutcomes = LOCAL_OUTCOMES.slice(0, 5);
   const params: { niche: string; city: string; outcome: string }[] = [];
-  for (const n of LOCAL_NICHES) {
-    for (const c of LOCAL_CITIES) {
-      for (const o of LOCAL_OUTCOMES) {
+  for (const n of topNiches) {
+    for (const c of topCities) {
+      for (const o of topOutcomes) {
         params.push({ niche: n.slug, city: c.slug, outcome: o.slug });
       }
     }

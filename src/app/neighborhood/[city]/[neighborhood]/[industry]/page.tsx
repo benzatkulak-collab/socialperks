@@ -14,8 +14,12 @@ import {
 } from "@/lib/programmatic-seo/neighborhoods";
 
 // ---------------------------------------------------------------------------
-// Static generation: 30 neighborhoods × 8 industries = 240 pages
+// ISR: prebuild only NYC neighborhoods × 8 industries = 80 pages (was 240).
+// LA and Chicago neighborhood pages render on-demand and cache for 24h.
 // ---------------------------------------------------------------------------
+
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 const NEIGHBORHOOD_INDUSTRIES = [
   "restaurants",
@@ -29,8 +33,11 @@ const NEIGHBORHOOD_INDUSTRIES = [
 ] as const;
 
 export function generateStaticParams() {
+  const nycNeighborhoods = NEIGHBORHOODS.filter(
+    (n) => n.citySlug === "new-york-ny",
+  );
   const params: { city: string; neighborhood: string; industry: string }[] = [];
-  for (const n of NEIGHBORHOODS) {
+  for (const n of nycNeighborhoods) {
     for (const ind of NEIGHBORHOOD_INDUSTRIES) {
       params.push({
         city: n.citySlug,
