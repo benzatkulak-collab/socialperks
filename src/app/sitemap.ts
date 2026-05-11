@@ -31,6 +31,10 @@ import {
   LOCAL_CITIES,
   LOCAL_OUTCOMES,
 } from "@/lib/local-niche/data";
+import {
+  OUTREACH_TEMPLATES,
+  OUTREACH_CATEGORIES,
+} from "@/lib/outreach/data";
 
 const NEIGHBORHOOD_INDUSTRY_SLUGS = [
   "restaurants",
@@ -439,7 +443,33 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/outreach`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
   ];
+
+  // Outreach template detail pages (30)
+  const outreachTemplateEntries: MetadataRoute.Sitemap = OUTREACH_TEMPLATES.map(
+    (t) => ({
+      url: `${baseUrl}/outreach/${t.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    }),
+  );
+
+  // Outreach category landing pages (6)
+  const outreachCategoryEntries: MetadataRoute.Sitemap = OUTREACH_CATEGORIES.map(
+    (c) => ({
+      url: `${baseUrl}/outreach/category/${c}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }),
+  );
 
   // Niche community landing pages (15)
   const communityEntries: MetadataRoute.Sitemap = COMMUNITY_SLUGS.map(
@@ -815,5 +845,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...localNicheEntries,
     ...localNicheCityEntries,
     ...localNicheLeafEntries,
+    ...outreachCategoryEntries,
+    ...outreachTemplateEntries,
   ];
 }
