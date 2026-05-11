@@ -17,6 +17,7 @@ import { INDUSTRY_PAGE_SLUGS } from "@/lib/industry-pages/data";
 import { TEMPLATES } from "@/lib/templates/data";
 import { COMMUNITY_SLUGS } from "@/lib/communities/data";
 import { ASK_QUESTIONS } from "@/lib/ask/questions";
+import { STORIES } from "@/lib/stories/data";
 
 const NEIGHBORHOOD_INDUSTRY_SLUGS = [
   "restaurants",
@@ -335,6 +336,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/stories`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
   ];
 
   // Niche community landing pages (15)
@@ -534,6 +541,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.75,
   }));
 
+  // Story pages (long-form first-person narratives)
+  const storyEntries: MetadataRoute.Sitemap = STORIES.map((s) => ({
+    url: `${baseUrl}/stories/${s.slug}`,
+    lastModified: new Date(s.publishedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
   return [
     ...staticEntries,
     ...industryPageEntries,
@@ -556,5 +571,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...stateIndustryEntries,
     ...askIndexEntry,
     ...askEntries,
+    ...storyEntries,
   ];
 }
