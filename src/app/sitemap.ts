@@ -10,6 +10,7 @@ import {
 } from "@/lib/programmatic-seo/states";
 import { allPosts } from "@/lib/blog/posts";
 import { COMPETITORS } from "@/lib/comparison/competitors";
+import { ALTERNATIVES } from "@/lib/alternatives/data";
 import { GLOSSARY } from "@/lib/glossary/terms";
 import { GUIDES as HOWTO_GUIDES } from "@/lib/howto/guides";
 import { INDUSTRY_PAGE_SLUGS } from "@/lib/industry-pages/data";
@@ -249,6 +250,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/alternatives`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/glossary`,
       lastModified,
       changeFrequency: "monthly",
@@ -335,6 +342,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Competitor comparison pages
   const vsEntries: MetadataRoute.Sitemap = COMPETITORS.map((c) => ({
     url: `${baseUrl}/vs/${c.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  // Alternatives pages (exit-motion framing)
+  const alternativesEntries: MetadataRoute.Sitemap = ALTERNATIVES.map((a) => ({
+    url: `${baseUrl}/alternatives/${a.slug}`,
     lastModified,
     changeFrequency: "monthly" as const,
     priority: 0.7,
@@ -490,6 +505,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...industryPageEntries,
     ...integrationEntries,
     ...vsEntries,
+    ...alternativesEntries,
     ...glossaryEntries,
     ...howToEntries,
     ...blogEntries,
