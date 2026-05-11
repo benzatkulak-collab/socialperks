@@ -18,6 +18,12 @@ import { TEMPLATES } from "@/lib/templates/data";
 import { COMMUNITY_SLUGS } from "@/lib/communities/data";
 import { ASK_QUESTIONS } from "@/lib/ask/questions";
 import { STORIES } from "@/lib/stories/data";
+import {
+  INDUSTRIES as PLAYBOOK_INDUSTRIES,
+  CAMPAIGNS as PLAYBOOK_CAMPAIGNS,
+} from "@/lib/playbooks/data";
+import { DIY_METHODS } from "@/lib/instead-of/data";
+import { SERVICES, SERVICE_CITIES } from "@/lib/services/data";
 
 const NEIGHBORHOOD_INDUSTRY_SLUGS = [
   "restaurants",
@@ -74,6 +80,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/pricing`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/quiz`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/quiz/perk-value-optimizer`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/quiz/brand-voice`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/quiz/best-platform`,
       lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
@@ -342,6 +372,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/instead-of`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/services`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
   ];
 
   // Niche community landing pages (15)
@@ -549,6 +591,65 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  // Playbook pages: 1 index + 10 industries + 100 industry × campaign = 111
+  const playbookIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/playbooks`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+  ];
+
+  const playbookIndustryEntries: MetadataRoute.Sitemap =
+    PLAYBOOK_INDUSTRIES.map((i) => ({
+      url: `${baseUrl}/playbooks/${i.slug}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+
+  const playbookDetailEntries: MetadataRoute.Sitemap = [];
+  for (const i of PLAYBOOK_INDUSTRIES) {
+    for (const c of PLAYBOOK_CAMPAIGNS) {
+      playbookDetailEntries.push({
+        url: `${baseUrl}/playbooks/${i.slug}/${c.slug}`,
+        lastModified,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      });
+    }
+  }
+
+  // Instead-of comparison pages (12 DIY methods vs Social Perks)
+  const insteadOfEntries: MetadataRoute.Sitemap = DIY_METHODS.map((m) => ({
+    url: `${baseUrl}/instead-of/${m.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  // Service overview pages (8)
+  const serviceEntries: MetadataRoute.Sitemap = SERVICES.map((s) => ({
+    url: `${baseUrl}/services/${s.slug}`,
+    lastModified,
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+
+  // Service × city pages (8 × 20 = 160)
+  const serviceCityEntries: MetadataRoute.Sitemap = [];
+  for (const s of SERVICES) {
+    for (const c of SERVICE_CITIES) {
+      serviceCityEntries.push({
+        url: `${baseUrl}/services/${s.slug}/${c.slug}`,
+        lastModified,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      });
+    }
+  }
+
   return [
     ...staticEntries,
     ...industryPageEntries,
@@ -572,5 +673,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...askIndexEntry,
     ...askEntries,
     ...storyEntries,
+    ...playbookIndexEntry,
+    ...playbookIndustryEntries,
+    ...playbookDetailEntries,
+    ...insteadOfEntries,
+    ...serviceEntries,
+    ...serviceCityEntries,
   ];
 }
