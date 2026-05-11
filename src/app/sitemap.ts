@@ -1,11 +1,30 @@
 import type { MetadataRoute } from "next";
 import { CITIES, INDUSTRIES } from "@/lib/programmatic-seo/data";
+import {
+  NEIGHBORHOODS,
+  NEIGHBORHOOD_CITY_SLUGS,
+} from "@/lib/programmatic-seo/neighborhoods";
+import {
+  STATES,
+  STATE_INDUSTRIES,
+} from "@/lib/programmatic-seo/states";
 import { allPosts } from "@/lib/blog/posts";
 import { COMPETITORS } from "@/lib/comparison/competitors";
 import { GLOSSARY } from "@/lib/glossary/terms";
 import { GUIDES as HOWTO_GUIDES } from "@/lib/howto/guides";
 import { INDUSTRY_PAGE_SLUGS } from "@/lib/industry-pages/data";
 import { TEMPLATES } from "@/lib/templates/data";
+
+const NEIGHBORHOOD_INDUSTRY_SLUGS = [
+  "restaurants",
+  "coffee-shops",
+  "yoga-studios",
+  "salons",
+  "boutiques",
+  "gyms",
+  "bars",
+  "bakeries",
+] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
@@ -398,6 +417,45 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  // Neighborhood programmatic pages: 1 + 3 + 30 + 240 = 274
+  const neighborhoodIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/neighborhood`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+  ];
+
+  const neighborhoodCityEntries: MetadataRoute.Sitemap =
+    NEIGHBORHOOD_CITY_SLUGS.map((citySlug) => ({
+      url: `${baseUrl}/neighborhood/${citySlug}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    }));
+
+  const neighborhoodEntries: MetadataRoute.Sitemap = NEIGHBORHOODS.map(
+    (n) => ({
+      url: `${baseUrl}/neighborhood/${n.citySlug}/${n.slug}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }),
+  );
+
+  const neighborhoodIndustryEntries: MetadataRoute.Sitemap = [];
+  for (const n of NEIGHBORHOODS) {
+    for (const ind of NEIGHBORHOOD_INDUSTRY_SLUGS) {
+      neighborhoodIndustryEntries.push({
+        url: `${baseUrl}/neighborhood/${n.citySlug}/${n.slug}/${ind}`,
+        lastModified,
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      });
+    }
+  }
+
   return [
     ...staticEntries,
     ...industryPageEntries,
@@ -409,5 +467,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...templateEntries,
     ...cityEntries,
     ...localEntries,
+    ...neighborhoodIndexEntry,
+    ...neighborhoodCityEntries,
+    ...neighborhoodEntries,
+    ...neighborhoodIndustryEntries,
   ];
 }
