@@ -1,0 +1,123 @@
+name: Cron jobs
+
+# External cron runner for Social Perks. Render's free tier has no native
+# scheduler, so GitHub Actions pokes our HTTP endpoint on the cadence each
+# task needs. The endpoint dispatches to a handler in src/lib/cron/tasks.ts.
+#
+# Setup:
+#   1. Generate a secret:   openssl rand -base64 32
+#   2. Add it as CRON_SECRET in this repo's Actions secrets
+#      (Settings -> Secrets and variables -> Actions -> New repository secret)
+#   3. Add the same value to your Render env as CRON_SECRET
+#   4. (Optional) override the default URL by setting a CRON_BASE_URL secret;
+#      otherwise the workflow hits https://socialperks.onrender.com.
+#
+# All steps are best-effort: curl uses `-f` so a non-2xx response fails the
+# step, but each task runs in its own job so one failure doesn't block the
+# others.
+
+on:
+  schedule:
+    # Every 15 minutes — drives the newsletter drip (24h delays are enforced
+    # by the task itself, so frequent polling is cheap and gives prompt sends).
+    - cron: "*/15 * * * *"
+    # Every hour on the hour — trial-expiring reminders + cleanup.
+    - cron: "0 * * * *"
+    # Once a week, Monday 14:00 UTC (~10am ET / 7am PT) — weekly digest.
+    - cron: "0 14 * * 1"
+    # Once a day at 03:00 UTC — lead status refresh.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Task name to run (leave blank to run the matching schedule's tasks)"
+        required: false
+        default: ""
+
+env:
+  BASE_URL: ${{ secrets.CRON_BASE_URL || 'https://socialperks.onrender.com' }}
+
+jobs:
+  # ─── Every 15 minutes ─────────────────────────────────────────────────────
+  newsletter-drip:
+    if: github.event.schedule == '*/15 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip when manual run targets a different task
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.task != '' && github.event.inputs.task != 'newsletter-drip'
+        run: echo "Skipped — manual run targeted '${{ github.event.inputs.task }}'" && exit 0
+      - name: Trigger newsletter-drip
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsSL -m 60 \
+            --data-urlencode "task=newsletter-drip" \
+            --data-urlencode "key=${CRON_SECRET}" \
+            -G "${BASE_URL}/api/v1/cron"
+
+  # ─── Hourly ──────────────────────────────────────────────────────────────
+  trial-expiring:
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip when manual run targets a different task
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.task != '' && github.event.inputs.task != 'trial-expiring'
+        run: echo "Skipped — manual run targeted '${{ github.event.inputs.task }}'" && exit 0
+      - name: Trigger trial-expiring
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsSL -m 60 \
+            --data-urlencode "task=trial-expiring" \
+            --data-urlencode "key=${CRON_SECRET}" \
+            -G "${BASE_URL}/api/v1/cron"
+
+  cleanup-expired:
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip when manual run targets a different task
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.task != '' && github.event.inputs.task != 'cleanup-expired'
+        run: echo "Skipped — manual run targeted '${{ github.event.inputs.task }}'" && exit 0
+      - name: Trigger cleanup-expired
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsSL -m 60 \
+            --data-urlencode "task=cleanup-expired" \
+            --data-urlencode "key=${CRON_SECRET}" \
+            -G "${BASE_URL}/api/v1/cron"
+
+  # ─── Daily 03:00 UTC ─────────────────────────────────────────────────────
+  lead-status-sync:
+    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip when manual run targets a different task
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.task != '' && github.event.inputs.task != 'lead-status-sync'
+        run: echo "Skipped — manual run targeted '${{ github.event.inputs.task }}'" && exit 0
+      - name: Trigger lead-status-sync
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsSL -m 60 \
+            --data-urlencode "task=lead-status-sync" \
+            --data-urlencode "key=${CRON_SECRET}" \
+            -G "${BASE_URL}/api/v1/cron"
+
+  # ─── Weekly Mon 14:00 UTC ────────────────────────────────────────────────
+  weekly-digest:
+    if: github.event.schedule == '0 14 * * 1' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip when manual run targets a different task
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.task != '' && github.event.inputs.task != 'weekly-digest'
+        run: echo "Skipped — manual run targeted '${{ github.event.inputs.task }}'" && exit 0
+      - name: Trigger weekly-digest
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsSL -m 60 \
+            --data-urlencode "task=weekly-digest" \
+            --data-urlencode "key=${CRON_SECRET}" \
+            -G "${BASE_URL}/api/v1/cron"
