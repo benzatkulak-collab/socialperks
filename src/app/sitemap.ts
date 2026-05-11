@@ -16,6 +16,7 @@ import { GUIDES as HOWTO_GUIDES } from "@/lib/howto/guides";
 import { INDUSTRY_PAGE_SLUGS } from "@/lib/industry-pages/data";
 import { TEMPLATES } from "@/lib/templates/data";
 import { COMMUNITY_SLUGS } from "@/lib/communities/data";
+import { ASK_QUESTIONS } from "@/lib/ask/questions";
 
 const NEIGHBORHOOD_INDUSTRY_SLUGS = [
   "restaurants",
@@ -517,6 +518,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  // Ask index + 40 Q&A pages
+  const askIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/ask`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    },
+  ];
+  const askEntries: MetadataRoute.Sitemap = ASK_QUESTIONS.map((q) => ({
+    url: `${baseUrl}/ask/${q.slug}`,
+    lastModified: new Date(q.dateModified),
+    changeFrequency: "monthly" as const,
+    priority: 0.75,
+  }));
+
   return [
     ...staticEntries,
     ...industryPageEntries,
@@ -537,5 +554,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...stateIndexEntry,
     ...stateEntries,
     ...stateIndustryEntries,
+    ...askIndexEntry,
+    ...askEntries,
   ];
 }
