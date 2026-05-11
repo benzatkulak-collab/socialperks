@@ -46,6 +46,12 @@ export function Hero() {
             Create Your First Campaign
           </a>
           <a
+            href="/demo"
+            className="w-full sm:w-auto rounded-xl border border-brand-cyan/40 bg-brand-surface/80 px-8 py-3.5 font-body text-base font-semibold text-brand-cyan transition-all hover:border-brand-cyan hover:bg-brand-surface hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0"
+          >
+            See the demo →
+          </a>
+          <a
             href="#how-it-works"
             className="w-full sm:w-auto rounded-xl border border-brand-border bg-brand-surface/50 px-8 py-3.5 font-body text-base font-medium text-brand-text transition-all hover:border-brand-subtle hover:bg-brand-surface hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/30 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0"
           >
