@@ -456,6 +456,35 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  // State programmatic pages: 1 + 50 + 400 = 451
+  const stateIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/state`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
+  ];
+
+  const stateEntries: MetadataRoute.Sitemap = STATES.map((s) => ({
+    url: `${baseUrl}/state/${s.slug}`,
+    lastModified,
+    changeFrequency: "weekly" as const,
+    priority: 0.75,
+  }));
+
+  const stateIndustryEntries: MetadataRoute.Sitemap = [];
+  for (const s of STATES) {
+    for (const i of STATE_INDUSTRIES) {
+      stateIndustryEntries.push({
+        url: `${baseUrl}/state/${s.slug}/${i.slug}`,
+        lastModified,
+        changeFrequency: "weekly" as const,
+        priority: 0.65,
+      });
+    }
+  }
+
   return [
     ...staticEntries,
     ...industryPageEntries,
@@ -471,5 +500,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...neighborhoodCityEntries,
     ...neighborhoodEntries,
     ...neighborhoodIndustryEntries,
+    ...stateIndexEntry,
+    ...stateEntries,
+    ...stateIndustryEntries,
   ];
 }
