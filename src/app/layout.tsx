@@ -4,6 +4,7 @@ import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { SkipLinks } from "@/components/shared/skip-links";
 import { GlobalChrome } from "@/components/shared/global-chrome";
+import { SiteMegaFooter } from "@/components/shared/site-mega-footer";
 import { getRootSchemas } from "@/lib/seo/json-ld";
 import "./globals.css";
 
@@ -115,6 +116,12 @@ export default function RootLayout({
         <SkipLinks />
         <SWRegister />
         {children}
+        {/*
+          SiteMegaFooter renders below every page's content (and below any
+          per-page <Footer />). It exists primarily for SEO — 60+ deep
+          internal links surfacing programmatic pages so Google crawls deeper.
+        */}
+        <SiteMegaFooter />
         <OfflineIndicator />
         <GlobalChrome />
         {plausibleDomain && (

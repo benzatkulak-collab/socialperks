@@ -110,7 +110,7 @@ const POPULAR: RelatedLink[] = [
 // Small helpers
 // ---------------------------------------------------------------------------
 
-function shuffle<T>(arr: T[]): T[] {
+function _shuffle<T>(arr: T[]): T[] {
   // Stable order is fine — keep deterministic so SSR matches CSR.
   return [...arr];
 }
