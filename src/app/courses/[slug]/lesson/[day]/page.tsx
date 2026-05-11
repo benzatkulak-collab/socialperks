@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
-import { COURSES, getCourse, getCourseLesson } from "@/lib/courses/data";
+import { COURSES, getCourseLesson } from "@/lib/courses/data";
 
 export function generateStaticParams() {
   const params: { slug: string; day: string }[] = [];

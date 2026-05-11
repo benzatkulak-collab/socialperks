@@ -41,6 +41,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (user instanceof Response) return user;
 
   const body = await parseBody<CheckoutBody>(req);
+  if (body instanceof Response) return body;
   const plan = body?.plan;
   const interval = body?.interval ?? "monthly";
 

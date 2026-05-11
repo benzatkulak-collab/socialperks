@@ -7,7 +7,8 @@
  * redirects the browser to the returned URL.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react"
+import type React from "react";
 
 type Plan = "pro" | "enterprise";
 type Interval = "monthly" | "annual";
@@ -73,7 +74,7 @@ function formatMoney(n: number): string {
   return `$${n.toLocaleString("en-US")}`;
 }
 
-export default function UpgradePage(): JSX.Element {
+export default function UpgradePage(): React.ReactElement {
   const [interval, setInterval] = useState<Interval>("monthly");
   const [loading, setLoading] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -23,6 +23,7 @@ import {
   getCount,
   getSourceBreakdown,
 } from "@/lib/newsletter";
+import { sendNewsletterConfirmation } from "@/lib/email/templates/newsletter-confirmation";
 
 interface SubscribeBody {
   email: string;
@@ -52,6 +53,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   const { subscriber, duplicate } = subscribe(emailResult.data, source);
+
+  // Fire-and-forget welcome email for new subscribers (no-op if RESEND_API_KEY missing)
+  if (!duplicate) {
+    void sendNewsletterConfirmation(emailResult.data).catch(() => {});
+  }
 
   return ok(
     {

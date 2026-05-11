@@ -11,7 +11,8 @@
  * triggers, the component renders null.
  */
 
-import { useMemo } from "react";
+import { useMemo } from "react"
+import type React from "react";
 
 export interface UpgradePromptProps {
   /** Days remaining in the trial. Triggers when ≤ 4. */
@@ -33,7 +34,7 @@ export function UpgradePrompt({
   href = "/upgrade",
   variant = "card",
   className = "",
-}: UpgradePromptProps): JSX.Element | null {
+}: UpgradePromptProps): React.ReactElement | null {
   const trialActive =
     typeof trialDaysRemaining === "number" &&
     trialDaysRemaining <= TRIAL_WARNING_THRESHOLD &&

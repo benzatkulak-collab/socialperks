@@ -7,7 +7,8 @@
  * confirms the session with the backend.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import type React from "react";
 
 interface SessionInfo {
   sessionId: string | null;
@@ -16,7 +17,7 @@ interface SessionInfo {
   interval: string | null;
 }
 
-export default function UpgradeSuccessPage(): JSX.Element {
+export default function UpgradeSuccessPage(): React.ReactElement {
   const [info, setInfo] = useState<SessionInfo>({
     sessionId: null,
     mock: false,

@@ -4,8 +4,7 @@ import type { Metadata } from "next";
 import {
   CONTENT_CATEGORIES,
   getTopic,
-  ALL_CONTENT_PATHS,
-} from "@/lib/content/data";
+  } from "@/lib/content/data";
 
 export const dynamicParams = true;
 export const revalidate = 86400;
