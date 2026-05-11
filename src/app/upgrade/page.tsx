@@ -28,7 +28,7 @@ const PLANS: PlanDef[] = [
     id: "pro",
     name: "Pro",
     tagline: "For growing businesses",
-    monthly: 49,
+    monthly: 9.99,
     popular: true,
     cta: "Upgrade to Pro",
     features: [

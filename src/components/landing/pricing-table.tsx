@@ -42,7 +42,7 @@ const TIERS: PricingTier[] = [
   {
     key: "growth",
     name: "Growth",
-    monthlyPrice: 49,
+    monthlyPrice: 9.99,
     description: "Everything you need to grow your marketing with real customers.",
     highlights: [
       "10 active campaigns",
@@ -132,7 +132,7 @@ export function PricingTable() {
   function getDisplayPrice(tier: PricingTier): string {
     if (tier.monthlyPrice === null) return "Custom";
     if (tier.monthlyPrice === 0) return "$0";
-    if (annual) return `$${Math.round(tier.monthlyPrice * 0.8)}`;
+    if (annual) return `$${(Math.round(tier.monthlyPrice * 0.8 * 100) / 100).toFixed(2)}`;
     return `$${tier.monthlyPrice}`;
   }
 

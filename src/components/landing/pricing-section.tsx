@@ -34,7 +34,7 @@ const PRICING_TIERS: PricingTier[] = [
   },
   {
     name: "Pro",
-    price: "$49",
+    price: "$9.99",
     period: "/month",
     description: "Everything you need to grow.",
     features: [
@@ -145,7 +145,7 @@ export function PricingSection() {
           {PRICING_TIERS.map((tier) => {
             const displayPrice =
               annual && tier.price !== "$0" && tier.price !== "Custom"
-                ? `$${Math.round(parseInt(tier.price.replace("$", "")) * 0.8)}`
+                ? `$${Math.round(Math.round(parseFloat(tier.price.replace("$", "")) * 0.8 * 100) / 100)}`
                 : tier.price;
 
             return (
