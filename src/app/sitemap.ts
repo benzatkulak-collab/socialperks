@@ -24,6 +24,7 @@ import {
 } from "@/lib/playbooks/data";
 import { DIY_METHODS } from "@/lib/instead-of/data";
 import { SERVICES, SERVICE_CITIES } from "@/lib/services/data";
+import { COURSES } from "@/lib/courses/data";
 import { PILLARS } from "@/lib/pillars/data";
 import { PLATFORM_INTEGRATIONS } from "@/lib/platform-integrations/data";
 import { HOOKS } from "@/lib/hooks/data";
@@ -753,6 +754,33 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  // Free email courses: 1 index + 5 course pages + 29 lesson pages
+  const courseIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/courses`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.85,
+    },
+  ];
+  const courseEntries: MetadataRoute.Sitemap = COURSES.map((c) => ({
+    url: `${baseUrl}/courses/${c.slug}`,
+    lastModified,
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+  const courseLessonEntries: MetadataRoute.Sitemap = [];
+  for (const c of COURSES) {
+    for (const l of c.lessons) {
+      courseLessonEntries.push({
+        url: `${baseUrl}/courses/${c.slug}/lesson/${l.day}`,
+        lastModified,
+        changeFrequency: "monthly" as const,
+        priority: 0.65,
+      });
+    }
+  }
+
   // Platform integration pages: 1 index + 15 detail
   const platformIntegrationIndexEntry: MetadataRoute.Sitemap = [
     {
@@ -855,6 +883,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...insteadOfEntries,
     ...serviceEntries,
     ...serviceCityEntries,
+    ...courseIndexEntry,
+    ...courseEntries,
+    ...courseLessonEntries,
     ...platformIntegrationIndexEntry,
     ...platformIntegrationEntries,
     ...hookIndexEntry,
