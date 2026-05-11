@@ -24,6 +24,7 @@ import {
 } from "@/lib/playbooks/data";
 import { DIY_METHODS } from "@/lib/instead-of/data";
 import { SERVICES, SERVICE_CITIES } from "@/lib/services/data";
+import { PILLARS } from "@/lib/pillars/data";
 import { PLATFORM_INTEGRATIONS } from "@/lib/platform-integrations/data";
 import { HOOKS } from "@/lib/hooks/data";
 import {
@@ -471,6 +472,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }),
   );
 
+  // Pillar guide pages: 1 index + 10 long-form authority pillars (priority 0.9)
+  const pillarIndexEntry: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/guide`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    },
+  ];
+
+  const pillarEntries: MetadataRoute.Sitemap = PILLARS.map((p) => ({
+    url: `${baseUrl}/guide/${p.slug}`,
+    lastModified: new Date(p.updatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.9,
+  }));
+
   // Niche community landing pages (15)
   const communityEntries: MetadataRoute.Sitemap = COMMUNITY_SLUGS.map(
     (slug) => ({
@@ -847,5 +865,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...localNicheLeafEntries,
     ...outreachCategoryEntries,
     ...outreachTemplateEntries,
+    ...pillarIndexEntry,
+    ...pillarEntries,
   ];
 }
