@@ -37,6 +37,9 @@ import {
   OUTREACH_TEMPLATES,
   OUTREACH_CATEGORIES,
 } from "@/lib/outreach/data";
+import { ANSWERS } from "@/lib/answers/data";
+import { BEST_FOR } from "@/lib/best-for/data";
+import { CONTENT_CATEGORIES, ALL_CONTENT_PATHS } from "@/lib/content/data";
 
 const NEIGHBORHOOD_INDUSTRY_SLUGS = [
   "restaurants",
@@ -922,5 +925,47 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...outreachTemplateEntries,
     ...pillarIndexEntry,
     ...pillarEntries,
+    {
+      url: `${baseUrl}/answers`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    },
+    ...ANSWERS.map((a) => ({
+      url: `${baseUrl}/answers/${a.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    {
+      url: `${baseUrl}/best-for`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    },
+    ...BEST_FOR.map((b) => ({
+      url: `${baseUrl}/best-for/${b.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    {
+      url: `${baseUrl}/content`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    },
+    ...CONTENT_CATEGORIES.map((c) => ({
+      url: `${baseUrl}/content/${c.slug}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
+    ...ALL_CONTENT_PATHS.map((p) => ({
+      url: `${baseUrl}/content/${p.category}/${p.topic}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
   ];
 }
