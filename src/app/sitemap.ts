@@ -15,6 +15,7 @@ import { GLOSSARY } from "@/lib/glossary/terms";
 import { GUIDES as HOWTO_GUIDES } from "@/lib/howto/guides";
 import { INDUSTRY_PAGE_SLUGS } from "@/lib/industry-pages/data";
 import { TEMPLATES } from "@/lib/templates/data";
+import { COMMUNITY_SLUGS } from "@/lib/communities/data";
 
 const NEIGHBORHOOD_INDUSTRY_SLUGS = [
   "restaurants",
@@ -327,7 +328,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/communities`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
   ];
+
+  // Niche community landing pages (15)
+  const communityEntries: MetadataRoute.Sitemap = COMMUNITY_SLUGS.map(
+    (slug) => ({
+      url: `${baseUrl}/communities/${slug}`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }),
+  );
 
   // Industry-specific marketing software landing pages (20)
   const industryPageEntries: MetadataRoute.Sitemap = INDUSTRY_PAGE_SLUGS.map(
@@ -510,6 +527,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...howToEntries,
     ...blogEntries,
     ...templateEntries,
+    ...communityEntries,
     ...cityEntries,
     ...localEntries,
     ...neighborhoodIndexEntry,
