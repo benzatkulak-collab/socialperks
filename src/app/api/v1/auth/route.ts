@@ -476,8 +476,12 @@ export const POST = withTiming(async (req: NextRequest) => {
 
     // ── Session (same as GET but via POST) ─────────────────────────────────
     case "session": {
+      // Same HttpOnly issue as logout: JS can't read the sp-access-token
+      // cookie to pass it as a Bearer header. Read the cookie directly.
       const authHeader = req.headers.get("authorization");
-      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : body.token;
+      const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+      const cookieToken = req.cookies.get("sp-access-token")?.value ?? null;
+      const token = bearer ?? cookieToken ?? body.token ?? null;
 
       if (!token) {
         return err("NO_TOKEN", "No session token provided", 401);

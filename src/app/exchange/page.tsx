@@ -9,16 +9,30 @@
 
 import { useEffect, useState } from "react";
 
+// Response shape (verified live via /api/v1/exchange/opportunities):
+//   data.opportunities = { totalActions, totalPlatforms, estimatedMonthlyEarnings, ... }
+//   data.topPayingActions = [{ actionId, label, platformName, adjustedValue, effort, ... }]
+// The previous types here (topActions, value) didn't match — so the
+// page rendered nothing even though the API worked.
 interface OpportunityResponse {
-  topActions?: Array<{
-    id: string;
+  opportunities?: {
+    totalActions?: number;
+    totalPlatforms?: number;
+    estimatedMonthlyEarnings?: number;
+    followerCount?: number;
+    followerBonus?: number;
+    location?: string | null;
+    supplyDeficit?: number;
+  };
+  topPayingActions?: Array<{
+    actionId: string;
     label: string;
     platformName?: string;
-    value?: number;
+    adjustedValue?: number;
+    baseValue?: number;
     effort?: number;
+    type?: string;
   }>;
-  estimatedMonthlyEarnings?: number;
-  totalActions?: number;
 }
 
 export default function ExchangePage() {
@@ -66,22 +80,28 @@ export default function ExchangePage() {
 
         {data && (
           <>
-            {typeof data.estimatedMonthlyEarnings === "number" && (
+            {typeof data.opportunities?.estimatedMonthlyEarnings === "number" && (
               <div className="rounded-xl border border-brand-cyan/30 bg-brand-cyan/5 p-4 mb-6">
                 <p className="text-xs text-brand-dim uppercase tracking-wider font-mono">
                   Est. monthly earnings
                 </p>
                 <p className="text-2xl font-mono font-bold text-brand-cyan mt-1">
-                  ${data.estimatedMonthlyEarnings.toFixed(0)}
+                  ${data.opportunities.estimatedMonthlyEarnings.toFixed(0)}
                 </p>
+                {typeof data.opportunities.totalActions === "number" && (
+                  <p className="text-xs text-brand-muted mt-2">
+                    {data.opportunities.totalActions} actions across{" "}
+                    {data.opportunities.totalPlatforms ?? 0} platforms
+                  </p>
+                )}
               </div>
             )}
 
-            {data.topActions && data.topActions.length > 0 && (
+            {data.topPayingActions && data.topPayingActions.length > 0 && (
               <ul className="space-y-2">
-                {data.topActions.slice(0, 20).map((a) => (
+                {data.topPayingActions.slice(0, 20).map((a) => (
                   <li
-                    key={a.id}
+                    key={a.actionId}
                     className="rounded-lg border border-brand-border bg-brand-surface p-3 flex items-center justify-between"
                   >
                     <div className="min-w-0">
@@ -89,12 +109,15 @@ export default function ExchangePage() {
                         {a.label}
                       </p>
                       {a.platformName && (
-                        <p className="text-xs text-brand-muted">{a.platformName}</p>
+                        <p className="text-xs text-brand-muted">
+                          {a.platformName}
+                          {typeof a.effort === "number" ? ` · effort ${a.effort}` : ""}
+                        </p>
                       )}
                     </div>
-                    {typeof a.value === "number" && (
+                    {typeof a.adjustedValue === "number" && (
                       <span className="text-sm font-mono text-brand-green ml-3 shrink-0">
-                        ${a.value}
+                        ${a.adjustedValue}
                       </span>
                     )}
                   </li>

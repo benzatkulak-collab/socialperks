@@ -19,36 +19,42 @@ interface PerkProgram {
   createdAt: string;
 }
 
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
-  return m ? decodeURIComponent(m[1]) : null;
-}
-
-function parseJwtBusinessId(jwt: string | null): string | null {
-  if (!jwt) return null;
-  try {
-    const payload = JSON.parse(atob(jwt.split(".")[1] ?? ""));
-    return (payload?.businessId ?? null) as string | null;
-  } catch {
-    return null;
-  }
-}
-
 export default function ProgramsPage() {
   const [programs, setPrograms] = useState<PerkProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const businessId = parseJwtBusinessId(readCookie("sp-access-token"));
-    if (!businessId) {
-      setError("Sign in to view your perk programs.");
-      setLoading(false);
-      return;
-    }
     (async () => {
       try {
+        // The previous implementation tried to read sp-access-token from
+        // document.cookie to extract businessId from the JWT — but that
+        // cookie is HttpOnly, so JS can never see it and the page always
+        // showed "Sign in to view…" even when authenticated. Ask the
+        // server for the session instead; it has access to the cookie.
+        const sessionRes = await apiFetch("/api/v1/auth", {
+          method: "POST",
+          body: JSON.stringify({ action: "session" }),
+        });
+        if (sessionRes.status === 401) {
+          setError("Sign in to view your perk programs.");
+          setLoading(false);
+          return;
+        }
+        if (!sessionRes.ok) {
+          setError(`Failed to verify session (HTTP ${sessionRes.status}).`);
+          setLoading(false);
+          return;
+        }
+        const sessionJson = await sessionRes.json().catch(() => null);
+        const businessId: string | undefined =
+          sessionJson?.data?.user?.businessId ?? sessionJson?.data?.businessId;
+        if (!businessId) {
+          setError("Your account doesn't have a business attached. Contact support.");
+          setLoading(false);
+          return;
+        }
+
         const res = await apiFetch(
           `/api/v1/programs?businessId=${encodeURIComponent(businessId)}`,
           { method: "GET" }
