@@ -350,15 +350,29 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
       createdAt: new Date().toISOString().slice(0, 10),
     };
 
-    setMyCampaigns((prev) => [newCampaign, ...prev]);
-    save({ ...data, campaigns: [...(data.campaigns || []), { ...newCampaign }] });
+    // Re-fetch from the server FIRST so the displayed card carries the real
+    // camp_xxx id. Previously we did an optimistic prepend with a possibly-
+    // random UUID and only fired reloadCampaigns() without awaiting — that
+    // left a window where Pause/Resume/End buttons clicked on the optimistic
+    // card hit /api/v1/campaigns PUT with an id the manager didn't recognise
+    // (404). If the reload fails (network blip), fall back to the optimistic
+    // card just so the user sees their work.
+    const reloaded = await reloadCampaigns();
+    if (!reloaded) {
+      setMyCampaigns((prev) => [newCampaign, ...prev]);
+    }
+    // Persist only the optimistic id-less fields to localStorage so a stale
+    // random UUID doesn't survive across sessions.
+    save({
+      ...data,
+      campaigns: [
+        ...(data.campaigns || []).filter((c) => c.id !== newCampaign.id),
+      ],
+    });
     setLaunching(false);
     resetCreate();
     setPage("home");
     showToast(`"${newCampaign.name}" is live!`);
-    // Re-fetch from the server so card ids match the campaign manager and
-    // subsequent pause/resume/end PUTs hit a real row.
-    void reloadCampaigns();
   }, [platform, action, campaignName, biz.id, biz.name, rewardType, rewardValue, data, save, resetCreate, showToast, reloadCampaigns]);
 
   const handlePlatformSelect = useCallback((platformId: string) => {
@@ -423,6 +437,15 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
+        // If the card we clicked points at an id the server has never seen
+        // (legacy localStorage entry from before the camp_xxx id fix), the
+        // PUT returns 404. Pull fresh server state so the orphan disappears
+        // and surface a clearer message than "Campaign not found".
+        if (res.status === 404) {
+          showToast("Refreshing your campaigns — that one was stale.");
+          await reloadCampaigns();
+          return;
+        }
         showToast(data?.error?.message ?? `Failed to ${action} campaign.`);
         return;
       }
@@ -440,7 +463,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     } catch {
       showToast(`Network error. Failed to ${action} campaign.`);
     }
-  }, [showToast]);
+  }, [showToast, reloadCampaigns]);
 
   const handlePauseCampaign = useCallback(
     (campaignId: string) => callCampaignAction(campaignId, "pause"),
