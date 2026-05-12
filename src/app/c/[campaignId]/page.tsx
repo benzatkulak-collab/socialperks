@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { createSeedData } from "@/lib/seed";
-import { PLATFORMS } from "@/lib/platforms";
+import { PLATFORMS, findAction, findPlatform } from "@/lib/platforms";
 import { SubmitForm } from "./submit-form";
 import { InviteUnlock } from "@/components/campaign/invite-unlock";
 
@@ -89,19 +89,43 @@ export default async function CampaignPage({ params }: PageProps) {
       ? `${campaign.budget.allocated}% off`
       : `$${campaign.budget.allocated.toFixed(0)} off`;
 
-  // Build action list from event store / all available actions
-  // In a real app, campaigns would store their action IDs. For now,
-  // we show a curated set of popular actions the customer can pick.
-  const popularActions = PLATFORMS.flatMap((p) =>
-    p.actions
-      .filter((a) => a.incentivizable && a.effort <= 3)
-      .slice(0, 2)
-      .map((a) => ({
-        id: a.id,
-        label: a.label,
-        platformIcon: p.icon,
-      }))
-  ).slice(0, 8);
+  // Build the action picker from the campaign's own `actions[]` array
+  // — previously we showed a "curated" top-8 across every platform,
+  // which let customers pick actions the campaign didn't actually
+  // allow. The /submissions/public endpoint correctly rejected those
+  // with ACTION_NOT_ALLOWED, but the customer-facing error was
+  // confusing ("but I picked one of your options!"). Source: live
+  // click-through audit, /c/[id] dropdown showed 8 actions on a
+  // 1-action campaign.
+  const campaignActions = ((campaign as { actions?: string[] }).actions ?? [])
+    .map((id) => {
+      const action = findAction(id);
+      const platform = action?.platformId ? findPlatform(action.platformId) : null;
+      if (!action) return null;
+      return {
+        id: action.id,
+        label: action.label,
+        platformIcon: platform?.icon ?? "•",
+      };
+    })
+    .filter((a): a is { id: string; label: string; platformIcon: string } => a !== null);
+
+  // Defensive fallback: if a legacy campaign somehow has no actions[]
+  // recorded, fall back to the old popular list so the page still
+  // works rather than offering an empty dropdown.
+  const popularActions =
+    campaignActions.length > 0
+      ? campaignActions
+      : PLATFORMS.flatMap((p) =>
+          p.actions
+            .filter((a) => a.incentivizable && a.effort <= 3)
+            .slice(0, 2)
+            .map((a) => ({
+              id: a.id,
+              label: a.label,
+              platformIcon: p.icon,
+            }))
+        ).slice(0, 8);
 
   // Expiry info
   const expiresAt = new Date(campaign.expiry.expiresAt);
