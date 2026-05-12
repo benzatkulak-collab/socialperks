@@ -14,6 +14,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -31,6 +32,10 @@ export const GET = withTiming(async (req: NextRequest) => {
   // Relaxed rate limit (public but rate-limited)
   const rl = rateLimit(req, "relaxed");
   if (rl) return rl;
+
+  // CSRF — live audit found bypass
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   const params = getQuery(req);
   const { page, perPage } = paginate(params);
@@ -131,6 +136,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Rate limit
   const rl = rateLimit(req, "standard");
   if (rl) return rl;
+
+  // CSRF — live audit found bypass
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   // Parse body
   const body = await parseBody<RegisterBody>(req);

@@ -9,7 +9,8 @@
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, requireAuth, rateLimit, withTiming } from "../../_shared";
+import { ok, err, requireAuth,
+  requireCsrf, rateLimit, withTiming } from "../../_shared";
 import { revokeApiKey } from "@/lib/auth/api-keys";
 
 export const DELETE = withTiming(
@@ -19,6 +20,10 @@ export const DELETE = withTiming(
   ) => {
     const limited = rateLimit(req, "standard");
     if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
     const user = requireAuth(req);
     if (user instanceof Response) return user;

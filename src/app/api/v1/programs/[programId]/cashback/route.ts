@@ -9,6 +9,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -40,6 +41,10 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
   // Relaxed rate limit
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   const { programId } = await (ctx as RouteContext).params;
   const program = programs.get(programId);
@@ -93,6 +98,10 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   // Standard rate limit
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   const { programId } = await (ctx as RouteContext).params;
   const program = programs.get(programId);

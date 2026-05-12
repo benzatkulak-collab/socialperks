@@ -10,6 +10,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -115,6 +116,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
 
+  // CSRF — previously decorative. Enforce now.
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
+
   // Parse body
   const body = await parseBody<{
     businessId?: string;
@@ -137,21 +142,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   const accessDenied = checkResourceAccess(tenant, bv.data);
   if (accessDenied) return accessDenied;
 
-  // ── Plan enforcement: campaign limit ──────────────────────────────────────
-  const plan = getBusinessPlan(bv.data);
-  const campaignCheck = checkCampaignLimit(bv.data, plan);
-  if (!campaignCheck.allowed) {
-    const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
-    const body403 = buildPlanLimitError(
-      `${planLabel} plan allows ${campaignCheck.limit} active campaign${campaignCheck.limit === 1 ? "" : "s"}. Upgrade to create more.`,
-      campaignCheck.limit,
-      campaignCheck.current,
-      plan
-    );
-    return NextResponse.json(body403, { status: 403 });
-  }
-
-  // Validate name
+  // Validate name (moved up — input validation should run BEFORE plan-limit
+  // check, otherwise a user whose input is invalid AND who's hit the plan
+  // limit gets a confusing "upgrade your plan" instead of "name required").
   const nv = validateString(body.name, "name", { min: 1, max: 200 });
   if (!nv.success) return err("INVALID_NAME", nv.error, 400);
 
@@ -193,6 +186,19 @@ export const POST = withTiming(async (req: NextRequest) => {
   const dt = validateEnum(body.discountType, "discountType", ["pct", "dol"] as const);
   if (!dt.success) return err("INVALID_DISCOUNT_TYPE", dt.error, 400);
 
+  // Upper-bound cap on discountValue. Without this, live testing
+  // accepted 999% discounts (the "9_999_999% coupon" class of bug).
+  // pct caps at 100% (a free item is 100%). dol caps at $10000 — well
+  // beyond any plausible single-redemption perk.
+  const maxDiscount = dt.data === "pct" ? 100 : 10000;
+  if (dv.data > maxDiscount) {
+    return err(
+      "INVALID_DISCOUNT_VALUE",
+      `discountValue must be at most ${maxDiscount} for ${dt.data === "pct" ? "percentage" : "dollar"} discounts`,
+      400,
+    );
+  }
+
   // Optional: maxCompletions
   let maxCompletions: number | null = null;
   if (body.maxCompletions !== undefined && body.maxCompletions !== null) {
@@ -208,6 +214,22 @@ export const POST = withTiming(async (req: NextRequest) => {
     const ed = validateNumber(body.expiresInDays, "expiresInDays", { min: 1, max: 365 });
     if (!ed.success) return err("INVALID_EXPIRES_IN_DAYS", ed.error, 400);
     expiresInDays = ed.data;
+  }
+
+  // ── Plan enforcement: campaign limit (moved AFTER input validation) ──────
+  // Running this AFTER all validation means malformed requests get a clear
+  // 400 with the bad field, rather than the misleading "upgrade your plan".
+  const plan = getBusinessPlan(bv.data);
+  const campaignCheck = checkCampaignLimit(bv.data, plan);
+  if (!campaignCheck.allowed) {
+    const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+    const body403 = buildPlanLimitError(
+      `${planLabel} plan allows ${campaignCheck.limit} active campaign${campaignCheck.limit === 1 ? "" : "s"}. Upgrade to create more.`,
+      campaignCheck.limit,
+      campaignCheck.current,
+      plan
+    );
+    return NextResponse.json(body403, { status: 403 });
   }
 
   // Generate a campaign ID
@@ -299,6 +321,11 @@ export const PUT = withTiming(async (req: NextRequest) => {
   // Rate limit — standard for writes
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
+
+  // CSRF — previously decorative. Live testing confirmed PUT with
+  // X-CSRF-Token: "wrongtoken" returned 200 OK and paused the campaign.
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   // Parse body
   const body = await parseBody<{
@@ -398,6 +425,19 @@ export const PUT = withTiming(async (req: NextRequest) => {
   if (body.discountValue !== undefined) {
     const dv = validateNumber(body.discountValue, "discountValue", { min: 0.01 });
     if (!dv.success) return err("INVALID_DISCOUNT_VALUE", dv.error, 400);
+    // Cap matches POST: 100% for pct, $10000 for dol. Use the new
+    // discountType if it's also in the body, otherwise the existing
+    // lifecycle.budget.type.
+    const effectiveType =
+      typeof body.discountType === "string" ? body.discountType : lifecycle.budget.type;
+    const maxDiscount = effectiveType === "pct" ? 100 : 10000;
+    if (dv.data > maxDiscount) {
+      return err(
+        "INVALID_DISCOUNT_VALUE",
+        `discountValue must be at most ${maxDiscount} for ${effectiveType === "pct" ? "percentage" : "dollar"} discounts`,
+        400,
+      );
+    }
     lifecycle.budget.allocated = dv.data;
     updates.discountValue = dv.data;
   }

@@ -125,6 +125,50 @@ export function requireAuth(req: NextRequest): AuthUser | NextResponse {
   return user;
 }
 
+/**
+ * Require a valid CSRF token. Returns an error NextResponse on failure,
+ * or null when the request is allowed to proceed. Pull `sessionId` from
+ * the authenticated user when available; for pre-login flows we mirror
+ * the anon-session derivation used by /api/v1/csrf so the issued token
+ * validates here.
+ *
+ * Discovery: CSRF was previously "decorative" — generateCsrfToken /
+ * validateCsrfToken existed, the endpoint issued tokens, and the
+ * client-side fetch helper attached `X-CSRF-Token` — but no API route
+ * actually called validateCsrfToken. Live verification confirmed
+ * PUT /api/v1/campaigns with a junk token returned 200 OK. This helper
+ * closes that hole.
+ */
+export function requireCsrf(req: NextRequest): NextResponse | null {
+  const token = req.headers.get("x-csrf-token") ?? req.headers.get("X-CSRF-Token");
+  if (!token) {
+    return err("CSRF_TOKEN_MISSING", "CSRF token is required. Include X-CSRF-Token header.", 403);
+  }
+  const user = getUser(req);
+  const sessionId = user?.id ?? deriveAnonSessionId(req);
+  // Lazy-import to avoid a top-level cycle if/when this file gets imported
+  // from anywhere that's pulled into security/csrf.ts indirectly.
+  const { validateCsrfToken } = require("@/lib/security/csrf") as typeof import("@/lib/security/csrf");
+  if (!validateCsrfToken(token, sessionId)) {
+    return err("CSRF_TOKEN_INVALID", "CSRF token is invalid or expired. Refresh and retry.", 403);
+  }
+  return null;
+}
+
+/**
+ * Mirror of the anon-session derivation used by /api/v1/csrf/route.ts.
+ * Anon users get a session keyed on IP + truncated UA so the token
+ * issued by GET /csrf still validates on the subsequent POST/PUT.
+ */
+function deriveAnonSessionId(req: NextRequest): string {
+  const ip =
+    req.headers.get("x-real-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+  const ua = req.headers.get("user-agent") ?? "unknown";
+  return `anon:${ip}:${ua.slice(0, 32)}`;
+}
+
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 
 /**
