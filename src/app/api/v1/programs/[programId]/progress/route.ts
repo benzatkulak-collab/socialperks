@@ -51,6 +51,20 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("MISSING_MEMBER_ID", "memberId query parameter is required", 400);
   }
 
+  // Identity scoping: a member can see their own progress; the program owner
+  // (or an admin) can see anyone's. Otherwise this endpoint leaks per-member
+  // submission counts and tier status across tenants.
+  const callerBusinessId = user.businessId ?? user.id;
+  const isProgramOwner =
+    user.role === "admin" || program.businessId === callerBusinessId;
+  if (memberId !== user.id && !isProgramOwner) {
+    return err(
+      "FORBIDDEN",
+      "Cannot view progress for another member",
+      403
+    );
+  }
+
   // Find member enrollment
   let member = null;
   for (const m of programMembers.values()) {

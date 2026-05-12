@@ -91,9 +91,6 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   let suggestions = generateCampaigns(options);
 
-  // Record usage after successful generation
-  recordAiGeneration(businessId);
-
   // Apply category exclusions
   if (body.excludeCategories && body.excludeCategories.length > 0) {
     const excluded = new Set(body.excludeCategories.map((c) => c.toLowerCase()));
@@ -102,10 +99,16 @@ export const POST = withTiming(async (req: NextRequest) => {
     );
   }
 
-  return ok({
+  // Build the response BEFORE recording usage. Any throw in `ok()` (e.g.
+  // serialization) would otherwise consume the user's quota for a generation
+  // they never received.
+  const response = ok({
     suggestions,
     count: suggestions.length,
     businessType: body.businessType,
     businessSize: options.businessSize,
   });
+
+  recordAiGeneration(businessId);
+  return response;
 });

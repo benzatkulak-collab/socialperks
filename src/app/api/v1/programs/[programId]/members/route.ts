@@ -30,7 +30,11 @@ interface RouteContext {
 // ─── GET ────────────────────────────────────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
-  // Relaxed rate limit (no auth required for listing)
+  // Auth required — member lists contain PII (name + email) and must not be
+  // exposed to anonymous callers or to other businesses.
+  const user = requireAuth(req);
+  if (user instanceof Response) return user;
+
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
@@ -39,6 +43,16 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
+  }
+
+  // Ownership: only the program's business (or admins) can list members.
+  const callerBusinessId = user.businessId ?? user.id;
+  if (user.role !== "admin" && program.businessId !== callerBusinessId) {
+    return err(
+      "FORBIDDEN",
+      "Only the program owner can list members",
+      403
+    );
   }
 
   const params = getQuery(req);
@@ -100,6 +114,21 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   const { memberId, name, email } = body;
 
   if (!memberId) return err("MISSING_MEMBER_ID", "memberId is required", 400);
+
+  // Ownership / identity scoping: a user may enroll themselves (memberId ===
+  // user.id), and the program owner (or an admin) may enroll anyone else.
+  // Without this, any authenticated session could enroll arbitrary memberIds
+  // into any program — including spoofing other users' identities.
+  const callerBusinessId = user.businessId ?? user.id;
+  const isProgramOwner =
+    user.role === "admin" || program.businessId === callerBusinessId;
+  if (memberId !== user.id && !isProgramOwner) {
+    return err(
+      "FORBIDDEN",
+      "Only the program owner can enroll other members",
+      403
+    );
+  }
   if (!name || typeof name !== "string" || name.trim().length === 0) {
     return err("MISSING_NAME", "Member name is required", 400);
   }

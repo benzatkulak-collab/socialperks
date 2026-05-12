@@ -21,6 +21,18 @@ import {
   generateTOTPUri,
   verifyTOTP,
 } from "@/lib/auth/totp";
+import { randomBytes } from "crypto";
+
+// Cryptographically secure backup-code generator. 8 codes × 10 hex chars =
+// 40 bits of entropy each — sufficient one-time tokens for recovery flows.
+// Math.random() was previously used here; that is NOT cryptographically
+// secure and would let an attacker who observes one code reduce future
+// guesses dramatically.
+function generateBackupCodes(count = 8, byteLen = 5): string[] {
+  return Array.from({ length: count }, () =>
+    randomBytes(byteLen).toString("hex").toUpperCase()
+  );
+}
 
 // ─── In-memory TOTP store (replace with DB in production) ────────────────────
 
@@ -90,10 +102,8 @@ export const POST = withTiming(async (req: NextRequest) => {
         return err("INVALID_CODE", "Invalid TOTP code", 400);
       }
 
-      // Generate backup codes
-      const backupCodes = Array.from({ length: 8 }, () =>
-        Math.random().toString(36).slice(2, 8).toUpperCase()
-      );
+      // Generate backup codes (CSPRNG, see generateBackupCodes above)
+      const backupCodes = generateBackupCodes();
 
       // Enable TOTP
       totpSecrets.set(user.id, {

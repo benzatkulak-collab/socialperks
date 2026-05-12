@@ -173,9 +173,23 @@ export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
   const cv = validateId(body.campaignId);
   if (!cv.success) return err("INVALID_CAMPAIGN_ID", cv.error, 400);
 
-  // Validate userId
-  const uv = validateId(body.userId);
-  if (!uv.success) return err("INVALID_USER_ID", uv.error, 400);
+  // userId is derived from the authenticated session, NOT trusted from the
+  // body. Admins may attribute on behalf of another user by passing body.userId,
+  // everyone else uses their own session identity.
+  let resolvedUserId = user.id;
+  if (body.userId !== undefined && body.userId !== user.id) {
+    if (user.role !== "admin") {
+      return err(
+        "FORBIDDEN_USER_ID",
+        "Cannot submit on behalf of another user",
+        403
+      );
+    }
+    const uvAdmin = validateId(body.userId);
+    if (!uvAdmin.success) return err("INVALID_USER_ID", uvAdmin.error, 400);
+    resolvedUserId = uvAdmin.data;
+  }
+  const uv = { success: true as const, data: resolvedUserId };
 
   // Validate actionId
   const av = validateId(body.actionId);

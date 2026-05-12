@@ -45,18 +45,26 @@ function recordError(result: TaskResult, prefix: string, err: unknown): void {
 
 // ─── trial-expiring ────────────────────────────────────────────────────────
 // Find subscriptions in `trialing` status whose currentPeriodEnd is within the
-// next 3 days and send a reminder email. Idempotent within the same calendar
-// day because each run only emails subscriptions that match the window now —
-// duplicate sends would require running multiple times in a 24h period on
-// purpose. For stronger idempotency, persist a `lastTrialReminderSentAt` field
-// to the subscription record.
+// next 3 days and send a reminder email. Dedupes per (subscriptionId, UTC day)
+// so a same-day re-run (manual trigger, scheduler hiccup) doesn't double-send.
 
 const TRIAL_REMINDER_WINDOW_DAYS = 3;
+
+// In-memory: key = `${subscriptionId}:${YYYY-MM-DD-UTC}`. Persists for the
+// lifetime of the server process, which matches how the rest of the cron
+// state is stored (see lastRuns below). For multi-instance deployments, move
+// this to the subscriptions table as `lastTrialReminderSentAt`.
+const trialReminderSentToday = new Set<string>();
+
+function utcDateKey(d: Date): string {
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
 
 export async function runTrialExpiring(now: Date = new Date()): Promise<TaskResult> {
   const result = emptyResult();
   const windowMs = TRIAL_REMINDER_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const cutoff = now.getTime() + windowMs;
+  const todayKey = utcDateKey(now);
 
   for (const sub of subscriptions.values()) {
     if (sub.status !== "trialing") continue;
@@ -64,6 +72,12 @@ export async function runTrialExpiring(now: Date = new Date()): Promise<TaskResu
     if (Number.isNaN(periodEnd)) continue;
     if (periodEnd <= now.getTime()) continue; // already expired — skip
     if (periodEnd > cutoff) continue; // not in window yet
+
+    const dedupKey = `${sub.id}:${todayKey}`;
+    if (trialReminderSentToday.has(dedupKey)) {
+      result.notes?.push(`skip ${sub.id}: already reminded ${todayKey}`);
+      continue;
+    }
 
     result.processed += 1;
 
@@ -94,6 +108,7 @@ export async function runTrialExpiring(now: Date = new Date()): Promise<TaskResu
         text,
       });
       if (send.success) {
+        trialReminderSentToday.add(dedupKey);
         result.succeeded += 1;
       } else {
         recordError(result, sub.id, send.error ?? "send returned !success");
@@ -111,7 +126,23 @@ export async function runTrialExpiring(now: Date = new Date()): Promise<TaskResu
 // campaign. Reuses `buildDigestData` / `generateDigestHtml` from the email
 // module.
 
-export async function runWeeklyDigest(): Promise<TaskResult> {
+// In-memory: key = `${businessId}:${YYYY-Www}`. Same caveat as the trial set
+// above — single-process scope; for HA deployments move to a real table.
+const digestSentThisWeek = new Set<string>();
+
+function isoWeekKey(d: Date): string {
+  // ISO 8601 week date. Standard "year-week" key so two runs on Tue and Wed
+  // of the same week dedupe to the same bucket.
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  // Thursday in current week determines the ISO year.
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const week = 1 + Math.round(((date.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+export async function runWeeklyDigest(now: Date = new Date()): Promise<TaskResult> {
   const result = emptyResult();
   const active = campaignManager.listByState("active");
   const businessIds = new Set<string>();
@@ -122,7 +153,15 @@ export async function runWeeklyDigest(): Promise<TaskResult> {
     return result;
   }
 
+  const weekKey = isoWeekKey(now);
+
   for (const businessId of businessIds) {
+    const dedupKey = `${businessId}:${weekKey}`;
+    if (digestSentThisWeek.has(dedupKey)) {
+      result.notes?.push(`skip ${businessId}: digest already sent for ${weekKey}`);
+      continue;
+    }
+
     result.processed += 1;
     // Without a joined accounts table we fall back to derived values; the API
     // POST /api/v1/digest accepts a body override for richer metadata, but
@@ -135,6 +174,7 @@ export async function runWeeklyDigest(): Promise<TaskResult> {
       const { subject, html, text } = generateDigestHtml(data);
       const send = await emailProvider.send({ to: email, subject, html, text });
       if (send.success) {
+        digestSentThisWeek.add(dedupKey);
         result.succeeded += 1;
       } else {
         recordError(result, businessId, send.error ?? "send returned !success");

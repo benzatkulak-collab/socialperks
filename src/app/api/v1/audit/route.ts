@@ -32,7 +32,22 @@ export const GET = withTiming(async (req: NextRequest) => {
   const perPage = Math.min(100, Math.max(1, parseInt(params.get("perPage") ?? "50", 10) || 50));
 
   // Support both "userId" and "actorId" param names
-  const actorId = params.get("userId") ?? params.get("actorId") ?? undefined;
+  let actorId = params.get("userId") ?? params.get("actorId") ?? undefined;
+
+  // Non-admin scoping: business / business_owner roles may only see their own
+  // actions in the audit log. Without this, a business employee could pass
+  // ?userId=<admin id> or omit the filter entirely and see every actor's
+  // events platform-wide. Admins keep unrestricted access for compliance review.
+  if (user.role !== "admin") {
+    if (actorId && actorId !== user.id) {
+      return err(
+        "FORBIDDEN",
+        "Cannot query audit entries for another actor",
+        403
+      );
+    }
+    actorId = user.id;
+  }
 
   // Validate action filter against known actions if provided
   const actionParam = params.get("action") ?? undefined;
