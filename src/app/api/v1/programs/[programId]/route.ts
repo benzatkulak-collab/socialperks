@@ -56,6 +56,17 @@ export const PUT = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
+  // SECURITY: Verify ownership — only the program's business (or an admin)
+  // may modify the program. Without this any authenticated user could
+  // tamper with another business's perk programs by passing the programId.
+  if (user.role !== "admin" && user.businessId !== program.businessId) {
+    return err(
+      "FORBIDDEN",
+      "You do not have permission to modify this program",
+      403
+    );
+  }
+
   const body = await parseBody<{
     name?: string;
     description?: string;
@@ -101,6 +112,16 @@ export const DELETE = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   if (!program) {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
+  }
+
+  // SECURITY: Verify ownership — only the program's business (or an admin)
+  // may end the program.
+  if (user.role !== "admin" && user.businessId !== program.businessId) {
+    return err(
+      "FORBIDDEN",
+      "You do not have permission to end this program",
+      403
+    );
   }
 
   // Soft delete — set status to "ended"

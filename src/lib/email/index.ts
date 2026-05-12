@@ -41,10 +41,15 @@ const DEFAULT_FROM =
 // -- Console Provider (dev/test) ----------------------------------------------
 
 export class ConsoleEmailProvider implements EmailProvider {
+  /** Cap to keep dev/test memory bounded; oldest dropped first. */
+  private static readonly MAX_SENT = 1_000;
   public sentMessages: EmailMessage[] = [];
 
   async send(message: EmailMessage): Promise<SendResult> {
     this.sentMessages.push({ ...message, from: message.from ?? DEFAULT_FROM });
+    if (this.sentMessages.length > ConsoleEmailProvider.MAX_SENT) {
+      this.sentMessages.shift();
+    }
     const messageId = `msg_${Date.now()}_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
     return { success: true, messageId };
   }
@@ -70,6 +75,10 @@ export class ResendEmailProvider implements EmailProvider {
       };
     }
 
+    // Hard timeout — without this a slow Resend response can hang the caller.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl}/emails`, {
@@ -85,16 +94,23 @@ export class ResendEmailProvider implements EmailProvider {
           html: message.html,
           text: message.text,
         }),
+        signal: controller.signal,
       });
     } catch (err) {
       // Network failure (DNS, timeout, connection refused, etc.)
-      const errorMessage =
-        err instanceof Error ? err.message : "Network error";
+      const timedOut = err instanceof Error && err.name === "AbortError";
+      const errorMessage = timedOut
+        ? "timeout after 10s"
+        : err instanceof Error
+          ? err.message
+          : "Network error";
       return {
         success: false,
         messageId: "",
         error: `Resend network error: ${errorMessage}`,
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     if (!response.ok) {

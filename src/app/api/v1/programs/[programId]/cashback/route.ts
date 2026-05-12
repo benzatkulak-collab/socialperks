@@ -106,6 +106,19 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
 
   const { action } = body;
 
+  // SECURITY: approve/reject/mark_paid mutate financial state and must only
+  // be callable by the program's owning business (or an admin). "request" is
+  // allowed for any authenticated user — the enrollment check below restricts
+  // it to enrolled members.
+  const financialActions = new Set(["approve", "reject", "mark_paid"]);
+  if (financialActions.has(action) && user.role !== "admin" && user.businessId !== program.businessId) {
+    return err(
+      "FORBIDDEN",
+      "You do not have permission to manage payouts for this program",
+      403
+    );
+  }
+
   // ── Request cashback ──────────────────────────────────────────────────
   if (action === "request") {
     const { memberId, amount, currency } = body;

@@ -93,6 +93,17 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("MISSING_NAME", "Program name is required", 400);
   }
 
+  // SECURITY: businessId in the body must match the authenticated user's
+  // business (or the caller must be an admin). Otherwise a business user could
+  // create programs under another business's account.
+  if (user.role !== "admin" && user.businessId && user.businessId !== businessId) {
+    return err(
+      "FORBIDDEN",
+      "Cannot create a program for a different business",
+      403
+    );
+  }
+
   const now = new Date().toISOString();
   const program: PerkProgram = {
     id: crypto.randomUUID(),

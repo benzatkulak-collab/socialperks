@@ -147,13 +147,13 @@ export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
       result = await processBulkSubmissionReview(uniqueIds, user.id, "reject", reason);
       break;
     case "bulk-launch-campaigns":
-      result = processBulkCampaignAction(uniqueIds, user.id, "launch");
+      result = processBulkCampaignAction(uniqueIds, user.id, user.businessId, "launch");
       break;
     case "bulk-pause-campaigns":
-      result = processBulkCampaignAction(uniqueIds, user.id, "pause", reason);
+      result = processBulkCampaignAction(uniqueIds, user.id, user.businessId, "pause", reason);
       break;
     case "bulk-delete-campaigns":
-      result = processBulkCampaignAction(uniqueIds, user.id, "end", reason ?? "Bulk soft-delete");
+      result = processBulkCampaignAction(uniqueIds, user.id, user.businessId, "end", reason ?? "Bulk soft-delete");
       break;
   }
 
@@ -231,6 +231,7 @@ async function processBulkSubmissionReview(
 function processBulkCampaignAction(
   ids: string[],
   actorId: string,
+  actorBusinessId: string | null,
   action: "launch" | "pause" | "end",
   reason?: string
 ): BatchResult {
@@ -242,6 +243,14 @@ function processBulkCampaignAction(
 
     if (!lifecycle) {
       failed.push({ id, error: `Campaign '${id}' not found` });
+      continue;
+    }
+
+    // SECURITY: Verify ownership — only the campaign's business may mutate
+    // its lifecycle state. Without this any authenticated user could pause
+    // or end any campaign by passing the campaignId.
+    if (actorBusinessId && lifecycle.businessId !== actorBusinessId) {
+      failed.push({ id, error: "Forbidden — not your campaign" });
       continue;
     }
 

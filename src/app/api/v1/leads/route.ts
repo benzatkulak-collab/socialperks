@@ -16,6 +16,7 @@ import {
   withTiming,
 } from "../_shared";
 import {
+  getLead,
   getLeads,
   updateOutreachStatus,
   countLeadsByStatus,
@@ -84,17 +85,20 @@ export const PATCH = withTiming(async (req: NextRequest) => {
     );
   }
 
+  // SECURITY: verify ownership BEFORE mutating the store so that another
+  // authenticated user can't update a lead they don't own.
+  const existing = await getLead(id);
+  if (!existing) return err("NOT_FOUND", "Lead not found", 404);
+  if (existing.ownerId && existing.ownerId !== (user as { id: string }).id) {
+    return err("FORBIDDEN", "Not your lead", 403);
+  }
+
   const updated = await updateOutreachStatus(
     id,
     body.status ?? "new",
     body.notes
   );
   if (!updated) return err("NOT_FOUND", "Lead not found", 404);
-
-  // Confirm caller owns the lead
-  if (updated.ownerId && updated.ownerId !== (user as { id: string }).id) {
-    return err("FORBIDDEN", "Not your lead", 403);
-  }
 
   return ok({ lead: updated });
 });

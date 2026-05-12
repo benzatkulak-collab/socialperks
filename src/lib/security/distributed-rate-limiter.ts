@@ -100,7 +100,13 @@ export class DistributedRateLimiter {
       }) as unknown as RedisLike;
       await (this.redis as unknown as { connect(): Promise<void> }).connect();
       this.connected = true;
-    } catch {
+    } catch (err) {
+      // Surface the failure — silent fallback to in-memory makes a misconfigured
+      // Redis URL invisible in production. Operators need to see this.
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[DistributedRateLimiter] Redis connect failed (${message}); falling back to in-memory rate limiting.`
+      );
       this.redis = null;
       this.connected = false;
     } finally {

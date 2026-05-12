@@ -5,6 +5,8 @@
  * Codes follow the format REF-XXXX-XXXX (uppercase alphanumeric).
  */
 
+import { randomBytes, randomUUID } from "crypto";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface Referral {
@@ -47,9 +49,17 @@ const businessCodeIndex = new Map<string, string>();
 const ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 function randomChars(length: number): string {
+  // crypto.randomBytes + rejection sampling — unpredictable codes, uniform
+  // distribution over the 36-character alphabet.
+  const bytes = randomBytes(length * 2);
   let result = "";
-  for (let i = 0; i < length; i++) {
-    result += ALPHANUMERIC[Math.floor(Math.random() * ALPHANUMERIC.length)];
+  let i = 0;
+  while (result.length < length && i < bytes.length) {
+    const b = bytes[i++];
+    if (b < 252) result += ALPHANUMERIC[b % ALPHANUMERIC.length];
+  }
+  while (result.length < length) {
+    result += ALPHANUMERIC[randomBytes(1)[0] % ALPHANUMERIC.length];
   }
   return result;
 }
@@ -124,7 +134,7 @@ export function createReferral(
   refereeEmail: string,
   code: string
 ): Referral {
-  const id = `ref_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  const id = `ref_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
   const referral: Referral = {
     id,
@@ -194,7 +204,7 @@ export function trackReferralSignup(
   }
 
   // Create a new referral record for this signup
-  const id = `ref_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  const id = `ref_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
   const referral: Referral = {
     id,
     referrerId: referrerId ?? "unknown",

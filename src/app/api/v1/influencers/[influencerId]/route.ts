@@ -91,6 +91,17 @@ export const PUT = withTiming(async (req: NextRequest, ctx?: unknown) => {
     );
   }
 
+  // SECURITY: Verify ownership — only the influencer themselves (or an admin)
+  // may update the profile. Without this check any authenticated user can
+  // tamper with anyone's profile by passing their influencerId.
+  if (user.role !== "admin" && user.id !== influencer.id) {
+    return err(
+      "FORBIDDEN",
+      "You do not have permission to modify this influencer profile",
+      403
+    );
+  }
+
   // Parse body
   const body = await parseBody<{
     displayName?: string;
@@ -215,6 +226,16 @@ export const DELETE = withTiming(async (req: NextRequest, ctx?: unknown) => {
       "INFLUENCER_NOT_FOUND",
       `Influencer ${iv.data} not found`,
       404
+    );
+  }
+
+  // SECURITY: Verify ownership — only the influencer themselves (or an admin)
+  // may archive the profile.
+  if (user.role !== "admin" && user.id !== influencer.id) {
+    return err(
+      "FORBIDDEN",
+      "You do not have permission to delete this influencer profile",
+      403
     );
   }
 

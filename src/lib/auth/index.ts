@@ -12,18 +12,28 @@ export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.randomBytes(16).toString("hex");
   return new Promise((resolve, reject) => {
     crypto.scrypt(password, salt, 64, (err, key) => {
-      if (err) reject(err);
+      if (err) { reject(err); return; }
       resolve(`${salt}:${key.toString("hex")}`);
     });
   });
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const [salt, key] = hash.split(":");
+  // Defensive parse — a malformed/corrupted hash should return false, not throw.
+  const parts = hash.split(":");
+  if (parts.length !== 2) return false;
+  const [salt, key] = parts;
+  let keyBuf: Buffer;
+  try {
+    keyBuf = Buffer.from(key, "hex");
+  } catch {
+    return false;
+  }
+  if (keyBuf.length !== 64) return false;
   return new Promise((resolve, reject) => {
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
-      if (err) reject(err);
-      resolve(crypto.timingSafeEqual(Buffer.from(key, "hex"), derivedKey));
+      if (err) { reject(err); return; }
+      resolve(crypto.timingSafeEqual(keyBuf, derivedKey));
     });
   });
 }
@@ -220,8 +230,12 @@ export function verifyJWT(token: string): JWTPayload | null {
       .update(`${header}.${body}`)
       .digest("base64url");
 
-    // Constant-time comparison
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
+    // Constant-time comparison — buffers must be the same length or
+    // timingSafeEqual throws. A length mismatch already means invalid.
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expBuf.length) return null;
+    if (!crypto.timingSafeEqual(sigBuf, expBuf)) {
       return null;
     }
 

@@ -21,11 +21,18 @@ import { logAuditEvent } from "@/lib/audit";
 // ─── Replay Protection ──────────────────────────────────────────────────────
 
 const processedEvents = new Map<string, number>();
-const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+// Replay-window for the OUTER timestamp-based check (mock mode).
+// Real Stripe verification doesn't need this — signature alone is sufficient.
+const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes (mock-mode only)
+
+// Idempotency window for event-ID dedup. Stripe retries failed events for up to
+// 72 hours, so we hold processed event IDs for 7 days. This protects against
+// duplicate subscription writes when Stripe re-fires an event after our 200 OK.
+const IDEMPOTENCY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 let pruneCounter = 0;
 
 function pruneProcessedEvents(): void {
-  const cutoff = Date.now() - REPLAY_WINDOW_MS;
+  const cutoff = Date.now() - IDEMPOTENCY_WINDOW_MS;
   for (const [id, timestamp] of processedEvents) {
     if (timestamp < cutoff) processedEvents.delete(id);
   }

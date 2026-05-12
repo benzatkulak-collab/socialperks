@@ -9,6 +9,8 @@
  * for Postgres via the schema in /lib/db/schema.ts.
  */
 
+import { randomBytes, randomUUID } from "crypto";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type AffiliateStatus = "active" | "paused" | "banned";
@@ -72,9 +74,20 @@ const clicksByAffiliate = new Map<string, AffiliateClick[]>();
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function randomCode(): string {
+  // Use crypto.randomBytes so codes aren't predictable from Math.random's
+  // PRNG state. Rejection sampling keeps the distribution uniform across
+  // the 36-character alphabet.
+  const bytes = randomBytes(CODE_LENGTH * 2);
   let out = "";
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    out += ALPHANUMERIC[Math.floor(Math.random() * ALPHANUMERIC.length)];
+  let i = 0;
+  while (out.length < CODE_LENGTH && i < bytes.length) {
+    const b = bytes[i++];
+    // 252 = 36 * 7, the largest multiple of 36 <= 255
+    if (b < 252) out += ALPHANUMERIC[b % ALPHANUMERIC.length];
+  }
+  // Fall back in the (statistically near-impossible) case we exhausted bytes
+  while (out.length < CODE_LENGTH) {
+    out += ALPHANUMERIC[randomBytes(1)[0] % ALPHANUMERIC.length];
   }
   return out;
 }
@@ -90,7 +103,7 @@ function uniqueCode(): string {
 }
 
 function newId(prefix: string): string {
-  return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  return `${prefix}_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 
 function baseUrl(): string {

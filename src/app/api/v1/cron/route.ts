@@ -58,6 +58,18 @@ export const GET = withTiming(async (req: NextRequest) => {
     return err("UNAUTHORIZED", "Invalid cron key", 401);
   }
 
+  // KILL SWITCH: set CRON_TASKS_DISABLED=1 (or CRON_DRY_RUN=1) to halt task
+  // execution without taking the endpoint offline. Useful if a credential leak
+  // triggers email blasts or if downstream APIs are misbehaving.
+  if (process.env.CRON_TASKS_DISABLED === "1") {
+    return ok({
+      task: "(disabled)",
+      ranAt: new Date().toISOString(),
+      success: true,
+      message: "CRON_TASKS_DISABLED=1 — task execution halted",
+    });
+  }
+
   if (!task) {
     return err(
       "MISSING_TASK",

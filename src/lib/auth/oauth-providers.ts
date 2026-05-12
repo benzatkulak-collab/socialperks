@@ -59,6 +59,10 @@ export function getAuthorizationUrl(
   return `${provider.authUrl}?${params}`;
 }
 
+// OAuth providers should respond well within 10s; hard cap protects the
+// signin request from hanging when an IdP is slow or unreachable.
+const OAUTH_TIMEOUT_MS = 10_000;
+
 /**
  * Exchange an authorization code for access/refresh tokens.
  */
@@ -80,6 +84,7 @@ export async function exchangeCodeForTokens(
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
     }),
+    signal: AbortSignal.timeout(OAUTH_TIMEOUT_MS),
   });
   return res.json();
 }
@@ -96,6 +101,7 @@ export async function getUserInfo(
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
     },
+    signal: AbortSignal.timeout(OAUTH_TIMEOUT_MS),
   });
   return res.json();
 }
