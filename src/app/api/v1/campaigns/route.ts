@@ -30,6 +30,7 @@ import {
   buildPlanLimitError,
 } from "@/lib/billing/enforcement";
 import { logError } from "@/lib/logging";
+import { logAuditEvent } from "@/lib/audit";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 

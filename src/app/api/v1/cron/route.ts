@@ -28,6 +28,7 @@ import {
   type TaskResult,
 } from "@/lib/cron/tasks";
 import { timingSafeEqual } from "crypto";
+import { logger, logError } from "@/lib/logging";
 
 function constantTimeEquals(a: string, b: string): boolean {
   const ab = Buffer.from(a, "utf8");
@@ -73,8 +74,14 @@ export const GET = withTiming(async (req: NextRequest) => {
   }
 
   const start = Date.now();
+  const startedAt = new Date(start).toISOString();
   let result: TaskResult;
   let success = true;
+
+  logger.info("cron task started", {
+    task,
+    startedAt,
+  });
 
   try {
     result = await TASKS[task]();
@@ -92,16 +99,40 @@ export const GET = withTiming(async (req: NextRequest) => {
       failed: 1,
       errors: [`task threw: ${message}`],
     };
-    console.error(`[cron] task ${task} threw:`, e);
+    logError(e, {
+      method: "GET",
+      path: "/api/v1/cron",
+      task,
+      message: `cron task ${task} threw`,
+    });
   }
 
-  const ranAt = new Date(start).toISOString();
+  const ranAt = startedAt;
   const durationMs = Date.now() - start;
   recordLastRun(task, { ranAt, durationMs, success, result });
 
-  console.log(
-    `[cron] task=${task} success=${success} processed=${result.processed} succeeded=${result.succeeded} failed=${result.failed} durationMs=${durationMs}`
-  );
+  // Per-record errors: log each one explicitly so they're never silently dropped.
+  if (result.errors && result.errors.length > 0) {
+    for (const recordError of result.errors) {
+      logger.warn("cron task record error", {
+        task,
+        ranAt,
+        error: recordError,
+      });
+    }
+  }
+
+  logger[success ? "info" : "error"]("cron task finished", {
+    task,
+    ranAt,
+    endedAt: new Date().toISOString(),
+    durationMs,
+    success,
+    processed: result.processed,
+    succeeded: result.succeeded,
+    failed: result.failed,
+    errorCount: result.errors?.length ?? 0,
+  });
 
   return ok({
     task,

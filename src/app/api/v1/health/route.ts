@@ -7,6 +7,7 @@
  */
 
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { ok, rateLimit, withTiming } from "../_shared";
 import { setNoCacheHeaders } from "@/lib/api/edge-cache";
 import { db } from "@/lib/db/connection";
@@ -34,10 +35,17 @@ export const GET = withTiming(async (req: NextRequest) => {
     prismaHealth = { connected: false, latencyMs: -1, error: "Health check threw" };
   }
 
+  // We're "ok" if either backend (raw pool or Prisma) is reachable.
+  // When DATABASE_URL is unset both backends are effectively in-memory and
+  // always report connected — that's fine. When DATABASE_URL is set, both
+  // returning `connected: false` means the database is unreachable and the
+  // service should be considered degraded so monitoring/load balancers can
+  // route traffic away.
   const allConnected = database.connected || prismaHealth.connected;
   const status = allConnected ? "ok" : "degraded";
+  const httpStatus = allConnected ? 200 : 503;
 
-  const res = ok({
+  const payload = {
     status,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -56,7 +64,14 @@ export const GET = withTiming(async (req: NextRequest) => {
       latencyMs: prismaHealth.latencyMs,
       ...(prismaHealth.error ? { error: prismaHealth.error } : {}),
     },
-  });
+  };
+
+  const res = allConnected
+    ? ok(payload)
+    : NextResponse.json(
+        { success: false, data: payload },
+        { status: httpStatus, headers: { "Content-Type": "application/json" } }
+      );
   setNoCacheHeaders(res);
   return res;
 });

@@ -54,9 +54,19 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const { subscriber, duplicate } = subscribe(emailResult.data, source);
 
-  // Fire-and-forget welcome email for new subscribers (no-op if RESEND_API_KEY missing)
+  // Fire-and-forget welcome email for new subscribers (no-op if RESEND_API_KEY missing).
+  // Log failures so silent delivery problems are visible in logs.
   if (!duplicate) {
-    void sendNewsletterConfirmation(emailResult.data).catch(() => {});
+    void sendNewsletterConfirmation(emailResult.data).catch((e) => {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          msg: "Newsletter welcome email failed",
+          email: emailResult.data,
+          error: e instanceof Error ? e.message : String(e),
+        })
+      );
+    });
   }
 
   return ok(

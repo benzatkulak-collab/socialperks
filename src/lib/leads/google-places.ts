@@ -129,6 +129,11 @@ export async function searchPlaces(
     params.state ? `, ${params.state}` : ""
   }`;
 
+  // 8s timeout — Places usually responds in <1s. Without this a slow upstream
+  // would block the lead-search route until the platform request timeout.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+
   try {
     const res = await fetch(PLACES_TEXT_SEARCH, {
       method: "POST",
@@ -142,6 +147,7 @@ export async function searchPlaces(
         maxResultCount: 20,
         minRating: params.minRating ?? undefined,
       }),
+      signal: controller.signal,
     });
 
     if (!res.ok) {
@@ -152,8 +158,14 @@ export async function searchPlaces(
     const data = (await res.json()) as { places?: RawPlace[] };
     return (data.places ?? []).map(toPlaceResult);
   } catch (e) {
-    console.error("[google-places] search error:", e);
+    if (e instanceof Error && e.name === "AbortError") {
+      console.error("[google-places] search timed out after 8s");
+    } else {
+      console.error("[google-places] search error:", e);
+    }
     return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -167,6 +179,9 @@ export async function getPlaceDetails(
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) return mockDetails(placeId);
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+
   try {
     const res = await fetch(`${PLACES_DETAILS_BASE}/${placeId}`, {
       method: "GET",
@@ -174,6 +189,7 @@ export async function getPlaceDetails(
         "X-Goog-Api-Key": apiKey,
         "X-Goog-FieldMask": DETAILS_FIELD_MASK,
       },
+      signal: controller.signal,
     });
 
     if (!res.ok) {
@@ -194,8 +210,14 @@ export async function getPlaceDetails(
 
     return base;
   } catch (e) {
-    console.error("[google-places] details error:", e);
+    if (e instanceof Error && e.name === "AbortError") {
+      console.error("[google-places] details timed out after 8s");
+    } else {
+      console.error("[google-places] details error:", e);
+    }
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

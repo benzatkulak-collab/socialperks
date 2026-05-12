@@ -17,6 +17,12 @@ export interface Subscriber {
 
 const store = new Map<string, Subscriber>(); // key: lowercased email
 
+/**
+ * Capacity guard for the in-memory subscriber store. Production should
+ * be on Postgres; until then we cap growth to keep memory bounded.
+ */
+const MAX_SUBSCRIBERS = 50_000;
+
 function normalize(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -50,6 +56,14 @@ export function subscribe(
     // No confirmation flow yet; mark confirmed=false until we add double opt-in.
     confirmed: false,
   };
+
+  // Evict oldest inserts when at capacity (Map iteration is insertion-order).
+  while (store.size >= MAX_SUBSCRIBERS) {
+    const firstKey = store.keys().next().value;
+    if (firstKey === undefined) break;
+    store.delete(firstKey);
+  }
+
   store.set(key, subscriber);
   return { subscriber, duplicate: false };
 }

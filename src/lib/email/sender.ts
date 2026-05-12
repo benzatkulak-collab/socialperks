@@ -21,6 +21,10 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ success: bool
     return { success: true, id: `dev-${Date.now()}` };
   }
 
+  // Hard timeout so a slow Resend response can't hang the calling request.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -31,6 +35,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ success: bool
         subject: opts.subject,
         html: opts.html,
       }),
+      signal: controller.signal,
     });
 
     if (!res.ok) {
@@ -42,7 +47,12 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ success: bool
     const data = await res.json();
     return { success: true, id: data.id };
   } catch (error) {
-    console.error('[email] Send error:', error);
+    const msg = error instanceof Error && error.name === 'AbortError'
+      ? '[email] Send timed out after 10s'
+      : '[email] Send error:';
+    console.error(msg, error);
     return { success: false };
+  } finally {
+    clearTimeout(timeout);
   }
 }

@@ -276,11 +276,43 @@ type Handler = (req: NextRequest, ctx?: unknown) => Promise<NextResponse>;
 export function withTiming(handler: Handler): Handler {
   return async (req, ctx) => {
     const start = performance.now();
-    const res = await handler(req, ctx);
+    const requestId = crypto.randomUUID();
+    let res: NextResponse;
+
+    try {
+      res = await handler(req, ctx);
+    } catch (caught) {
+      // Top-level error handler — any uncaught exception from a route
+      // would otherwise become a 500 with no body and no logging.
+      const duration = performance.now() - start;
+      let path = "unknown";
+      try {
+        path = new URL(req.url).pathname;
+      } catch {
+        // ignore
+      }
+      const error = caught instanceof Error ? caught : new Error(String(caught));
+      console.error(
+        JSON.stringify({
+          level: "error",
+          msg: "Unhandled error in route handler",
+          requestId,
+          method: req.method,
+          path,
+          durationMs: Math.round(duration * 10) / 10,
+          error: error.message,
+          stack: error.stack,
+        })
+      );
+      res = err("INTERNAL_ERROR", "An unexpected error occurred", 500, {
+        "X-Request-Id": requestId,
+      });
+    }
+
     const duration = performance.now() - start;
     res.headers.set("X-Response-Time", `${duration.toFixed(1)}ms`);
     if (!res.headers.has("X-Request-Id")) {
-      res.headers.set("X-Request-Id", crypto.randomUUID());
+      res.headers.set("X-Request-Id", requestId);
     }
 
     // Add Server-Timing header for performance diagnostics

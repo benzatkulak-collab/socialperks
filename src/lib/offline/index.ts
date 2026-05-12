@@ -147,7 +147,11 @@ export class OfflineStore {
    */
   close(): void {
     if (this.dbPromise) {
-      this.dbPromise.then((db) => db.close()).catch(() => {});
+      this.dbPromise
+        .then((db) => db.close())
+        .catch((e) => {
+          console.error("[offline] IndexedDB close failed:", e);
+        });
       this.dbPromise = null;
     }
   }

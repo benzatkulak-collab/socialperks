@@ -14,6 +14,22 @@ import type { Lead, OutreachStatus } from "./types";
 
 const memory = new Map<string, Lead>();
 
+/**
+ * Capacity guard. In production this store is backed by Prisma, but until
+ * that migration lands we prevent unbounded growth in the in-memory store.
+ * When the cap is hit we evict the oldest insertion (Map iteration order
+ * is insertion order) — same LRU-ish approach used by response-cache.
+ */
+const MAX_LEADS = 10_000;
+
+function evictIfFull(): void {
+  while (memory.size >= MAX_LEADS) {
+    const firstKey = memory.keys().next().value;
+    if (firstKey === undefined) break;
+    memory.delete(firstKey);
+  }
+}
+
 interface LeadFilters {
   ownerId?: string;
   status?: OutreachStatus;
@@ -23,6 +39,9 @@ interface LeadFilters {
 }
 
 export async function addLead(lead: Lead): Promise<Lead> {
+  // Re-insert to bump in LRU order if it already exists.
+  if (memory.has(lead.id)) memory.delete(lead.id);
+  evictIfFull();
   memory.set(lead.id, lead);
   return lead;
 }

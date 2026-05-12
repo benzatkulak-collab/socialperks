@@ -9,6 +9,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import type React from "react";
+import {
+  trackUpgradeClicked,
+  trackCheckoutStarted,
+} from "@/lib/analytics/plausible";
 
 type Plan = "pro" | "enterprise";
 type Interval = "monthly" | "annual";
@@ -97,6 +101,8 @@ export default function UpgradePage(): React.ReactElement {
   async function handleUpgrade(plan: Plan): Promise<void> {
     setLoading(plan);
     setError(null);
+    trackUpgradeClicked(plan, "upgrade_page");
+    trackCheckoutStarted(plan, interval);
     try {
       const res = await fetch("/api/v1/billing/checkout", {
         method: "POST",

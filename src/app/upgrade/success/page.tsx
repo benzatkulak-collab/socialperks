@@ -9,6 +9,10 @@
 
 import { useEffect, useState } from "react"
 import type React from "react";
+import {
+  trackCheckoutCompleted,
+  trackSubscriptionActive,
+} from "@/lib/analytics/plausible";
 
 interface SessionInfo {
   sessionId: string | null;
@@ -30,17 +34,21 @@ export default function UpgradeSuccessPage(): React.ReactElement {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    setInfo({
+    const next: SessionInfo = {
       sessionId: params.get("session_id"),
       mock: params.get("mock") === "1",
       plan: params.get("plan"),
       interval: params.get("interval"),
-    });
+    };
+    setInfo(next);
     try {
       window.localStorage.setItem("sp-on-trial", "false");
     } catch {
       /* ignore */
     }
+    // Fire once per page load — Plausible dedupes within a session.
+    trackCheckoutCompleted(next.plan, next.mock);
+    trackSubscriptionActive(next.plan ?? "pro");
   }, []);
 
   async function openBillingPortal(): Promise<void> {

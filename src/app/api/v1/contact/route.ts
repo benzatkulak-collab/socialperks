@@ -11,6 +11,7 @@ import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, parseBody, withTiming } from "../_shared";
 import { validateEmail, validateString, validateEnum } from "@/lib/security/validate";
 import { emailProvider, contactFormEmail } from "@/lib/email";
+import { logError } from "@/lib/logging";
 
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@socialperks.app";
 
@@ -72,7 +73,12 @@ export const POST = withTiming(async (req: NextRequest) => {
   });
 
   if (!result.success) {
-    console.error("[contact] Email send failed:", result.error);
+    logError(result.error ?? new Error("contact email send failed"), {
+      method: "POST",
+      path: "/api/v1/contact",
+      subject: subjectResult.data,
+      fromEmail: emailResult.data,
+    });
     return err("EMAIL_FAILED", "Unable to send your message. Please try again.", 500);
   }
 

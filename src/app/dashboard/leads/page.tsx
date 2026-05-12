@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import type { Lead, OutreachStatus } from "@/lib/leads/types";
 import { OUTREACH_STATUSES } from "@/lib/leads/types";
+import { trackLeadSearchUsed } from "@/lib/analytics/plausible";
 
 interface Stats {
   new: number;
@@ -75,6 +76,7 @@ export default function LeadsDashboardPage() {
   async function runSearch() {
     setSearching(true);
     setSearchError(null);
+    trackLeadSearchUsed(`${industry} ${city} ${stateCode}`);
     try {
       const res = await fetch("/api/v1/leads/search", {
         method: "POST",

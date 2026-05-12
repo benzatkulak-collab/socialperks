@@ -22,6 +22,15 @@ import { eventPublisher } from "@/lib/realtime/publisher";
 import { trackReferralSignup } from "@/lib/referrals";
 import { emailQueue } from "@/lib/jobs/registry";
 import { logError } from "@/lib/logging";
+import { logAuditEvent } from "@/lib/audit";
+
+function getClientIp(req: NextRequest): string | undefined {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip") ??
+    undefined
+  );
+}
 
 // ─── In-Memory User Store ───────────────────────────────────────────────────
 
@@ -46,6 +55,24 @@ interface ResetToken {
 
 const resetTokens = new Map<string, ResetToken>();
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const MAX_RESET_TOKENS = 10_000;
+let resetTokenCounter = 0;
+
+/**
+ * Walk the map and drop expired entries. Cheap; called every Nth issue.
+ */
+function pruneResetTokens(): void {
+  const now = Date.now();
+  for (const [key, entry] of resetTokens) {
+    if (entry.expiresAt <= now) resetTokens.delete(key);
+  }
+  // Hard cap as a last-resort safety net — drop oldest insertions.
+  while (resetTokens.size > MAX_RESET_TOKENS) {
+    const firstKey = resetTokens.keys().next().value;
+    if (firstKey === undefined) break;
+    resetTokens.delete(firstKey);
+  }
+}
 
 // ─── Demo Account Seeding ───────────────────────────────────────────────────
 
@@ -275,6 +302,18 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       eventPublisher.publish("user.created", { userId, email: sanitizedEmail, role: userRole });
 
+      logAuditEvent({
+        userId,
+        email: sanitizedEmail,
+        role: userRole,
+        action: "signup",
+        entityType: "user",
+        entityId: userId,
+        ipAddress: getClientIp(req),
+        userAgent: req.headers.get("user-agent") ?? undefined,
+        metadata: { businessId },
+      });
+
       // Track referral signup if a referral code was provided
       if (body.referralCode && typeof body.referralCode === "string") {
         try {
@@ -336,6 +375,17 @@ export const POST = withTiming(async (req: NextRequest) => {
           if (valid) {
             const session = sessionStore.create(storedUser.id, storedUser.role, storedUser.email, storedUser.businessId);
             const { tokens, headers } = buildCookieHeaders(storedUser.id, storedUser.role, storedUser.email, storedUser.businessId);
+            logAuditEvent({
+              userId: storedUser.id,
+              email: storedUser.email,
+              role: storedUser.role,
+              action: "login",
+              entityType: "user",
+              entityId: storedUser.id,
+              ipAddress: getClientIp(req),
+              userAgent: req.headers.get("user-agent") ?? undefined,
+              metadata: { method: "password" },
+            });
             return ok(
               {
                 user: { id: storedUser.id, email: storedUser.email, name: storedUser.name, role: storedUser.role, businessId: storedUser.businessId },
@@ -411,7 +461,28 @@ export const POST = withTiming(async (req: NextRequest) => {
         return err("NO_TOKEN", "No session token provided");
       }
 
+      // Capture identity before destroying the session so we can audit who logged out.
+      const existingSession = sessionStore.get(token);
+      const jwtPayload = existingSession ? null : verifyJWT(token);
+      const logoutUserId = existingSession?.userId ?? jwtPayload?.sub;
+      const logoutEmail = existingSession?.email ?? jwtPayload?.email;
+      const logoutRole = existingSession?.userRole ?? jwtPayload?.role;
+
       const sessionDestroyed = sessionStore.destroy(token);
+
+      if (logoutUserId) {
+        logAuditEvent({
+          userId: logoutUserId,
+          email: logoutEmail,
+          role: logoutRole ?? "unknown",
+          action: "logout",
+          entityType: "user",
+          entityId: logoutUserId,
+          ipAddress: getClientIp(req),
+          userAgent: req.headers.get("user-agent") ?? undefined,
+        });
+      }
+
       // Also try destroying it as a JWT-mapped session — the token itself is stateless
       // but we clear cookies either way
       return ok({ loggedOut: true, sessionDestroyed }, 200, clearCookieHeaders());
@@ -482,6 +553,9 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       const storedUser = users.get(sanitizedEmail);
       if (storedUser) {
+        // Periodically prune expired reset tokens so the map stays bounded.
+        if (++resetTokenCounter % 50 === 0) pruneResetTokens();
+
         // Generate token
         const token = crypto.randomUUID().replace(/-/g, "");
         // Clear any existing tokens for this email
@@ -494,10 +568,20 @@ export const POST = withTiming(async (req: NextRequest) => {
           expiresAt: Date.now() + RESET_TOKEN_EXPIRY_MS,
         });
 
-        // Fire-and-forget password reset email
+        // Fire-and-forget password reset email. We log failures so silent
+        // delivery problems don't disappear into the void.
         const resetLink = `https://socialperks.app/reset-password?token=${token}`;
         const resetEmail = passwordResetEmail(storedUser.name, resetLink);
-        emailProvider.send({ to: sanitizedEmail, ...resetEmail }).catch(() => {});
+        emailProvider.send({ to: sanitizedEmail, ...resetEmail }).catch((e) => {
+          console.error(
+            JSON.stringify({
+              level: "error",
+              msg: "Password reset email send failed",
+              email: sanitizedEmail,
+              error: e instanceof Error ? e.message : String(e),
+            })
+          );
+        });
       }
 
       return ok({

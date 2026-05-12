@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Logo } from "@/components/ui/logo";
-import { trackSignup } from "@/lib/analytics/plausible";
+import { trackSignup, trackSignupStarted } from "@/lib/analytics/plausible";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 
 // ─── Constants (outside component to avoid re-creation) ──────────────────────
@@ -203,6 +203,7 @@ export function AuthForm({
   const handleGoToSignupForm = useCallback((role: "business" | "influencer") => {
     setSignupRole(role);
     setScreen("signup-form");
+    trackSignupStarted(role);
   }, []);
 
   const handleBackToSignup = useCallback(() => {
