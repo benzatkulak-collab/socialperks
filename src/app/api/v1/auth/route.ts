@@ -126,13 +126,26 @@ function buildCookieHeaders(
     .filter(Boolean)
     .join("; ");
 
+  // Non-HttpOnly marker cookie used by the client to short-circuit session
+  // restore without exposing the real access token to JS. Same Max-Age as
+  // the access cookie so they expire together.
+  const sessionMarker = [
+    "sp-session=1",
+    "Path=/",
+    `Max-Age=900`,
+    `SameSite=Lax`,
+    secure ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
   return {
     tokens,
     headers: {
       // SECURITY: Use null-byte separator so buildResponseHeaders can
       // emit each cookie as its own Set-Cookie header (HTTP requires
       // multiple Set-Cookie lines, not comma-joined).
-      "Set-Cookie": `${accessCookie}\u0000${refreshCookie}`,
+      "Set-Cookie": `${accessCookie}\u0000${refreshCookie}\u0000${sessionMarker}`,
     },
   };
 }
@@ -161,7 +174,19 @@ function clearCookieHeaders(): Record<string, string> {
     .filter(Boolean)
     .join("; ");
 
-  return { "Set-Cookie": `${accessClear}\u0000${refreshClear}` };
+  // Also clear the non-HttpOnly session marker used by the client
+  // for fast-path session restore (see app.tsx).
+  const markerClear = [
+    "sp-session=",
+    "Path=/",
+    "Max-Age=0",
+    "SameSite=Lax",
+    secure ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  return { "Set-Cookie": `${accessClear}\u0000${refreshClear}\u0000${markerClear}` };
 }
 
 // ─── GET /api/v1/auth — Validate Session ────────────────────────────────────

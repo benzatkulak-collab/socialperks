@@ -174,11 +174,16 @@ export function SocialPerksApp() {
   // Skip the network round-trip entirely so they see the landing screen
   // immediately instead of waiting for the timeout.
   useEffect(() => {
-    const hasAuthCookie =
+    // Previously this checked `document.cookie` for `sp-access-token=` as a
+    // fast path to skip the network call for cold visitors. That doesn't
+    // work — the access cookie is HttpOnly, so JS can never see it, and the
+    // check always returned false. Result: every refresh dumped logged-in
+    // users back to the landing page. Fall back to a non-HttpOnly marker
+    // cookie (`sp-session`) that the server sets alongside the real token.
+    const hasSessionMarker =
       typeof document !== "undefined" &&
-      /(^|;\s*)sp-access-token=/.test(document.cookie);
-
-    if (!hasAuthCookie) {
+      /(^|;\s*)sp-session=1/.test(document.cookie);
+    if (!hasSessionMarker) {
       setRestoring(false);
       return;
     }
@@ -198,6 +203,23 @@ export function SocialPerksApp() {
         if (cancelled) return;
         if (json.success && json.data?.user) {
           const role = json.data.user.role === "influencer" ? "influencer" : "business";
+          // The portal render is gated on currentBusiness / currentInfluencer
+          // which derive from currentUser. Without restoring this, a valid
+          // session would set the screen to "business" but the portal would
+          // render nothing (the gating returned null). Build a minimal user
+          // shape from the JWT claims; the portal hydrates the rest itself.
+          const u = json.data.user as { id: string; email: string; role: string; businessId?: string | null };
+          const fallback = u.email.split("@")[0] ?? "User";
+          const knownBiz = data.businesses.find((b) => b.id === (u.businessId ?? u.id));
+          const knownInf = data.influencers.find((i) => i.id === u.id);
+          const restored: Partial<SeedBusiness> & Partial<SeedInfluencer> = {
+            id: u.businessId ?? u.id,
+            email: u.email,
+            ...(role === "business"
+              ? { name: knownBiz?.name ?? fallback }
+              : { displayName: knownInf?.displayName ?? fallback }),
+          };
+          setCurrentUser(restored as SeedBusiness | SeedInfluencer);
           setUserRole(role);
           setScreen(role);
         }

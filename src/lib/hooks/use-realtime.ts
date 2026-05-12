@@ -72,6 +72,12 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
         setConnected(false);
         source.close();
         sourceRef.current = null;
+        // EventSource doesn't expose the response status — if the server
+        // returns 401 the browser fires onerror in a tight loop. Cap retries
+        // at 5 so we don't hammer the endpoint forever when the token is
+        // bad. Real users with a working session will reconnect on the
+        // first one or two attempts.
+        if (retryRef.current >= 5) return;
         // Exponential backoff: 1s, 2s, 4s, 8s... max 30s
         const delay = Math.min(1000 * Math.pow(2, retryRef.current), 30000);
         retryRef.current++;

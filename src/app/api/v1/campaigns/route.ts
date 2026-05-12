@@ -119,6 +119,8 @@ export const POST = withTiming(async (req: NextRequest) => {
   const body = await parseBody<{
     businessId?: string;
     name?: string;
+    description?: string;
+    guidelines?: string;
     actions?: string[];
     discountValue?: number;
     discountType?: string;
@@ -218,12 +220,21 @@ export const POST = withTiming(async (req: NextRequest) => {
     // per platform. This used to be dead code — registered but never
     // invoked. The launch modal explicitly promises these disclosures are
     // auto-injected, so we have to actually run them.
+    // Forward the optional `description` and `guidelines` fields to the
+    // compliance plugin so its presence-checks (`Campaign must have a
+    // description before launch`) actually see what the wizard sends.
+    // Without this, the LAUNCH_BLOCKED 422 fires even when the client
+    // includes a non-empty description.
+    const descRaw = typeof body.description === "string" ? body.description : "";
+    const guidelinesRaw = typeof body.guidelines === "string" ? body.guidelines : "";
     const hookResult = await pluginManager.executeHook(
       "campaign.beforeLaunch",
       {
         campaignId,
         businessId: bv.data,
         name: nv.data,
+        description: descRaw,
+        guidelines: guidelinesRaw,
         actions: body.actions,
         discountValue: dv.data,
         discountType: dt.data,

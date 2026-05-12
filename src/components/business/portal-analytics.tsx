@@ -18,6 +18,7 @@ interface CampaignData {
   completions: { current: number; max: number | null };
   expiry: { launchedAt: string; expiresAt: string };
   transitions: { from: string; to: string; triggeredBy: string; reason: string; timestamp: string }[];
+  name?: string;
 }
 
 interface DailyCount {
@@ -239,7 +240,12 @@ export function PortalAnalytics({ businessId }: PortalAnalyticsProps) {
           : 0;
         return {
           id: c.id,
-          name: c.transitions.find((t) => t.to === "active")?.reason || `Campaign ${c.id.slice(0, 8)}`,
+          // Use the persisted name when present. The fallback used to be
+          // `transitions.find(t => t.to === "active").reason`, which is
+          // literally the string "Campaign launched" set by the state
+          // machine — that surfaced as the displayed campaign name in
+          // the Top Campaigns table.
+          name: c.name ?? `Campaign ${c.id.slice(-8)}`,
           completions: c.completions.current,
           roi,
           state: c.state,

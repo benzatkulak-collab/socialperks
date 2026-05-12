@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PLATFORMS } from "@/lib/platforms";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -116,10 +117,14 @@ export function OnboardingWizard({
   const [step, setStep] = useState(1);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [rewardType, setRewardType] = useState<RewardType>("pct");
-  const [rewardValue, setRewardValue] = useState("");
+  // Pre-fill with a sensible default — 15% off is the most-used starter
+  // discount. Without this, the step-2 preview reads "Customers who … get …"
+  // (literal ellipsis) and the Next button stays disabled on first paint.
+  const [rewardValue, setRewardValue] = useState("15");
   const [campaignName, setCampaignName] = useState("");
   const [launching, setLaunching] = useState(false);
   const [launched, setLaunched] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -162,21 +167,16 @@ export function OnboardingWizard({
     if (!platform || !platform.topAction) return;
 
     setLaunching(true);
+    setLaunchError(null);
     const name = campaignName || `${platform.name} Campaign for ${businessName}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const token = document.cookie.match(/sp-access-token=([^;]+)/)?.[1];
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "POST",
         signal: controller.signal,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           businessId,
           name,
@@ -189,10 +189,21 @@ export function OnboardingWizard({
       });
 
       if (!res.ok) {
-        // Still show success for optimistic UX — campaign is saved locally by portal
+        const data = await res.json().catch(() => null);
+        const msg = data?.error?.message ?? `Failed to launch campaign (HTTP ${res.status}).`;
+        setLaunchError(msg);
+        setLaunching(false);
+        return;
       }
-    } catch {
-      // Network errors — proceed optimistically
+    } catch (e) {
+      const msg = controller.signal.aborted
+        ? "Request timed out. Please try again."
+        : e instanceof Error
+          ? e.message
+          : "Network error. Please try again.";
+      setLaunchError(msg);
+      setLaunching(false);
+      return;
     } finally {
       clearTimeout(timeout);
     }
@@ -459,6 +470,15 @@ export function OnboardingWizard({
                   className="w-full px-3 py-2.5 rounded-lg border border-brand-border bg-brand-bg text-brand-white text-sm outline-none focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40 transition-all"
                 />
               </div>
+
+              {launchError && (
+                <div
+                  className="mb-4 rounded-lg border border-brand-red/40 bg-brand-red/10 px-4 py-3 text-sm text-brand-red"
+                  role="alert"
+                >
+                  {launchError}
+                </div>
+              )}
 
               <div className="flex gap-3 justify-between">
                 <Button variant="ghost" onClick={() => goBackward(2)}>
