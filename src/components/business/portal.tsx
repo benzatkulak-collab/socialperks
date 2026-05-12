@@ -133,76 +133,82 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     return unsub;
   }, [subscribe, showToast]);
 
-  // ── Hydrate myCampaigns from the API on mount ──────────────────────────────
+  // ── Hydrate myCampaigns from the API ──────────────────────────────────────
   // Without this, the dashboard always showed "No campaigns yet" after reload
-  // even when GET /api/v1/campaigns?businessId=… returned rows. The state
-  // machine response (CampaignLifecycle) doesn't include a stored campaign
-  // name, so we derive a display label from the first action when possible
-  // and fall back to a short id slug. The PortalAnalytics page already
-  // hydrates this way; we match the pattern.
+  // even when GET /api/v1/campaigns?businessId=… returned rows. We also call
+  // this after a successful launch / lifecycle action so the displayed ids
+  // always match what the server's in-memory campaign manager actually has
+  // (the optimistic prepend was sending random UUIDs that 404'd on PUT).
+  const reloadCampaigns = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await apiFetch(
+        `/api/v1/campaigns?businessId=${encodeURIComponent(biz.id)}&perPage=100`,
+        { method: "GET" }
+      );
+      if (!res.ok) return false;
+      const json = await res.json().catch(() => null);
+      const rows: Array<{
+        id: string;
+        state: string;
+        completions?: { current: number };
+        budget?: { allocated: number; type: string };
+        expiry?: { launchedAt: string };
+        transitions?: Array<{ to: string; reason: string }>;
+        name?: string;
+        actions?: string[];
+      }> = json?.data?.campaigns ?? [];
+      if (!Array.isArray(rows)) return false;
+
+      const mapped: ActiveCampaign[] = rows.map((c) => {
+        const actionId = c.actions?.[0];
+        const action = actionId ? findAction(actionId) : null;
+        const platformId = action?.platformId;
+        const platform = platformId ? findPlatform(platformId) : null;
+        const rewardType: ActiveCampaign["rewardType"] =
+          c.budget?.type === "dol" ? "dol" : "pct";
+        const rewardValueRaw = c.budget?.allocated ?? 0;
+        const rewardValue =
+          rewardType === "pct"
+            ? `${rewardValueRaw}% off`
+            : `$${rewardValueRaw} off`;
+        const status: ActiveCampaign["status"] =
+          c.state === "active"
+            ? "active"
+            : c.state === "paused"
+              ? "paused"
+              : "ended";
+        return {
+          id: c.id,
+          name: c.name ?? `Campaign ${c.id.slice(-8)}`,
+          platform: platform?.name ?? "—",
+          platformIcon: platform?.icon ?? "📣",
+          action: action?.label ?? "—",
+          rewardType,
+          rewardValue,
+          status,
+          completions: c.completions?.current ?? 0,
+          createdAt: (c.expiry?.launchedAt ?? new Date().toISOString()).slice(0, 10),
+        };
+      });
+
+      setMyCampaigns(mapped);
+      return true;
+    } catch {
+      // Best-effort hydration — fall back to existing local state.
+      return false;
+    }
+  }, [biz.id]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await apiFetch(
-          `/api/v1/campaigns?businessId=${encodeURIComponent(biz.id)}&perPage=100`,
-          { method: "GET" }
-        );
-        if (!res.ok) return;
-        const json = await res.json().catch(() => null);
-        const rows: Array<{
-          id: string;
-          state: string;
-          completions?: { current: number };
-          budget?: { allocated: number; type: string };
-          expiry?: { launchedAt: string };
-          transitions?: Array<{ to: string; reason: string }>;
-          name?: string;
-          actions?: string[];
-        }> = json?.data?.campaigns ?? [];
-        if (cancelled || !Array.isArray(rows)) return;
-
-        const mapped: ActiveCampaign[] = rows.map((c) => {
-          const actionId = c.actions?.[0];
-          const action = actionId ? findAction(actionId) : null;
-          const platformId = action?.platformId;
-          const platform = platformId ? findPlatform(platformId) : null;
-          const rewardType: ActiveCampaign["rewardType"] =
-            c.budget?.type === "dol" ? "dol" : "pct";
-          const rewardValueRaw = c.budget?.allocated ?? 0;
-          const rewardValue =
-            rewardType === "pct"
-              ? `${rewardValueRaw}% off`
-              : `$${rewardValueRaw} off`;
-          const status: ActiveCampaign["status"] =
-            c.state === "active"
-              ? "active"
-              : c.state === "paused"
-                ? "paused"
-                : "ended";
-          return {
-            id: c.id,
-            name: c.name ?? `Campaign ${c.id.slice(-8)}`,
-            platform: platform?.name ?? "—",
-            platformIcon: platform?.icon ?? "📣",
-            action: action?.label ?? "—",
-            rewardType,
-            rewardValue,
-            status,
-            completions: c.completions?.current ?? 0,
-            createdAt: (c.expiry?.launchedAt ?? new Date().toISOString()).slice(0, 10),
-          };
-        });
-
-        setMyCampaigns(mapped);
-      } catch {
-        // Best-effort hydration — fall back to empty list / seed data.
-      }
+      const ok = await reloadCampaigns();
+      if (cancelled || !ok) return;
     })();
     return () => {
       cancelled = true;
     };
-  }, [biz.id]);
+  }, [reloadCampaigns]);
 
   // Get platform/action info — memoized
   const platform = useMemo(
@@ -282,6 +288,11 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     const name = campaignName || `${action.label} on ${platform.name}`;
     setLaunching(true);
 
+    // Capture the server-assigned campaign id so subsequent pause/resume/end
+    // PUTs target a row that actually exists. Earlier, the dashboard generated
+    // a fresh client UUID and the next action returned 404.
+    let serverCampaignId: string | null = null;
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
@@ -308,6 +319,13 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
         setLaunching(false);
         return;
       }
+      try {
+        const body = await res.clone().json();
+        const id = body?.data?.campaign?.id;
+        if (typeof id === "string" && id.length > 0) serverCampaignId = id;
+      } catch {
+        // Non-JSON or malformed body — fall through to optimistic UUID
+      }
     } catch {
       if (controller.signal.aborted) {
         showToast("Request timed out. Please try again.");
@@ -320,7 +338,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     }
 
     const newCampaign: ActiveCampaign = {
-      id: crypto.randomUUID(),
+      id: serverCampaignId ?? crypto.randomUUID(),
       name,
       platform: platform.name,
       platformIcon: platform.icon,
@@ -338,7 +356,10 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     resetCreate();
     setPage("home");
     showToast(`"${newCampaign.name}" is live!`);
-  }, [platform, action, campaignName, biz.id, biz.name, rewardType, rewardValue, data, save, resetCreate, showToast]);
+    // Re-fetch from the server so card ids match the campaign manager and
+    // subsequent pause/resume/end PUTs hit a real row.
+    void reloadCampaigns();
+  }, [platform, action, campaignName, biz.id, biz.name, rewardType, rewardValue, data, save, resetCreate, showToast, reloadCampaigns]);
 
   const handlePlatformSelect = useCallback((platformId: string) => {
     setSelectedPlatform(platformId);
