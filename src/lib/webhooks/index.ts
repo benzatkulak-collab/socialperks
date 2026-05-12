@@ -11,6 +11,7 @@ import { createHmac } from "crypto";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import { JobQueue } from "@/lib/jobs/queue";
 import type { Job } from "@/lib/jobs/queue";
+import { logger } from "@/lib/logging";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -133,9 +134,12 @@ function getWebhookQueue(): JobQueue<WebhookRetryJobData> | null {
       maxAttempts: 1, // The webhook system manages its own retry count
       defaultTimeout: 60_000,
       onDead: (job: Job) => {
-        console.error(
-          `[jobs:webhook-retry] Dead letter: job=${job.id} deliveryId=${(job.data as WebhookRetryJobData).deliveryId} error=${job.lastError}`
-        );
+        logger.error("webhook delivery dead-lettered", undefined, {
+          module: "jobs:webhook-retry",
+          jobId: job.id,
+          deliveryId: (job.data as WebhookRetryJobData).deliveryId,
+          lastError: job.lastError,
+        });
       },
     });
 

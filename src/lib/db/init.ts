@@ -1,4 +1,5 @@
 import { db } from "./connection";
+import { logger, logError } from "@/lib/logging";
 
 let initialized = false;
 
@@ -14,20 +15,24 @@ export async function ensureDatabase(): Promise<void> {
   try {
     const health = await db.healthCheck();
     if (!health.connected) {
-      console.warn("[DB] Database not connected, using in-memory fallback");
+      logger.warn("database not connected, using in-memory fallback", {
+        module: "db/init",
+      });
       return;
     }
 
     // Run migrations
     const { runPendingMigrations } = await import("./migrations");
     await runPendingMigrations(db);
-    console.info("[DB] Database initialized, migrations complete");
+    logger.info("database initialized, migrations complete", {
+      module: "db/init",
+    });
 
     // Seed demo data after migrations
     const { seedDatabase } = await import("./seed-data");
     await seedDatabase();
   } catch (err) {
-    console.error("[DB] Database initialization failed:", err);
+    logError(err, { module: "db/init", stage: "initialization" });
     // Don't throw — allow app to fall back to in-memory
     initialized = false;
   }

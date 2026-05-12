@@ -22,6 +22,8 @@ import {
   validateEnum,
 } from "@/lib/security/validate";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { logAuditEvent } from "@/lib/audit";
+import { logError } from "@/lib/logging";
 
 // ─── Params helper ───────────────────────────────────────────────────────────
 
@@ -318,11 +320,27 @@ export const DELETE = withTiming(async (req: NextRequest, ctx?: unknown) => {
       lifecycle.businessId
     );
 
+    logAuditEvent({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      action: "campaign_deleted",
+      entityType: "campaign",
+      entityId: cv.data,
+      metadata: { businessId: lifecycle.businessId, reason: "Deleted via API" },
+    });
+
     return ok({
       campaign: updated,
       message: "Campaign soft-deleted (status set to ended)",
     });
   } catch (error) {
+    logError(error, {
+      method: "DELETE",
+      path: "/api/v1/campaigns/[campaignId]",
+      userId: user.id,
+      campaignId: cv.data,
+    });
     const message =
       error instanceof Error ? error.message : "Failed to delete campaign";
     return err("DELETE_FAILED", message, 500);

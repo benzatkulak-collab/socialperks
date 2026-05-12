@@ -3,6 +3,8 @@
  * Uses Resend when RESEND_API_KEY is set, otherwise logs to console.
  */
 
+import { logger, logError } from "@/lib/logging";
+
 interface SendEmailOptions {
   to: string;
   subject: string;
@@ -17,7 +19,10 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ success: bool
 
   if (!apiKey) {
     // Dev mode: log email to console
-    console.warn(`[email] Would send to ${opts.to}: ${opts.subject}`);
+    logger.info("email send skipped (no provider configured)", {
+      to: opts.to,
+      subject: opts.subject,
+    });
     return { success: true, id: `dev-${Date.now()}` };
   }
 
@@ -39,18 +44,28 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ success: bool
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error(`[email] Failed to send: ${err}`);
+      const errText = await res.text();
+      logger.error("email send failed", undefined, {
+        provider: "resend",
+        statusCode: res.status,
+        to: opts.to,
+        subject: opts.subject,
+        response: errText.slice(0, 1024),
+      });
       return { success: false };
     }
 
     const data = await res.json();
     return { success: true, id: data.id };
   } catch (error) {
-    const msg = error instanceof Error && error.name === 'AbortError'
-      ? '[email] Send timed out after 10s'
-      : '[email] Send error:';
-    console.error(msg, error);
+    const timedOut = error instanceof Error && error.name === 'AbortError';
+    logError(error, {
+      module: "email/sender",
+      provider: "resend",
+      to: opts.to,
+      subject: opts.subject,
+      reason: timedOut ? "timeout_10s" : "exception",
+    });
     return { success: false };
   } finally {
     clearTimeout(timeout);

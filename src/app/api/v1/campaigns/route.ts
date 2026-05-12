@@ -202,6 +202,22 @@ export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
     eventPublisher.publish("campaign.created", { campaignId, name: nv.data }, bv.data);
     recordUsage(tenant.tenantId, "campaigns_created");
 
+    logAuditEvent({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      action: "campaign_created",
+      entityType: "campaign",
+      entityId: campaignId,
+      metadata: {
+        businessId: bv.data,
+        name: nv.data,
+        actions: body.actions,
+        discountValue: dv.data,
+        discountType: dt.data,
+      },
+    });
+
     return ok(
       {
         campaign: {
@@ -287,6 +303,16 @@ export const PUT = withTiming(async (req: NextRequest) => {
           eventPublisher.publish("campaign.ended", { campaignId: cv.data, reason }, lifecycle.businessId);
           break;
       }
+
+      logAuditEvent({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        action: actionV.data === "end" ? "campaign_deleted" : "campaign_updated",
+        entityType: "campaign",
+        entityId: cv.data,
+        metadata: { lifecycleAction: actionV.data, reason },
+      });
 
       return ok({ campaign: updated! });
     } catch (error) {
@@ -386,6 +412,16 @@ export const PUT = withTiming(async (req: NextRequest) => {
     { campaignId: cv.data, updates },
     lifecycle.businessId
   );
+
+  logAuditEvent({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    action: "campaign_updated",
+    entityType: "campaign",
+    entityId: cv.data,
+    metadata: { fields: Object.keys(updates), updates },
+  });
 
   return ok({
     campaign: {
