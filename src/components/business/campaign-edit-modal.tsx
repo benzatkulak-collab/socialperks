@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -76,7 +77,6 @@ export function CampaignEditModal({
     setSaving(true);
 
     try {
-      const token = document.cookie.match(/sp-access-token=([^;]+)/)?.[1];
       const payload: Record<string, unknown> = {
         campaignId: campaign.id,
         name: name.trim(),
@@ -104,13 +104,8 @@ export function CampaignEditModal({
         payload.tags = [];
       }
 
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify(payload),
       });
 

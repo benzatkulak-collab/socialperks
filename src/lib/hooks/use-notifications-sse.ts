@@ -147,6 +147,9 @@ export function useNotificationsSSE(token: string | null): UseNotificationsSSERe
         setConnected(false);
         source.close();
         sourceRef.current = null;
+        // EventSource swallows the HTTP status — cap retries at 5 so a bad
+        // token doesn't put us in a hot loop hitting /api/v1/events.
+        if (retryRef.current >= 5) return;
         // Exponential backoff: 1s, 2s, 4s, 8s... max 30s
         const delay = Math.min(
           INITIAL_RETRY_MS * Math.pow(2, retryRef.current),

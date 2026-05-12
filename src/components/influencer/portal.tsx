@@ -18,6 +18,7 @@ import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
 import { DashboardSkeleton, EarningsSkeleton } from "@/components/ui/portal-skeletons";
 import { PerkWallet } from "@/components/influencer/perk-wallet";
 import { NotificationCenter } from "@/components/shared/notification-center";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface SubmissionEntry {
   id: string;
@@ -223,11 +224,9 @@ export function InfluencerPortal({
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      await fetch("/api/v1/submissions", {
+      await apiFetch("/api/v1/submissions", {
         method: "POST",
         signal: controller.signal,
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: campaign.id,
           userId: influencer.id,

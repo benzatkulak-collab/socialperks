@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useBusinessDashboard } from "@/lib/hooks/use-business-dashboard";
 import { useRealtime } from "@/lib/hooks/use-realtime";
-import { PLATFORMS } from "@/lib/platforms";
+import { PLATFORMS, findPlatform, findAction } from "@/lib/platforms";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 import { PortalHome } from "./portal-home";
 import { PortalCreate } from "./portal-create";
 import { PortalAnalytics } from "./portal-analytics";
@@ -92,7 +93,16 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const [launching, setLaunching] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [showWelcome, setShowWelcome] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  // Onboarding visibility persists across reloads so users who dismissed it
+  // don't see it every time. Stored per-business in localStorage.
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      return window.localStorage.getItem(`sp:wizardDismissed:${biz.id}`) !== "1";
+    } catch {
+      return true;
+    }
+  });
 
   const { stats, loading: dashboardLoading } = useBusinessDashboard(biz.id);
   const { connected, subscribe } = useRealtime({ businessId: biz.id });
@@ -122,6 +132,77 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     });
     return unsub;
   }, [subscribe, showToast]);
+
+  // ── Hydrate myCampaigns from the API on mount ──────────────────────────────
+  // Without this, the dashboard always showed "No campaigns yet" after reload
+  // even when GET /api/v1/campaigns?businessId=… returned rows. The state
+  // machine response (CampaignLifecycle) doesn't include a stored campaign
+  // name, so we derive a display label from the first action when possible
+  // and fall back to a short id slug. The PortalAnalytics page already
+  // hydrates this way; we match the pattern.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/v1/campaigns?businessId=${encodeURIComponent(biz.id)}&perPage=100`,
+          { method: "GET" }
+        );
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        const rows: Array<{
+          id: string;
+          state: string;
+          completions?: { current: number };
+          budget?: { allocated: number; type: string };
+          expiry?: { launchedAt: string };
+          transitions?: Array<{ to: string; reason: string }>;
+          name?: string;
+          actions?: string[];
+        }> = json?.data?.campaigns ?? [];
+        if (cancelled || !Array.isArray(rows)) return;
+
+        const mapped: ActiveCampaign[] = rows.map((c) => {
+          const actionId = c.actions?.[0];
+          const action = actionId ? findAction(actionId) : null;
+          const platformId = action?.platformId;
+          const platform = platformId ? findPlatform(platformId) : null;
+          const rewardType: ActiveCampaign["rewardType"] =
+            c.budget?.type === "dol" ? "dol" : "pct";
+          const rewardValueRaw = c.budget?.allocated ?? 0;
+          const rewardValue =
+            rewardType === "pct"
+              ? `${rewardValueRaw}% off`
+              : `$${rewardValueRaw} off`;
+          const status: ActiveCampaign["status"] =
+            c.state === "active"
+              ? "active"
+              : c.state === "paused"
+                ? "paused"
+                : "ended";
+          return {
+            id: c.id,
+            name: c.name ?? `Campaign ${c.id.slice(-8)}`,
+            platform: platform?.name ?? "—",
+            platformIcon: platform?.icon ?? "📣",
+            action: action?.label ?? "—",
+            rewardType,
+            rewardValue,
+            status,
+            completions: c.completions?.current ?? 0,
+            createdAt: (c.expiry?.launchedAt ?? new Date().toISOString()).slice(0, 10),
+          };
+        });
+
+        setMyCampaigns(mapped);
+      } catch {
+        // Best-effort hydration — fall back to empty list / seed data.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [biz.id]);
 
   // Get platform/action info — memoized
   const platform = useMemo(
@@ -204,15 +285,9 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const token = document.cookie.match(/sp-access-token=([^;]+)/)?.[1];
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "POST",
         signal: controller.signal,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           businessId: biz.id,
           name,
@@ -283,8 +358,16 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     setPage("create");
   }, [resetCreate]);
 
-  const handleOnboardingComplete = useCallback(() => setShowOnboarding(false), []);
-  const handleOnboardingSkip = useCallback(() => setShowOnboarding(false), []);
+  const persistWizardDismissed = useCallback(() => {
+    try {
+      window.localStorage.setItem(`sp:wizardDismissed:${biz.id}`, "1");
+    } catch {
+      // ignore quota / privacy mode
+    }
+    setShowOnboarding(false);
+  }, [biz.id]);
+  const handleOnboardingComplete = persistWizardDismissed;
+  const handleOnboardingSkip = persistWizardDismissed;
 
   const handleBackToHome = useCallback(() => setPage("home"), []);
   const handleGoToStep2 = useCallback(() => setStep(2), []);
@@ -311,15 +394,9 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   // ── Campaign lifecycle actions ────────────────────────────────────────────
 
   const callCampaignAction = useCallback(async (campaignId: string, action: "pause" | "resume" | "end") => {
-    const token = document.cookie.match(/sp-access-token=([^;]+)/)?.[1];
     try {
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ campaignId, action }),
       });
 
@@ -391,6 +468,22 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
                   {tab === "home" ? "Dashboard" : "Analytics"}
                 </button>
               ))}
+              {/* Programs and Exchange live at top-level Next routes — the
+                  /api/v1/programs and /api/v1/exchange APIs already exist
+                  but had no UI entry point. Link out rather than embedding
+                  to keep the portal bundle small. */}
+              <a
+                href="/programs"
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+              >
+                Programs
+              </a>
+              <a
+                href="/exchange"
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+              >
+                Exchange
+              </a>
             </nav>
           </div>
           <div className="flex items-center gap-3">
