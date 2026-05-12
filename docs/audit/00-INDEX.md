@@ -8,12 +8,12 @@ All documents are self-contained and cross-link. Phase 1-7 source documents (01 
 
 | # | Document | Status |
 |---|----------|--------|
-| 01 | [System Inventory](./01-system-inventory.md) | (pending) |
-| 02 | [Architecture Maps](./02-architecture-maps.md) | (pending) |
-| 03 | [API Routes Audit](./03-api-routes-audit.md) | (pending) |
+| 01 | [System Inventory](./01-system-inventory.md) | Present |
+| 02 | [Architecture Maps](./02-architecture-maps.md) | Present |
+| 03 | [API Routes Audit](./03-api-routes-audit.md) | Present |
 | 04 | [Lib Audit](./04-lib-audit.md) | (pending) |
-| 05 | [Components Audit](./05-components-audit.md) | (pending) |
-| 06 | [AI/Agent Audit](./06-ai-agent-audit.md) | (pending) |
+| 05 | [Components Audit](./05-components-audit.md) | Present |
+| 06 | [AI/Agent Audit](./06-ai-agent-audit.md) | Present |
 
 ## Phase 8 Deliverables (this batch)
 
