@@ -346,6 +346,10 @@ export const PUT = withTiming(async (req: NextRequest) => {
   if (body.name !== undefined) {
     const nv = validateString(body.name, "name", { min: 1, max: 200 });
     if (!nv.success) return err("INVALID_NAME", nv.error, 400);
+    // Persist on the lifecycle so subsequent GETs surface the rename.
+    // Without this, only the event log carried the name and the campaign
+    // list always returned the prior value.
+    lifecycle.name = nv.data;
     updates.name = nv.data;
   }
 

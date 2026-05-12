@@ -142,6 +142,24 @@ export class DistributedRateLimiter {
 
   // ─── Stats Tracking ─────────────────────────────────────────────────────
 
+  // FIFO eviction caps so distinct consumer/endpoint counts can't grow
+  // unboundedly across the lifetime of the process. Real numbers: <5k
+  // consumers and <500 endpoints in normal traffic; these limits give
+  // a 10x headroom before eviction kicks in. Lib audit MEDIUM #5.
+  private static readonly MAX_ENDPOINT_STATS = 5_000;
+  private static readonly MAX_CONSUMER_STATS = 50_000;
+  private static readonly EVICT_BATCH = 500;
+
+  private evictStatsMap<T>(map: Map<string, T>, cap: number): void {
+    if (map.size < cap) return;
+    const iter = map.keys();
+    for (let i = 0; i < DistributedRateLimiter.EVICT_BATCH; i++) {
+      const next = iter.next();
+      if (next.done) break;
+      map.delete(next.value);
+    }
+  }
+
   private trackStats(key: string, allowed: boolean): void {
     // Parse key to extract endpoint and consumer info
     // Key format: "{ip}:{endpoint}" or "{endpoint}:{ip}"
@@ -150,22 +168,22 @@ export class DistributedRateLimiter {
     const endpoint = colonIdx >= 0 ? key.slice(colonIdx + 1) : key;
 
     // Track endpoint stats
-    const existing = this.endpointStats.get(endpoint) ?? {
-      totalRequests: 0,
-      blockedRequests: 0,
-      lastRequestAt: 0,
-    };
+    let existing = this.endpointStats.get(endpoint);
+    if (!existing) {
+      this.evictStatsMap(this.endpointStats, DistributedRateLimiter.MAX_ENDPOINT_STATS);
+      existing = { totalRequests: 0, blockedRequests: 0, lastRequestAt: 0 };
+    }
     existing.totalRequests++;
     if (!allowed) existing.blockedRequests++;
     existing.lastRequestAt = Date.now();
     this.endpointStats.set(endpoint, existing);
 
     // Track consumer stats
-    const consumerExisting = this.consumerStats.get(consumer) ?? {
-      totalRequests: 0,
-      blockedRequests: 0,
-      endpoints: new Set<string>(),
-    };
+    let consumerExisting = this.consumerStats.get(consumer);
+    if (!consumerExisting) {
+      this.evictStatsMap(this.consumerStats, DistributedRateLimiter.MAX_CONSUMER_STATS);
+      consumerExisting = { totalRequests: 0, blockedRequests: 0, endpoints: new Set<string>() };
+    }
     consumerExisting.totalRequests++;
     if (!allowed) consumerExisting.blockedRequests++;
     consumerExisting.endpoints.add(endpoint);

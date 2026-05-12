@@ -301,10 +301,26 @@ function SocialPerksAppContent() {
     );
   }
 
+  // Authenticated users who land here with screen still set to "landing"
+  // (the initial AppContext state) should NOT see the marketing homepage
+  // while the auth-aware effect catches up to flip screen to their role.
+  // Otherwise /dashboard flashes the public landing page on every reload —
+  // worst on slow networks where the flash is several seconds.
+  const showLandingBlocker = screen === "landing" && !!authUser;
+
   return (
     <ErrorBoundary>
       <main id="main-content" role="main">
-        {screen === "landing" && <Landing />}
+        {screen === "landing" && !showLandingBlocker && <Landing />}
+        {showLandingBlocker && (
+          <div
+            className="min-h-screen flex items-center justify-center px-4"
+            role="status"
+            aria-label="Loading your dashboard"
+          >
+            <div className="text-sm text-brand-dim">Loading your dashboard&hellip;</div>
+          </div>
+        )}
         {screen === "auth" && (
           <AuthForm
             data={data}

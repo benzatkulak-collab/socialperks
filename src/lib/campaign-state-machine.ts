@@ -92,6 +92,12 @@ export interface StateTransition {
 
 export interface CampaignLifecycle {
   readonly id: string;
+  /**
+   * Human-readable name. Populated from LaunchConfig at launch time and
+   * persisted on the lifecycle so list queries can return it instead of
+   * `null`. Mutable so PUT /campaigns can rename.
+   */
+  name: string;
   state: CampaignState;
   readonly businessId: string;
   budget: CampaignBudget;
@@ -160,6 +166,7 @@ class CampaignStateMachine {
 
     const lifecycle: CampaignLifecycle = {
       id: campaignId,
+      name: config.name,
       state: "draft",
       businessId,
       budget: {
@@ -581,6 +588,7 @@ class CampaignStateMachine {
 
           lifecycle = {
             id: campaignId,
+            name: (d.name as string) ?? campaignId,
             state: "draft",
             businessId: event.actorId,
             budget: {

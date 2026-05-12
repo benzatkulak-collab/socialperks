@@ -34,10 +34,27 @@ export interface LoggerOptions {
 
 // -- Request Context ----------------------------------------------------------
 
+// The context store is keyed by requestId and meant to be cleared in the
+// route wrapper's `finally`. In practice not every caller does, so a long-
+// running process slowly leaks one entry per request that throws past the
+// wrapper. Cap and FIFO-evict as a backstop. Lib audit MEDIUM #4.
+const MAX_REQUEST_CONTEXT = 10_000;
+const REQUEST_CONTEXT_EVICT_BATCH = 1_000;
 const requestContextStore = new Map<string, Record<string, unknown>>();
+
+function evictRequestContextIfFull(): void {
+  if (requestContextStore.size < MAX_REQUEST_CONTEXT) return;
+  const iter = requestContextStore.keys();
+  for (let i = 0; i < REQUEST_CONTEXT_EVICT_BATCH; i++) {
+    const next = iter.next();
+    if (next.done) break;
+    requestContextStore.delete(next.value);
+  }
+}
 
 export const RequestContext = {
   set(requestId: string, context: Record<string, unknown>): void {
+    evictRequestContextIfFull();
     requestContextStore.set(requestId, context);
   },
 
