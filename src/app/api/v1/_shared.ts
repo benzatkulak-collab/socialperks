@@ -9,6 +9,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { verifyJWT, sessionStore } from "@/lib/auth";
+import { validateCsrfToken } from "@/lib/security/csrf";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
@@ -146,9 +147,6 @@ export function requireCsrf(req: NextRequest): NextResponse | null {
   }
   const user = getUser(req);
   const sessionId = user?.id ?? deriveAnonSessionId(req);
-  // Lazy-import to avoid a top-level cycle if/when this file gets imported
-  // from anywhere that's pulled into security/csrf.ts indirectly.
-  const { validateCsrfToken } = require("@/lib/security/csrf") as typeof import("@/lib/security/csrf");
   if (!validateCsrfToken(token, sessionId)) {
     return err("CSRF_TOKEN_INVALID", "CSRF token is invalid or expired. Refresh and retry.", 403);
   }
