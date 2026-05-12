@@ -198,7 +198,7 @@ export default function IndustriesIndexPage() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:mt-12 sm:flex-row">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="w-full rounded-xl bg-brand-cyan px-10 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0 sm:w-auto"
             >
               Create Your First Campaign

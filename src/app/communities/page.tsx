@@ -132,7 +132,7 @@ export default function CommunitiesIndexPage() {
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="w-full rounded-xl bg-brand-cyan px-10 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 sm:w-auto"
             >
               Start your 14-day free trial

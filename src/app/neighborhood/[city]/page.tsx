@@ -154,7 +154,7 @@ export default async function NeighborhoodCityPage({ params }: PageProps) {
           </p>
           <div className="mt-10 flex justify-center">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="rounded-xl bg-brand-cyan px-10 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50"
             >
               Start your 14-day free trial

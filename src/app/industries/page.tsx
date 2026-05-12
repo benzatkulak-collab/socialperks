@@ -97,7 +97,7 @@ export default function IndustriesIndexPage() {
             you to industry templates that fit.
           </p>
           <a
-            href="/dashboard#signup"
+            href="/auth"
             className="mt-10 inline-flex items-center justify-center rounded-xl bg-brand-cyan px-8 py-3.5 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90"
           >
             Start free trial

@@ -11,5 +11,5 @@ interface RefPageProps {
  */
 export default async function RefPage({ params }: RefPageProps) {
   const { code } = await params;
-  redirect(`/dashboard#signup?ref=${encodeURIComponent(code)}`);
+  redirect(`/auth?ref=${encodeURIComponent(code)}`);
 }

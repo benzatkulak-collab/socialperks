@@ -147,7 +147,7 @@ export default async function CommunityPage({ params }: PageProps) {
 
           <div className="mt-10 flex flex-col items-center gap-3 sm:mt-12 sm:flex-row sm:justify-center sm:gap-4">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="w-full rounded-xl bg-brand-cyan px-8 py-3.5 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 sm:w-auto"
             >
               Start your 14-day free trial
@@ -368,7 +368,7 @@ export default async function CommunityPage({ params }: PageProps) {
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="w-full rounded-xl bg-brand-cyan px-10 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 sm:w-auto"
             >
               Start free trial

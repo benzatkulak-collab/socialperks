@@ -190,7 +190,7 @@ export default async function IndustryPage({ params }: PageProps) {
           {/* CTA */}
           <div className="mt-10 flex flex-col items-center gap-3 sm:mt-12 sm:flex-row sm:justify-center sm:gap-4">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="w-full rounded-xl bg-brand-cyan px-8 py-3.5 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0 sm:w-auto"
             >
               Start Free for {industry.name}
@@ -378,7 +378,7 @@ export default async function IndustryPage({ params }: PageProps) {
 
                 <div className="mt-auto pt-4">
                   <a
-                    href="/dashboard#signup"
+                    href="/auth"
                     className="block w-full rounded-lg border border-brand-cyan/30 bg-brand-cyan/10 px-4 py-2.5 text-center text-sm font-medium text-brand-cyan transition-all hover:border-brand-cyan/50 hover:bg-brand-cyan/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
                   >
                     Use This Template
@@ -462,7 +462,7 @@ export default async function IndustryPage({ params }: PageProps) {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:mt-12 sm:flex-row">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="w-full rounded-xl bg-brand-cyan px-10 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0 sm:w-auto"
             >
               Create Your First Campaign

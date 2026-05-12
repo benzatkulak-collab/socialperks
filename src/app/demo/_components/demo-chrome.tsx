@@ -13,7 +13,7 @@ export function DemoBanner() {
           </span>
         </div>
         <Link
-          href="/dashboard#signup"
+          href="/auth"
           className="rounded-lg bg-brand-cyan px-3 py-1.5 text-xs font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 sm:text-sm"
         >
           Start free trial →
@@ -74,7 +74,7 @@ export function DemoFloatingCta() {
   return (
     <div className="fixed bottom-6 right-6 z-40 max-w-sm">
       <Link
-        href="/dashboard#signup"
+        href="/auth"
         className="group flex items-center gap-3 rounded-2xl border border-brand-cyan/40 bg-brand-surface/95 px-5 py-3.5 shadow-xl shadow-brand-cyan/20 backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-brand-cyan hover:shadow-brand-cyan/40"
       >
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-cyan text-base text-brand-bg">

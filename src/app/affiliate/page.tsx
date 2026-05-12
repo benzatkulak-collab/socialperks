@@ -96,7 +96,7 @@ export default function AffiliatePage() {
 
             <div className="mt-10 flex animate-fade-up animate-delay-300 flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
-                href="/dashboard#signup"
+                href="/auth"
                 className="w-full sm:w-auto rounded-xl bg-brand-cyan px-8 py-3.5 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0"
               >
                 Sign up free to get your link →
@@ -258,7 +258,7 @@ export default function AffiliatePage() {
             </p>
             <div className="mt-10">
               <Link
-                href="/dashboard#signup"
+                href="/auth"
                 className="inline-flex rounded-xl bg-brand-cyan px-8 py-3.5 font-body text-base font-semibold text-brand-bg transition-all hover:-translate-y-0.5 hover:bg-brand-cyan/90 hover:shadow-lg hover:shadow-brand-cyan/25"
               >
                 Sign up free to get your link →

@@ -41,7 +41,7 @@ export function AiFinalCta() {
         <AnimateOnScroll animation="fade-up" delay={200}>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:mt-12">
             <a
-              href="/dashboard#signup"
+              href="/auth"
               className="rounded-xl bg-brand-cyan px-12 py-4 font-body text-base font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 hover:shadow-xl hover:shadow-brand-cyan/30 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg active:translate-y-0 sm:text-lg"
             >
               Start free trial →
