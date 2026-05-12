@@ -436,16 +436,18 @@ export const POST = withTiming(async (req: NextRequest) => {
 
     // ── Logout ─────────────────────────────────────────────────────────────
     case "logout": {
+      // Prefer the HttpOnly access cookie because JS can't read it to set
+      // an Authorization header — that's the whole point of HttpOnly. The
+      // dashboard logout button only sends `credentials: include`, so
+      // without this fallback every logout 400'd and the marker cookie
+      // never cleared.
       const authHeader = req.headers.get("authorization");
-      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : body.token;
+      const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+      const cookieToken = req.cookies.get("sp-access-token")?.value ?? null;
+      const token = bearer ?? cookieToken ?? body.token ?? null;
 
-      if (!token) {
-        return err("NO_TOKEN", "No session token provided");
-      }
-
-      const sessionDestroyed = sessionStore.destroy(token);
-      // Also try destroying it as a JWT-mapped session — the token itself is stateless
-      // but we clear cookies either way
+      // Even without a token we still clear cookies — the user wanted out.
+      const sessionDestroyed = token ? sessionStore.destroy(token) : false;
       return ok({ loggedOut: true, sessionDestroyed }, 200, clearCookieHeaders());
     }
 
