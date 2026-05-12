@@ -64,13 +64,46 @@ export function getAuthorizationUrl(
 const OAUTH_TIMEOUT_MS = 10_000;
 
 /**
+ * Standard OAuth token response shape. Concrete enough that callers don't
+ * need `as string` casts, loose enough to accept extra provider-specific
+ * fields (Google adds `id_token`, GitHub adds `scope`, etc.). Lib audit M7.
+ */
+export interface OAuthTokenResponse {
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
+  scope?: string;
+  id_token?: string;
+  /** Provider-specific error code (e.g. "invalid_grant"). */
+  error?: string;
+  error_description?: string;
+  [key: string]: unknown;
+}
+
+export interface OAuthUserInfo {
+  /** OpenID `sub` claim or provider-specific user id. */
+  id?: string | number;
+  sub?: string;
+  /** GitHub-only. */
+  login?: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+  email_verified?: boolean;
+  [key: string]: unknown;
+}
+
+/**
  * Exchange an authorization code for access/refresh tokens.
+ * Throws on network/HTTP failure so the callback route surfaces a real
+ * error code instead of treating a 4xx response body as a token payload.
  */
 export async function exchangeCodeForTokens(
   provider: OAuthProvider,
   code: string,
   redirectUri: string
-): Promise<Record<string, unknown>> {
+): Promise<OAuthTokenResponse> {
   const res = await fetch(provider.tokenUrl, {
     method: "POST",
     headers: {
@@ -86,7 +119,12 @@ export async function exchangeCodeForTokens(
     }),
     signal: AbortSignal.timeout(OAUTH_TIMEOUT_MS),
   });
-  return res.json();
+  const body = (await res.json().catch(() => ({}))) as OAuthTokenResponse;
+  if (!res.ok && !body.error) {
+    body.error = `http_${res.status}`;
+    body.error_description = `Token exchange returned HTTP ${res.status}`;
+  }
+  return body;
 }
 
 /**
@@ -95,7 +133,7 @@ export async function exchangeCodeForTokens(
 export async function getUserInfo(
   provider: OAuthProvider,
   accessToken: string
-): Promise<Record<string, unknown>> {
+): Promise<OAuthUserInfo> {
   const res = await fetch(provider.userInfoUrl, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -103,5 +141,8 @@ export async function getUserInfo(
     },
     signal: AbortSignal.timeout(OAUTH_TIMEOUT_MS),
   });
-  return res.json();
+  if (!res.ok) {
+    throw new Error(`userinfo request failed: HTTP ${res.status}`);
+  }
+  return (await res.json()) as OAuthUserInfo;
 }
