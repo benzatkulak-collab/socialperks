@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PLATFORMS } from "@/lib/platforms";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -112,10 +113,14 @@ export function OnboardingWizard({
   const [step, setStep] = useState(1);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [rewardType, setRewardType] = useState<RewardType>("pct");
-  const [rewardValue, setRewardValue] = useState("");
+  // Pre-fill a sensible default so the wizard's Next button isn't disabled on
+  // first render. Users were getting stuck on step 2 because the placeholder
+  // "15" was just placeholder text and Next stayed disabled until they typed.
+  const [rewardValue, setRewardValue] = useState("15");
   const [campaignName, setCampaignName] = useState("");
   const [launching, setLaunching] = useState(false);
   const [launched, setLaunched] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
   const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -158,21 +163,16 @@ export function OnboardingWizard({
     if (!platform || !platform.topAction) return;
 
     setLaunching(true);
+    setLaunchError(null);
     const name = campaignName || `${platform.name} Campaign for ${businessName}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const token = document.cookie.match(/sp-access-token=([^;]+)/)?.[1];
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "POST",
         signal: controller.signal,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           businessId,
           name,
@@ -185,10 +185,25 @@ export function OnboardingWizard({
       });
 
       if (!res.ok) {
-        // Still show success for optimistic UX — campaign is saved locally by portal
+        // Read the error body so we can surface a real message instead of
+        // pretending the launch succeeded. Previously this was swallowed and
+        // every CSRF 403 silently became "Campaign launched!".
+        let detail = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          detail = body?.error?.message ?? body?.error?.code ?? detail;
+        } catch {
+          /* non-JSON body */
+        }
+        setLaunchError(`Couldn't launch campaign: ${detail}`);
+        setLaunching(false);
+        return;
       }
-    } catch {
-      // Network errors — proceed optimistically
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Network error";
+      setLaunchError(`Couldn't launch campaign: ${msg}`);
+      setLaunching(false);
+      return;
     } finally {
       clearTimeout(timeout);
     }
@@ -451,6 +466,15 @@ export function OnboardingWizard({
                   className="w-full px-3 py-2.5 rounded-lg border border-brand-border bg-brand-bg text-brand-white text-sm outline-none focus:border-brand-cyan/50 focus:ring-2 focus:ring-brand-cyan/40 transition-all"
                 />
               </div>
+
+              {launchError && (
+                <div
+                  role="alert"
+                  className="mb-3 px-3 py-2 rounded-lg border border-red-500/40 bg-red-500/10 text-sm text-red-300"
+                >
+                  {launchError}
+                </div>
+              )}
 
               <div className="flex gap-3 justify-between">
                 <Button variant="ghost" onClick={() => goBackward(2)}>

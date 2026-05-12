@@ -8,6 +8,7 @@ import { useBusinessDashboard } from "@/lib/hooks/use-business-dashboard";
 import { useRealtime } from "@/lib/hooks/use-realtime";
 import { useToast } from "@/lib/context/app-context";
 import { PLATFORMS } from "@/lib/platforms";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 import { PortalHome } from "./portal-home";
 import { PortalCreate } from "./portal-create";
 import { PortalAnalytics } from "./portal-analytics";
@@ -92,6 +93,37 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics" | "analytics-detail" | "settings" | "campaign-detail">("home");
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+
+  // Hydrate campaign list on mount. Without this, the dashboard always shows
+  // "No campaigns yet" after a page reload because myCampaigns is initialised
+  // empty and there was no path to populate it from the server. Pull from the
+  // API so campaigns persisted by the onboarding wizard (or via another
+  // device) actually show up.
+  useEffect(() => {
+    let cancelled = false;
+    const token =
+      typeof document !== "undefined"
+        ? document.cookie.match(/sp-access-token=([^;]+)/)?.[1]
+        : null;
+    fetch(`/api/v1/campaigns?businessId=${encodeURIComponent(biz.id)}`, {
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (cancelled || !body) return;
+        const list = (body?.data?.campaigns ?? body?.campaigns ?? []) as ActiveCampaign[];
+        if (Array.isArray(list) && list.length > 0) {
+          setMyCampaigns(list);
+        }
+      })
+      .catch(() => {
+        /* leave myCampaigns empty; UI will show "No campaigns yet" */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [biz.id]);
 
   // Create campaign state
   const [step, setStep] = useState(1);
@@ -208,15 +240,9 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const token = document.cookie.match(/sp-access-token=([^;]+)/)?.[1];
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "POST",
         signal: controller.signal,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           businessId: biz.id,
           name,
@@ -332,15 +358,9 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   // ── Campaign lifecycle actions ────────────────────────────────────────────
 
   const callCampaignAction = useCallback(async (campaignId: string, action: "pause" | "resume" | "end") => {
-    const token = document.cookie.match(/sp-access-token=([^;]+)/)?.[1];
     try {
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ campaignId, action }),
       });
 

@@ -10,6 +10,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { Logo } from "@/components/ui/logo";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { formatNumber } from "@/lib/shared/formatters";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 import { PLATFORMS } from "@/lib/platforms";
 import { useSubmissions } from "@/lib/hooks/use-submissions";
 import { useToast } from "@/lib/context/app-context";
@@ -219,11 +220,9 @@ export function InfluencerPortal({
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      await fetch("/api/v1/submissions", {
+      await apiFetch("/api/v1/submissions", {
         method: "POST",
         signal: controller.signal,
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: campaign.id,
           userId: influencer.id,

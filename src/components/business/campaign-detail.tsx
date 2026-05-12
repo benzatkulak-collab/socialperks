@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { useToast } from "@/lib/context/app-context";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -241,14 +242,8 @@ export function CampaignDetail({
     if (!campaign) return;
     setActionLoading(true);
     try {
-      const token = getToken();
-      const res = await fetch("/api/v1/campaigns", {
+      const res = await apiFetch("/api/v1/campaigns", {
         method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ campaignId: campaign.id, action }),
       });
 
@@ -273,14 +268,8 @@ export function CampaignDetail({
   // ── Submission review ───────────────────────────────────────────────────
   const handleReview = useCallback(async (submissionId: string, decision: "approve" | "reject") => {
     try {
-      const token = getToken();
-      const res = await fetch("/api/v1/submissions/review", {
+      const res = await apiFetch("/api/v1/submissions/review", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({ submissionId, decision }),
       });
 
