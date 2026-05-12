@@ -163,13 +163,20 @@ export const POST = withTiming(withIdempotency(async (req: NextRequest) => {
     if (!av.success) return err("INVALID_ACTION_ID", `Invalid action ID: ${av.error}`, 400);
   }
 
-  // Validate discountValue
-  const dv = validateNumber(body.discountValue, "discountValue", { min: 0.01 });
-  if (!dv.success) return err("INVALID_DISCOUNT_VALUE", dv.error, 400);
-
-  // Validate discountType
+  // Validate discountType first so we can bound discountValue accordingly.
   const dt = validateEnum(body.discountType, "discountType", ["pct", "dol"] as const);
   if (!dt.success) return err("INVALID_DISCOUNT_TYPE", dt.error, 400);
+
+  // Validate discountValue with type-aware upper bounds. Without an upper
+  // bound an attacker (or fat-finger) could set a 9_999_999% off coupon and
+  // bankrupt the business — or skew analytics. Caps: 100% for percent,
+  // $10_000 for dollar. AI audit M5.
+  const dvMax = dt.data === "pct" ? 100 : 10_000;
+  const dv = validateNumber(body.discountValue, "discountValue", {
+    min: 0.01,
+    max: dvMax,
+  });
+  if (!dv.success) return err("INVALID_DISCOUNT_VALUE", dv.error, 400);
 
   // Optional: maxCompletions
   let maxCompletions: number | null = null;
@@ -355,7 +362,17 @@ export const PUT = withTiming(async (req: NextRequest) => {
   }
 
   if (body.discountValue !== undefined) {
-    const dv = validateNumber(body.discountValue, "discountValue", { min: 0.01 });
+    // Bound by current type if it isn't also being updated this PUT, else by
+    // the new type. Same caps as POST: 100% for percent, $10_000 for dollar.
+    const effectiveType =
+      body.discountType !== undefined
+        ? (body.discountType as "pct" | "dol")
+        : lifecycle.budget.type;
+    const dvMax = effectiveType === "pct" ? 100 : 10_000;
+    const dv = validateNumber(body.discountValue, "discountValue", {
+      min: 0.01,
+      max: dvMax,
+    });
     if (!dv.success) return err("INVALID_DISCOUNT_VALUE", dv.error, 400);
     lifecycle.budget.allocated = dv.data;
     updates.discountValue = dv.data;

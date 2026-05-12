@@ -145,12 +145,33 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const authorizationUrl = `${oauthConfig.authUrl}?${params.toString()}`;
 
-  return ok({
-    authorizationUrl,
-    state,
-    platform: oauthConfig.name,
-    platformId,
-    scopes: oauthConfig.scopes,
-    expiresIn: 3600, // State token valid for 1 hour
-  });
+  // Bind the OAuth flow to this user via an httpOnly cookie so the callback
+  // can validate the state token without trusting embedded session IDs.
+  // Without this, the callback was using `stateParts[0]` (a value the
+  // attacker controls) as the validation session, making state forgery
+  // trivial. Cookie is 10-minute-lived — just long enough to complete OAuth.
+  const secure = process.env.NODE_ENV !== "development";
+  const cookieParts = [
+    `sp-oauth-flow=${user.id}`,
+    "Path=/",
+    "Max-Age=600",
+    "HttpOnly",
+    "SameSite=Lax",
+    secure ? "Secure" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
+
+  return ok(
+    {
+      authorizationUrl,
+      state,
+      platform: oauthConfig.name,
+      platformId,
+      scopes: oauthConfig.scopes,
+      expiresIn: 3600,
+    },
+    200,
+    { "Set-Cookie": cookieParts }
+  );
 });

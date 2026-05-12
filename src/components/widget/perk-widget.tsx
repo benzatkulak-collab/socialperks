@@ -169,31 +169,43 @@ interface CampaignCardProps {
 function CampaignCard({ campaign, theme }: CampaignCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [proofUrl, setProofUrl] = useState("");
+  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (!proofUrl.trim()) return;
+    if (!proofUrl.trim() || !email.trim()) return;
     setSubmitting(true);
+    setError(null);
 
     try {
-      await fetch("/api/v1/submissions", {
+      // Hits the no-auth public submission endpoint — the authenticated
+      // /api/v1/submissions endpoint is unreachable from a third-party
+      // origin because there is no session or CSRF token here.
+      const res = await fetch("/api/v1/submissions/public", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: campaign.id,
-          userId: `widget_${campaign.id}_${Date.now()}`,
-          actionId: "widget_submission",
+          actionId: campaign.action ?? "widget_submission",
           proofUrl: proofUrl.trim(),
           proofType: "url",
+          email: email.trim(),
+          source: "widget",
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const msg = body?.error?.message ?? `Submit failed (${res.status})`;
+        setError(msg);
+        setSubmitting(false);
+        return;
+      }
       setSubmitted(true);
       setExpanded(false);
-    } catch {
-      // Show success anyway for UX — server will validate later
-      setSubmitted(true);
-      setExpanded(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setSubmitting(false);
     }
@@ -232,12 +244,8 @@ function CampaignCard({ campaign, theme }: CampaignCardProps) {
         </div>
       ) : expanded ? (
         <div style={{ marginTop: 8 }}>
-          <input
-            type="url"
-            placeholder="Paste your proof URL..."
-            value={proofUrl}
-            onChange={(e) => setProofUrl(e.target.value)}
-            style={{
+          {(() => {
+            const inputStyle = {
               display: "block",
               width: "100%",
               padding: "8px 12px",
@@ -247,18 +255,45 @@ function CampaignCard({ campaign, theme }: CampaignCardProps) {
               borderRadius: 8,
               color: isDark ? "#F1F3F9" : "#1A1D2E",
               fontSize: 13,
-              fontFamily: "inherit",
+              fontFamily: "inherit" as const,
               outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
+              boxSizing: "border-box" as const,
+            };
+            return (
+              <>
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={inputStyle}
+                />
+                <input
+                  type="url"
+                  placeholder="Paste your proof URL..."
+                  value={proofUrl}
+                  onChange={(e) => setProofUrl(e.target.value)}
+                  style={inputStyle}
+                />
+              </>
+            );
+          })()}
+          {error && (
+            <div style={{ color: "#F87171", fontSize: 12, marginBottom: 6 }}>
+              {error}
+            </div>
+          )}
           <button
             className="sp-cta"
             onClick={() => void handleSubmit()}
-            disabled={submitting || !proofUrl.trim()}
+            disabled={submitting || !proofUrl.trim() || !email.trim()}
             style={{
-              opacity: submitting || !proofUrl.trim() ? 0.5 : 1,
-              cursor: submitting || !proofUrl.trim() ? "not-allowed" : "pointer",
+              opacity:
+                submitting || !proofUrl.trim() || !email.trim() ? 0.5 : 1,
+              cursor:
+                submitting || !proofUrl.trim() || !email.trim()
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
             {submitting ? "Submitting..." : "Submit Proof"}

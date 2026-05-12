@@ -121,6 +121,69 @@ export function isValidHttpsUrl(url: string): boolean {
   }
 }
 
+/**
+ * SSRF guard: reject hosts that point at internal infrastructure.
+ *
+ * Even though we require HTTPS, an attacker can still submit URLs like
+ * `https://169.254.169.254` (AWS metadata service), `https://localhost:8080`,
+ * `https://10.0.0.5/admin`, etc. Allowing the server to dereference those
+ * would let any submission probe the host's private network.
+ *
+ * This is a string-level check (no DNS rebinding protection). DNS rebinding
+ * defense requires lookup-then-pin which is heavier than warranted for
+ * proof-URL fetches; for that, run a network-level egress allow-list.
+ */
+function isInternalHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+
+  // Localhost variants
+  if (h === "localhost" || h.endsWith(".localhost")) return true;
+  if (h === "0.0.0.0" || h === "::" || h === "::1") return true;
+  if (h.endsWith(".local") || h.endsWith(".internal")) return true;
+  if (h === "metadata" || h.endsWith(".metadata")) return true;
+
+  // IPv4 private + link-local + loopback ranges
+  const ipv4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = [parseInt(ipv4[1], 10), parseInt(ipv4[2], 10)];
+    if (a === 10) return true;                       // 10.0.0.0/8
+    if (a === 127) return true;                      // 127.0.0.0/8 loopback
+    if (a === 169 && b === 254) return true;         // 169.254.0.0/16 link-local + AWS metadata
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true;         // 192.168.0.0/16
+    if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
+    if (a >= 224) return true;                        // multicast + reserved
+    if (a === 0) return true;
+  }
+
+  // IPv6 — block private/local ranges
+  if (h.includes(":")) {
+    // Strip brackets if URL form
+    const v6 = h.replace(/^\[|\]$/g, "");
+    if (v6.startsWith("fc") || v6.startsWith("fd")) return true; // fc00::/7 unique-local
+    if (v6.startsWith("fe80")) return true;                       // fe80::/10 link-local
+    if (v6.startsWith("ff")) return true;                         // ff00::/8 multicast
+  }
+
+  return false;
+}
+
+/**
+ * Combined safety check: must be a valid https URL whose host is not internal.
+ * Use this before any fetch of a user-supplied URL.
+ */
+export function isFetchableUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return false;
+    if (parsed.username || parsed.password) return false; // strip auth attempts
+    if (isInternalHost(parsed.hostname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Main Check Function ────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS = 5_000;
@@ -150,14 +213,17 @@ export async function checkProofUrl(
   const checks: string[] = [];
   let confidence = 0;
 
-  // ── 1. URL format validation ──
-  const validFormat = isValidHttpsUrl(url);
+  // ── 1. URL format validation + SSRF guard ──
+  // `isFetchableUrl` covers both: must be https and the host must not be
+  // internal (loopback, RFC1918, link-local, AWS metadata, IPv6 ULA/link-local).
+  // Without this, an attacker could submit `https://169.254.169.254/...` and
+  // have the server fetch the cloud metadata endpoint on their behalf.
+  const validFormat = isFetchableUrl(url);
   if (validFormat) {
     confidence += 0.3;
     checks.push("url_format:pass");
   } else {
     checks.push("url_format:fail");
-    // If the URL isn't even valid, return early — no point fetching
     return {
       reachable: false,
       statusCode: 0,

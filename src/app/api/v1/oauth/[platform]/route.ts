@@ -54,24 +54,31 @@ export const GET = withTiming(
       return err("MISSING_STATE", "State parameter is required", 400);
     }
 
-    // Validate state token — we need a session ID to validate against.
-    // The state token was generated with the user's ID as the session identifier.
-    // In production, we'd look up the pending OAuth flow to get the user ID.
-    // For now, we validate the token structure (4 parts, not expired).
-    const stateParts = state.split(".");
-    if (stateParts.length !== 4) {
-      return err("INVALID_STATE", "Invalid state token format", 400);
+    // Validate state token. The previous implementation took the session ID
+    // *out of the state itself* (`stateParts[0]`) and used that to validate,
+    // which is circular — an attacker controls the state, therefore controls
+    // the validation key. Any well-formed token was accepted.
+    //
+    // We now require the matching `sp-oauth-flow` cookie (set by
+    // /api/v1/oauth/connect, httpOnly, 10 min TTL) and validate the state
+    // signature against that user id. State forgery without an active
+    // sp-oauth-flow cookie now fails.
+    const oauthFlowUserId = req.cookies.get("sp-oauth-flow")?.value;
+    if (!oauthFlowUserId) {
+      return err(
+        "OAUTH_FLOW_NOT_STARTED",
+        "No active OAuth flow. Start by calling POST /api/v1/oauth/connect first.",
+        400
+      );
     }
-
-    // Extract the session ID from the state token and validate
-    const sessionId = stateParts[0];
-    if (!validateCsrfToken(state, sessionId)) {
+    if (!validateCsrfToken(state, oauthFlowUserId)) {
       return err(
         "INVALID_STATE",
         "State token is invalid or expired. Please restart the OAuth flow.",
         400
       );
     }
+    const sessionId = oauthFlowUserId;
 
     // In production, this would exchange the code for real tokens via the platform API.
     // For now, return mock token data.

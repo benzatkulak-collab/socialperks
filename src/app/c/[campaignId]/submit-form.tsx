@@ -57,21 +57,19 @@ export function SubmitForm({ campaignId, actions }: SubmitFormProps) {
       setErrorMessage("");
 
       try {
-        const res = await fetch("/api/v1/submissions", {
+        // Public campaign-page submissions are anonymous — they hit a
+        // dedicated no-auth endpoint instead of the CSRF-gated /submissions.
+        const res = await fetch("/api/v1/submissions/public", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             campaignId,
-            userId: `pub_${email.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
             actionId: selectedAction,
             proofUrl: proofUrl.trim(),
             proofType,
-            metadata: {
-              email: email.trim(),
-              notes: notes.trim() || undefined,
-              source: "public_campaign_page",
-            },
+            email: email.trim(),
+            notes: notes.trim() || undefined,
+            source: "public_campaign_page",
           }),
         });
 

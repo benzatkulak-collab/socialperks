@@ -15,6 +15,7 @@ import {
   getUserInfo,
 } from "@/lib/auth/oauth-providers";
 import { signJWT } from "@/lib/auth";
+import { validateCsrfToken } from "@/lib/security/csrf";
 
 // ─── In-memory OAuth account store (replace with DB in production) ──────────
 
@@ -51,10 +52,17 @@ export const GET = withTiming(
       return err("MISSING_CODE", "Authorization code is required", 400);
     }
 
-    // Optionally validate state param (in production, compare against stored state)
+    // State validation: the connect step signed this token with
+    // `generateCsrfToken(sessionId)` where sessionId == "oauth:<providerId>"
+    // for the social-login flow (callers without an established session yet).
+    // Validating signature + freshness blocks attackers from feeding a forged
+    // state to complete OAuth on the victim's behalf.
     const state = req.nextUrl.searchParams.get("state");
     if (!state) {
       return err("MISSING_STATE", "State parameter is required", 400);
+    }
+    if (!validateCsrfToken(state, `oauth:${providerId}`)) {
+      return err("INVALID_STATE", "OAuth state token is invalid or expired", 400);
     }
 
     try {
@@ -128,12 +136,30 @@ export const GET = withTiming(
         type: "access",
       });
 
-      // Redirect to app with token
+      // Redirect to app with the JWT set as an httpOnly cookie. Previously
+      // the token was put in a URL query param, which leaks into browser
+      // history, Referer headers, server access logs, and any 3rd-party
+      // analytics on the landing page. Cookie + same-site keeps it inside
+      // the auth boundary.
       const redirectUrl = new URL("/", req.nextUrl.origin);
-      redirectUrl.searchParams.set("token", token);
       redirectUrl.searchParams.set("provider", providerId);
+      redirectUrl.searchParams.set("oauth", "success");
 
-      return NextResponse.redirect(redirectUrl.toString(), 302);
+      const secure = process.env.NODE_ENV !== "development";
+      const cookieParts = [
+        `sp-access-token=${token}`,
+        "Path=/",
+        "Max-Age=86400",
+        "HttpOnly",
+        "SameSite=Lax",
+        secure ? "Secure" : "",
+      ]
+        .filter(Boolean)
+        .join("; ");
+
+      const res = NextResponse.redirect(redirectUrl.toString(), 302);
+      res.headers.append("Set-Cookie", cookieParts);
+      return res;
     } catch {
       return err("OAUTH_ERROR", "OAuth authentication failed", 500);
     }

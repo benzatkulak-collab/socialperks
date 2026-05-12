@@ -12,6 +12,7 @@ import {
   oauthProviders,
   getAuthorizationUrl,
 } from "@/lib/auth/oauth-providers";
+import { generateCsrfToken } from "@/lib/security/csrf";
 
 export const POST = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "strict");
@@ -46,8 +47,12 @@ export const POST = withTiming(async (req: NextRequest) => {
     );
   }
 
-  const state = crypto.randomUUID();
-  // In production, store state in session/Redis for CSRF protection
+  // Sign the state with our CSRF HMAC so the callback can prove it was
+  // issued by us. `crypto.randomUUID()` alone was unverifiable on return —
+  // any random UUID would have been accepted. Binding to `oauth:<provider>`
+  // (not a user id, since social login has no logged-in user yet) gives
+  // signature + 1h expiry without needing a Redis side-store.
+  const state = generateCsrfToken(`oauth:${providerId}`);
   const callbackUri =
     redirectUri ||
     `${req.nextUrl.origin}/api/v1/auth/oauth/${providerId}/callback`;

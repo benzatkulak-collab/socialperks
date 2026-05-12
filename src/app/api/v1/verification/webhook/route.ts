@@ -106,9 +106,33 @@ export const GET = withTiming(async (req: NextRequest) => {
 
 // ─── POST — Webhook Event Receiver ──────────────────────────────────────────
 
+// Hard cap on webhook payload size. Without this, a malicious or
+// misconfigured sender could pump arbitrarily large bodies into the process
+// — every byte gets HMAC'd and JSON.parsed. 1 MiB is well above what real
+// social-platform webhooks send (typically <100 KiB) and prevents the worst
+// abuse without breaking legitimate deliveries. AI audit M7.
+const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024;
+
 export const POST = withTiming(async (req: NextRequest) => {
-  // Read raw body for signature verification
+  // Cheap pre-check via Content-Length when senders supply it.
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (contentLength && contentLength > MAX_WEBHOOK_BODY_BYTES) {
+    return err(
+      "PAYLOAD_TOO_LARGE",
+      `Webhook payload exceeds ${MAX_WEBHOOK_BODY_BYTES} bytes`,
+      413
+    );
+  }
+
+  // Read raw body for signature verification.
   const rawBody = await req.text();
+  if (Buffer.byteLength(rawBody, "utf8") > MAX_WEBHOOK_BODY_BYTES) {
+    return err(
+      "PAYLOAD_TOO_LARGE",
+      `Webhook payload exceeds ${MAX_WEBHOOK_BODY_BYTES} bytes`,
+      413
+    );
+  }
 
   // Verify HMAC-SHA256 signature
   const signatureHeader = req.headers.get("x-hub-signature-256");

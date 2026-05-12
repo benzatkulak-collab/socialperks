@@ -130,7 +130,7 @@ src/
 │   └── shared/                    # Shared (Nav, Footer, Ticker)
 └── lib/
     ├── types.ts                   # TypeScript type definitions
-    ├── platforms.ts               # 15 platforms, 107 actions, tiers, events
+    ├── platforms.ts               # 25 platforms, 125 actions, tiers, events
     ├── ai-engine.ts               # AI campaign generation (imported by API routes only)
     ├── seed.ts                    # Demo data (businesses, influencers, stats)
     ├── ideas.ts                   # 1000 platform ideas
@@ -203,7 +203,7 @@ src/
 - The frontend calls APIs — it never imports `ai-engine.ts` directly
 
 ### Platforms & Actions
-- 15 social media platforms, 107 marketing actions
+- 25 social media platforms, 125 marketing actions
 - Each action: effort (0-5), value ($), type (content/review/engage/share/referral)
 - Data in `src/lib/platforms.ts`
 
@@ -391,7 +391,7 @@ GET  /api/v1/csrf                           # CSRF token generation
 
 # Reference Data (public, cached)
 GET  /api/v1/pricing                        # Pricing oracle
-GET  /api/v1/actions                        # Action library (107 actions)
+GET  /api/v1/actions                        # Action library (125 actions)
 GET  /api/v1/benchmarks                     # Industry benchmarks
 GET  /api/v1/recommendations                # ML-powered recommendations
 GET  /api/v1/legal                          # Legal compliance briefings

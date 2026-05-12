@@ -65,6 +65,19 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
   }
 
+  // Cap the free-form `content` field before it reaches the fraud scanner.
+  // Without a cap a caller could push megabytes of text into the AI pipeline
+  // per request, blowing memory and rate-limit budgets. 10 KiB is well above
+  // typical proof captions. AI audit M1.
+  const MAX_CONTENT_BYTES = 10 * 1024;
+  if (typeof body.content === "string" && body.content.length > MAX_CONTENT_BYTES) {
+    return err(
+      "CONTENT_TOO_LARGE",
+      `content exceeds ${MAX_CONTENT_BYTES} bytes`,
+      413
+    );
+  }
+
   const validProofTypes = ["screenshot", "url", "video", "api_verified"];
   if (!validProofTypes.includes(body.proofType!)) {
     return err(
