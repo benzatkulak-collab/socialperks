@@ -12,7 +12,7 @@ interface Params {
   slug: string;
 }
 
-const SITE = "https://socialperks.io";
+const SITE = "https://socialperks.app";
 
 export function generateStaticParams(): Params[] {
   return ASK_QUESTIONS.map((q) => ({ slug: q.slug }));

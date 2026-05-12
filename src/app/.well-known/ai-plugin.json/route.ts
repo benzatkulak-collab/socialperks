@@ -23,12 +23,12 @@ export function GET() {
     },
     api: {
       type: "openapi",
-      url: "https://socialperks.io/api/v1/docs",
+      url: "https://socialperks.app/api/v1/docs",
       is_user_authenticated: false,
     },
-    logo_url: "https://socialperks.io/favicon.svg",
-    contact_email: "developers@socialperks.io",
-    legal_info_url: "https://socialperks.io/terms",
+    logo_url: "https://socialperks.app/favicon.svg",
+    contact_email: "developers@socialperks.app",
+    legal_info_url: "https://socialperks.app/terms",
   };
 
   return Response.json(manifest, {

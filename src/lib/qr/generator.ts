@@ -64,6 +64,6 @@ function addFinderPattern(matrix: boolean[][], startX: number, startY: number) {
   }
 }
 
-export function generateCampaignQRUrl(campaignId: string, baseUrl = 'https://socialperks.io'): string {
+export function generateCampaignQRUrl(campaignId: string, baseUrl = 'https://socialperks.app'): string {
   return `${baseUrl}/c/${campaignId}`;
 }

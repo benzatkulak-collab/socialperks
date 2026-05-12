@@ -25,7 +25,7 @@ export async function generateMetadata({
   const { industry } = await params;
   const i = getIndustry(industry);
   if (!i) return {};
-  const url = `https://socialperks.io/playbooks/${i.slug}`;
+  const url = `https://socialperks.app/playbooks/${i.slug}`;
   return {
     title: `Marketing Playbooks for ${i.Name} · Social Perks`,
     description: `Ten complete marketing playbooks for ${i.name}: Instagram giveaways, Google review programs, TikTok campaigns, referrals, loyalty, UGC, influencer partnerships, birthdays, check-ins, and VIP programs.`,
@@ -57,7 +57,7 @@ export default async function IndustryPlaybooksPage({
     itemListElement: CAMPAIGNS.map((c, idx) => ({
       "@type": "ListItem",
       position: idx + 1,
-      url: `https://socialperks.io/playbooks/${i.slug}/${c.slug}`,
+      url: `https://socialperks.app/playbooks/${i.slug}/${c.slug}`,
       name: c.metaTitle(i),
     })),
   };

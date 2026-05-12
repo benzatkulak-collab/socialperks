@@ -30,7 +30,7 @@ export async function generateMetadata({
       title: hook.hook,
       description,
       type: "article",
-      url: `https://socialperks.com/h/${hook.slug}`,
+      url: `https://socialperks.app/h/${hook.slug}`,
     },
     twitter: {
       card: "summary_large_image",
@@ -38,7 +38,7 @@ export async function generateMetadata({
       description,
     },
     robots: { index: true, follow: true },
-    alternates: { canonical: `https://socialperks.com/h/${hook.slug}` },
+    alternates: { canonical: `https://socialperks.app/h/${hook.slug}` },
   };
 }
 
@@ -56,11 +56,11 @@ export default async function HookPage({
     "@type": "WebPage",
     name: hook.hook,
     description: hook.promise,
-    url: `https://socialperks.com/h/${hook.slug}`,
+    url: `https://socialperks.app/h/${hook.slug}`,
     isPartOf: {
       "@type": "WebSite",
       name: "Social Perks",
-      url: "https://socialperks.com",
+      url: "https://socialperks.app",
     },
     about: {
       "@type": "Thing",

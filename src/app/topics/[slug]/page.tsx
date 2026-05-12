@@ -23,7 +23,7 @@ export async function generateMetadata({
   const topic = getTopic(slug);
   if (!topic) return { title: "Not Found · Social Perks" };
 
-  const url = `https://socialperks.com/topics/${topic.slug}`;
+  const url = `https://socialperks.app/topics/${topic.slug}`;
   return {
     title: topic.metaTitle,
     description: topic.metaDescription,
@@ -101,7 +101,7 @@ export default async function TopicPage({
   const topic = getTopic(slug);
   if (!topic) notFound();
 
-  const url = `https://socialperks.com/topics/${topic.slug}`;
+  const url = `https://socialperks.app/topics/${topic.slug}`;
   const allLinks = [
     ...topic.beginnerLinks,
     ...topic.toolLinks,
@@ -122,7 +122,7 @@ export default async function TopicPage({
       itemListElement: allLinks.map((l, i) => ({
         "@type": "ListItem",
         position: i + 1,
-        url: `https://socialperks.com${l.href}`,
+        url: `https://socialperks.app${l.href}`,
         name: l.label,
       })),
     },

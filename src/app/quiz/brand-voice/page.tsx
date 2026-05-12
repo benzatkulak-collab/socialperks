@@ -210,7 +210,7 @@ export default function BrandVoiceQuizPage() {
 
   async function handleShare() {
     const archetype = ARCHETYPES[winner];
-    const text = `I'm ${archetype.name} — ${archetype.tagline}\n\nFind your brand voice: socialperks.com/quiz/brand-voice`;
+    const text = `I'm ${archetype.name} — ${archetype.tagline}\n\nFind your brand voice: socialperks.app/quiz/brand-voice`;
     try {
       if (navigator.share) {
         await navigator.share({ title: "My brand voice", text });

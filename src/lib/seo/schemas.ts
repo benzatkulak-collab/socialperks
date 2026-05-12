@@ -20,7 +20,7 @@
  * - https://schema.org/AggregateRating
  */
 
-const DEFAULT_BASE_URL = "https://socialperks.io";
+const DEFAULT_BASE_URL = "https://socialperks.app";
 
 // ─── Shared types ────────────────────────────────────────────────────────────
 

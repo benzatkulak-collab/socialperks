@@ -10,13 +10,13 @@ export const metadata: Metadata = {
   description:
     "Switching from your current marketing method? Compare 12 DIY approaches (spreadsheets, punch cards, Yelp Deals, Groupon, and more) and see what changes with Social Perks. Free for 14 days.",
   alternates: {
-    canonical: "https://socialperks.io/instead-of",
+    canonical: "https://socialperks.app/instead-of",
   },
   openGraph: {
     title: "Instead of DIY Marketing — Try Social Perks",
     description:
       "Switching from spreadsheets, punch cards, Groupon, Yelp Deals, or word-of-mouth? See the honest comparison.",
-    url: "https://socialperks.io/instead-of",
+    url: "https://socialperks.app/instead-of",
     siteName: "Social Perks",
     type: "website",
   },
@@ -39,13 +39,13 @@ export default function InsteadOfIndexPage() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://socialperks.io",
+        item: "https://socialperks.app",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Instead of",
-        item: "https://socialperks.io/instead-of",
+        item: "https://socialperks.app/instead-of",
       },
     ],
   };

@@ -21,11 +21,11 @@ export async function generateMetadata({
   return {
     title: `${course.title} · Free email course · Social Perks`,
     description: course.subtitle,
-    alternates: { canonical: `https://socialperks.io/courses/${course.slug}` },
+    alternates: { canonical: `https://socialperks.app/courses/${course.slug}` },
     openGraph: {
       title: course.title,
       description: course.subtitle,
-      url: `https://socialperks.io/courses/${course.slug}`,
+      url: `https://socialperks.app/courses/${course.slug}`,
       siteName: "Social Perks",
       type: "website",
     },
@@ -84,7 +84,7 @@ export default async function CoursePage({
     provider: {
       "@type": "Organization",
       name: "Social Perks",
-      sameAs: "https://socialperks.io",
+      sameAs: "https://socialperks.app",
     },
     hasCourseInstance: {
       "@type": "CourseInstance",

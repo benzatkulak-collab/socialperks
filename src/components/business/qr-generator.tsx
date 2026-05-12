@@ -19,7 +19,7 @@ function getCampaignUrl(campaignId: string): string {
   const origin =
     typeof window !== "undefined"
       ? window.location.origin
-      : "https://socialperks.io";
+      : "https://socialperks.app";
   return `${origin}/c/${campaignId}`;
 }
 

@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   title: "Social Perks Comparisons · vs Yotpo, Brandbassador, Loox & more",
   description:
     "Honest comparisons between Social Perks and the leading review, ambassador, and influencer marketing tools. Pricing, features, target audience, and ideal fit.",
-  alternates: { canonical: "https://socialperks.io/vs" },
+  alternates: { canonical: "https://socialperks.app/vs" },
   openGraph: {
     title: "Social Perks vs Yotpo, Brandbassador, Loox, AspireIQ, and more",
     description:
       "Side-by-side honest comparisons of 10 leading customer marketing platforms.",
-    url: "https://socialperks.io/vs",
+    url: "https://socialperks.app/vs",
     siteName: "Social Perks",
     type: "website",
   },

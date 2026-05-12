@@ -21,7 +21,7 @@ Usage:
     from social_perks import SocialPerksClient
 
     client = SocialPerksClient(
-        base_url="https://socialperks.io",
+        base_url="https://socialperks.app",
         api_key="sk_live_abc123...",
     )
 
@@ -104,7 +104,7 @@ class SocialPerksClient:
     Social Perks API Client.
 
     Args:
-        base_url: Base URL of the Social Perks instance (e.g. "https://socialperks.io").
+        base_url: Base URL of the Social Perks instance (e.g. "https://socialperks.app").
         api_key: API key for authentication (recommended for server-to-server).
         token: Bearer token for authentication (from login flow).
         retries: Number of retries for 5xx errors (default: 2).

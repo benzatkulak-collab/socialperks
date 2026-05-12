@@ -9,13 +9,13 @@ export const metadata: Metadata = {
     "The Complete Social Perks Guides — Long-form Marketing Intelligence",
   description:
     "Ten pillar guides covering the full small business marketing stack — strategy, customer acquisition, reviews, Instagram, local SEO, loyalty, UGC, referrals, influencer marketing, and AI.",
-  alternates: { canonical: "https://socialperks.io/guide" },
+  alternates: { canonical: "https://socialperks.app/guide" },
   openGraph: {
     title:
       "The Complete Social Perks Guides — Long-form Marketing Intelligence",
     description:
       "Ten flagship pillar guides covering everything a small business needs to know about marketing in 2026.",
-    url: "https://socialperks.io/guide",
+    url: "https://socialperks.app/guide",
     siteName: "Social Perks",
     type: "website",
   },
@@ -28,12 +28,12 @@ export default function GuideIndexPage() {
     name: "Social Perks Pillar Guides",
     description:
       "Ten long-form authority guides covering small business marketing in 2026.",
-    url: "https://socialperks.io/guide",
+    url: "https://socialperks.app/guide",
     numberOfItems: PILLARS.length,
     itemListElement: PILLARS.map((p, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: `https://socialperks.io/guide/${p.slug}`,
+      url: `https://socialperks.app/guide/${p.slug}`,
       name: p.h1,
     })),
   };

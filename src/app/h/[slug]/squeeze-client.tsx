@@ -168,7 +168,7 @@ export function HookSqueezePage({ hook }: SqueezeProps) {
           href="/"
           className="mt-3 block text-xs uppercase tracking-[0.18em] text-white/45 hover:text-white/70"
         >
-          socialperks.com
+          socialperks.app
         </Link>
       </section>
     </article>

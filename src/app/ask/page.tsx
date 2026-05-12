@@ -4,7 +4,7 @@ import { Footer } from "@/components/shared/footer";
 import { ASK_QUESTIONS } from "@/lib/ask/questions";
 import { AskSearch } from "./ask-search";
 
-const SITE = "https://socialperks.io";
+const SITE = "https://socialperks.app";
 
 export const metadata: Metadata = {
   title: "Ask · Real answers to real small business marketing questions",

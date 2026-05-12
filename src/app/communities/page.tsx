@@ -9,7 +9,7 @@ import {
   type CommunityCategory,
 } from "@/lib/communities/data";
 
-const BASE_URL = "https://socialperks.com";
+const BASE_URL = "https://socialperks.app";
 
 export const metadata: Metadata = {
   title: "Built for your community | Social Perks",

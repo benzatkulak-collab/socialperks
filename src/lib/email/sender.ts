@@ -10,7 +10,7 @@ interface SendEmailOptions {
   from?: string;
 }
 
-const FROM_ADDRESS = process.env.EMAIL_FROM || 'Social Perks <noreply@socialperks.io>';
+const FROM_ADDRESS = process.env.EMAIL_FROM || 'Social Perks <noreply@socialperks.app>';
 
 export async function sendEmail(opts: SendEmailOptions): Promise<{ success: boolean; id?: string }> {
   const apiKey = process.env.RESEND_API_KEY;

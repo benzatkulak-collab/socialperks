@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
   const post = getPostBySlug(slug);
   if (!post) return { title: "Not Found — Social Perks Blog" };
 
-  const url = `https://socialperks.io/blog/${post.slug}`;
+  const url = `https://socialperks.app/blog/${post.slug}`;
 
   return {
     title: `${post.title} | Social Perks Blog`,
@@ -58,7 +58,7 @@ export default async function BlogPostPage({ params }: PageParams) {
   const rendered = renderMarkdown(post.content);
   const readingTime = post.readingTimeMinutes || estimateReadingTime(rendered.wordCount);
   const related = getRelatedPosts(post, 3);
-  const url = `https://socialperks.io/blog/${post.slug}`;
+  const url = `https://socialperks.app/blog/${post.slug}`;
 
   // Build the article schema for rich snippets
   const articleSchema = {
@@ -75,7 +75,7 @@ export default async function BlogPostPage({ params }: PageParams) {
       name: "Social Perks",
       logo: {
         "@type": "ImageObject",
-        url: "https://socialperks.io/icon-192.png",
+        url: "https://socialperks.app/icon-192.png",
       },
     },
     datePublished: post.publishedAt,

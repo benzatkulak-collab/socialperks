@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   title: "Marketing Glossary · 30 terms every small business should know",
   description:
     "A plain-language marketing glossary for small business owners. Definitions, examples, and how-to-use tips for UGC, influencer marketing, local SEO, NPS, CAC, LTV, and 24 more.",
-  alternates: { canonical: "https://socialperks.io/glossary" },
+  alternates: { canonical: "https://socialperks.app/glossary" },
   openGraph: {
     title: "Social Perks Marketing Glossary",
     description:
       "30 marketing terms defined plainly, with real examples and practical use cases.",
-    url: "https://socialperks.io/glossary",
+    url: "https://socialperks.app/glossary",
     siteName: "Social Perks",
     type: "website",
   },
@@ -49,12 +49,12 @@ export default function GlossaryIndexPage() {
     name: "Social Perks Marketing Glossary",
     description:
       "30 marketing terms every small business owner should know — defined plainly with examples.",
-    url: "https://socialperks.io/glossary",
+    url: "https://socialperks.app/glossary",
     hasDefinedTerm: GLOSSARY.map((t) => ({
       "@type": "DefinedTerm",
       name: t.term,
-      url: `https://socialperks.io/glossary/${t.slug}`,
-      inDefinedTermSet: "https://socialperks.io/glossary",
+      url: `https://socialperks.app/glossary/${t.slug}`,
+      inDefinedTermSet: "https://socialperks.app/glossary",
     })),
   };
 

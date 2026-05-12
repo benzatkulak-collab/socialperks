@@ -235,10 +235,10 @@ export default function SecurityPage() {
               We pay researchers who help us find and fix vulnerabilities. Email
               your findings to{" "}
               <a
-                href="mailto:security@socialperks.io"
+                href="mailto:security@socialperks.app"
                 className="font-mono text-brand-cyan hover:underline"
               >
-                security@socialperks.io
+                security@socialperks.app
               </a>{" "}
               with a clear reproduction. PGP key available on request.
             </p>
@@ -280,10 +280,10 @@ export default function SecurityPage() {
                 </span>{" "}
                 Email{" "}
                 <a
-                  href="mailto:security@socialperks.io"
+                  href="mailto:security@socialperks.app"
                   className="font-mono text-brand-cyan hover:underline"
                 >
-                  security@socialperks.io
+                  security@socialperks.app
                 </a>{" "}
                 with a description, affected URLs, and reproduction steps.
               </li>
@@ -378,10 +378,10 @@ export default function SecurityPage() {
             <p className="mt-3 text-brand-dim">
               Security inquiries:{" "}
               <a
-                href="mailto:security@socialperks.io"
+                href="mailto:security@socialperks.app"
                 className="font-mono text-brand-cyan hover:underline"
               >
-                security@socialperks.io
+                security@socialperks.app
               </a>
               <br />
               Vendor questionnaires &amp; SOC 2 letters: contact your account

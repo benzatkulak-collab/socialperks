@@ -54,7 +54,7 @@ const NEIGHBORHOOD_INDUSTRY_SLUGS = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://socialperks.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://socialperks.app";
   const lastModified = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = [

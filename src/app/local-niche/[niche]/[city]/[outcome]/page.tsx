@@ -102,7 +102,7 @@ export default async function Page({ params }: PageProps) {
     provider: {
       "@type": "Organization",
       name: "Social Perks",
-      url: "https://socialperks.com",
+      url: "https://socialperks.app",
     },
     areaServed: {
       "@type": "City",
@@ -127,31 +127,31 @@ export default async function Page({ params }: PageProps) {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://socialperks.com",
+        item: "https://socialperks.app",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Local marketing",
-        item: "https://socialperks.com/local-niche",
+        item: "https://socialperks.app/local-niche",
       },
       {
         "@type": "ListItem",
         position: 3,
         name: Plural,
-        item: `https://socialperks.com/local-niche/${n.slug}`,
+        item: `https://socialperks.app/local-niche/${n.slug}`,
       },
       {
         "@type": "ListItem",
         position: 4,
         name: `${Plural} in ${c.name}`,
-        item: `https://socialperks.com/local-niche/${n.slug}/${c.slug}`,
+        item: `https://socialperks.app/local-niche/${n.slug}/${c.slug}`,
       },
       {
         "@type": "ListItem",
         position: 5,
         name: o.name,
-        item: `https://socialperks.com/local-niche/${n.slug}/${c.slug}/${o.slug}`,
+        item: `https://socialperks.app/local-niche/${n.slug}/${c.slug}/${o.slug}`,
       },
     ],
   };

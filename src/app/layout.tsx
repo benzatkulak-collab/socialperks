@@ -9,7 +9,7 @@ import { getRootSchemas } from "@/lib/seo/json-ld";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://socialperks.io"),
+  metadataBase: new URL("https://socialperks.app"),
   title: "Social Perks — AI Marketing for Small Business",
   description:
     "AI marketing manager for small business. Customers post, review, and share for perks. 25 platforms, 125 actions, one dashboard. Free 14 days.",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     "loyalty marketing",
   ],
   alternates: {
-    canonical: "https://socialperks.io",
+    canonical: "https://socialperks.app",
   },
   openGraph: {
     title: "Social Perks — AI Marketing for Small Business",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
       "AI marketing manager for small business owners. Turn customers into your marketing team.",
     type: "website",
     siteName: "Social Perks",
-    url: "https://socialperks.io",
+    url: "https://socialperks.app",
     locale: "en_US",
     images: [
       {

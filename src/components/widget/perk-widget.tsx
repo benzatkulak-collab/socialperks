@@ -148,7 +148,7 @@ export function PerkWidget({ businessId, theme }: PerkWidgetProps) {
       {/* Powered by footer */}
       <div className="sp-footer">
         <a
-          href="https://socialperks.io"
+          href="https://socialperks.app"
           target="_blank"
           rel="noopener noreferrer"
         >

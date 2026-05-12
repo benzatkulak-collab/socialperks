@@ -21,7 +21,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Do you offer discounts for nonprofits?",
-    a: "Yes, 50% off all plans. Email hi@socialperks.io with proof of 501(c)(3).",
+    a: "Yes, 50% off all plans. Email hi@socialperks.app with proof of 501(c)(3).",
   },
   {
     q: "Do you have an annual discount?",

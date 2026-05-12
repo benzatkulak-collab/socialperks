@@ -12,13 +12,13 @@ export const metadata: Metadata = {
   description:
     "Looking to switch from your current UGC, influencer, or loyalty platform? Compare 20 alternatives and see why small businesses pick Social Perks. Free for 14 days.",
   alternates: {
-    canonical: "https://socialperks.io/alternatives",
+    canonical: "https://socialperks.app/alternatives",
   },
   openGraph: {
     title: "Alternatives to UGC, Influencer & Loyalty Platforms",
     description:
       "Switching from Yotpo, Smile.io, GRIN, or another platform? See why small businesses move to Social Perks.",
-    url: "https://socialperks.io/alternatives",
+    url: "https://socialperks.app/alternatives",
     siteName: "Social Perks",
     type: "website",
   },
@@ -58,13 +58,13 @@ export default function AlternativesIndexPage() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://socialperks.io",
+        item: "https://socialperks.app",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Alternatives",
-        item: "https://socialperks.io/alternatives",
+        item: "https://socialperks.app/alternatives",
       },
     ],
   };

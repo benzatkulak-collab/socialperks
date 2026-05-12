@@ -29,12 +29,12 @@ export async function generateMetadata({
     title: `Day ${lesson.day}: ${lesson.subject} · ${course.title} · Social Perks`,
     description: lesson.subject,
     alternates: {
-      canonical: `https://socialperks.io/courses/${course.slug}/lesson/${lesson.day}`,
+      canonical: `https://socialperks.app/courses/${course.slug}/lesson/${lesson.day}`,
     },
     openGraph: {
       title: `Day ${lesson.day}: ${lesson.subject}`,
       description: course.subtitle,
-      url: `https://socialperks.io/courses/${course.slug}/lesson/${lesson.day}`,
+      url: `https://socialperks.app/courses/${course.slug}/lesson/${lesson.day}`,
       siteName: "Social Perks",
       type: "article",
     },
@@ -65,7 +65,7 @@ export default async function LessonPage({
     isPartOf: {
       "@type": "Course",
       name: course.title,
-      url: `https://socialperks.io/courses/${course.slug}`,
+      url: `https://socialperks.app/courses/${course.slug}`,
     },
     author: {
       "@type": "Organization",
@@ -75,7 +75,7 @@ export default async function LessonPage({
       "@type": "Organization",
       name: "Social Perks",
     },
-    mainEntityOfPage: `https://socialperks.io/courses/${course.slug}/lesson/${lesson.day}`,
+    mainEntityOfPage: `https://socialperks.app/courses/${course.slug}/lesson/${lesson.day}`,
   };
 
   // Render the body as paragraphs preserving paragraph breaks.

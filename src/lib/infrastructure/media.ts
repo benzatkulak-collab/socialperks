@@ -206,7 +206,7 @@ export class UploadService {
       ],
       storageProvider: config?.storageProvider ?? "s3",
       bucketName: config?.bucketName ?? "social-perks-media",
-      cdnBaseUrl: config?.cdnBaseUrl ?? "https://cdn.socialperks.io",
+      cdnBaseUrl: config?.cdnBaseUrl ?? "https://cdn.socialperks.app",
     };
   }
 
@@ -932,7 +932,7 @@ export class CDNManager {
   private readonly maxCacheSize: number;
 
   constructor(
-    baseUrl: string = "https://cdn.socialperks.io",
+    baseUrl: string = "https://cdn.socialperks.app",
     maxCacheSize: number = 10000
   ) {
     this.baseUrl = baseUrl;

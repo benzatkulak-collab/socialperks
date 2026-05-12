@@ -90,7 +90,7 @@ export default async function OutreachTemplatePage({ params }: PageProps) {
   if (!template) notFound();
 
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://socialperks.com";
+    process.env.NEXT_PUBLIC_APP_URL || "https://socialperks.app";
   const url = `${baseUrl}/outreach/${slug}`;
 
   const articleJsonLd = {

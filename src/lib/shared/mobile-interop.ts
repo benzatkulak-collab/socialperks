@@ -93,7 +93,7 @@ export interface SyncResponse {
 
 // ═══════════════ Deep Links ═══════════════
 // URL scheme: socialperks://
-// Web equivalent: https://socialperks.com
+// Web equivalent: https://socialperks.app
 
 export interface DeepLinkAction {
   scheme: "campaign" | "profile" | "earn" | "redeem" | "settings";
@@ -103,7 +103,7 @@ export interface DeepLinkAction {
 
 export function generateDeepLink(action: DeepLinkAction): { mobile: string; web: string } {
   const base = `socialperks://${action.scheme}`;
-  const webBase = `https://app.socialperks.com/${action.scheme}`;
+  const webBase = `https://app.socialperks.app/${action.scheme}`;
   const params = action.id ? `/${action.id}` : "";
   const qs = action.params ? "?" + new URLSearchParams(action.params).toString() : "";
 

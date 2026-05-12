@@ -33,12 +33,12 @@ export async function generateMetadata({
     title,
     description,
     alternates: {
-      canonical: `https://socialperks.io/instead-of/${m.slug}`,
+      canonical: `https://socialperks.app/instead-of/${m.slug}`,
     },
     openGraph: {
       title,
       description,
-      url: `https://socialperks.io/instead-of/${m.slug}`,
+      url: `https://socialperks.app/instead-of/${m.slug}`,
       siteName: "Social Perks",
       type: "article",
     },
@@ -72,10 +72,10 @@ export default async function InsteadOfMethodPage({
       name: "Social Perks",
       logo: {
         "@type": "ImageObject",
-        url: "https://socialperks.io/icon-192.png",
+        url: "https://socialperks.app/icon-192.png",
       },
     },
-    mainEntityOfPage: `https://socialperks.io/instead-of/${m.slug}`,
+    mainEntityOfPage: `https://socialperks.app/instead-of/${m.slug}`,
     about: [
       { "@type": "SoftwareApplication", name: "Social Perks" },
       { "@type": "Thing", name: m.displayName },

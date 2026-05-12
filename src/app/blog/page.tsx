@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   description:
     "Practical, no-fluff marketing guides for small businesses — restaurants, coffee shops, salons, yoga studios, boutiques, and more. Field-tested tactics that work.",
   alternates: {
-    canonical: "https://socialperks.io/blog",
+    canonical: "https://socialperks.app/blog",
   },
   openGraph: {
     title: "Social Perks Blog — Small Business Marketing Tips",
     description:
       "Practical marketing playbooks for restaurants, coffee shops, salons, fitness studios, and boutiques.",
     type: "website",
-    url: "https://socialperks.io/blog",
+    url: "https://socialperks.app/blog",
   },
   twitter: {
     card: "summary_large_image",

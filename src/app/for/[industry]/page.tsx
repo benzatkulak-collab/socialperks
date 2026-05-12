@@ -41,7 +41,7 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      url: `https://socialperks.io/for/${industry.slug}`,
+      url: `https://socialperks.app/for/${industry.slug}`,
       siteName: "Social Perks",
     },
     twitter: {
@@ -50,7 +50,7 @@ export async function generateMetadata({
       description,
     },
     alternates: {
-      canonical: `https://socialperks.io/for/${industry.slug}`,
+      canonical: `https://socialperks.app/for/${industry.slug}`,
     },
   };
 }
@@ -83,7 +83,7 @@ export default async function IndustryPage({ params }: PageProps) {
             "@type": "WebPage",
             name: `Social Perks for ${industry.name}`,
             description: industry.description,
-            url: `https://socialperks.io/for/${industry.slug}`,
+            url: `https://socialperks.app/for/${industry.slug}`,
             mainEntity: {
               "@type": "SoftwareApplication",
               name: "Social Perks",
@@ -103,19 +103,19 @@ export default async function IndustryPage({ params }: PageProps) {
                   "@type": "ListItem",
                   position: 1,
                   name: "Home",
-                  item: "https://socialperks.io",
+                  item: "https://socialperks.app",
                 },
                 {
                   "@type": "ListItem",
                   position: 2,
                   name: "Industries",
-                  item: "https://socialperks.io/for",
+                  item: "https://socialperks.app/for",
                 },
                 {
                   "@type": "ListItem",
                   position: 3,
                   name: industry.name,
-                  item: `https://socialperks.io/for/${industry.slug}`,
+                  item: `https://socialperks.app/for/${industry.slug}`,
                 },
               ],
             },

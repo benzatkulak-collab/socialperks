@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   title: "Changelog · Social Perks",
   description:
     "Everything new, improved, and fixed in Social Perks. Reverse-chronological changelog with shipping dates and details.",
-  alternates: { canonical: "https://socialperks.io/changelog" },
+  alternates: { canonical: "https://socialperks.app/changelog" },
   openGraph: {
     title: "Social Perks Changelog",
     description: "What we shipped, when we shipped it.",
-    url: "https://socialperks.io/changelog",
+    url: "https://socialperks.app/changelog",
     siteName: "Social Perks",
     type: "website",
   },

@@ -41,8 +41,8 @@ export function getOrganizationSchema() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Social Perks",
-    url: "https://socialperks.com",
-    logo: "https://socialperks.com/favicon.svg",
+    url: "https://socialperks.app",
+    logo: "https://socialperks.app/favicon.svg",
     description:
       "Turn customers into your marketing team. Offer perks in exchange for social media posts, reviews, and shares.",
     foundingDate: "2024",
@@ -53,7 +53,7 @@ export function getOrganizationSchema() {
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      email: "support@socialperks.com",
+      email: "support@socialperks.app",
       availableLanguage: ["English"],
     },
   };
@@ -74,7 +74,7 @@ export function getSoftwareApplicationSchema() {
     description:
       "Platform connecting businesses with customers for social media marketing perks. Supports 15 platforms, 107 marketing actions, and AI-powered campaign generation.",
     operatingSystem: "Web",
-    url: "https://socialperks.com",
+    url: "https://socialperks.app",
     offers: {
       "@type": "AggregateOffer",
       priceCurrency: "USD",
@@ -118,7 +118,7 @@ export function getSoftwareApplicationSchema() {
       "Multi-location enterprise management",
       "Perk wallet and cashback system",
     ],
-    screenshot: "https://socialperks.com/og-image.png",
+    screenshot: "https://socialperks.app/og-image.png",
     softwareVersion: "1.0.0",
     creator: {
       "@type": "Organization",
@@ -139,17 +139,17 @@ export function getWebAPISchema() {
     name: "Social Perks API",
     description:
       "RESTful API for managing social media marketing campaigns, perk programs, submissions, and analytics. Supports Bearer token and API key authentication.",
-    url: "https://socialperks.com/api/v1/docs",
-    documentation: "https://socialperks.com/api/v1/docs",
-    termsOfService: "https://socialperks.com/terms",
+    url: "https://socialperks.app/api/v1/docs",
+    documentation: "https://socialperks.app/api/v1/docs",
+    termsOfService: "https://socialperks.app/terms",
     provider: {
       "@type": "Organization",
       name: "Social Perks",
-      url: "https://socialperks.com",
+      url: "https://socialperks.app",
     },
     availableChannel: {
       "@type": "ServiceChannel",
-      serviceUrl: "https://socialperks.com/api/v1",
+      serviceUrl: "https://socialperks.app/api/v1",
       serviceType: "REST API",
     },
   };
@@ -186,7 +186,7 @@ export function getBreadcrumbSchema(items: BreadcrumbItem[]) {
  * @param campaign - Campaign data to generate schema for.
  */
 export function getCampaignSchema(campaign: CampaignSchemaInput) {
-  const baseUrl = "https://socialperks.com";
+  const baseUrl = "https://socialperks.app";
 
   return {
     "@context": "https://schema.org",

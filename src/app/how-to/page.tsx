@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   title: "How-to guides for small business marketing · 30 tutorials",
   description:
     "Step-by-step tutorials for getting reviews, setting up social media, creating content, acquiring customers, and measuring growth. Plain-English how-to guides for small business owners.",
-  alternates: { canonical: "https://socialperks.io/how-to" },
+  alternates: { canonical: "https://socialperks.app/how-to" },
   openGraph: {
     title: "How-to guides for small business marketing",
     description:
       "30 step-by-step tutorials covering reviews, social media, content, acquisition, and analytics.",
-    url: "https://socialperks.io/how-to",
+    url: "https://socialperks.app/how-to",
     siteName: "Social Perks",
     type: "website",
   },
@@ -29,12 +29,12 @@ export default function HowToIndexPage() {
     "@type": "ItemList",
     name: "Social Perks How-To Guides",
     description: "30 step-by-step tutorials for small business marketing",
-    url: "https://socialperks.io/how-to",
+    url: "https://socialperks.app/how-to",
     numberOfItems: GUIDES.length,
     itemListElement: GUIDES.map((g, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: `https://socialperks.io/how-to/${g.slug}`,
+      url: `https://socialperks.app/how-to/${g.slug}`,
       name: g.title,
     })),
   };

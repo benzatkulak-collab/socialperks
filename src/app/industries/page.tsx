@@ -4,7 +4,7 @@ import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { INDUSTRY_PAGES } from "@/lib/industry-pages/data";
 
-const BASE_URL = "https://socialperks.com";
+const BASE_URL = "https://socialperks.app";
 
 export const metadata: Metadata = {
   title: "Marketing Software by Industry — Social Perks",

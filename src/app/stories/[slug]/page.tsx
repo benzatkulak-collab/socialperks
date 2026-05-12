@@ -27,7 +27,7 @@ export async function generateMetadata({
   const story = getStoryBySlug(slug);
   if (!story) return {};
 
-  const url = `https://socialperks.io/stories/${story.slug}`;
+  const url = `https://socialperks.app/stories/${story.slug}`;
   return {
     title: `${story.title} · Social Perks Stories`,
     description: story.excerpt,
@@ -117,7 +117,7 @@ export default async function StoryPage({
   const story = getStoryBySlug(slug);
   if (!story) notFound();
 
-  const url = `https://socialperks.io/stories/${story.slug}`;
+  const url = `https://socialperks.app/stories/${story.slug}`;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -133,7 +133,7 @@ export default async function StoryPage({
     publisher: {
       "@type": "Organization",
       name: "Social Perks",
-      url: "https://socialperks.io",
+      url: "https://socialperks.app",
     },
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     url,
@@ -148,13 +148,13 @@ export default async function StoryPage({
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://socialperks.io",
+        item: "https://socialperks.app",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Stories",
-        item: "https://socialperks.io/stories",
+        item: "https://socialperks.app/stories",
       },
       {
         "@type": "ListItem",

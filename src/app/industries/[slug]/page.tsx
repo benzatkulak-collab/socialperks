@@ -8,7 +8,7 @@ import {
   INDUSTRY_PAGE_SLUGS,
 } from "@/lib/industry-pages/data";
 
-const BASE_URL = "https://socialperks.com";
+const BASE_URL = "https://socialperks.app";
 
 export function generateStaticParams() {
   return INDUSTRY_PAGE_SLUGS.map((slug) => ({ slug }));

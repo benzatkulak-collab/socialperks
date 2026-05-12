@@ -486,7 +486,7 @@ function generateGeneralIdeas(): Idea[] {
     ["NPS Survey Integration", "Post-campaign NPS survey to measure customer satisfaction.", "feature", "all", "medium", "2 weeks", "medium"],
     ["Customer Opt-Out Management", "Easy opt-out for customers who don't want campaign invites.", "compliance", "all", "low", "1 week", "high"],
     ["DMARC/SPF Email Auth", "Proper email authentication to prevent campaign emails hitting spam.", "infrastructure", "all", "low", "1 week", "high"],
-    ["Subdomain Routing", "app.socialperks.com, api.socialperks.com, docs.socialperks.com.", "infrastructure", "all", "low", "1 week", "medium"],
+    ["Subdomain Routing", "app.socialperks.app, api.socialperks.app, docs.socialperks.app.", "infrastructure", "all", "low", "1 week", "medium"],
     ["Changelog & Release Notes", "Public changelog showing new features and improvements.", "community", "all", "low", "ongoing", "medium"],
     ["Feedback Widget", "In-app feedback widget for users to report issues or suggest features.", "community", "all", "low", "1 week", "medium"],
     ["Intercom/Chat Support", "Live chat support integrated into the platform.", "feature", "all", "medium", "2 weeks", "medium"],

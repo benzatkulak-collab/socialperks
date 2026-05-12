@@ -293,7 +293,7 @@ export default function DevelopersPage() {
                 Authorization header.
               </p>
               <CodeBlock language="bash" title="Login">
-{`curl -X POST https://socialperks.io/api/v1/auth \\
+{`curl -X POST https://socialperks.app/api/v1/auth \\
   -H "Content-Type: application/json" \\
   -d '{
     "action": "login",
@@ -312,12 +312,12 @@ export default function DevelopersPage() {
                 business and never expire until rotated.
               </p>
               <CodeBlock language="bash" title="Using API Key">
-{`curl https://socialperks.io/api/v1/campaigns \\
+{`curl https://socialperks.app/api/v1/campaigns \\
   -H "Authorization: Bearer sk_live_abc123..."
 
 # or
 
-curl https://socialperks.io/api/v1/campaigns \\
+curl https://socialperks.app/api/v1/campaigns \\
   -H "X-API-Key: sk_live_abc123..."`}
               </CodeBlock>
             </div>
@@ -397,7 +397,7 @@ curl https://socialperks.io/api/v1/campaigns \\
             <div>
               <h3 className="text-lg mb-3">List active campaigns</h3>
               <CodeBlock language="bash" title="GET /api/v1/campaigns">
-{`curl "https://socialperks.io/api/v1/campaigns?state=active&page=1&perPage=10" \\
+{`curl "https://socialperks.app/api/v1/campaigns?state=active&page=1&perPage=10" \\
   -H "Authorization: Bearer $TOKEN"`}
               </CodeBlock>
               <div className="mt-3">
@@ -426,7 +426,7 @@ curl https://socialperks.io/api/v1/campaigns \\
             <div>
               <h3 className="text-lg mb-3">Create a campaign</h3>
               <CodeBlock language="bash" title="POST /api/v1/campaigns">
-{`curl -X POST https://socialperks.io/api/v1/campaigns \\
+{`curl -X POST https://socialperks.app/api/v1/campaigns \\
   -H "Authorization: Bearer $TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -445,7 +445,7 @@ curl https://socialperks.io/api/v1/campaigns \\
             <div>
               <h3 className="text-lg mb-3">Submit proof of action</h3>
               <CodeBlock language="bash" title="POST /api/v1/submissions">
-{`curl -X POST https://socialperks.io/api/v1/submissions \\
+{`curl -X POST https://socialperks.app/api/v1/submissions \\
   -H "Authorization: Bearer $TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -460,7 +460,7 @@ curl https://socialperks.io/api/v1/campaigns \\
             <div>
               <h3 className="text-lg mb-3">Get AI recommendations</h3>
               <CodeBlock language="bash" title="POST /api/v1/ai/recommend">
-{`curl -X POST https://socialperks.io/api/v1/ai/recommend \\
+{`curl -X POST https://socialperks.app/api/v1/ai/recommend \\
   -H "Authorization: Bearer $TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -496,7 +496,7 @@ curl https://socialperks.io/api/v1/campaigns \\
 {`import { SocialPerksSDK } from "@socialperks/sdk";
 
 const client = new SocialPerksSDK({
-  baseUrl: "https://socialperks.io",
+  baseUrl: "https://socialperks.app",
   apiKey: "sk_live_abc123...",
 });
 
@@ -521,7 +521,7 @@ const campaigns = await client.listCampaigns({
 {`from social_perks import SocialPerksClient
 
 client = SocialPerksClient(
-    base_url="https://socialperks.io",
+    base_url="https://socialperks.app",
     api_key="sk_live_abc123...",
 )
 

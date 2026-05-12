@@ -32,11 +32,11 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: `https://socialperks.io/glossary/${t.slug}` },
+    alternates: { canonical: `https://socialperks.app/glossary/${t.slug}` },
     openGraph: {
       title,
       description,
-      url: `https://socialperks.io/glossary/${t.slug}`,
+      url: `https://socialperks.app/glossary/${t.slug}`,
       siteName: "Social Perks",
       type: "article",
     },
@@ -60,11 +60,11 @@ export default async function TermPage({
     "@type": "DefinedTerm",
     name: t.term,
     description: t.definition,
-    url: `https://socialperks.io/glossary/${t.slug}`,
+    url: `https://socialperks.app/glossary/${t.slug}`,
     inDefinedTermSet: {
       "@type": "DefinedTermSet",
       name: "Social Perks Marketing Glossary",
-      url: "https://socialperks.io/glossary",
+      url: "https://socialperks.app/glossary",
     },
   };
 

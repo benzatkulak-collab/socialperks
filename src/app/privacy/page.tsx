@@ -212,10 +212,10 @@ export default function PrivacyPage() {
             <p className="mt-3">
               To exercise these rights, contact us at{" "}
               <a
-                href="mailto:privacy@socialperks.io"
+                href="mailto:privacy@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2 transition-colors hover:text-brand-cyan/80"
               >
-                privacy@socialperks.io
+                privacy@socialperks.app
               </a>
               . We will respond within 30 days.
             </p>
@@ -233,10 +233,10 @@ export default function PrivacyPage() {
               access, rectify, erase, restrict processing, data portability, and
               object. Our Data Protection Officer can be reached at{" "}
               <a
-                href="mailto:dpo@socialperks.io"
+                href="mailto:dpo@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2 transition-colors hover:text-brand-cyan/80"
               >
-                dpo@socialperks.io
+                dpo@socialperks.app
               </a>
               .
             </p>
@@ -254,10 +254,10 @@ export default function PrivacyPage() {
               the sale of personal information. We do not sell personal
               information. To exercise your CCPA rights, contact us at{" "}
               <a
-                href="mailto:privacy@socialperks.io"
+                href="mailto:privacy@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2 transition-colors hover:text-brand-cyan/80"
               >
-                privacy@socialperks.io
+                privacy@socialperks.app
               </a>
               . We will not discriminate against you for exercising your rights.
             </p>
@@ -302,10 +302,10 @@ export default function PrivacyPage() {
               <p>
                 Email:{" "}
                 <a
-                  href="mailto:privacy@socialperks.io"
+                  href="mailto:privacy@socialperks.app"
                   className="text-brand-cyan underline underline-offset-2"
                 >
-                  privacy@socialperks.io
+                  privacy@socialperks.app
                 </a>
               </p>
               <p>San Francisco, CA, United States</p>

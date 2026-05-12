@@ -12,12 +12,12 @@ export const metadata: Metadata = {
   title: "Stories from small business owners · Social Perks",
   description:
     "Real, first-person stories from small business owners — what they tried, what they got wrong, and what actually worked. Long-form notes from the trenches.",
-  alternates: { canonical: "https://socialperks.io/stories" },
+  alternates: { canonical: "https://socialperks.app/stories" },
   openGraph: {
     title: "Real stories from small business owners",
     description:
       "What worked, what flopped, and what nobody told you. Long-form notes from the people running the shops.",
-    url: "https://socialperks.io/stories",
+    url: "https://socialperks.app/stories",
     siteName: "Social Perks",
     type: "website",
   },
@@ -64,7 +64,7 @@ export default async function StoriesIndexPage({
     itemListElement: STORIES.map((s, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: `https://socialperks.io/stories/${s.slug}`,
+      url: `https://socialperks.app/stories/${s.slug}`,
       name: s.title,
     })),
   };

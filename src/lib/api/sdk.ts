@@ -6,7 +6,7 @@
  * error handling, and retry logic.
  *
  * Usage:
- *   const sdk = new SocialPerksSDK({ baseUrl: "https://app.socialperks.io" });
+ *   const sdk = new SocialPerksSDK({ baseUrl: "https://app.socialperks.app" });
  *   await sdk.login("user@example.com", "password");
  *   const campaigns = await sdk.listCampaigns({ state: "active" });
  */

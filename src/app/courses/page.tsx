@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   title: "Free email courses for small business marketing · Social Perks",
   description:
     "Five free email courses — short, daily lessons that teach you how to drive reviews, grow on Instagram and TikTok, build loyalty, and run influencer campaigns.",
-  alternates: { canonical: "https://socialperks.io/courses" },
+  alternates: { canonical: "https://socialperks.app/courses" },
   openGraph: {
     title: "Free email courses for small business marketing",
     description:
       "Daily lessons sent straight to your inbox. Real tactics, no fluff. Done in 5-7 days.",
-    url: "https://socialperks.io/courses",
+    url: "https://socialperks.app/courses",
     siteName: "Social Perks",
     type: "website",
   },
@@ -29,7 +29,7 @@ export default function CoursesIndexPage() {
     itemListElement: COURSES.map((c, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: `https://socialperks.io/courses/${c.slug}`,
+      url: `https://socialperks.app/courses/${c.slug}`,
       name: c.title,
     })),
   };

@@ -33,12 +33,12 @@ export async function generateMetadata({
     title,
     description,
     alternates: {
-      canonical: `https://socialperks.io/vs/${competitor.slug}`,
+      canonical: `https://socialperks.app/vs/${competitor.slug}`,
     },
     openGraph: {
       title,
       description,
-      url: `https://socialperks.io/vs/${competitor.slug}`,
+      url: `https://socialperks.app/vs/${competitor.slug}`,
       siteName: "Social Perks",
       type: "article",
     },
@@ -73,10 +73,10 @@ export default async function ComparisonPage({
       name: "Social Perks",
       logo: {
         "@type": "ImageObject",
-        url: "https://socialperks.io/icon-192.png",
+        url: "https://socialperks.app/icon-192.png",
       },
     },
-    mainEntityOfPage: `https://socialperks.io/vs/${competitor.slug}`,
+    mainEntityOfPage: `https://socialperks.app/vs/${competitor.slug}`,
     about: [
       { "@type": "SoftwareApplication", name: "Social Perks" },
       { "@type": "SoftwareApplication", name: competitor.name },

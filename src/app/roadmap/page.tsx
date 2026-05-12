@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   title: "Roadmap · Social Perks",
   description:
     "What we're building now, next, and later. Public roadmap for Social Perks — the AI marketing platform for small business.",
-  alternates: { canonical: "https://socialperks.io/roadmap" },
+  alternates: { canonical: "https://socialperks.app/roadmap" },
   openGraph: {
     title: "Social Perks Roadmap",
     description: "What we're building now, next, and later.",
-    url: "https://socialperks.io/roadmap",
+    url: "https://socialperks.app/roadmap",
     siteName: "Social Perks",
     type: "website",
   },
@@ -278,10 +278,10 @@ export default function RoadmapPage() {
             get bumped up the roadmap.
           </p>
           <a
-            href="mailto:hi@socialperks.io?subject=Roadmap%20request"
+            href="mailto:hi@socialperks.app?subject=Roadmap%20request"
             className="mt-6 inline-block rounded-full bg-brand-cyan px-6 py-3 font-medium text-brand-bg transition hover:bg-brand-cyan/90"
           >
-            hi@socialperks.io
+            hi@socialperks.app
           </a>
         </section>
 

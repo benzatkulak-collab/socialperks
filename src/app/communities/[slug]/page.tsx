@@ -8,7 +8,7 @@ import {
   COMMUNITY_SLUGS,
 } from "@/lib/communities/data";
 
-const BASE_URL = "https://socialperks.com";
+const BASE_URL = "https://socialperks.app";
 
 export function generateStaticParams() {
   return COMMUNITY_SLUGS.map((slug) => ({ slug }));

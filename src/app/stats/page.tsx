@@ -6,12 +6,12 @@ export const metadata: Metadata = {
   title: "Social Perks by the numbers · Public stats",
   description:
     "Live stats on Social Perks: businesses using the platform, perks earned, social media impressions, and customer rewards distributed.",
-  alternates: { canonical: "https://socialperks.io/stats" },
+  alternates: { canonical: "https://socialperks.app/stats" },
   openGraph: {
     title: "Social Perks by the numbers",
     description:
       "Public stats: businesses, perks earned, impressions, rewards distributed, and campaign success rate.",
-    url: "https://socialperks.io/stats",
+    url: "https://socialperks.app/stats",
     type: "website",
     siteName: "Social Perks",
   },

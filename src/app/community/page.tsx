@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   title: "Join the Social Perks community",
   description:
     "Connect with 1,200+ small business owners, creators, and marketers using Social Perks. Discord, X, and our weekly newsletter.",
-  alternates: { canonical: "https://socialperks.io/community" },
+  alternates: { canonical: "https://socialperks.app/community" },
   openGraph: {
     title: "Join the Social Perks community",
     description:
       "Discord, X, and a weekly newsletter — meet other founders, creators, and marketers running perks campaigns.",
-    url: "https://socialperks.io/community",
+    url: "https://socialperks.app/community",
     type: "website",
     siteName: "Social Perks",
   },

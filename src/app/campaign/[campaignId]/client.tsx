@@ -23,7 +23,7 @@ export function CampaignPageClient({
   const campaignUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/campaign/${campaignId}`
-      : `https://socialperks.io/campaign/${campaignId}`;
+      : `https://socialperks.app/campaign/${campaignId}`;
 
   const shareText = `Earn ${perkDisplay} with ${campaignName} on Social Perks!`;
 

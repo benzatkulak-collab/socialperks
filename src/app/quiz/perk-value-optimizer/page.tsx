@@ -42,7 +42,7 @@ Goal: ${range.label}
 Recommended perk value: $${recommendedPerk.toFixed(2)} (${(range.mid * 100).toFixed(1)}% of LTV)
 Range: $${minPerk.toFixed(2)} - $${maxPerk.toFixed(2)}
 ROI multiple: ${roiMultiple.toFixed(2)}x
-— socialperks.com/quiz/perk-value-optimizer`;
+— socialperks.app/quiz/perk-value-optimizer`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);

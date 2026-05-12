@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   title: "Marketing Playbooks for Local Businesses · Social Perks",
   description:
     "100 industry × campaign-type playbooks. Step-by-step guides for Instagram giveaways, Google review programs, TikTok campaigns, referrals, loyalty, UGC, and more — tuned for restaurants, salons, gyms, and other local businesses.",
-  alternates: { canonical: "https://socialperks.io/playbooks" },
+  alternates: { canonical: "https://socialperks.app/playbooks" },
   openGraph: {
     title: "Marketing Playbooks for Local Businesses",
     description:
       "100 specific, actionable playbooks for the campaigns that move the needle for local businesses.",
-    url: "https://socialperks.io/playbooks",
+    url: "https://socialperks.app/playbooks",
     siteName: "Social Perks",
     type: "website",
   },
@@ -30,7 +30,7 @@ export default function PlaybooksIndexPage() {
       INDUSTRIES.map((i, ii) => ({
         "@type": "ListItem",
         position: ci * INDUSTRIES.length + ii + 1,
-        url: `https://socialperks.io/playbooks/${i.slug}/${c.slug}`,
+        url: `https://socialperks.app/playbooks/${i.slug}/${c.slug}`,
         name: `${c.name} for ${i.Name}`,
       })),
     ),

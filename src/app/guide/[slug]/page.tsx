@@ -26,7 +26,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const pillar = getPillarBySlug(slug);
   if (!pillar) return {};
-  const url = `https://socialperks.io/guide/${pillar.slug}`;
+  const url = `https://socialperks.app/guide/${pillar.slug}`;
   return {
     title: pillar.title,
     description: pillar.description,
@@ -63,7 +63,7 @@ function buildArticleJsonLd(pillar: Pillar, url: string) {
     publisher: {
       "@type": "Organization",
       name: "Social Perks",
-      url: "https://socialperks.io",
+      url: "https://socialperks.app",
     },
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     url,
@@ -96,13 +96,13 @@ function buildBreadcrumbJsonLd(pillar: Pillar, url: string) {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://socialperks.io",
+        item: "https://socialperks.app",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Guides",
-        item: "https://socialperks.io/guide",
+        item: "https://socialperks.app/guide",
       },
       {
         "@type": "ListItem",
@@ -123,7 +123,7 @@ export default async function PillarPage({
   const pillar = getPillarBySlug(slug);
   if (!pillar) notFound();
 
-  const url = `https://socialperks.io/guide/${pillar.slug}`;
+  const url = `https://socialperks.app/guide/${pillar.slug}`;
 
   // Anchor IDs for TOC
   const tocEntries = [

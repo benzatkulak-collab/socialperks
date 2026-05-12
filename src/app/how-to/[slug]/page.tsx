@@ -27,11 +27,11 @@ export async function generateMetadata({
   return {
     title,
     description: g.description,
-    alternates: { canonical: `https://socialperks.io/how-to/${g.slug}` },
+    alternates: { canonical: `https://socialperks.app/how-to/${g.slug}` },
     openGraph: {
       title: g.title,
       description: g.description,
-      url: `https://socialperks.io/how-to/${g.slug}`,
+      url: `https://socialperks.app/how-to/${g.slug}`,
       siteName: "Social Perks",
       type: "article",
     },
@@ -47,7 +47,7 @@ export default async function GuidePage({
   const g = getGuide(slug);
   if (!g) notFound();
 
-  const url = `https://socialperks.io/how-to/${g.slug}`;
+  const url = `https://socialperks.app/how-to/${g.slug}`;
 
   // HowTo JSON-LD (the critical one for rich snippets)
   const howToJsonLd = {

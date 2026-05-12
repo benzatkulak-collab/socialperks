@@ -168,14 +168,14 @@ describe("TenantResolver", () => {
 
   it("resolves from Host header (subdomain)", () => {
     tenantManager.create({ name: "Sub", slug: "my-shop", plan: "starter" });
-    const resolved = tenantResolver.resolve({ host: "my-shop.socialperks.io" });
+    const resolved = tenantResolver.resolve({ host: "my-shop.socialperks.app" });
     expect(resolved).not.toBeNull();
     expect(resolved!.slug).toBe("my-shop");
   });
 
   it("resolves from Host header with port", () => {
     tenantManager.create({ name: "Port", slug: "port-shop", plan: "starter" });
-    const resolved = tenantResolver.resolve({ host: "port-shop.socialperks.io:3000" });
+    const resolved = tenantResolver.resolve({ host: "port-shop.socialperks.app:3000" });
     expect(resolved).not.toBeNull();
     expect(resolved!.slug).toBe("port-shop");
   });
@@ -186,7 +186,7 @@ describe("TenantResolver", () => {
   });
 
   it("returns null for www subdomain", () => {
-    const resolved = tenantResolver.resolve({ host: "www.socialperks.io" });
+    const resolved = tenantResolver.resolve({ host: "www.socialperks.app" });
     expect(resolved).toBeNull();
   });
 

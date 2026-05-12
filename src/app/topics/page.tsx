@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   title: "Topic Hubs · Social Perks",
   description:
     "Browse 20 topic hubs covering every angle of customer marketing, social media, reviews, loyalty, and more — for small business.",
-  alternates: { canonical: "https://socialperks.com/topics" },
+  alternates: { canonical: "https://socialperks.app/topics" },
   openGraph: {
     title: "Topic Hubs · Social Perks",
     description:
       "Browse 20 topic hubs covering every angle of customer marketing for small business.",
-    url: "https://socialperks.com/topics",
+    url: "https://socialperks.app/topics",
     type: "website",
     siteName: "Social Perks",
   },

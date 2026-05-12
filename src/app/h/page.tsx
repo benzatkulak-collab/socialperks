@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Hooks — Social Perks",
   description:
     "Bite-sized playbooks for small businesses, creators, and brands. One hook, one template, one win.",
-  alternates: { canonical: "https://socialperks.com/h" },
+  alternates: { canonical: "https://socialperks.app/h" },
 };
 
 export default function HookIndexPage() {

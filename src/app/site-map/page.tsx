@@ -21,12 +21,12 @@ export const metadata: Metadata = {
   title: "Site Map · Every page on Social Perks",
   description:
     "A human-readable map of every section on Social Perks: blog posts, case studies, tools, playbooks, glossary, local pages, and more.",
-  alternates: { canonical: "https://socialperks.io/site-map" },
+  alternates: { canonical: "https://socialperks.app/site-map" },
   openGraph: {
     title: "Social Perks site map",
     description:
       "A visual map of every section on the Social Perks site — for humans and Google alike.",
-    url: "https://socialperks.io/site-map",
+    url: "https://socialperks.app/site-map",
     siteName: "Social Perks",
     type: "website",
   },

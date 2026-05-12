@@ -43,7 +43,7 @@ export async function generateMetadata({
   const i = getIndustry(industry);
   const c = getCampaign(campaign);
   if (!i || !c) return {};
-  const url = `https://socialperks.io/playbooks/${i.slug}/${c.slug}`;
+  const url = `https://socialperks.app/playbooks/${i.slug}/${c.slug}`;
   return {
     title: `${c.metaTitle(i)} · Social Perks`,
     description: c.metaDesc(i),

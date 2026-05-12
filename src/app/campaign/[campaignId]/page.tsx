@@ -87,7 +87,7 @@ export async function generateMetadata({
       description,
       type: "website",
       siteName: "Social Perks",
-      url: `https://socialperks.io/campaign/${campaignId}`,
+      url: `https://socialperks.app/campaign/${campaignId}`,
     },
     twitter: {
       card: "summary_large_image",
