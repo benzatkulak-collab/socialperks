@@ -42,10 +42,6 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
-  // CSRF — enforce on mutating routes (PR: live audit found bypass)
-  const csrfErr = requireCsrf(req);
-  if (csrfErr) return csrfErr;
-
   const { programId } = await (ctx as RouteContext).params;
   const program = programs.get(programId);
 

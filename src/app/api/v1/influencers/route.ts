@@ -33,10 +33,6 @@ export const GET = withTiming(async (req: NextRequest) => {
   const rl = rateLimit(req, "relaxed");
   if (rl) return rl;
 
-  // CSRF — live audit found bypass
-  const csrfErr = requireCsrf(req);
-  if (csrfErr) return csrfErr;
-
   const params = getQuery(req);
   const { page, perPage } = paginate(params);
 
