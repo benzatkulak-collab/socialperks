@@ -258,15 +258,30 @@ export const influencerSequence: DripStep[] = [
 
 // -- Sent State Tracking (in-memory, migration-ready for Postgres) ------------
 
+// Bound to prevent unbounded growth across the lifetime of a server process.
+// Real product wants this in Postgres so cross-instance dedup also works; the
+// FIFO cap below is a safety net only. Lib audit MEDIUM #2.
+const MAX_SENT_STATE_USERS = 50_000;
 const sentState = new Map<string, Set<number>>();
 
 function sentKey(userId: string): string {
   return userId;
 }
 
+function evictSentStateIfFull(): void {
+  if (sentState.size < MAX_SENT_STATE_USERS) return;
+  const iter = sentState.keys();
+  for (let i = 0; i < 1_000; i++) {
+    const next = iter.next();
+    if (next.done) break;
+    sentState.delete(next.value);
+  }
+}
+
 export function markSent(userId: string, stepIndex: number): void {
   const key = sentKey(userId);
   if (!sentState.has(key)) {
+    evictSentStateIfFull();
     sentState.set(key, new Set());
   }
   sentState.get(key)!.add(stepIndex);
