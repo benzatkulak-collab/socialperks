@@ -370,6 +370,12 @@ export const POST = withTiming(async (req: NextRequest) => {
           return err("INVALID_INPUT", "email and password must be strings");
         }
         const storedUser = users.get(String(email).toLowerCase().trim());
+        // SECURITY: equalize timing whether the user exists or not so the
+        // response time can't be used to enumerate valid emails. We always run
+        // a verifyPassword (against a dummy hash if needed).
+        const dummyHash =
+          "0000000000000000000000000000000000000000000000000000000000000000:" +
+          "0000000000000000000000000000000000000000000000000000000000000000";
         if (storedUser) {
           const valid = await verifyPassword(password, storedUser.passwordHash);
           if (valid) {
@@ -397,12 +403,21 @@ export const POST = withTiming(async (req: NextRequest) => {
               headers
             );
           }
+        } else {
+          // Run a dummy verifyPassword to keep response time consistent.
+          await verifyPassword(password, dummyHash).catch(() => false);
         }
         return err("INVALID_CREDENTIALS", "Invalid email or password", 401);
       }
 
       // Legacy PIN-based login for demo accounts
       if (pin) {
+        // SECURITY: PIN auth is a demo/dev convenience that bypasses normal
+        // password rules. Gate it out of production so seed-data demo accounts
+        // can't be used as a privileged backdoor in live environments.
+        if (process.env.NODE_ENV === "production" && !process.env.ALLOW_DEMO_PIN_AUTH) {
+          return err("INVALID_CREDENTIALS", "Invalid email or password", 401);
+        }
         if (typeof email !== "string" || typeof pin !== "string") {
           return err("INVALID_INPUT", "email and pin must be strings");
         }
@@ -621,6 +636,21 @@ export const POST = withTiming(async (req: NextRequest) => {
       storedUser.passwordHash = await hashPassword(newPassword);
       users.set(resetEntry.email, storedUser);
       resetTokens.delete(resetToken);
+
+      // SECURITY: revoke all existing sessions after password reset so that an
+      // attacker with a stolen session token loses access immediately. The
+      // legitimate user will be forced to log in again with the new password.
+      try {
+        sessionStore.revokeAll(storedUser.id);
+      } catch (revokeErr) {
+        logError(revokeErr, {
+          method: "POST",
+          path: "/api/v1/auth",
+          action: "confirm-reset",
+          stage: "session_revocation",
+          userId: storedUser.id,
+        });
+      }
 
       return ok({
         message: "Password has been reset successfully. You can now log in with your new password.",
