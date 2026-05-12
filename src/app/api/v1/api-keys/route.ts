@@ -10,7 +10,8 @@
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, requireAuth, rateLimit, parseBody, withTiming } from "../_shared";
+import { ok, err, requireAuth,
+  requireCsrf, rateLimit, parseBody, withTiming } from "../_shared";
 import { createApiKey, listApiKeysForBusiness } from "@/lib/auth/api-keys";
 
 interface CreateBody {
@@ -24,6 +25,10 @@ export const GET = withTiming(async (req: NextRequest) => {
   // Tighter rate limit on this endpoint — listing keys reveals prefixes.
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   const user = requireAuth(req);
   if (user instanceof Response) return user;
@@ -56,6 +61,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // mint a thousand keys. Strict tier = 10/min.
   const limited = rateLimit(req, "strict");
   if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   const user = requireAuth(req);
   if (user instanceof Response) return user;

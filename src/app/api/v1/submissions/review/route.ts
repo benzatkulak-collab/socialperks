@@ -8,6 +8,7 @@ import {
   ok,
   err,
   rateLimit,
+  requireCsrf,
   parseBody,
   withTiming,
 } from "../../_shared";
@@ -37,6 +38,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Rate limit — standard
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   // Parse body
   const body = await parseBody<{

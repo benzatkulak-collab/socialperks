@@ -15,6 +15,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -47,6 +48,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Rate limit
   const rl = rateLimit(req, "standard");
   if (rl) return rl;
+
+  // CSRF — live audit found bypass
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   // Parse body
   const body = await parseBody<CampaignAgentBody>(req);

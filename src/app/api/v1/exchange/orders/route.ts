@@ -11,6 +11,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -46,6 +47,10 @@ interface Order {
 export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   const q = getQuery(req);
   const side = q.get("side") ?? "all";
@@ -96,6 +101,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Standard rate limit
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
+
+  // CSRF — enforce on mutating routes (PR: live audit found bypass)
+  const csrfErr = requireCsrf(req);
+  if (csrfErr) return csrfErr;
 
   const body = await parseBody<{
     side: "buy" | "sell";
