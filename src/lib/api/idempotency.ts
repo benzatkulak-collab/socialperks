@@ -40,12 +40,29 @@ function evictStale(): void {
   const now = Date.now();
   let evicted = 0;
 
+  // Pass 1: drop everything past TTL. That's almost always enough since
+  // CACHE_TTL_MS is much shorter than the time it takes to fill 10k slots
+  // in normal traffic. Previously the condition was
+  // `stale || evicted < BATCH` — the second half always fired so the
+  // first half was dead code (every entry got deleted FIFO regardless of
+  // age). Lib audit MEDIUM #6.
   for (const [key, entry] of idempotencyCache.entries()) {
-    if (now - entry.createdAt > CACHE_TTL_MS || evicted < EVICTION_BATCH) {
+    if (now - entry.createdAt > CACHE_TTL_MS) {
       idempotencyCache.delete(key);
       evicted++;
     }
-    if (evicted >= EVICTION_BATCH) break;
+  }
+
+  // Pass 2: if expired-only eviction didn't free enough room (everyone is
+  // genuinely fresh), fall back to FIFO until we've hit the batch.
+  if (idempotencyCache.size >= MAX_CACHE_SIZE) {
+    const iter = idempotencyCache.keys();
+    while (evicted < EVICTION_BATCH) {
+      const next = iter.next();
+      if (next.done) break;
+      idempotencyCache.delete(next.value);
+      evicted++;
+    }
   }
 }
 

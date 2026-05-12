@@ -7,6 +7,13 @@
 
 import { escapeHtml } from "@/lib/security/sanitize";
 
+// Base URL used in every drip CTA. Falls back to the production domain so
+// staging/preview deployments don't need extra config to render correctly,
+// but `NEXT_PUBLIC_APP_URL` can override. Lib audit MEDIUM #8 — replaces
+// 8 hardcoded `https://socialperks.app/...` references in this file so
+// preview environments don't ship CTAs pointing at production.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://socialperks.app";
+
 // -- Types --------------------------------------------------------------------
 
 export interface DripStep {
@@ -42,7 +49,7 @@ function wrapHtml(body: string): string {
 <body style="font-family: 'DM Sans', Arial, sans-serif; background-color: #0C0F1A; color: #E2E8F0; padding: 24px;">
 <div style="max-width: 600px; margin: 0 auto; background-color: #1A1F36; border-radius: 12px; padding: 32px; border: 1px solid #2D3348;">
 ${body}
-<p style="color: #64748B; font-size: 12px; margin-top: 32px; border-top: 1px solid #2D3348; padding-top: 16px;">You're receiving this because you signed up for Social Perks. <a href="https://socialperks.app/settings/notifications" style="color: #64748B;">Unsubscribe</a></p>
+<p style="color: #64748B; font-size: 12px; margin-top: 32px; border-top: 1px solid #2D3348; padding-top: 16px;">You're receiving this because you signed up for Social Perks. <a href="${APP_URL}/settings/notifications" style="color: #64748B;">Unsubscribe</a></p>
 </div>
 </body>
 </html>`;
@@ -67,7 +74,7 @@ function businessDay1(user: DripUser): { subject: string; html: string } {
   <li><strong style="color: #E2E8F0;">Set the perk</strong> -- discount, freebie, or cash back</li>
 </ol>
 <p style="color: #94A3B8; line-height: 1.6;">That's it. Your customers do the marketing, you reward them for it.</p>
-${ctaButton("Create Your First Campaign", "https://socialperks.app/dashboard?action=new-campaign")}`
+${ctaButton("Create Your First Campaign", `${APP_URL}/dashboard?action=new-campaign`)}`
     ),
   };
 }
@@ -81,7 +88,7 @@ function businessDay3NoCampaigns(user: DripUser): { subject: string; html: strin
 <p style="color: #94A3B8; line-height: 1.6;">Businesses that launch their first campaign within the first week see <strong style="color: #34D399;">3x more engagement</strong> in their first month.</p>
 <p style="color: #94A3B8; line-height: 1.6;">We've pre-built campaign templates for your industry -- just pick one and customize it in seconds.</p>
 <p style="color: #94A3B8; line-height: 1.6;">No credit card required. Start with a free campaign and see the results for yourself.</p>
-${ctaButton("Launch a Campaign Now", "https://socialperks.app/dashboard?action=new-campaign", "#FBBF24")}`
+${ctaButton("Launch a Campaign Now", `${APP_URL}/dashboard?action=new-campaign`, "#FBBF24")}`
     ),
   };
 }
@@ -107,7 +114,7 @@ function businessDay7CaseStudy(user: DripUser): { subject: string; html: string 
   <p style="color: #94A3B8; margin: 0;">of customers complete at least one marketing action</p>
 </div>
 <p style="color: #94A3B8; line-height: 1.6;">See detailed benchmarks for your industry on your dashboard.</p>
-${ctaButton("View Industry Benchmarks", "https://socialperks.app/dashboard?tab=benchmarks")}`
+${ctaButton("View Industry Benchmarks", `${APP_URL}/dashboard?tab=benchmarks`)}`
     ),
   };
 }
@@ -147,7 +154,7 @@ function businessDay14Upgrade(user: DripUser): { subject: string; html: string }
   </tr>
 </table>
 <p style="color: #94A3B8; line-height: 1.6;">Pro pays for itself with just one successful campaign. See the ROI calculator on our pricing page.</p>
-${ctaButton("See Pro Plans", "https://socialperks.app/pricing")}`
+${ctaButton("See Pro Plans", `${APP_URL}/pricing`)}`
     ),
   };
 }
@@ -168,7 +175,7 @@ function influencerDay1(user: DripUser): { subject: string; html: string } {
   <li><strong style="color: #E2E8F0;">Get rewarded</strong> -- perks are added to your wallet automatically</li>
 </ol>
 <p style="color: #94A3B8; line-height: 1.6;">Top creators earn over <strong style="color: #34D399;">$500/month</strong> through Social Perks campaigns.</p>
-${ctaButton("Discover Campaigns", "https://socialperks.app/discover", "#34D399")}`
+${ctaButton("Discover Campaigns", `${APP_URL}/discover`, "#34D399")}`
     ),
   };
 }
@@ -187,7 +194,7 @@ function influencerDay3Profile(user: DripUser): { subject: string; html: string 
   <li><strong style="color: #E2E8F0;">Niche tags</strong> -- food, fitness, fashion, tech, or local business</li>
 </ul>
 <p style="color: #94A3B8; line-height: 1.6;">A complete profile also helps our AI match you with the right opportunities.</p>
-${ctaButton("Complete Your Profile", "https://socialperks.app/profile/edit")}`
+${ctaButton("Complete Your Profile", `${APP_URL}/profile/edit`)}`
     ),
   };
 }
@@ -212,7 +219,7 @@ function influencerDay7Opportunities(user: DripUser): { subject: string; html: s
   <p style="color: #94A3B8; margin: 0;">Premium perks for original video content -- highest payouts</p>
 </div>
 <p style="color: #94A3B8; line-height: 1.6;">New campaigns are added daily. Check back often for fresh opportunities.</p>
-${ctaButton("Browse All Campaigns", "https://socialperks.app/discover", "#34D399")}`
+${ctaButton("Browse All Campaigns", `${APP_URL}/discover`, "#34D399")}`
     ),
   };
 }
