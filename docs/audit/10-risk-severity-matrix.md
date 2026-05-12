@@ -15,12 +15,12 @@ Master matrix of all findings aggregated across audit phases. Items are deduplic
 
 The following prior-phase documents were considered when building this matrix:
 
-- 01-system-inventory.md — **(pending)**
-- 02-architecture-maps.md — **(pending)**
-- 03-api-routes-audit.md — **(pending)**
-- 04-lib-audit.md — **(pending)**
-- 05-components-audit.md — **(pending)**
-- 06-ai-agent-audit.md — **(pending)**
+- [01-system-inventory.md](./01-system-inventory.md) — Present
+- [02-architecture-maps.md](./02-architecture-maps.md) — Present
+- [03-api-routes-audit.md](./03-api-routes-audit.md) — Present
+- [04-lib-audit.md](./04-lib-audit.md) — Present
+- [05-components-audit.md](./05-components-audit.md) — Present
+- [06-ai-agent-audit.md](./06-ai-agent-audit.md) — Present
 
 Findings below are reproduced from the consolidated audit notes that fed this phase. Where a prior document is later filled in, individual rows should be updated with deep links.
 
