@@ -349,7 +349,7 @@ export function LaunchModal({ campaign, onLaunch, onClose }: LaunchModalProps) {
 
             {/* Validation Error */}
             {validationError && (
-              <div className="text-xs text-brand-red bg-brand-red/5 border border-brand-red/20 rounded-md px-3 py-2 mb-4 font-body" role="alert" aria-live="assertive">
+              <div className="text-xs text-brand-red bg-brand-red/5 border border-brand-red/20 rounded-md px-3 py-2 mb-4 font-body" role="alert" aria-live="polite">
                 {validationError}
               </div>
             )}

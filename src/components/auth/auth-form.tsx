@@ -232,7 +232,7 @@ export function AuthForm({
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
         <div className="w-full max-w-sm animate-fade-up">
-          <button onClick={onBack} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
+          <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
             &larr; Back
           </button>
 
@@ -266,7 +266,7 @@ export function AuthForm({
 
             <p className="text-center text-sm text-brand-dim mt-6">
               Don&apos;t have an account?{" "}
-              <button onClick={handleGoToSignup} className="text-brand-cyan hover:underline font-medium rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
+              <button type="button" onClick={handleGoToSignup} className="text-brand-cyan hover:underline font-medium rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
                 Sign up free
               </button>
             </p>
@@ -298,7 +298,7 @@ export function AuthForm({
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
         <div className="w-full max-w-sm animate-fade-up">
-          <button onClick={handleGoToLogin} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
+          <button type="button" onClick={handleGoToLogin} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
             &larr; Back to login
           </button>
 
@@ -355,7 +355,7 @@ export function AuthForm({
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
         <div className="w-full max-w-sm animate-fade-up">
-          <button onClick={handleGoToLogin} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
+          <button type="button" onClick={handleGoToLogin} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
             &larr; Back to login
           </button>
 
@@ -368,6 +368,7 @@ export function AuthForm({
 
             <div className="space-y-3">
               <button
+                type="button"
                 onClick={() => handleGoToSignupForm("business")}
                 className="w-full rounded-xl border border-brand-border bg-brand-surface/50 p-5 text-left transition-all hover:border-brand-cyan hover:bg-brand-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               >
@@ -381,6 +382,7 @@ export function AuthForm({
               </button>
 
               <button
+                type="button"
                 onClick={() => handleGoToSignupForm("influencer")}
                 className="w-full rounded-xl border border-brand-border bg-brand-surface/50 p-5 text-left transition-all hover:border-brand-pink hover:bg-brand-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               >
@@ -395,6 +397,7 @@ export function AuthForm({
             </div>
 
             <button
+              type="button"
               onClick={onEnterpriseDemo}
               className="w-full mt-4 text-xs text-brand-purple hover:text-brand-purple/80 text-center transition-colors py-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/40"
             >
@@ -410,7 +413,7 @@ export function AuthForm({
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6">
       <div className="w-full max-w-sm animate-fade-up">
-        <button onClick={handleBackToSignup} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
+        <button type="button" onClick={handleBackToSignup} className="inline-flex items-center gap-1 text-xs text-brand-dim hover:text-brand-text mb-6 py-2 transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40">
           &larr; Back
         </button>
 
