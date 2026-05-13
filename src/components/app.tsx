@@ -286,11 +286,17 @@ export function SocialPerksApp() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  const handleAuth = useCallback((user: SeedBusiness | SeedInfluencer, role: "business" | "influencer") => {
-    setCurrentUser(user);
-    setUserRole(role);
-    setScreen(role);
-  }, []);
+  const handleAuth = useCallback(
+    (
+      user: SeedBusiness | SeedInfluencer,
+      role: "business" | "influencer" | "enterprise"
+    ) => {
+      setCurrentUser(user);
+      setUserRole(role);
+      setScreen(role);
+    },
+    [],
+  );
 
   const handleLogout = useCallback(async () => {
     try {
