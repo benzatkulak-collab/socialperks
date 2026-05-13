@@ -50,7 +50,9 @@ export const config = {
 
   // ─── Email ──────────────────────────────────────────────────────────────
   email: {
-    from: optional("EMAIL_FROM", "Social Perks <noreply@socialperks.app>"),
+    // Fallback uses routelyos.com — the verified Resend sender. See
+    // src/lib/email/index.ts for the same default + explanation.
+    from: optional("EMAIL_FROM", "Social Perks <hello@routelyos.com>"),
     resendApiKey: optional("RESEND_API_KEY"),
   },
 

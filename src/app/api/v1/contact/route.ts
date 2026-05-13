@@ -62,13 +62,18 @@ export const POST = withTiming(async (req: NextRequest) => {
     messageResult.data
   );
 
-  // Send email to support address
+  // Send email to support address. Sender intentionally omitted so
+  // the EmailProvider falls back to its EMAIL_FROM env var (which is
+  // the only From address Resend's domain table has actually
+  // verified). Hard-coding noreply@socialperks.app here caused every
+  // contact form submission to fail with EMAIL_FAILED 500 because
+  // socialperks.app is not a verified Resend sending domain on the
+  // current plan.
   const result = await emailProvider.send({
     to: SUPPORT_EMAIL,
     subject: template.subject,
     html: template.html,
     text: template.text,
-    from: `Social Perks Contact <noreply@socialperks.app>`,
   });
 
   if (!result.success) {
