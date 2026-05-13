@@ -98,6 +98,17 @@ export interface CampaignLifecycle {
   completions: CampaignCompletions;
   expiry: CampaignExpiry;
   transitions: StateTransition[];
+  /**
+   * Marketing-action IDs (e.g. ["ig_st"]) this campaign accepts.
+   *
+   * Previously omitted from the lifecycle entirely — actions were stored
+   * only in the POST response body and the persistence side-channel. That
+   * meant the public /c/[id] page couldn't read which actions a campaign
+   * allowed, so its dropdown fell back to "popular top 8 across all
+   * platforms" and customers could pick actions the campaign would
+   * reject. Now part of the canonical lifecycle.
+   */
+  readonly actions?: string[];
 }
 
 // ─── Launch Configuration ───────────────────────────────────────────────────
@@ -113,6 +124,8 @@ export interface LaunchConfig {
   maxCompletions: number | null;
   /** Number of days until the campaign expires. */
   expiresInDays: number;
+  /** Action IDs this campaign accepts. Surfaced via lifecycle.actions. */
+  actions?: string[];
 }
 
 // ─── State Machine ──────────────────────────────────────────────────────────
@@ -176,6 +189,7 @@ class CampaignStateMachine {
         expiresAt: expiresAt.toISOString(),
       },
       transitions: [],
+      actions: config.actions ? [...config.actions] : undefined,
     };
 
     this.campaigns.set(campaignId, lifecycle);

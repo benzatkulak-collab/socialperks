@@ -147,7 +147,10 @@ export function OnboardingWizard({
 
   const rewardPreview = useMemo(() => {
     if (rewardType === "free") return "a free item";
-    if (!rewardValue) return "...";
+    // Show a hint that signals "type a number" rather than a bare
+    // ellipsis when the user clears the field. The literal "..." read
+    // as a placeholder bug during the live audit.
+    if (!rewardValue) return rewardType === "pct" ? "X% off" : "$X off";
     return rewardType === "pct" ? `${rewardValue}% off` : `$${rewardValue} off`;
   }, [rewardType, rewardValue]);
 
