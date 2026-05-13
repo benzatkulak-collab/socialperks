@@ -106,20 +106,30 @@ export function InfluencerPortal({
     let cancelled = false;
     async function fetchCampaigns() {
       try {
-        const res = await fetch("/api/v1/campaigns?status=active", { credentials: "include" });
+        // Previously hit /api/v1/campaigns?status=active which is
+        // tenant-scoped — for an influencer (businessId: null) the
+        // tenant context is empty so this returned no rows and the
+        // Discover tab always showed "0 campaigns". Use the
+        // influencer-facing /discover endpoint instead, which scores
+        // campaigns against the influencer's niches/platforms.
+        const res = await fetch(
+          `/api/v1/discover?influencerId=${encodeURIComponent(influencer.id)}`,
+          { credentials: "include" }
+        );
         if (!res.ok) return;
         const json = await res.json();
         const campaigns = json.data?.campaigns ?? [];
         if (cancelled || campaigns.length === 0) return;
 
-        // Map API campaigns to MarketplaceCampaign format
+        // /discover returns a different shape from /campaigns — has
+        // campaignId/campaignName plus discoverability score fields.
         const mapped: MarketplaceCampaign[] = campaigns.map((c: Record<string, unknown>) => ({
-          id: c.id as string,
+          id: (c.campaignId ?? c.id) as string,
           businessId: (c.businessId ?? c.business_id) as string,
           businessName: (c.businessName as string) ?? "Business",
           businessType: (c.businessType as string) ?? "",
           businessAvatar: (c.businessAvatar as string) ?? "\uD83C\uDFEA",
-          campaignName: c.name as string,
+          campaignName: (c.campaignName ?? c.name) as string,
           description: (c.description as string) ?? "",
           perkValue: (c.discountValue ?? c.discount_value) as number,
           perkType: ((c.discountType ?? c.discount_type) as "pct" | "dol") ?? "pct",
@@ -136,7 +146,7 @@ export function InfluencerPortal({
     }
     fetchCampaigns();
     return () => { cancelled = true; };
-  }, []);
+  }, [influencer.id]);
 
   const filteredCampaigns = useMemo(() => {
     return marketplaceCampaigns.filter((c) => {

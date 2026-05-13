@@ -156,7 +156,7 @@ export function SocialPerksApp() {
   );
   const [screen, setScreen] = useState<"landing" | "auth" | "business" | "influencer" | "enterprise">("landing");
   const [currentUser, setCurrentUser] = useState<SeedBusiness | SeedInfluencer | null>(null);
-  const [userRole, setUserRole] = useState<"business" | "influencer" | null>(null);
+  const [userRole, setUserRole] = useState<"business" | "influencer" | "enterprise" | null>(null);
   const [restoring, setRestoring] = useState(true);
 
   const save = useCallback(
@@ -202,7 +202,17 @@ export function SocialPerksApp() {
         const json = await res.json();
         if (cancelled) return;
         if (json.success && json.data?.user) {
-          const role = json.data.user.role === "influencer" ? "influencer" : "business";
+          // Map JWT role → screen role. Previously this collapsed
+          // anything non-influencer to "business" — including
+          // "enterprise" — so the enterprise@demo.com login dropped
+          // into the regular business portal with no multi-location
+          // / brand-manager / reports UI. Surface enterprise as its
+          // own screen.
+          const rawRole = json.data.user.role;
+          const role: "influencer" | "business" | "enterprise" =
+            rawRole === "influencer" ? "influencer" :
+            rawRole === "enterprise" ? "enterprise" :
+            "business";
           // The portal render is gated on currentBusiness / currentInfluencer
           // which derive from currentUser. Without restoring this, a valid
           // session would set the screen to "business" but the portal would
@@ -226,17 +236,20 @@ export function SocialPerksApp() {
           const restored: Partial<SeedBusiness> & Partial<SeedInfluencer> = {
             id: u.businessId ?? u.id,
             email: u.email,
-            ...(role === "business"
+            ...(role === "influencer"
               ? {
+                  displayName: seedInf?.displayName ?? fallback,
+                  avatar: seedInf?.avatar,
+                }
+              : {
+                  // Both business and enterprise share the SeedBusiness
+                  // shape — the screen=enterprise branch passes the
+                  // same object to a different component.
                   name: seedBiz?.name ?? fallback,
                   avatar: seedBiz?.avatar,
                   type: seedBiz?.type,
                   location: seedBiz?.location,
                   industry: seedBiz?.industry,
-                }
-              : {
-                  displayName: seedInf?.displayName ?? fallback,
-                  avatar: seedInf?.avatar,
                 }),
           };
           setCurrentUser(restored as SeedBusiness | SeedInfluencer);
