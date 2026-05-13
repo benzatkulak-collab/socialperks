@@ -16,7 +16,10 @@ export interface AuthFormProps {
   data: SeedData;
   save: (d: SeedData) => void;
   onBack: () => void;
-  onAuth: (user: SeedBusiness | SeedInfluencer, role: "business" | "influencer") => void;
+  onAuth: (
+    user: SeedBusiness | SeedInfluencer,
+    role: "business" | "influencer" | "enterprise"
+  ) => void;
   onEnterpriseDemo: () => void;
 }
 
@@ -103,21 +106,30 @@ export function AuthForm({
       const json = await res.json();
 
       if (json.success) {
-        const role = json.data.user.role === "influencer" ? "influencer" : "business";
-        if (role === "business") {
-          const biz = json.data.business ?? {
-            id: json.data.user.businessId ?? json.data.user.id,
-            name: json.data.user.name, type: "", email: json.data.user.email,
-            pin: "", avatar: DEFAULT_BUSINESS_AVATAR, size: "small", location: "", industry: "",
-          };
-          onAuth(biz as SeedBusiness, "business");
-        } else {
+        // Previously collapsed any non-influencer role to "business",
+        // so enterprise@demo.com landed in the regular business portal
+        // with no multi-location / brand-manager / reports UI. Map
+        // enterprise as its own role.
+        const rawRole = json.data.user.role;
+        const role: "business" | "influencer" | "enterprise" =
+          rawRole === "influencer" ? "influencer" :
+          rawRole === "enterprise" ? "enterprise" :
+          "business";
+        if (role === "influencer") {
           const inf = json.data.influencer ?? {
             id: json.data.user.id, displayName: json.data.user.name,
             email: json.data.user.email, pin: "", avatar: DEFAULT_INFLUENCER_AVATAR,
             bio: "", tier: "micro", niches: [], followerCount: 0, engagementRate: 0, platforms: [], location: "",
           };
           onAuth(inf as SeedInfluencer, "influencer");
+        } else {
+          // Business + enterprise both use the SeedBusiness shape.
+          const biz = json.data.business ?? {
+            id: json.data.user.businessId ?? json.data.user.id,
+            name: json.data.user.name, type: "", email: json.data.user.email,
+            pin: "", avatar: DEFAULT_BUSINESS_AVATAR, size: "small", location: "", industry: "",
+          };
+          onAuth(biz as SeedBusiness, role);
         }
         return;
       }
