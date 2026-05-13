@@ -36,7 +36,13 @@ export interface EmailTemplate {
 // -- Default From Address ----------------------------------------------------
 
 const DEFAULT_FROM =
-  process.env.EMAIL_FROM || "Social Perks <noreply@socialperks.app>";
+  // Fallback uses routelyos.com because that's the verified Resend
+  // sending domain on the current plan. socialperks.app is the user-
+  // facing brand but not (yet) a verified sender. When the user adds
+  // and verifies socialperks.app in Resend, set
+  // EMAIL_FROM=Social Perks <noreply@socialperks.app> on Render to
+  // override.
+  process.env.EMAIL_FROM || "Social Perks <hello@routelyos.com>";
 
 // -- Console Provider (dev/test) ----------------------------------------------
 
