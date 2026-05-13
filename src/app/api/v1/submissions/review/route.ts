@@ -60,9 +60,13 @@ export const POST = withTiming(async (req: NextRequest) => {
   const sv = validateId(body.submissionId);
   if (!sv.success) return err("INVALID_SUBMISSION_ID", sv.error, 400);
 
-  // Validate reviewerId
-  const rv = validateId(body.reviewerId);
-  if (!rv.success) return err("INVALID_REVIEWER_ID", rv.error, 400);
+  // SECURITY: reviewerId is always the authenticated user. Previously
+  // the route trusted body.reviewerId — any caller could review a
+  // submission as another business by forging that field. Also a UX
+  // bug: clients had to know + send their own id, which led to the
+  // dashboard's Approve button 400ing with INVALID_REVIEWER_ID when
+  // it wasn't included.
+  const rv = { success: true as const, data: tenantResult.user.id, error: undefined };
 
   // Validate decision
   const dv = validateEnum(body.decision, "decision", ["approve", "reject"] as const);
