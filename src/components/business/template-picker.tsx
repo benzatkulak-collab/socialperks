@@ -16,6 +16,15 @@ import {
 export interface TemplatePickerProps {
   businessType: string;
   onSelectTemplate: (template: CampaignTemplate) => void;
+  /**
+   * Optional list of platform IDs to restrict the picker to. When set:
+   * - The platform pill filter row is hidden
+   * - Templates are filtered to only those whose platform is in this list
+   * - A subtitle explains which platforms the user is seeing
+   * Used after onboarding to scope the dashboard's template suggestions
+   * to the platforms the user just picked in the wizard.
+   */
+  restrictToPlatforms?: string[];
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -101,10 +110,28 @@ function resolveIndustry(businessType: string): string | null {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function TemplatePicker({ businessType, onSelectTemplate }: TemplatePickerProps) {
+export function TemplatePicker({
+  businessType,
+  onSelectTemplate,
+  restrictToPlatforms,
+}: TemplatePickerProps) {
   const [platformFilter, setPlatformFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [showAll, setShowAll] = useState(false);
+
+  const hasRestriction =
+    Array.isArray(restrictToPlatforms) && restrictToPlatforms.length > 0;
+  const restrictionSet = useMemo(
+    () => (hasRestriction ? new Set(restrictToPlatforms) : null),
+    [hasRestriction, restrictToPlatforms]
+  );
+  const restrictionLabels = useMemo(() => {
+    if (!restrictionSet) return "";
+    return PLATFORM_FILTERS
+      .filter((p) => p.id !== "all" && restrictionSet.has(p.id))
+      .map((p) => p.label)
+      .join(", ");
+  }, [restrictionSet]);
 
   const resolvedIndustry = useMemo(() => resolveIndustry(businessType), [businessType]);
 
@@ -122,17 +149,21 @@ export function TemplatePicker({ businessType, onSelectTemplate }: TemplatePicke
     return popularTemplates;
   }, [showAll, industryTemplates, popularTemplates]);
 
-  // Apply filters
+  // Apply filters. When the parent restricts platforms, that always
+  // wins — the pill filter is hidden in that branch so its state value
+  // would be stale anyway.
   const filteredTemplates = useMemo(() => {
     let result = baseTemplates;
-    if (platformFilter !== "all") {
+    if (restrictionSet) {
+      result = result.filter((t) => restrictionSet.has(t.platform));
+    } else if (platformFilter !== "all") {
       result = result.filter((t) => t.platform === platformFilter);
     }
     if (difficultyFilter !== "all") {
       result = result.filter((t) => t.difficulty === difficultyFilter);
     }
     return result;
-  }, [baseTemplates, platformFilter, difficultyFilter]);
+  }, [baseTemplates, platformFilter, difficultyFilter, restrictionSet]);
 
   const industryLabel = resolvedIndustry
     ? INDUSTRY_MAP[resolvedIndustry]
@@ -158,6 +189,14 @@ export function TemplatePicker({ businessType, onSelectTemplate }: TemplatePicke
           </h2>
           <p className="text-3xs text-brand-muted mt-0.5">
             Proven campaigns you can launch in one click
+            {hasRestriction && restrictionLabels && (
+              <>
+                {" · "}
+                <span className="text-brand-cyan">
+                  Showing templates for: {restrictionLabels}
+                </span>
+              </>
+            )}
           </p>
         </div>
         {!showAll && (
@@ -182,26 +221,33 @@ export function TemplatePicker({ businessType, onSelectTemplate }: TemplatePicke
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {/* Platform filter */}
-        <div className="flex items-center gap-1 flex-wrap">
-          {availablePlatforms.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPlatformFilter(p.id)}
-              className={`px-2.5 py-1 rounded-full text-3xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
-                platformFilter === p.id
-                  ? "bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/30"
-                  : "bg-brand-surface/50 text-brand-muted border border-brand-border hover:text-brand-white hover:border-brand-border-hover"
-              }`}
-            >
-              {"icon" in p && p.icon ? `${p.icon} ` : ""}{p.label}
-            </button>
-          ))}
-        </div>
+        {/* Platform filter — hidden when the parent restricts the
+            picker to a specific set of platforms (e.g. right after
+            onboarding). The platform pills would be redundant or
+            misleading in that case. */}
+        {!hasRestriction && (
+          <>
+            <div className="flex items-center gap-1 flex-wrap">
+              {availablePlatforms.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPlatformFilter(p.id)}
+                  className={`px-2.5 py-1 rounded-full text-3xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
+                    platformFilter === p.id
+                      ? "bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/30"
+                      : "bg-brand-surface/50 text-brand-muted border border-brand-border hover:text-brand-white hover:border-brand-border-hover"
+                  }`}
+                >
+                  {"icon" in p && p.icon ? `${p.icon} ` : ""}{p.label}
+                </button>
+              ))}
+            </div>
 
-        {/* Divider */}
-        <div className="hidden sm:block w-px h-5 bg-brand-border self-center" />
+            {/* Divider */}
+            <div className="hidden sm:block w-px h-5 bg-brand-border self-center" />
+          </>
+        )}
 
         {/* Difficulty filter */}
         <div className="flex items-center gap-1">
