@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
@@ -105,6 +105,34 @@ export function PortalHome({
 }: PortalHomeProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Read the onboarding-wizard handoff: if the user just picked
+  // platforms in the wizard and the entry hasn't expired (24h), scope
+  // the template picker below to those platforms. Stored under
+  // "sp:onboarding:platforms" by the wizard right before onComplete.
+  const [restrictToPlatforms, setRestrictToPlatforms] = useState<string[] | undefined>(undefined);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("sp:onboarding:platforms");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { ids?: unknown; expiresAt?: unknown };
+      if (
+        Array.isArray(parsed.ids) &&
+        parsed.ids.every((x) => typeof x === "string") &&
+        typeof parsed.expiresAt === "number" &&
+        parsed.expiresAt > Date.now() &&
+        parsed.ids.length > 0
+      ) {
+        setRestrictToPlatforms(parsed.ids as string[]);
+      } else if (typeof parsed.expiresAt === "number" && parsed.expiresAt <= Date.now()) {
+        // Expired — clean up so we don't keep parsing it
+        window.localStorage.removeItem("sp:onboarding:platforms");
+      }
+    } catch {
+      // Malformed / unavailable — fall back to default (no restriction)
+    }
+  }, []);
+
   const handleShareCampaign = useCallback((campaignId: string) => {
     const url = getCampaignUrl(campaignId);
     navigator.clipboard.writeText(url).then(() => {
@@ -174,6 +202,7 @@ export function PortalHome({
             <TemplatePicker
               businessType={businessType}
               onSelectTemplate={onSelectRichTemplate}
+              restrictToPlatforms={restrictToPlatforms}
             />
           ) : (
             <>
