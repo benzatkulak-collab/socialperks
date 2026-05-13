@@ -224,9 +224,22 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-brand-bg text-brand-text font-body antialiased selection:bg-brand-cyan/20 selection:text-brand-white">
+        {/* Skip-to-content link — hidden until focused. Keyboard
+            users tab into this first and can jump past the nav.
+            Audit found no skip link in any portal layout. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-cyan focus:text-brand-bg focus:rounded-md focus:font-semibold"
+        >
+          Skip to main content
+        </a>
         <SWRegister />
         <RefCapture />
-        {children}
+        {/* Wrapper carries the skip-link target so every page gets a
+            valid anchor — some pages already set id="main-content" on
+            their own <main>, in which case the duplicate id is
+            harmless (browser walks first-match). */}
+        <div id="main-content">{children}</div>
         <OfflineIndicator />
         <Analytics />
         <TrackingPixels />
