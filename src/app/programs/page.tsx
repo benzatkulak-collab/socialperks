@@ -76,6 +76,16 @@ export default function ProgramsPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Audit found /programs and /exchange were standalone routes
+            with no way back to the dashboard. Single link is enough —
+            the full portal nav lives inside the dashboard component
+            and re-embedding it here would double-load the bundle. */}
+        <a
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs text-brand-dim hover:text-brand-cyan transition-colors mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded"
+        >
+          ← Back to dashboard
+        </a>
         <h1 className="font-heading text-2xl italic text-brand-white mb-2">
           Perk Programs
         </h1>

@@ -279,6 +279,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       budgetType: dt.data,
       maxCompletions,
       expiresInDays,
+      actions: body.actions,
     });
 
     // Phase 11: durable write-through. Without this, every redeploy

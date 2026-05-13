@@ -80,7 +80,14 @@ const REWARD_OPTIONS = [
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProps) {
-  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics">("home");
+  // Initial tab can be set via `?tab=analytics` so direct /analytics
+  // redirects can land on the right view rather than the dashboard.
+  const initialPage: "home" | "analytics" =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("tab") === "analytics"
+      ? "analytics"
+      : "home";
+  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics">(initialPage);
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
 
   // Create campaign state
@@ -497,7 +504,17 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
       <div className="sticky top-0 z-40 bg-brand-surface/90 backdrop-blur-xl border-b border-brand-border/50">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Logo size="sm" />
+            {/* Logo doubles as a "home" affordance — clicking returns to
+                the dashboard tab. Audit found the logo had no
+                interaction at all; users expect it to be a home link. */}
+            <button
+              type="button"
+              onClick={() => setPage("home")}
+              aria-label="Back to dashboard"
+              className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+            >
+              <Logo size="sm" />
+            </button>
             <nav className="flex items-center gap-1 ml-4">
               {(["home", "analytics"] as const).map((tab) => (
                 <button
@@ -531,7 +548,21 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-brand-dim hidden sm:block">{biz.avatar} {biz.name}</span>
+            {/* Business badge is now a real button — clicking jumps to
+                /settings (or the dashboard home if settings isn't a
+                separate page in this build). Audit found it was plain
+                text with no interaction. Keep visual identical, just
+                wrap so screen readers + keyboard users can interact.
+                Title attribute surfaces the full business id for
+                support copy-paste. */}
+            <button
+              type="button"
+              onClick={() => setPage("home")}
+              title={`Signed in as ${biz.name} (${biz.id})`}
+              className="text-xs text-brand-dim hidden sm:block hover:text-brand-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 rounded-md px-1"
+            >
+              {biz.avatar} {biz.name}
+            </button>
             {connected && <span className="flex h-2 w-2 rounded-full bg-brand-green animate-pulse" title="Live" />}
             <NotificationCenter token={authToken} />
             <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>

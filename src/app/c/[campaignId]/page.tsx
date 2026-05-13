@@ -97,7 +97,7 @@ export default async function CampaignPage({ params }: PageProps) {
   // confusing ("but I picked one of your options!"). Source: live
   // click-through audit, /c/[id] dropdown showed 8 actions on a
   // 1-action campaign.
-  const campaignActions = ((campaign as { actions?: string[] }).actions ?? [])
+  const campaignActions = (campaign.actions ?? [])
     .map((id) => {
       const action = findAction(id);
       const platform = action?.platformId ? findPlatform(action.platformId) : null;
@@ -146,8 +146,16 @@ export default async function CampaignPage({ params }: PageProps) {
           >
             Social Perks
           </Link>
-          <span className="text-2xs text-brand-muted font-mono">
-            {campaignId.slice(-8)}
+          {/* Campaign-code chip. Was showing the bare uuid tail
+              ("28737c22") which read as random gibberish. Format as a
+              "CAMP-XXXX" code uppercase. Still a deterministic
+              identifier the customer can quote to support, just less
+              "what is this random string" to a layperson. */}
+          <span
+            className="text-2xs text-brand-muted font-mono uppercase tracking-wider"
+            title={`Campaign ${campaignId}`}
+          >
+            CAMP-{campaignId.slice(-6).toUpperCase()}
           </span>
         </div>
       </header>

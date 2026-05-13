@@ -80,7 +80,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   // ActionId must be one of the campaign's allowed actions — otherwise
   // a customer could submit a high-reward action under a low-reward
   // campaign.
-  const allowed = (lifecycle as { actions?: string[] }).actions;
+  const allowed = lifecycle.actions;
   if (Array.isArray(allowed) && allowed.length > 0 && !allowed.includes(av.data)) {
     return err("ACTION_NOT_ALLOWED", "Action is not part of this campaign", 400);
   }

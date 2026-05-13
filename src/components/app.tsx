@@ -210,14 +210,34 @@ export function SocialPerksApp() {
           // shape from the JWT claims; the portal hydrates the rest itself.
           const u = json.data.user as { id: string; email: string; role: string; businessId?: string | null };
           const fallback = u.email.split("@")[0] ?? "User";
+          // When demo mode is off (default in production), data.businesses
+          // is empty by design — real users shouldn't see seed accounts
+          // pollute the marketplace. But the demo-login *itself* still
+          // works because the JWT issuance happens on the server, so the
+          // user lands on the dashboard with no matching business in the
+          // local seed → name falls back to the email prefix ("yoga"
+          // instead of "Sunrise Yoga DC"). Look the business up against
+          // the full seed file as a secondary source so demo accounts
+          // restore with their real names.
           const knownBiz = data.businesses.find((b) => b.id === (u.businessId ?? u.id));
           const knownInf = data.influencers.find((i) => i.id === u.id);
+          const seedBiz = knownBiz ?? createSeedData().businesses.find((b) => b.id === (u.businessId ?? u.id));
+          const seedInf = knownInf ?? createSeedData().influencers.find((i) => i.id === u.id);
           const restored: Partial<SeedBusiness> & Partial<SeedInfluencer> = {
             id: u.businessId ?? u.id,
             email: u.email,
             ...(role === "business"
-              ? { name: knownBiz?.name ?? fallback }
-              : { displayName: knownInf?.displayName ?? fallback }),
+              ? {
+                  name: seedBiz?.name ?? fallback,
+                  avatar: seedBiz?.avatar,
+                  type: seedBiz?.type,
+                  location: seedBiz?.location,
+                  industry: seedBiz?.industry,
+                }
+              : {
+                  displayName: seedInf?.displayName ?? fallback,
+                  avatar: seedInf?.avatar,
+                }),
           };
           setCurrentUser(restored as SeedBusiness | SeedInfluencer);
           setUserRole(role);
