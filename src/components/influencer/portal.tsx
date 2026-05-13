@@ -310,7 +310,19 @@ export function InfluencerPortal({
     setProfileSaved(false);
   }, [influencer.bio, influencer.location]);
 
-  const handleSaveProfile = useCallback(() => {
+  const handleSaveProfile = useCallback(async () => {
+    // Persist to the server so the change survives reload + cross-
+    // device. Previously the save was localStorage-only — influencers
+    // would refresh and see their old bio/location.
+    try {
+      await apiFetch("/api/v1/influencers", {
+        method: "PUT",
+        body: JSON.stringify({ bio: editBio, location: editLocation }),
+      });
+    } catch {
+      // Best-effort — keep the local update so the user isn't blocked
+      // if the server is temporarily unreachable. They can edit again.
+    }
     const updatedInfluencer = { ...influencer, bio: editBio, location: editLocation };
     const updatedInfluencers = (data.influencers ?? []).map((inf) =>
       inf.id === influencer.id ? updatedInfluencer : inf
