@@ -48,10 +48,6 @@ export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
-  // CSRF — enforce on mutating routes (PR: live audit found bypass)
-  const csrfErr = requireCsrf(req);
-  if (csrfErr) return csrfErr;
-
   const q = getQuery(req);
   const side = q.get("side") ?? "all";
   const agentId = q.get("agentId");
