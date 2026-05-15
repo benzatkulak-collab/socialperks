@@ -1,7 +1,59 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
+
+// ─── Live stats hook ────────────────────────────────────────────────────────
+// Fetches the aggregate platform stats from /api/v1/stats/public on mount
+// and exposes them to the trust strip. Server-side endpoint caches for 5
+// minutes and floors values, so this is both privacy-preserving and
+// network-cheap. Falls back to "hidden" silently if the call fails or the
+// platform is below the minimum activity threshold (avoids "2 businesses
+// use this" optics).
+interface LiveStats {
+  show: boolean;
+  campaigns: number;
+  businesses: number;
+  active: number;
+}
+
+function useLiveStats(): LiveStats | null {
+  const [stats, setStats] = useState<LiveStats | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ac = new AbortController();
+    fetch("/api/v1/stats/public", { signal: ac.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (cancelled || !body?.data) return;
+        const d = body.data as Partial<LiveStats>;
+        if (
+          typeof d.show === "boolean" &&
+          typeof d.campaigns === "number" &&
+          typeof d.businesses === "number" &&
+          typeof d.active === "number"
+        ) {
+          setStats({
+            show: d.show,
+            campaigns: d.campaigns,
+            businesses: d.businesses,
+            active: d.active,
+          });
+        }
+      })
+      .catch(() => {
+        // Network/abort/decode failures all collapse to "no stats"
+        // which hides the strip — same as below-threshold case.
+      });
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, []);
+
+  return stats;
+}
 
 interface PricingTier {
   /** Marketing display name. */
@@ -116,6 +168,7 @@ export function PricingSection() {
   // Default to annual: 20% saving is real revenue uplift per signup; plus
   // the visible "Save 20%" badge becomes immediate social-proof of value.
   const [annual, setAnnual] = useState(true);
+  const liveStats = useLiveStats();
 
   return (
     <section
@@ -205,6 +258,39 @@ export function PricingSection() {
             ))}
           </div>
         </AnimateOnScroll>
+
+        {/* Live stats strip — pulled from /api/v1/stats/public.
+            Hidden by the endpoint when the platform is below the
+            minimum activity threshold so we don't broadcast "we have
+            3 customers" during cold-start. */}
+        {liveStats?.show && (
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm">
+            <span className="flex items-baseline gap-2">
+              <span className="font-heading text-xl italic text-brand-cyan">
+                {liveStats.campaigns.toLocaleString()}+
+              </span>
+              <span className="text-brand-dim">campaigns launched</span>
+            </span>
+            <span className="hidden sm:inline-block w-px h-4 bg-brand-border self-center" aria-hidden="true" />
+            <span className="flex items-baseline gap-2">
+              <span className="font-heading text-xl italic text-brand-cyan">
+                {liveStats.businesses.toLocaleString()}+
+              </span>
+              <span className="text-brand-dim">businesses using Social Perks</span>
+            </span>
+            {liveStats.active > 0 && (
+              <>
+                <span className="hidden sm:inline-block w-px h-4 bg-brand-border self-center" aria-hidden="true" />
+                <span className="flex items-baseline gap-2">
+                  <span className="font-heading text-xl italic text-brand-green">
+                    {liveStats.active.toLocaleString()}+
+                  </span>
+                  <span className="text-brand-dim">live right now</span>
+                </span>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Trust strip */}
         <div className="mb-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-brand-muted">
