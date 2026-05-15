@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Logo } from "@/components/ui/logo";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
+import { track, identify } from "@/lib/analytics";
 
 // ─── Constants (outside component to avoid re-creation) ──────────────────────
 
@@ -167,6 +168,15 @@ export function AuthForm({
     if (!email) { setError("Email is required."); return; }
     if (!password || password.length < 8) { setError("Password must be at least 8 characters."); return; }
 
+    // Funnel: signup_started fires once validation passes and we're
+    // about to hit the auth endpoint. Captures the pre-decided plan
+    // intent so we can correlate pricing CTA clicks → signup attempts.
+    track("signup_started", {
+      role: signupRole,
+      planIntent: planIntent?.plan ?? null,
+      planPeriod: planIntent?.period ?? null,
+    });
+
     setLoading(true);
     try {
       const res = await fetch("/api/v1/auth", {
@@ -232,6 +242,14 @@ export function AuthForm({
                   "[billing] redirecting to mock Stripe URL — Stripe is not configured on this server"
                 );
               }
+              // Funnel: fire checkout_started right before the redirect.
+              // checkout_completed fires on the success page (read by
+              // the dashboard via ?checkout=success).
+              track("checkout_started", {
+                plan: planIntent.plan,
+                period: planIntent.period,
+                mock: checkoutJson.data.mock ?? false,
+              });
               window.location.href = checkoutJson.data.url;
               return;
             }
@@ -254,6 +272,17 @@ export function AuthForm({
           }
         }
 
+        // Funnel: signup_completed fires once the account is fully
+        // created and the user is about to be transitioned into the
+        // authenticated portal. We also identify() with the stable
+        // userId so future events on this device tie back to this
+        // account. NEVER pass email here — identify() is for IDs only.
+        identify(biz.id, { role: "business" });
+        track("signup_completed", {
+          role: "business",
+          planIntent: planIntent?.plan ?? null,
+        });
+
         onAuth(biz, "business");
       } else {
         const inf: SeedInfluencer = {
@@ -263,6 +292,8 @@ export function AuthForm({
           followerCount: 0, engagementRate: 0, platforms: [], location: "",
         };
         save({ ...data, influencers: [...(data.influencers ?? []), inf] });
+        identify(inf.id, { role: "influencer" });
+        track("signup_completed", { role: "influencer" });
         onAuth(inf, "influencer");
       }
     } catch {

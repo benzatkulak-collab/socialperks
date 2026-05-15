@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 
 type Status = "success" | "cancelled" | null;
 
@@ -27,6 +28,14 @@ export function CheckoutBanner() {
     const checkout = params.get("checkout");
     if (checkout === "success" || checkout === "cancelled") {
       setStatus(checkout);
+      // Funnel: fire the terminal funnel event when Stripe redirects
+      // back. checkout_completed closes the loop opened by
+      // checkout_started in auth-form. Cancelled redirects are also
+      // valuable signal — they tell us where checkout is leaking.
+      track(
+        checkout === "success" ? "checkout_completed" : "checkout_started",
+        { outcome: checkout }
+      );
     }
   }, []);
 

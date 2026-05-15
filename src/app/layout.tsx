@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { TrackingPixels } from "@/components/shared/tracking-pixels";
+import { PostHogLoader } from "@/components/shared/posthog-loader";
 import { RefCapture } from "@/components/shared/ref-capture";
 import "./globals.css";
 import { safeJsonForScript } from "@/lib/security/json-ld";
@@ -243,6 +244,7 @@ export default function RootLayout({
         <OfflineIndicator />
         <Analytics />
         <TrackingPixels />
+        <PostHogLoader />
       </body>
     </html>
   );
