@@ -6,6 +6,7 @@ import { Stat } from "@/components/ui/stat";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { EmbedCode } from "./embed-code";
 import { TemplatePicker } from "./template-picker";
+import { UsageBanner } from "./usage-banner";
 import type { CampaignTemplate as RichCampaignTemplate } from "@/lib/campaign-templates";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -143,6 +144,11 @@ export function PortalHome({
 
   return (
     <>
+      {/* Usage banner — sits above everything so a user about to hit a
+          plan limit sees the upgrade option immediately. Self-rendering;
+          returns null when the plan + usage don't warrant a prompt. */}
+      {businessId && <UsageBanner businessId={businessId} plan={plan} />}
+
       {/* Stats (only if there are campaigns) */}
       {myCampaigns.length > 0 && (
         <AnimateOnScroll animation="fade-up" stagger staggerDelay={80} className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">

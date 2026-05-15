@@ -653,6 +653,8 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               onPauseCampaign={handlePauseCampaign}
               onResumeCampaign={handleResumeCampaign}
               onEndCampaign={handleEndCampaign}
+              businessId={biz.id}
+              businessName={biz.name}
               referralLink={referralLink}
               referralCreditsEarned={referralCreditsEarned}
               onOpenReferrals={handleOpenReferrals}
