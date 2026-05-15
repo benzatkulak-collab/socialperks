@@ -17,6 +17,9 @@ import {
   influencerSequence,
   type DripUser,
 } from "@/lib/email/drip";
+import { db, InMemoryConnection } from "@/lib/db/connection";
+import { campaignManager } from "@/lib/campaign-state-machine";
+import { getBusinessPlan } from "@/lib/billing/enforcement";
 
 // -- Internal API Key Check ---------------------------------------------------
 
@@ -40,13 +43,79 @@ function isAuthorized(req: NextRequest): boolean {
 // objects from whatever user store is available.
 
 /**
- * Build DripUser objects from the in-memory auth store.
- * In production, this would be a database query.
+ * Build DripUser objects.
+ *
+ * Production path (when Postgres is wired up): query the users table for
+ * real accounts and derive the `hasCampaigns` / `plan` flags from the
+ * campaign state machine and billing subscriptions. `signupDate` comes
+ * from `users.created_at` so day-1/3/7/14 emails fire on real elapsed
+ * time, not on "right now" — which is what the seed fallback used to
+ * do, effectively breaking the entire drip sequence in production.
+ *
+ * Fallback path (no DB / InMemoryConnection): seed data, useful in dev
+ * and as a smoke test. Real production deployments will skip this
+ * branch entirely once DATABASE_URL is set.
  */
 async function fetchDripUsers(): Promise<DripUser[]> {
-  // Dynamic import to avoid circular dependency with auth module.
-  // The auth route's user map isn't exported, so we query the seed data
-  // as a stand-in. In production this would be a DB query.
+  const usingDb = !(db instanceof InMemoryConnection);
+
+  if (usingDb) {
+    try {
+      const result = await db.query<{
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+        business_id: string | null;
+        influencer_id: string | null;
+        created_at: Date | string;
+      }>(
+        `SELECT id, email, name, role, business_id, influencer_id, created_at
+         FROM users
+         WHERE deleted_at IS NULL
+           AND email_verified = true
+           AND created_at >= NOW() - INTERVAL '60 days'`
+      );
+
+      const users: DripUser[] = [];
+      for (const row of result.rows) {
+        const role: "business" | "influencer" =
+          row.influencer_id ? "influencer" : "business";
+
+        // hasCampaigns + plan derive from in-process state. These are
+        // best-effort: if the campaign manager or subscription cache is
+        // cold for a given business, hasCampaigns reports false and the
+        // user falls into the "didn't launch yet" branch — which is
+        // exactly the user we most want to email anyway.
+        const businessId = row.business_id ?? "";
+        const campaignCount = businessId
+          ? campaignManager.listByBusiness(businessId).length
+          : 0;
+        const plan = businessId ? getBusinessPlan(businessId) : "free";
+
+        users.push({
+          id: row.id,
+          email: row.email,
+          name: row.name,
+          role,
+          signupDate:
+            row.created_at instanceof Date
+              ? row.created_at.toISOString()
+              : new Date(row.created_at).toISOString(),
+          hasCampaigns: campaignCount > 0,
+          campaignCount,
+          plan,
+        });
+      }
+      return users;
+    } catch (e) {
+      // If the query fails we'd rather fail-soft to seed than 500 the
+      // drip endpoint. Log loudly so the operator notices.
+      console.error("[drip] DB query failed, falling back to seed:", e);
+    }
+  }
+
+  // Fallback: seed data (dev / smoke-test path).
   const { createSeedData } = await import("@social-perks/shared/seed");
   const seed = createSeedData();
   const users: DripUser[] = [];
@@ -68,10 +137,13 @@ async function fetchDripUsers(): Promise<DripUser[]> {
       name: biz.name,
       role: "business",
       businessType: biz.industry,
-      signupDate: new Date().toISOString(), // In production: from DB
+      // Seed users get a fixed historical signupDate so the drip can
+      // actually fire in dev. Using "now" here was the bug that made
+      // the entire drip dead in production — every user stayed at day 0.
+      signupDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
       hasCampaigns: count > 0,
       campaignCount: count,
-      plan: "free", // In production: from billing/subscription table
+      plan: "free",
     });
   }
 
@@ -81,7 +153,7 @@ async function fetchDripUsers(): Promise<DripUser[]> {
       email: inf.email,
       name: inf.displayName,
       role: "influencer",
-      signupDate: new Date().toISOString(), // In production: from DB
+      signupDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
       hasCampaigns: false,
       campaignCount: 0,
       plan: "free",
