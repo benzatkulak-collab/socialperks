@@ -14,6 +14,7 @@ import { OnboardingWizard } from "./onboarding-wizard";
 import { CampaignEditModal } from "./campaign-edit-modal";
 import { CheckoutBanner } from "./checkout-banner";
 import { PlanLimitModal, reportPlanLimit } from "./plan-limit-modal";
+import { ReferralModal } from "./referral-modal";
 import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
 import { DashboardSkeleton } from "@/components/ui/portal-skeletons";
 import { NotificationCenter } from "@/components/shared/notification-center";
@@ -89,6 +90,38 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
       : "home";
   const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics">(initialPage);
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
+
+  // ── Referral data (lazy: only fetched once, used by the home card +
+  //    referral modal). Server endpoint /api/v1/referrals/me lazily
+  //    creates a code on first call, so we don't need to mint one here.
+  const [referralLink, setReferralLink] = useState<string | undefined>(undefined);
+  const [referralCreditsEarned, setReferralCreditsEarned] = useState<number>(0);
+  const [referralModalOpen, setReferralModalOpen] = useState(false);
+  useEffect(() => {
+    const ac = new AbortController();
+    fetch("/api/v1/referrals/me", { signal: ac.signal, credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!body?.data) return;
+        const d = body.data as {
+          shareUrl?: string;
+          metrics?: { estimatedCommissionDollars?: number };
+        };
+        if (typeof d.shareUrl === "string") {
+          setReferralLink(d.shareUrl);
+        }
+        if (typeof d.metrics?.estimatedCommissionDollars === "number") {
+          setReferralCreditsEarned(d.metrics.estimatedCommissionDollars);
+        }
+      })
+      .catch(() => {
+        // Referral fetch is fail-soft — the dashboard works fine
+        // without the Refer & Earn card. Don't surface errors here.
+      });
+    return () => ac.abort();
+  }, []);
+  const handleOpenReferrals = useCallback(() => setReferralModalOpen(true), []);
+  const handleCloseReferrals = useCallback(() => setReferralModalOpen(false), []);
 
   // Create campaign state
   const [step, setStep] = useState(1);
@@ -489,6 +522,9 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
 
   return (
     <div className="min-h-screen bg-brand-bg">
+      {/* Referral modal — opens from the Refer & Earn card on home */}
+      <ReferralModal open={referralModalOpen} onClose={handleCloseReferrals} />
+
       {/* Onboarding wizard for new businesses with no campaigns */}
       {showOnboarding && myCampaigns.length === 0 && (
         <OnboardingWizard
@@ -617,6 +653,9 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               onPauseCampaign={handlePauseCampaign}
               onResumeCampaign={handleResumeCampaign}
               onEndCampaign={handleEndCampaign}
+              referralLink={referralLink}
+              referralCreditsEarned={referralCreditsEarned}
+              onOpenReferrals={handleOpenReferrals}
             />
           </div>
           )}
