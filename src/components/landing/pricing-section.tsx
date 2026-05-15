@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 
 interface PricingTier {
@@ -9,8 +9,7 @@ interface PricingTier {
   /**
    * Billing engine plan key — must match a key in src/lib/billing/store.ts PLANS.
    * `null` means this is a marketing-only tier (e.g. Free) that doesn't
-   * trigger Stripe checkout. Without this mapping, the visible "Pro" tier
-   * was a 400 from billing because no PLANS["pro"] entry exists.
+   * trigger Stripe checkout.
    */
   planKey: "starter" | "professional" | "enterprise" | null;
   price: string;
@@ -18,9 +17,10 @@ interface PricingTier {
   description: string;
   features: string[];
   cta: string;
+  ctaSubtext?: string;
   popular: boolean;
   accent: string;
-  accentBorder: string;
+  badge?: string;
 }
 
 const PRICING_TIERS: PricingTier[] = [
@@ -37,31 +37,47 @@ const PRICING_TIERS: PricingTier[] = [
       "Email support",
     ],
     cta: "Start Free",
+    ctaSubtext: "No credit card",
     popular: false,
     accent: "text-brand-dim",
-    accentBorder: "border-brand-border",
+  },
+  {
+    name: "Starter",
+    planKey: "starter",
+    price: "$29",
+    period: "/month",
+    description: "For solo owners ready to grow.",
+    features: [
+      "10 active campaigns",
+      "500 completions/month",
+      "Full analytics + CSV export",
+      "QR codes for your counter",
+      "Email support",
+    ],
+    cta: "Get Started",
+    ctaSubtext: "30-day money-back",
+    popular: false,
+    accent: "text-brand-cyan",
   },
   {
     name: "Pro",
     planKey: "professional",
     price: "$49",
     period: "/month",
-    description: "Everything you need to grow.",
+    description: "Everything you need to scale.",
     features: [
-      "Unlimited campaigns",
-      "Unlimited completions",
-      "Full analytics dashboard",
-      "QR codes for your counter",
-      "Priority verification",
+      "50 active campaigns",
+      "5,000 completions/month",
+      "Advanced analytics + AI insights",
       "API access",
+      "Priority verification",
+      "Priority support",
     ],
-    // CTA reflects actual product policy: there's no time-bombed trial,
-    // just a free tier. Saying "Start Free Trial" sets up an expectation
-    // we don't meet. "Start Free" is honest and matches the Free card.
-    cta: "Start Free",
+    cta: "Get Started",
+    ctaSubtext: "30-day money-back",
     popular: true,
     accent: "text-brand-cyan",
-    accentBorder: "border-brand-cyan/40",
+    badge: "Most Popular",
   },
   {
     name: "Enterprise",
@@ -70,17 +86,30 @@ const PRICING_TIERS: PricingTier[] = [
     period: "",
     description: "Multiple locations, custom needs.",
     features: [
-      "Everything in Pro",
+      "Unlimited campaigns",
       "Multi-location management",
-      "Team permissions",
+      "Team permissions + SSO",
       "Dedicated account manager",
-      "Custom integrations",
+      "Custom integrations + SLA",
     ],
-    cta: "Contact Us",
+    cta: "Talk to Sales →",
     popular: false,
     accent: "text-brand-amber",
-    accentBorder: "border-brand-amber/30",
   },
+];
+
+// ─── "Works with" platform logos row ────────────────────────────────────────
+// Same emoji vocabulary as the onboarding wizard and platforms.ts. Provides
+// immediate visual confirmation of what channels Social Perks supports
+// without forcing a buyer to dig through features lists or FAQs.
+const WORKS_WITH = [
+  { icon: "📸", name: "Instagram" },
+  { icon: "🎬", name: "TikTok" },
+  { icon: "👍", name: "Facebook" },
+  { icon: "📺", name: "YouTube" },
+  { icon: "✍️", name: "X" },
+  { icon: "💼", name: "LinkedIn" },
+  { icon: "📌", name: "Pinterest" },
 ];
 
 export function PricingSection() {
@@ -109,10 +138,10 @@ export function PricingSection() {
             id="pricing-heading"
             className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic text-brand-white leading-tight"
           >
-            Costs less than one Instagram ad
+            Turn one Instagram ad&apos;s budget into 50 customer posts
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
-            Start free. Most businesses stay on free or Starter. No contracts, cancel anytime.
+            Start free. Upgrade when you outgrow it. Cancel anytime — no phone calls, no retention scripts.
           </p>
 
           {/* Billing toggle */}
@@ -156,10 +185,28 @@ export function PricingSection() {
           </div>
         </AnimateOnScroll>
 
-        {/* Honest "we're early" strip — until there are real customer
-            logos, social proof here is a transparent statement of where
-            the company actually is. Prospects respond well to honesty;
-            fake testimonials erode trust. */}
+        {/* "Works with" logo row — answers "does this support my platform?"
+            before the buyer has to read a single feature bullet. Trust by
+            association with channels they already know. */}
+        <AnimateOnScroll animation="fade-up" delay={80} className="mb-10">
+          <p className="text-center text-xs font-mono uppercase tracking-[0.15em] text-brand-muted mb-4">
+            Works with
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 sm:gap-x-8">
+            {WORKS_WITH.map((p) => (
+              <span
+                key={p.name}
+                className="flex items-center gap-2 text-sm text-brand-dim"
+                title={p.name}
+              >
+                <span className="text-lg" aria-hidden="true">{p.icon}</span>
+                <span className="hidden sm:inline">{p.name}</span>
+              </span>
+            ))}
+          </div>
+        </AnimateOnScroll>
+
+        {/* Trust strip */}
         <div className="mb-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-brand-muted">
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-green" aria-hidden="true" />
@@ -167,7 +214,7 @@ export function PricingSection() {
           </span>
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-cyan" aria-hidden="true" />
-            30-day money-back on Pro
+            Cancel anytime
           </span>
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-amber" aria-hidden="true" />
@@ -175,8 +222,13 @@ export function PricingSection() {
           </span>
         </div>
 
-        {/* Pricing cards */}
-        <AnimateOnScroll animation="fade-up" stagger staggerDelay={120} className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-5 lg:gap-6 items-start">
+        {/* Pricing cards — 4 tiers now (Free / Starter / Pro / Enterprise). */}
+        <AnimateOnScroll
+          animation="fade-up"
+          stagger
+          staggerDelay={100}
+          className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-5 lg:gap-5 items-start"
+        >
           {PRICING_TIERS.map((tier) => {
             const monthlyAmount =
               tier.price !== "$0" && tier.price !== "Custom"
@@ -200,13 +252,12 @@ export function PricingSection() {
                   tier.popular
                     ? "border-brand-cyan/40 bg-brand-surface/60 shadow-lg shadow-brand-cyan/5"
                     : "border-brand-border/40 bg-brand-surface/30"
-                } p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-border/70 hover:shadow-lg hover:shadow-brand-bg/50 sm:p-7 lg:p-8`}
+                } p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-border/70 hover:shadow-lg hover:shadow-brand-bg/50 sm:p-6`}
               >
-                {/* Popular badge */}
-                {tier.popular && (
+                {tier.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full bg-brand-cyan px-4 py-1 text-xs font-semibold text-brand-bg shadow-md shadow-brand-cyan/20">
-                      Most Popular
+                    <span className="rounded-full bg-brand-cyan px-4 py-1 text-xs font-semibold text-brand-bg shadow-md shadow-brand-cyan/20 whitespace-nowrap">
+                      {tier.badge}
                     </span>
                   </div>
                 )}
@@ -228,9 +279,6 @@ export function PricingSection() {
                   )}
                 </div>
 
-                {/* Concrete annual savings — converts the abstract "20%
-                    off" into a real-dollar number, which is more
-                    persuasive at the moment of choice. */}
                 {annualSavings > 0 && (
                   <p className="mb-3 text-xs font-medium text-brand-green">
                     Save ${annualSavings}/yr vs. monthly
@@ -238,13 +286,13 @@ export function PricingSection() {
                 )}
 
                 {/* Description */}
-                <p className="mb-6 text-sm text-brand-dim leading-relaxed">{tier.description}</p>
+                <p className="mb-5 text-sm text-brand-dim leading-relaxed">{tier.description}</p>
 
                 {/* Divider */}
-                <div className="mb-6 h-px bg-brand-border/40" />
+                <div className="mb-5 h-px bg-brand-border/40" />
 
                 {/* Features */}
-                <ul className="mb-8 flex-1 space-y-3" role="list">
+                <ul className="mb-6 flex-1 space-y-2.5" role="list">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2.5">
                       <span
@@ -258,9 +306,7 @@ export function PricingSection() {
                   ))}
                 </ul>
 
-                {/* CTA — preserve the chosen plan key + billing period
-                    in the URL so the dashboard can pre-select them after
-                    signup. Enterprise has no checkout; route to /contact. */}
+                {/* CTA */}
                 <a
                   href={
                     tier.planKey === null
@@ -280,10 +326,23 @@ export function PricingSection() {
                 >
                   {tier.cta}
                 </a>
+
+                {/* CTA subtext — sets cancel/refund expectation right at
+                    the click moment, where conversion lives or dies. */}
+                {tier.ctaSubtext && (
+                  <p className="mt-2 text-center text-xs text-brand-muted">
+                    {tier.ctaSubtext}
+                  </p>
+                )}
               </div>
             );
           })}
         </AnimateOnScroll>
+
+        {/* Comparison table — for the buyer who wants to scan the full
+            picture side-by-side before clicking. Always under the cards
+            so it doesn't compete for the primary action above the fold. */}
+        <ComparisonTable annual={annual} />
 
         {/* Bottom note */}
         <p className="mt-12 text-center text-sm text-brand-muted">
@@ -312,6 +371,123 @@ export function PricingSection() {
   );
 }
 
+// ─── Comparison Table ───────────────────────────────────────────────────────
+
+interface ComparisonRow {
+  feature: string;
+  free: string | boolean;
+  starter: string | boolean;
+  pro: string | boolean;
+  enterprise: string | boolean;
+  group?: string;
+}
+
+const COMPARISON: ComparisonRow[] = [
+  // Campaigns & usage
+  { group: "Campaigns & usage", feature: "Active campaigns", free: "1", starter: "10", pro: "50", enterprise: "Unlimited" },
+  { feature: "Completions per month", free: "50", starter: "500", pro: "5,000", enterprise: "Unlimited" },
+  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 107", enterprise: "All 107" },
+  { feature: "AI campaign generations", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
+  // Analytics
+  { group: "Analytics", feature: "Basic analytics dashboard", free: true, starter: true, pro: true, enterprise: true },
+  { feature: "Advanced analytics + AI insights", free: false, starter: false, pro: true, enterprise: true },
+  { feature: "CSV export", free: false, starter: true, pro: true, enterprise: true },
+  // Features
+  { group: "Features", feature: "QR codes for your counter", free: false, starter: true, pro: true, enterprise: true },
+  { feature: "API access", free: false, starter: false, pro: true, enterprise: true },
+  { feature: "Multi-location management", free: false, starter: false, pro: false, enterprise: true },
+  { feature: "Team permissions + SSO", free: false, starter: false, pro: false, enterprise: true },
+  { feature: "Custom integrations", free: false, starter: false, pro: false, enterprise: true },
+  // Support
+  { group: "Support", feature: "Email support", free: true, starter: true, pro: true, enterprise: true },
+  { feature: "Priority support", free: false, starter: false, pro: true, enterprise: true },
+  { feature: "Dedicated account manager", free: false, starter: false, pro: false, enterprise: true },
+  { feature: "SLA guarantee", free: false, starter: false, pro: false, enterprise: true },
+];
+
+function Cell({ value }: { value: string | boolean }) {
+  if (value === true) {
+    return (
+      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-green/10 text-brand-green text-xs" aria-label="Included">
+        ✓
+      </span>
+    );
+  }
+  if (value === false) {
+    return <span className="text-brand-muted/60 text-sm" aria-label="Not included">—</span>;
+  }
+  return <span className="text-sm font-medium text-brand-white">{value}</span>;
+}
+
+function ComparisonTable({ annual }: { annual: boolean }) {
+  return (
+    <AnimateOnScroll animation="fade-up" delay={120} className="mx-auto mt-16 max-w-5xl">
+      <details className="group rounded-2xl border border-brand-border/40 bg-brand-surface/20">
+        <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 sm:px-6 list-none [&::-webkit-details-marker]:hidden hover:bg-brand-surface/30 transition-colors">
+          <div>
+            <h3 className="font-heading text-lg italic text-brand-white">
+              Compare plans, feature by feature
+            </h3>
+            <p className="text-xs text-brand-muted mt-0.5">
+              {annual ? "Annual pricing shown" : "Monthly pricing shown"} · 16 features
+            </p>
+          </div>
+          <span
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brand-border text-brand-cyan transition-transform group-open:rotate-45"
+            aria-hidden="true"
+          >
+            +
+          </span>
+        </summary>
+
+        <div className="overflow-x-auto border-t border-brand-border/40">
+          <table className="w-full text-left">
+            <thead className="bg-brand-surface/40">
+              <tr>
+                <th scope="col" className="px-4 py-3 text-xs font-mono uppercase tracking-wide text-brand-muted sm:px-6">
+                  Feature
+                </th>
+                <th scope="col" className="px-3 py-3 text-center text-xs font-mono uppercase tracking-wide text-brand-muted">
+                  Free
+                </th>
+                <th scope="col" className="px-3 py-3 text-center text-xs font-mono uppercase tracking-wide text-brand-cyan">
+                  Starter
+                </th>
+                <th scope="col" className="px-3 py-3 text-center text-xs font-mono uppercase tracking-wide text-brand-cyan">
+                  Pro
+                </th>
+                <th scope="col" className="px-3 py-3 text-center text-xs font-mono uppercase tracking-wide text-brand-amber">
+                  Enterprise
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map((row, i) => (
+                <Fragment key={`row-${i}`}>
+                  {row.group && (
+                    <tr className="bg-brand-bg/40">
+                      <td colSpan={5} className="px-4 py-2 sm:px-6 text-xs font-mono uppercase tracking-wide text-brand-muted">
+                        {row.group}
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="border-t border-brand-border/30">
+                    <td className="px-4 py-3 text-sm text-brand-text sm:px-6">{row.feature}</td>
+                    <td className="px-3 py-3 text-center"><Cell value={row.free} /></td>
+                    <td className="px-3 py-3 text-center"><Cell value={row.starter} /></td>
+                    <td className="px-3 py-3 text-center"><Cell value={row.pro} /></td>
+                    <td className="px-3 py-3 text-center"><Cell value={row.enterprise} /></td>
+                  </tr>
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </AnimateOnScroll>
+  );
+}
+
 // ─── FAQ ────────────────────────────────────────────────────────────────────
 
 const FAQ: { q: string; a: string }[] = [
@@ -321,11 +497,11 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What if I cancel?",
-    a: "Cancel anytime from your dashboard. No phone calls, no retention scripts. Your data stays accessible for export for 30 days after.",
+    a: "Cancel anytime from your dashboard in two clicks. No phone calls, no retention scripts. Your data stays accessible for export for 30 days after.",
   },
   {
     q: "Do I get a refund if it doesn't work?",
-    a: "30-day money-back guarantee on Pro. If your customers aren't posting, email us within 30 days of your first paid month and we'll refund in full.",
+    a: "30-day money-back guarantee on Starter and Pro. If your customers aren't posting, email us within 30 days of your first paid month and we'll refund in full.",
   },
   {
     q: "How does the FTC compliance piece work?",
@@ -333,11 +509,15 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Why don't you support paying for Google reviews?",
-    a: "Google's Terms of Service prohibit incentivized reviews — same with Yelp and Tripadvisor. The platform actively blocks these to protect your account from being suspended. We focus on Instagram, TikTok, and Facebook posts where incentivization is allowed with proper disclosure.",
+    a: "Google's Terms of Service prohibit incentivized reviews — same with Yelp and TripAdvisor. The platform actively blocks these to protect your account from being suspended. We focus on Instagram, TikTok, Facebook, and other channels where incentivization is allowed with proper disclosure.",
+  },
+  {
+    q: "What's the difference between Starter and Pro?",
+    a: "Starter (10 campaigns, 500 completions/mo) is for a single solo owner who's launching a few campaigns at a time. Pro (50 campaigns, 5,000 completions/mo) adds AI insights, API access, and priority support — the right fit once you're running campaigns continuously or wiring Social Perks into your own tools.",
   },
   {
     q: "What if I have multiple locations?",
-    a: "That's the Enterprise tier. Multi-location dashboard, team permissions, brand-compliance review across stores, and a dedicated account manager. Reach out via Contact.",
+    a: "That's the Enterprise tier. Multi-location dashboard, team permissions with SSO, brand-compliance review across stores, and a dedicated account manager. Reach out via Contact.",
   },
 ];
 
