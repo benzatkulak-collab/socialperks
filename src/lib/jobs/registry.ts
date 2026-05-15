@@ -17,21 +17,24 @@ export interface EmailJobData {
     | "digest"
     | "drip"
     | "transactional"
-    | "subscription-started";
+    | "subscription-started"
+    | "checkout-abandoned";
   to: string;
   subject?: string;
   html?: string;
   text?: string;
-  /** For welcome and subscription-started emails */
+  /** For welcome, subscription-started, and checkout-abandoned emails */
   name?: string;
   /** For password reset emails */
   resetLink?: string;
   /** For digest emails */
   businessId?: string;
   businessName?: string;
-  /** For subscription-started emails */
+  /** For subscription-started and checkout-abandoned emails */
   plan?: string;
   billingPeriod?: "monthly" | "annual";
+  /** For checkout-abandoned emails — Stripe-hosted resume link */
+  resumeUrl?: string;
 }
 
 export const emailQueue = new JobQueue<EmailJobData>("email", {
@@ -45,7 +48,13 @@ export const emailQueue = new JobQueue<EmailJobData>("email", {
 
 emailQueue.process(async (job: Job<EmailJobData>) => {
   // Lazy import to avoid circular dependency at module load time
-  const { emailProvider, welcomeEmail, passwordResetEmail, subscriptionStartedEmail } = await import("@/lib/email");
+  const {
+    emailProvider,
+    welcomeEmail,
+    passwordResetEmail,
+    subscriptionStartedEmail,
+    checkoutAbandonedEmail,
+  } = await import("@/lib/email");
 
   const { type, to } = job.data;
 
@@ -62,6 +71,20 @@ emailQueue.process(async (job: Job<EmailJobData>) => {
         job.data.name ?? "there",
         job.data.plan,
         job.data.billingPeriod
+      );
+      return emailProvider.send({ to, ...template });
+    }
+    case "checkout-abandoned": {
+      if (!job.data.plan || !job.data.billingPeriod || !job.data.resumeUrl) {
+        throw new Error(
+          "checkout-abandoned emails require plan, billingPeriod, and resumeUrl"
+        );
+      }
+      const template = checkoutAbandonedEmail(
+        job.data.name ?? "there",
+        job.data.plan,
+        job.data.billingPeriod,
+        job.data.resumeUrl
       );
       return emailProvider.send({ to, ...template });
     }
