@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
+import { track } from "@/lib/analytics";
 
 // ─── Live stats hook ────────────────────────────────────────────────────────
 // Fetches the aggregate platform stats from /api/v1/stats/public on mount
@@ -169,6 +170,23 @@ export function PricingSection() {
   // the visible "Save 20%" badge becomes immediate social-proof of value.
   const [annual, setAnnual] = useState(true);
   const liveStats = useLiveStats();
+
+  // Track pricing CTA clicks via event delegation — captures plan +
+  // period from data-* attributes the CTAs already emit. Cheaper than
+  // wiring an onClick on every <a>, and works for both Free signup and
+  // paid checkout handoffs. Fires through src/lib/analytics.ts which
+  // no-ops if PostHog isn't loaded.
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-plan]");
+      if (!target) return;
+      const plan = target.dataset.plan ?? "unknown";
+      const period = target.dataset.period ?? "monthly";
+      track("pricing_cta_click", { plan, period });
+    }
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
 
   return (
     <section
