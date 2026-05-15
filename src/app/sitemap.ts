@@ -10,6 +10,7 @@ import { GUIDES } from "@/lib/guides-data";
 import { BEST_LISTICLES } from "@/lib/best-data";
 import { VS_ENTRIES } from "@/lib/vs-data";
 import { PLAYBOOKS } from "@/lib/playbook-data";
+import { ANSWERS } from "@/lib/answers-data";
 import { getBenchmarks } from "@/lib/ai-engine";
 
 const SITE_URL =
@@ -46,6 +47,10 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: "/vs",            changeFrequency: "weekly",  priority: 0.8 },
   { path: "/security",      changeFrequency: "monthly", priority: 0.7 },
   { path: "/playbook",      changeFrequency: "weekly",  priority: 0.85 },
+  // /answers — per-question SEO hub. Heavily preferred by LLM citations
+  // (ChatGPT / Claude / Perplexity all favor URLs answering one
+  // specific question), so priority sits alongside /guides + /best.
+  { path: "/answers",       changeFrequency: "weekly",  priority: 0.85 },
   { path: "/resources",     changeFrequency: "weekly",  priority: 0.8 },
   { path: "/changelog",     changeFrequency: "weekly",  priority: 0.5 },
   { path: "/contact",       changeFrequency: "monthly", priority: 0.5 },
@@ -214,6 +219,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...PLAYBOOKS.map((p) => ({
       url: `${SITE_URL}/playbook/${p.slug}`,
       lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
+    // Per-question answer pages — QAPage schema, optimized for LLM
+    // citation. Each URL answers exactly one specific question, which
+    // is what AI assistants reach for over multi-question FAQ pages.
+    ...ANSWERS.map((a) => ({
+      url: `${SITE_URL}/answers/${a.slug}`,
+      lastModified: new Date(a.lastReviewed),
       changeFrequency: "monthly" as const,
       priority: 0.8,
     })),

@@ -108,6 +108,16 @@ export default function FaqPage() {
             incentivized marketing, FTC compliance, platform rules, perk
             pricing, and AI agent integration.
           </p>
+          <p className="mt-4 text-sm text-brand-text-dim">
+            Looking for a deeper dive on one specific question? See our{" "}
+            <Link
+              href="/answers"
+              className="text-brand-cyan hover:text-brand-white underline-offset-4 hover:underline transition-colors"
+            >
+              long-form answer pages
+            </Link>{" "}
+            — each one is a standalone explainer for a single question.
+          </p>
         </header>
 
         {/* Table of contents — also helps LLMs understand structure */}

@@ -10,6 +10,7 @@ const FOOTER_LINKS = [
   { label: "ROI Calculator", href: "/calculator" },
   { label: "Leaderboard", href: "/leaderboard" },
   { label: "Blog", href: "/blog" },
+  { label: "Answers", href: "/answers" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Status", href: "/status" },
