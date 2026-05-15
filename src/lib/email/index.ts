@@ -185,6 +185,44 @@ export function subscriptionStartedEmail(
   return { subject, html, text };
 }
 
+/**
+ * Sent when a Stripe Checkout session expires without completing
+ * (default Stripe TTL is 24h). Polite reminder + one-click resume
+ * URL so the user can pick up where they left off without re-picking
+ * the plan and period.
+ *
+ * Industry benchmark: 10–15% of abandoned checkouts recover via a
+ * single well-timed reminder. That's pure revenue lift for the
+ * cost of one email.
+ */
+export function checkoutAbandonedEmail(
+  businessName: string,
+  plan: string,
+  billingPeriod: "monthly" | "annual",
+  resumeUrl: string
+): EmailTemplate {
+  const safeName = escapeHtml(businessName);
+  const safePlan = escapeHtml(plan.charAt(0).toUpperCase() + plan.slice(1));
+  const safeUrl = escapeHtml(resumeUrl);
+  const billingLabel = billingPeriod === "annual" ? "annual" : "monthly";
+  const subject = `Finish setting up Social Perks ${safePlan}`;
+  const html = wrapHtml(
+    `<h1 style="color: #FBBF24; font-family: 'Instrument Serif', serif; font-style: italic;">Almost there, ${safeName}</h1>
+<p style="color: #94A3B8; line-height: 1.6;">You started signing up for Social Perks <strong style="color: #E2E8F0;">${safePlan}</strong> (${billingLabel}) but didn't finish checkout. No problem — your spot is still open.</p>
+<p style="color: #94A3B8; line-height: 1.6;">Pick up where you left off in one click:</p>
+<a href="${safeUrl}" style="display: inline-block; padding: 12px 24px; background-color: #22D3EE; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">Resume Checkout</a>
+<p style="color: #94A3B8; line-height: 1.6; margin-top: 24px;">A few things worth knowing:</p>
+<ul style="color: #94A3B8; line-height: 1.8; padding-left: 20px;">
+  <li><strong style="color: #E2E8F0;">Cancel anytime</strong> — no contracts, no phone calls.</li>
+  <li><strong style="color: #E2E8F0;">30-day money-back</strong> — full refund if it's not working.</li>
+  <li>Your Free account stays active either way. The upgrade just raises the cap.</li>
+</ul>
+<p style="color: #94A3B8; line-height: 1.6; font-size: 14px; margin-top: 24px;">Not the right plan for you? <a href="https://socialperks.app/pricing" style="color: #22D3EE;">Compare plans</a> or <a href="https://socialperks.app/contact?intent=questions" style="color: #22D3EE;">talk to the founder</a>.</p>`
+  );
+  const text = `Hi ${businessName} — you started signing up for Social Perks ${plan} (${billingLabel}) but didn't finish checkout. Pick up where you left off: ${resumeUrl}\n\nCancel anytime · 30-day money-back · Your free account stays active either way.`;
+  return { subject, html, text };
+}
+
 export function submissionApprovedEmail(
   userName: string,
   campaignName: string,

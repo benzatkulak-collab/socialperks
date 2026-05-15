@@ -266,6 +266,80 @@ export const POST = withTiming(async (req: NextRequest) => {
       break;
     }
 
+    case "checkout.session.expired": {
+      // Stripe Checkout sessions expire 24h after creation when the
+      // user doesn't complete payment. This is the "abandoned cart"
+      // signal — fire a single recovery email with a fresh checkout
+      // URL so the user can pick up where they left off.
+      //
+      // Idempotency: emailQueue is at-most-once per (event, attempt)
+      // semantics; markEventProcessed above already guards against
+      // the webhook firing twice for the same eventId.
+      console.warn(`[Billing Webhook] checkout.session.expired — event=${eventId}`);
+
+      if (eventData) {
+        const metadata = eventData.metadata as Record<string, string> | undefined;
+        const businessId = metadata?.businessId;
+        const plan = metadata?.plan ?? "starter";
+        const billingPeriod = (metadata?.billingPeriod ?? "monthly") as "monthly" | "annual";
+        // Stripe puts the customer email on the expired session object
+        // even when there's no Customer record yet (no payment method
+        // captured). Fall back to looking up the business if missing.
+        const customerEmail = (eventData.customer_email as string | null | undefined) ?? null;
+        const recoveryUrl = (eventData.recovery_url as string | undefined) ?? null;
+
+        // Without a businessId we have no way to identify which user
+        // this was, so we can't reliably address the email or build a
+        // resume link. Bail silently — Stripe will retry but the
+        // markEventProcessed above means we won't double-fire.
+        if (!businessId) {
+          console.warn(
+            `[Billing Webhook] expired session has no businessId metadata — event=${eventId}`
+          );
+          break;
+        }
+
+        try {
+          const business = await businessRepo.findById(businessId);
+          const email = customerEmail ?? business?.email;
+          const name = business?.name ?? "there";
+          if (!email) {
+            console.warn(
+              `[Billing Webhook] expired session has no recoverable email — event=${eventId}, businessId=${businessId}`
+            );
+            break;
+          }
+
+          // Resume URL preference order:
+          //   1. Stripe-provided recovery_url (one-click resume, ideal)
+          //   2. /pricing#<plan> (lands them on the right card)
+          // We never reuse the expired Session URL — it returns 404.
+          const resumeUrl =
+            recoveryUrl ??
+            `https://socialperks.app/pricing?utm_source=abandoned_checkout#${plan}`;
+
+          emailQueue.add({
+            type: "checkout-abandoned",
+            to: email,
+            name,
+            plan,
+            billingPeriod,
+            resumeUrl,
+          });
+
+          console.warn(
+            `[Billing Webhook] Enqueued abandoned-checkout email for businessId=${businessId} plan=${plan}`
+          );
+        } catch (e) {
+          console.error(
+            `[Billing Webhook] Failed to enqueue abandoned-checkout email — event=${eventId}`,
+            e
+          );
+        }
+      }
+      break;
+    }
+
     default:
       console.warn(`[Billing Webhook] Unhandled event type: ${eventType} — event=${eventId}`);
   }
