@@ -57,7 +57,9 @@ export type AuditAction =
   | "program.deleted"
   | "tenant.access_denied"
   // Self-audit — the audit log itself was read by an admin.
-  | "admin.audit_read";
+  | "admin.audit_read"
+  // Founder dashboard read — admin-only revenue & growth snapshot.
+  | "admin.founder_overview_read";
 
 export interface AuditEntry {
   /** Action that happened. */
