@@ -353,6 +353,10 @@ const TOOLS: Tool[] = [
     description:
       "Create and launch a new campaign for the calling business. Returns the campaign id, name, and dashboard URL. The campaign goes live immediately — no separate publish step.",
     requiresAuth: true,
+    // Each successful call consumes one slot of the business's
+    // campaign quota (plan-tier limit). Agents should pre-check via
+    // getUsageSummary or be prepared for a 403 PLAN_LIMIT_EXCEEDED.
+    cost: { type: "plan", resource: "campaigns", consumedPerCall: 1 },
     inputSchema: {
       type: "object",
       required: ["businessId", "name", "actions", "discountValue", "discountType"],
@@ -401,6 +405,9 @@ const TOOLS: Tool[] = [
     description:
       "Submit proof of completion for a campaign action — a public URL to a post, a screenshot, a video, or platform-verified data. The submission enters a review queue (or auto-approves depending on the campaign's verification mode).",
     requiresAuth: true,
+    // Counts against the monthly submissions quota on the business's
+    // plan. On most plans the limit is per-month, not per-call.
+    cost: { type: "plan", resource: "submissions", consumedPerCall: 1 },
     inputSchema: {
       type: "object",
       required: ["campaignId", "actionId", "proofUrl", "proofType"],
@@ -437,6 +444,9 @@ const TOOLS: Tool[] = [
     description:
       "Approve or reject a submission. Approving releases the perk; rejecting requires a reason. Use this when the business chooses manual review over auto-verification.",
     requiresAuth: true,
+    // State transition only — no quota consumed. The perk-cost
+    // accrues against the campaign's budget, not against the API call.
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       required: ["submissionId", "decision"],
@@ -467,6 +477,8 @@ const TOOLS: Tool[] = [
     description:
       "List submissions for a business or campaign, filterable by state (pending/approved/rejected). Returns paginated results.",
     requiresAuth: true,
+    // Read-only paginated query — no quota consumed.
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       properties: {
@@ -493,6 +505,8 @@ const TOOLS: Tool[] = [
     description:
       "Get summary stats for a single campaign — total submissions, approved count, conversion rate, perks issued, and time-to-first-submission. Useful for an agent reporting back to its user.",
     requiresAuth: true,
+    // Read-only stats snapshot — no quota consumed.
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       required: ["campaignId"],
