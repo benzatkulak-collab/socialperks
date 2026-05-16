@@ -37,6 +37,10 @@ export type AuditAction =
   | "api_key.created"
   | "api_key.revoked"
   | "api_key.verification_failed"
+  // Agent OAuth flow — separate from api_key.created so we can filter
+  // for keys minted via human consent vs. dashboard-issued keys.
+  | "agent_auth.approved"
+  | "agent_auth.token_exchanged"
   // Billing
   | "billing.checkout_started"
   | "billing.subscription_created"
