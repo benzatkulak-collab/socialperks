@@ -181,6 +181,181 @@ const TOOLS: Tool[] = [
       return callRestApi(ctx.baseUrl, `/api/v1/influencers${qs ? `?${qs}` : ""}`);
     },
   },
+
+  // ─── Write tools (agent-native primitives) ────────────────────────────────
+  // These complete the read-only catalog above into a transactional API.
+  // Each requires an API key bound to the calling business — the api-keys
+  // module verifies, _shared.ts/getUser synthesizes an AuthUser, and the
+  // underlying REST route enforces tenant isolation on the businessId
+  // resolved from that key. Agents cannot operate cross-tenant.
+  //
+  // CSRF is intentionally bypassed for API-key callers (see
+  // _shared.ts:requireCsrf comment for the threat-model rationale).
+
+  {
+    name: "createCampaign",
+    description:
+      "Create and launch a new campaign for the calling business. Returns the campaign id, name, and dashboard URL. The campaign goes live immediately — no separate publish step.",
+    requiresAuth: true,
+    inputSchema: {
+      type: "object",
+      required: ["businessId", "name", "actions", "discountValue", "discountType"],
+      properties: {
+        businessId: { type: "string", description: "The business owning this campaign. Must match the API key's business." },
+        name: { type: "string", description: "Customer-facing campaign name", maxLength: 200 },
+        description: { type: "string", description: "Optional internal description" },
+        actions: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+          description: "Action IDs the campaign accepts (e.g. ['ig_st'] for an Instagram Story Tag).",
+        },
+        discountValue: {
+          type: "number",
+          minimum: 0.01,
+          description: "Discount amount. Capped at 100 for pct, 10000 for dol.",
+        },
+        discountType: {
+          type: "string",
+          enum: ["pct", "dol"],
+          description: "Discount denomination: 'pct' for percentage, 'dol' for dollars off.",
+        },
+        maxCompletions: {
+          type: ["integer", "null"],
+          description: "Optional cap on total completions. Null = no cap.",
+        },
+        expiresInDays: {
+          type: "integer",
+          minimum: 1,
+          maximum: 365,
+          description: "Days until the campaign auto-expires. Default 60.",
+        },
+      },
+    },
+    invoke: async (args, ctx) => {
+      return callRestApi(ctx.baseUrl, `/api/v1/campaigns`, {
+        method: "POST",
+        body: JSON.stringify(args),
+        authHeader: ctx.authHeader,
+      });
+    },
+  },
+  {
+    name: "submitProof",
+    description:
+      "Submit proof of completion for a campaign action — a public URL to a post, a screenshot, a video, or platform-verified data. The submission enters a review queue (or auto-approves depending on the campaign's verification mode).",
+    requiresAuth: true,
+    inputSchema: {
+      type: "object",
+      required: ["campaignId", "actionId", "proofUrl", "proofType"],
+      properties: {
+        campaignId: { type: "string", description: "Campaign the submission applies to." },
+        actionId: { type: "string", description: "Specific action being completed (must be allowed by the campaign)." },
+        proofUrl: {
+          type: "string",
+          description: "Public URL of the proof. For url-type submissions, the platform verifier will fetch this.",
+          maxLength: 2048,
+        },
+        proofType: {
+          type: "string",
+          enum: ["screenshot", "url", "video", "api_verified"],
+          description: "How the proof was captured. 'url' triggers automated verification.",
+        },
+        metadata: {
+          type: "object",
+          description: "Optional bag of context (poster handle, post timestamp, etc.).",
+          additionalProperties: true,
+        },
+      },
+    },
+    invoke: async (args, ctx) => {
+      return callRestApi(ctx.baseUrl, `/api/v1/submissions`, {
+        method: "POST",
+        body: JSON.stringify(args),
+        authHeader: ctx.authHeader,
+      });
+    },
+  },
+  {
+    name: "reviewSubmission",
+    description:
+      "Approve or reject a submission. Approving releases the perk; rejecting requires a reason. Use this when the business chooses manual review over auto-verification.",
+    requiresAuth: true,
+    inputSchema: {
+      type: "object",
+      required: ["submissionId", "decision"],
+      properties: {
+        submissionId: { type: "string", description: "Submission id from a prior submitProof call." },
+        decision: {
+          type: "string",
+          enum: ["approve", "reject"],
+          description: "Approve releases the perk. Reject explains why the proof was insufficient.",
+        },
+        reason: {
+          type: "string",
+          description: "Required when decision='reject'. 1-500 chars.",
+          maxLength: 500,
+        },
+      },
+    },
+    invoke: async (args, ctx) => {
+      return callRestApi(ctx.baseUrl, `/api/v1/submissions/review`, {
+        method: "POST",
+        body: JSON.stringify(args),
+        authHeader: ctx.authHeader,
+      });
+    },
+  },
+  {
+    name: "listSubmissions",
+    description:
+      "List submissions for a business or campaign, filterable by state (pending/approved/rejected). Returns paginated results.",
+    requiresAuth: true,
+    inputSchema: {
+      type: "object",
+      properties: {
+        businessId: { type: "string" },
+        campaignId: { type: "string" },
+        state: { type: "string", enum: ["pending", "approved", "rejected"] },
+        page: { type: "integer", minimum: 1, default: 1 },
+        perPage: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+      },
+    },
+    invoke: async (args, ctx) => {
+      const params = new URLSearchParams();
+      for (const k of ["businessId", "campaignId", "state", "page", "perPage"]) {
+        if (args[k] !== undefined && args[k] !== null) params.set(k, String(args[k]));
+      }
+      const qs = params.toString();
+      return callRestApi(ctx.baseUrl, `/api/v1/submissions${qs ? `?${qs}` : ""}`, {
+        authHeader: ctx.authHeader,
+      });
+    },
+  },
+  {
+    name: "getCampaignStats",
+    description:
+      "Get summary stats for a single campaign — total submissions, approved count, conversion rate, perks issued, and time-to-first-submission. Useful for an agent reporting back to its user.",
+    requiresAuth: true,
+    inputSchema: {
+      type: "object",
+      required: ["campaignId"],
+      properties: {
+        campaignId: { type: "string", description: "Campaign to fetch stats for." },
+      },
+    },
+    invoke: async (args, ctx) => {
+      // /api/v1/campaigns supports ?id= for single-campaign fetch with
+      // a stats block. Falls back to listing if the precise endpoint
+      // shape differs at runtime.
+      const id = String(args.campaignId);
+      return callRestApi(
+        ctx.baseUrl,
+        `/api/v1/campaigns?id=${encodeURIComponent(id)}&includeStats=true`,
+        { authHeader: ctx.authHeader }
+      );
+    },
+  },
 ];
 
 // ─── JSON-RPC handlers ───────────────────────────────────────────────────────
