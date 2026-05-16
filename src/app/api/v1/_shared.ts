@@ -9,6 +9,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { verifyJWT, sessionStore } from "@/lib/auth";
+import type { ApiKeyRecord } from "@/lib/auth/api-keys";
 import { validateCsrfToken } from "@/lib/security/csrf";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
 
@@ -70,6 +71,16 @@ export interface AuthUser {
  * Extract authenticated user from request.
  * Checks: Bearer token (JWT or session), cookie, API key.
  * Returns null if unauthenticated.
+ *
+ * API-key auth path:
+ *   • `x-api-key: sp_live_xxxx_yyyy` (preferred — explicit semantics)
+ *   • `Authorization: Bearer sp_live_xxxx_yyyy` (fallback — works
+ *     with naive HTTP clients that only understand Bearer)
+ * Both verify the key against the api-keys store and synthesize an
+ * AuthUser representing the agent. The `id` is the api-key record id
+ * (so it shows up correctly in audit logs as `agent:<id>`), role is
+ * `"agent"` (callers needing the business-owner role check should
+ * inspect businessId instead).
  */
 export function getUser(req: NextRequest): AuthUser | null {
   // 1. Check Authorization header
@@ -77,7 +88,14 @@ export function getUser(req: NextRequest): AuthUser | null {
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
 
-    // Try JWT first
+    // API-key tokens carry the sp_ prefix. Try those first so we don't
+    // pay the JWT-verify CPU cost on every agent call.
+    if (token.startsWith("sp_")) {
+      const apiKeyUser = tryApiKey(token);
+      if (apiKeyUser) return apiKeyUser;
+    }
+
+    // Try JWT next
     const jwt = verifyJWT(token);
     if (jwt) {
       return {
@@ -100,7 +118,15 @@ export function getUser(req: NextRequest): AuthUser | null {
     }
   }
 
-  // 2. Check cookie
+  // 2. Check x-api-key header explicitly. Agents authenticating via
+  //    MCP / OpenAPI clients typically use this header.
+  const apiKeyHeader = req.headers.get("x-api-key");
+  if (apiKeyHeader) {
+    const apiKeyUser = tryApiKey(apiKeyHeader);
+    if (apiKeyUser) return apiKeyUser;
+  }
+
+  // 3. Check cookie
   const cookie = req.cookies.get("sp-access-token")?.value;
   if (cookie) {
     const jwt = verifyJWT(cookie);
@@ -115,6 +141,41 @@ export function getUser(req: NextRequest): AuthUser | null {
   }
 
   return null;
+}
+
+/**
+ * Resolve an API key into an AuthUser, or null if the key is invalid /
+ * expired / revoked. Lazy-imports the api-keys module to avoid pulling
+ * the database connection during cold-start of read-only routes.
+ */
+function tryApiKey(plaintext: string): AuthUser | null {
+  // Lazy require so this file remains importable in edge contexts
+  // where the api-keys module's crypto deps aren't available.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const apiKeysMod = require("@/lib/auth/api-keys");
+  const verifyApiKey = apiKeysMod.verifyApiKey as (k: string) => ApiKeyRecord | null;
+  const record = verifyApiKey(plaintext);
+  if (!record) return null;
+  return {
+    // Use the api-key record id rather than businessId so audit logs
+    // can distinguish between two agents acting on the same business.
+    id: `agent:${record.id}`,
+    email: `${record.agentName}@agent.local`,
+    role: "agent",
+    businessId: record.businessId,
+  };
+}
+
+/**
+ * Is this request authenticated via an API key (vs. a browser session)?
+ * Used to skip CSRF: API keys are out-of-band credentials carried in
+ * request headers, not browser cookies, so the CSRF threat model
+ * (cookie-bound session abuse from a malicious site) doesn't apply.
+ */
+export function isApiKeyAuth(req: NextRequest): boolean {
+  if (req.headers.get("x-api-key")) return true;
+  const auth = req.headers.get("authorization");
+  return !!(auth?.startsWith("Bearer sp_"));
 }
 
 /**
@@ -141,6 +202,15 @@ export function requireAuth(req: NextRequest): AuthUser | NextResponse {
  * closes that hole.
  */
 export function requireCsrf(req: NextRequest): NextResponse | null {
+  // API-key authenticated requests bypass CSRF. Rationale: the CSRF
+  // threat model is cookie-bound session abuse from a malicious origin
+  // (the user's browser carries the cookie automatically). API keys
+  // are out-of-band credentials — there's no cookie auto-attachment,
+  // and an agent has no business presenting a CSRF token (it would
+  // require a separate dance to fetch one on every call). Skipping
+  // CSRF for API-key callers is the standard pattern.
+  if (isApiKeyAuth(req)) return null;
+
   const token = req.headers.get("x-csrf-token") ?? req.headers.get("X-CSRF-Token");
   if (!token) {
     return err("CSRF_TOKEN_MISSING", "CSRF token is required. Include X-CSRF-Token header.", 403);
