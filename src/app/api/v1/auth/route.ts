@@ -22,19 +22,13 @@ import { emailProvider, passwordResetEmail } from "@/lib/email";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import { trackReferralSignup } from "@/lib/referrals";
 import { emailQueue } from "@/lib/jobs/registry";
-
-// ─── In-Memory User Store ───────────────────────────────────────────────────
-
-interface UserRecord {
-  id: string;
-  email: string;
-  name: string;
-  passwordHash: string;
-  role: "business" | "influencer" | "enterprise";
-  businessId: string | null;
-}
-
-const users = new Map<string, UserRecord>();
+import {
+  ensureUsersSeeded,
+  getUserByEmail,
+  hasUser,
+  putUser,
+  type UserRecord,
+} from "@/lib/auth/user-store";
 
 // ─── Password Reset Tokens ──────────────────────────────────────────────────
 
@@ -47,44 +41,9 @@ interface ResetToken {
 const resetTokens = new Map<string, ResetToken>();
 const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
-// ─── Demo Account Seeding ───────────────────────────────────────────────────
-
-let seeded = false;
-
-async function ensureSeeded(): Promise<void> {
-  if (seeded) return;
-  seeded = true;
-
-  const seed = createSeedData();
-
-  // Seed businesses as users
-  for (const biz of seed.businesses) {
-    if (users.has(biz.email)) continue;
-    const passwordHash = await hashPassword(biz.pin);
-    users.set(biz.email, {
-      id: biz.id,
-      email: biz.email,
-      name: biz.name,
-      passwordHash,
-      role: biz.size === "enterprise" ? "enterprise" : "business",
-      businessId: biz.id,
-    });
-  }
-
-  // Seed influencers as users
-  for (const inf of seed.influencers) {
-    if (users.has(inf.email)) continue;
-    const passwordHash = await hashPassword(inf.pin);
-    users.set(inf.email, {
-      id: inf.id,
-      email: inf.email,
-      name: inf.displayName,
-      passwordHash,
-      role: "influencer",
-      businessId: null,
-    });
-  }
-}
+// Seeding is delegated to lib/auth/user-store.ts so the admin API can
+// share the same in-memory user records.
+const ensureSeeded = ensureUsersSeeded;
 
 // ─── Cookie Helper ──────────────────────────────────────────────────────────
 
@@ -284,7 +243,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       await ensureSeeded();
 
-      if (users.has(sanitizedEmail)) {
+      if (hasUser(sanitizedEmail)) {
         return err("SIGNUP_FAILED", "Unable to create account. Please try again or use a different email.", 409);
       }
 
@@ -300,8 +259,11 @@ export const POST = withTiming(async (req: NextRequest) => {
         passwordHash,
         role: userRole,
         businessId,
+        suspendedAt: null,
+        suspensionReason: null,
+        createdAt: new Date().toISOString(),
       };
-      users.set(sanitizedEmail, record);
+      putUser(record);
 
       const session = sessionStore.create(userId, userRole, sanitizedEmail, businessId);
       const { tokens, headers } = buildCookieHeaders(userId, userRole, sanitizedEmail, businessId);
@@ -350,7 +312,11 @@ export const POST = withTiming(async (req: NextRequest) => {
         if (typeof email !== "string" || typeof password !== "string") {
           return err("INVALID_INPUT", "email and password must be strings");
         }
-        const storedUser = users.get(String(email).toLowerCase().trim());
+        const storedUser = getUserByEmail(String(email));
+        if (storedUser && storedUser.suspendedAt) {
+          metrics.increment(METRIC.AUTH_FAILURE, 1, { method: "password", reason: "suspended" });
+          return err("ACCOUNT_SUSPENDED", "This account has been suspended. Contact support.", 403);
+        }
         if (storedUser) {
           const valid = await verifyPassword(password, storedUser.passwordHash);
           if (valid) {
@@ -532,7 +498,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       // Always return success to prevent email enumeration
       const sanitizedEmail = email.slice(0, 254).toLowerCase().trim();
 
-      const storedUser = users.get(sanitizedEmail);
+      const storedUser = getUserByEmail(sanitizedEmail);
       if (storedUser) {
         // Generate token
         const token = crypto.randomUUID().replace(/-/g, "");
@@ -587,14 +553,14 @@ export const POST = withTiming(async (req: NextRequest) => {
         return err("INVALID_TOKEN", "Reset token is invalid or expired", 401);
       }
 
-      const storedUser = users.get(resetEntry.email);
+      const storedUser = getUserByEmail(resetEntry.email);
       if (!storedUser) {
         resetTokens.delete(resetToken);
         return err("USER_NOT_FOUND", "User not found", 404);
       }
 
       storedUser.passwordHash = await hashPassword(newPassword);
-      users.set(resetEntry.email, storedUser);
+      putUser(storedUser);
       resetTokens.delete(resetToken);
 
       return ok({

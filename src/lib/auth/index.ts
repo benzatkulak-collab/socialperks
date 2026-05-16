@@ -39,7 +39,7 @@ export function generateSessionToken(): string {
 interface Session {
   token: string;
   userId: string;
-  userRole: "business" | "influencer" | "enterprise";
+  userRole: "business" | "influencer" | "enterprise" | "admin";
   businessId: string | null;
   email: string;
   createdAt: number;
