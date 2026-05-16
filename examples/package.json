@@ -1,0 +1,21 @@
+{
+  "name": "social-perks-examples",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Runnable examples for the Social Perks agent-native API + MCP server.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "full-flow": "tsx full-flow.ts",
+    "claude-agent": "tsx claude-agent.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

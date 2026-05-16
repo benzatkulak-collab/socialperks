@@ -43,6 +43,7 @@
   "exclude": [
     "node_modules",
     "api",
+    "examples",
     "vitest.config.ts",
     "**/__tests__/**",
     "**/*.test.ts",
