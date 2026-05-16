@@ -37,6 +37,10 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   // /agents is a key landing for AI agent traffic — keep priority high
   // so it's indexed alongside /pricing and /for.
   { path: "/agents",        changeFrequency: "monthly", priority: 0.8 },
+  // /agent/test — self-serve in-browser MCP sandbox. High priority
+  // because converting curious developers happens here, not on the
+  // marketing /agents page.
+  { path: "/agent/test",    changeFrequency: "weekly",  priority: 0.85 },
   { path: "/faq",           changeFrequency: "weekly",  priority: 0.85 },
   { path: "/glossary",      changeFrequency: "weekly",  priority: 0.8 },
   { path: "/benchmarks",    changeFrequency: "weekly",  priority: 0.8 },
