@@ -53,30 +53,178 @@ type JsonRpcResponse = JsonRpcSuccess | JsonRpcError;
 
 // ─── Tool registry ───────────────────────────────────────────────────────────
 
+/**
+ * Cost model for a tool. Agents read this to reason about spend BEFORE
+ * invoking. Three categories:
+ *
+ *   - "free":    no plan-tier or cash impact (catalog / reference reads)
+ *   - "plan":    consumes a unit of plan capacity (campaigns, AI gens, etc.)
+ *   - "cash":    moves real money (cashback payouts, premium boosts)
+ *
+ * The shape is intentionally small so it can be inlined in tool
+ * descriptions and the GET manifest without bloating responses.
+ */
+type ToolCost =
+  | { type: "free" }
+  | {
+      type: "plan";
+      /** Which usage bucket the call consumes. Matches getUsageSummary keys. */
+      resource: "campaigns" | "submissions" | "ai_generations" | "completions";
+      /** Units consumed per successful call. Almost always 1. */
+      consumedPerCall: number;
+    }
+  | {
+      type: "cash";
+      /** Min/max cents moved. Specific amount comes from the call args. */
+      minCents: number;
+      maxCents: number;
+      /** Human-readable cost description for agent reasoning. */
+      description: string;
+    };
+
+/**
+ * Tool execution context. The optional _captureMeta hook lets the
+ * MCP layer collect downstream REST metadata for the cost envelope
+ * without each tool having to know it exists.
+ */
+interface ToolCtx {
+  baseUrl: string;
+  authHeader: string | null;
+  _captureMeta?: (meta: RestCallMeta) => void;
+}
+
 interface Tool {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
   /** Whether this tool requires authentication. */
   requiresAuth: boolean;
+  /** Cost model — agents read this to reason about spend before invoking. */
+  cost: ToolCost;
   /** Maps to a relative API path under /api/v1. Built lazily so we can pass query/body. */
-  invoke: (args: Record<string, unknown>, ctx: { baseUrl: string; authHeader: string | null }) => Promise<unknown>;
+  invoke: (args: Record<string, unknown>, ctx: ToolCtx) => Promise<unknown>;
 }
 
-async function callRestApi(
+/**
+ * Captured response metadata from a downstream REST call. We extract
+ * rate-limit headers + duration here so the MCP layer can surface them
+ * to the agent in the tool response envelope.
+ */
+interface RestCallMeta {
+  status: number;
+  durationMs: number;
+  rateLimit: {
+    limit: number | null;
+    remaining: number | null;
+    /** ISO timestamp when the window resets. */
+    resetAt: string | null;
+  };
+}
+
+/**
+ * Wraps the downstream REST call and captures both the parsed body
+ * AND the response metadata. Older single-return callRestApi remains
+ * usable by tools that don't need the meta.
+ */
+async function callRestApiWithMeta(
   baseUrl: string,
   path: string,
   init: RequestInit & { authHeader?: string | null } = {}
-): Promise<unknown> {
+): Promise<{ body: unknown; meta: RestCallMeta }> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...((init.headers as Record<string, string>) ?? {}),
   };
   if (init.authHeader) headers["Authorization"] = init.authHeader;
+
+  const started = Date.now();
   const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  const durationMs = Date.now() - started;
+
+  // Standard rate-limit headers emitted by lib/security/rate-limiter.
+  // Parse defensively — anything missing/non-numeric collapses to null
+  // so the agent sees an explicit absence, not a garbage number.
+  const parseNumHeader = (h: string): number | null => {
+    const v = res.headers.get(h);
+    if (v === null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const resetEpochSeconds = parseNumHeader("X-RateLimit-Reset");
+  const rateLimit: RestCallMeta["rateLimit"] = {
+    limit: parseNumHeader("X-RateLimit-Limit"),
+    remaining: parseNumHeader("X-RateLimit-Remaining"),
+    resetAt:
+      resetEpochSeconds !== null
+        ? new Date(resetEpochSeconds * 1000).toISOString()
+        : null,
+  };
+
+  let body: unknown;
   const contentType = res.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) return res.json();
-  return { status: res.status, body: await res.text() };
+  if (contentType.includes("application/json")) {
+    body = await res.json();
+  } else {
+    body = { status: res.status, body: await res.text() };
+  }
+
+  return { body, meta: { status: res.status, durationMs, rateLimit } };
+}
+
+/**
+ * Tools call this. It auto-captures RestCallMeta into the surrounding
+ * tool/call context (if a _captureMeta hook is present) so the outer
+ * handler can attach rate-limit + duration info to the response
+ * envelope. Tools don't need to know any of this — they just call
+ * callRestApi the same way as before.
+ *
+ * The ctx parameter is optional so existing tool signatures (the
+ * ones from before the cost meter landed) keep working unchanged.
+ */
+async function callRestApi(
+  baseUrl: string,
+  path: string,
+  init: RequestInit & { authHeader?: string | null } = {},
+  ctx?: { _captureMeta?: (meta: RestCallMeta) => void }
+): Promise<unknown> {
+  const { body, meta } = await callRestApiWithMeta(baseUrl, path, init);
+  ctx?._captureMeta?.(meta);
+  return body;
+}
+
+// ─── Cost-meta builder ───────────────────────────────────────────────────────
+
+interface CostMeta {
+  /** Total time the MCP server spent on the tool/call, including the
+   * downstream REST round-trip. */
+  durationMs: number;
+  /** The tool's declared cost model (echoed from the registry so an
+   * agent can verify what category this call belonged to). */
+  cost: ToolCost;
+  /** Rate-limit budget AFTER this call, from the downstream REST
+   * response. Null when the tool didn't make a metered REST call
+   * (cached / catalog tools). */
+  rateLimit: {
+    limit: number | null;
+    remaining: number | null;
+    resetAt: string | null;
+  } | null;
+  /** Downstream HTTP status (if any) — lets agents distinguish a
+   * tool that "succeeded" from MCP's POV but returned a 4xx body. */
+  downstreamStatus: number | null;
+}
+
+function buildCostMeta(args: {
+  tool: Tool;
+  totalDurationMs: number;
+  downstream: RestCallMeta | null;
+}): CostMeta {
+  return {
+    durationMs: args.totalDurationMs,
+    cost: args.tool.cost,
+    rateLimit: args.downstream?.rateLimit ?? null,
+    downstreamStatus: args.downstream?.status ?? null,
+  };
 }
 
 const TOOLS: Tool[] = [
@@ -85,6 +233,7 @@ const TOOLS: Tool[] = [
     description:
       "Get the market-rate pricing for a marketing action. Returns USD value and recommended perk type/value.",
     requiresAuth: false,
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       properties: {
@@ -99,7 +248,7 @@ const TOOLS: Tool[] = [
       if (args.platformId) params.set("platformId", String(args.platformId));
       if (args.businessType) params.set("businessType", String(args.businessType));
       const qs = params.toString();
-      return callRestApi(ctx.baseUrl, `/api/v1/pricing${qs ? `?${qs}` : ""}`);
+      return callRestApi(ctx.baseUrl, `/api/v1/pricing${qs ? `?${qs}` : ""}`, {}, ctx);
     },
   },
   {
@@ -107,6 +256,7 @@ const TOOLS: Tool[] = [
     description:
       "List the 107 marketing actions available on Social Perks. Filterable by platform, type, and effort.",
     requiresAuth: false,
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       properties: {
@@ -123,13 +273,14 @@ const TOOLS: Tool[] = [
         if (args[k] !== undefined && args[k] !== null) params.set(k, String(args[k]));
       }
       const qs = params.toString();
-      return callRestApi(ctx.baseUrl, `/api/v1/actions${qs ? `?${qs}` : ""}`);
+      return callRestApi(ctx.baseUrl, `/api/v1/actions${qs ? `?${qs}` : ""}`, {}, ctx);
     },
   },
   {
     name: "getBenchmarks",
     description: "Get industry benchmarks (engagement rate, conversion rate, etc.).",
     requiresAuth: false,
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       properties: {
@@ -140,13 +291,14 @@ const TOOLS: Tool[] = [
       const params = new URLSearchParams();
       if (args.industry) params.set("industry", String(args.industry));
       const qs = params.toString();
-      return callRestApi(ctx.baseUrl, `/api/v1/benchmarks${qs ? `?${qs}` : ""}`);
+      return callRestApi(ctx.baseUrl, `/api/v1/benchmarks${qs ? `?${qs}` : ""}`, {}, ctx);
     },
   },
   {
     name: "listCampaigns",
     description: "List campaigns. Requires auth — returns the caller's campaigns.",
     requiresAuth: true,
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       properties: {
@@ -157,15 +309,19 @@ const TOOLS: Tool[] = [
       const params = new URLSearchParams();
       if (args.status) params.set("status", String(args.status));
       const qs = params.toString();
-      return callRestApi(ctx.baseUrl, `/api/v1/campaigns${qs ? `?${qs}` : ""}`, {
-        authHeader: ctx.authHeader,
-      });
+      return callRestApi(
+        ctx.baseUrl,
+        `/api/v1/campaigns${qs ? `?${qs}` : ""}`,
+        { authHeader: ctx.authHeader },
+        ctx
+      );
     },
   },
   {
     name: "searchInfluencers",
     description: "Search influencers by platform and follower count.",
     requiresAuth: false,
+    cost: { type: "free" },
     inputSchema: {
       type: "object",
       properties: {
@@ -178,7 +334,7 @@ const TOOLS: Tool[] = [
       if (args.platform) params.set("platform", String(args.platform));
       if (args.minFollowers !== undefined) params.set("minFollowers", String(args.minFollowers));
       const qs = params.toString();
-      return callRestApi(ctx.baseUrl, `/api/v1/influencers${qs ? `?${qs}` : ""}`);
+      return callRestApi(ctx.baseUrl, `/api/v1/influencers${qs ? `?${qs}` : ""}`, {}, ctx);
     },
   },
 ];
@@ -218,6 +374,10 @@ async function handleRpc(
           name: t.name,
           description: t.description,
           inputSchema: t.inputSchema,
+          // Non-standard but spec-allowed extension. Agents that
+          // understand `_meta.cost` use it for pre-call planning;
+          // older clients ignore it.
+          _meta: { cost: t.cost },
         })),
       });
 
@@ -230,16 +390,58 @@ async function handleRpc(
       if (tool.requiresAuth && !ctx.authHeader) {
         return rpcError(id, -32001, `Tool '${name}' requires authentication. Set x-api-key or Authorization header.`);
       }
+
+      // Capture timing + downstream rate-limit state so the cost meter
+      // can surface them on the response envelope. The metering ctx
+      // forwards every callRestApi(With|out)Meta call's RestCallMeta
+      // into this slot so the OUTER handler can read it after the
+      // tool's invoke() returns.
+      const meteringCtx: { lastMeta: RestCallMeta | null } = { lastMeta: null };
+      const wrappedCtx = {
+        ...ctx,
+        // Tools that use the shared callRestApi helper don't need to
+        // change; we intercept by swapping the function on the invoke
+        // path. The wrap is per-call so concurrent tool/call requests
+        // don't bleed state into each other.
+        _captureMeta: (meta: RestCallMeta) => {
+          meteringCtx.lastMeta = meta;
+        },
+      };
+
+      const startedAt = Date.now();
       try {
-        const result = await tool.invoke(args, ctx);
+        // Invoke with the wrapped context. Tools that want to surface
+        // their own RestCallMeta can call ctx._captureMeta if they
+        // route through callRestApiWithMeta directly. For tools that
+        // use plain callRestApi we still record total tool duration so
+        // the agent has at least one cost signal.
+        const result = await tool.invoke(args, wrappedCtx);
+        const totalDurationMs = Date.now() - startedAt;
+
+        const costMeta = buildCostMeta({
+          tool,
+          totalDurationMs,
+          downstream: meteringCtx.lastMeta,
+        });
+
         return rpcResult(id, {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           isError: false,
+          // _meta is the MCP-spec-permitted free-form field on tool
+          // results. Agents read it (or ignore it) without breaking
+          // protocol conformance.
+          _meta: costMeta,
         });
       } catch (e) {
+        const totalDurationMs = Date.now() - startedAt;
         return rpcResult(id, {
           content: [{ type: "text", text: String(e instanceof Error ? e.message : e) }],
           isError: true,
+          _meta: buildCostMeta({
+            tool,
+            totalDurationMs,
+            downstream: meteringCtx.lastMeta,
+          }),
         });
       }
     }
@@ -305,6 +507,10 @@ export async function GET(req: NextRequest): Promise<Response> {
       name: t.name,
       description: t.description,
       requiresAuth: t.requiresAuth,
+      // Cost model surfaced in the manifest so an agent can decide
+      // whether to call a tool BEFORE invoking it. Mirrors what
+      // appears in the _meta block on every tool/call response.
+      cost: t.cost,
       inputSchema: t.inputSchema,
     })),
     documentation:
