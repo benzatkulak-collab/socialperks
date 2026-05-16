@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ClaudeDesktopInstall } from "@/components/agent/claude-desktop-install";
 
 export const metadata: Metadata = {
   title: "AI Agents — Social Perks",
@@ -244,6 +245,17 @@ export default function AgentsPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Claude Desktop install — full variant with copyable config
+          snippet, step-by-step instructions, and a follow-up link to
+          the in-browser sandbox at /agent/test. Sits above the
+          #get-started CTA so developers see the install path before
+          the "create an account" path. */}
+      <section className="border-t border-brand-border/50 py-20 sm:py-28">
+        <div className="mx-auto max-w-3xl px-5 sm:px-8">
+          <ClaudeDesktopInstall variant="full" />
         </div>
       </section>
 
