@@ -18,7 +18,9 @@ export interface EmailJobData {
     | "drip"
     | "transactional"
     | "subscription-started"
-    | "checkout-abandoned";
+    | "checkout-abandoned"
+    | "dunning"
+    | "outreach";
   to: string;
   subject?: string;
   html?: string;
@@ -35,6 +37,14 @@ export interface EmailJobData {
   billingPeriod?: "monthly" | "annual";
   /** For checkout-abandoned emails — Stripe-hosted resume link */
   resumeUrl?: string;
+  /** For dunning: which step of the sequence (1 = first attempt, 4 = final cancel). */
+  dunningStep?: 1 | 2 | 3 | 4;
+  /** For dunning: amount that failed, in cents. */
+  amountCents?: number;
+  /** For outreach: display name of the recipient (influencer). */
+  displayName?: string;
+  /** For outreach: campaign tier we're recruiting them for. */
+  campaignTier?: string;
 }
 
 export const emailQueue = new JobQueue<EmailJobData>("email", {
@@ -116,6 +126,38 @@ emailQueue.process(async (job: Job<EmailJobData>) => {
         html: job.data.html,
         text: job.data.text,
       });
+    }
+    case "dunning": {
+      // Built-in templates per dunning step. The step gates whether
+      // we describe a retry or an account cancellation.
+      const step = job.data.dunningStep ?? 1;
+      const amount = job.data.amountCents
+        ? `$${(job.data.amountCents / 100).toFixed(2)}`
+        : "your subscription";
+      const subjectByStep: Record<number, string> = {
+        1: `Payment failed for ${amount}`,
+        2: `We're still trying — please update your card`,
+        3: `Final notice: your account will be paused`,
+        4: `Your subscription has been canceled`,
+      };
+      const bodyByStep: Record<number, string> = {
+        1: `We weren't able to process ${amount} for your subscription. We'll automatically retry, but you can also update your card now to avoid any service interruption.`,
+        2: `Our second attempt to charge ${amount} didn't succeed. Please update your payment method to keep your account active.`,
+        3: `This is the final notice before we cancel your subscription. Update your card today to avoid losing access.`,
+        4: `Your subscription has been canceled after repeated failed payment attempts. You can reactivate any time by signing back in and choosing a plan.`,
+      };
+      const subject = subjectByStep[step] ?? subjectByStep[1];
+      const text = bodyByStep[step] ?? bodyByStep[1];
+      const html = `<p>${text}</p>`;
+      return emailProvider.send({ to, subject, html, text });
+    }
+    case "outreach": {
+      const displayName = job.data.displayName ?? "there";
+      const tier = job.data.campaignTier ? ` (${job.data.campaignTier} tier)` : "";
+      const subject = `New campaigns matched to your profile${tier}`;
+      const text = `Hi ${displayName},\n\nWe noticed a few of the businesses on Social Perks just launched campaigns that match your niche. Hop into your dashboard to see what's available.\n\n— The Social Perks team`;
+      const html = text.split("\n").map((p) => `<p>${p}</p>`).join("\n");
+      return emailProvider.send({ to, subject, html, text });
     }
   }
 });

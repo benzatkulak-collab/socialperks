@@ -63,7 +63,21 @@ export type AuditAction =
   // Self-audit — the audit log itself was read by an admin.
   | "admin.audit_read"
   // Founder dashboard read — admin-only revenue & growth snapshot.
-  | "admin.founder_overview_read";
+  | "admin.founder_overview_read"
+  // Admin user-management actions
+  | "admin.user.suspended"
+  | "admin.user.unsuspended"
+  | "admin.user.role_changed"
+  | "admin.user.password_reset"
+  | "admin.user.impersonated"
+  | "admin.user.impersonation_ended"
+  // Admin agent control plane
+  | "admin.agent.enabled"
+  | "admin.agent.disabled"
+  | "admin.agent.config_changed"
+  | "admin.agent.manual_run"
+  | "agent.decision"
+  | "agent.error";
 
 export interface AuditEntry {
   /** Action that happened. */

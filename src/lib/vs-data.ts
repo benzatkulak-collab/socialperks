@@ -211,6 +211,139 @@ export const VS_ENTRIES: VsEntry[] = [
       ],
     },
   },
+  {
+    slug: "fivestars",
+    competitor: "FiveStars",
+    description:
+      "Loyalty / punch-card platform with deep POS integration vs incentivized social posts.",
+    shortDescription:
+      "FiveStars is a mature loyalty engine — punch cards, customer profiles, POS integration. Social Perks pays customers a small perk to post about a business on Instagram / TikTok / Google reviews. Different jobs, sometimes complementary.",
+    strengths: [
+      "Polished Clover and Square POS integrations",
+      "Mature loyalty mechanics (points, tiers, punch cards)",
+      "Customer profile + spend history in one place",
+      "Established sales motion for brick-and-mortar SMBs",
+    ],
+    ourAngle: [
+      "FiveStars doesn't ask customers to post on social — it's a loyalty tool, not a marketing tool",
+      "$129/mo minimum with sales-call signup vs free tier + self-serve",
+      "Walled-garden: customers use the FiveStars app; Social Perks pushes posts to public platforms customers already use",
+      "MCP-native — an AI assistant can run Social Perks campaigns end-to-end; FiveStars has no agent surface",
+    ],
+    rows: [
+      { feature: "Primary use case", socialPerks: "Customers post about you on social", competitor: "Loyalty / punch-card retention", winner: "tie" },
+      { feature: "Starting price", socialPerks: "$0 (free tier)", competitor: "$129/mo + setup", winner: "us" },
+      { feature: "Signup", socialPerks: "Self-serve, 5 min", competitor: "Sales call required", winner: "us" },
+      { feature: "POS integration", socialPerks: "Manual / API", competitor: "Native (Clover, Square)", winner: "them" },
+      { feature: "Drives Instagram / TikTok posts", socialPerks: "Yes — 107 actions across 15 platforms", competitor: "No", winner: "us" },
+      { feature: "Customer profile + spend history", socialPerks: "Per-program members", competitor: "Full CRM", winner: "them" },
+      { feature: "Public OpenAPI / MCP", socialPerks: "Yes", competitor: "No", winner: "us" },
+      { feature: "FTC compliance auto-injected", socialPerks: "Yes, every campaign", competitor: "N/A (no social ask)", winner: "us" },
+    ],
+    verdict: {
+      pickUs: [
+        "You want real customers posting on Instagram / TikTok / Google reviews",
+        "You're price-sensitive or want to try free before committing",
+        "You're running operations through an AI assistant",
+        "You don't already have a loyalty program and don't need a punch-card",
+      ],
+      pickThem: [
+        "You need deep POS integration with Clover or Square",
+        "Loyalty / punch-card mechanics are your primary motion",
+        "You want a full customer CRM with spend history",
+        "Your customer base doesn't post on social media",
+      ],
+    },
+    related: ["loyverse", "yelp-connect"],
+  },
+  {
+    slug: "loyverse",
+    competitor: "Loyverse",
+    description: "Free POS with built-in loyalty vs marketing platform that pays customers to post.",
+    shortDescription:
+      "Loyverse is a free POS system with built-in loyalty — strong inventory, multi-store, open API. Social Perks doesn't do POS; it pays customers small perks to post about your business publicly.",
+    strengths: [
+      "Genuinely free POS with paid add-ons (rare)",
+      "Solid inventory, multi-store, multi-employee handling",
+      "Open REST API for integrations",
+      "Built-in loyalty points and customer database",
+    ],
+    ourAngle: [
+      "Loyverse is a POS that happens to have loyalty; Social Perks is a marketing platform that drives public social posts",
+      "Loyverse loyalty is a closed-loop punch card; Social Perks pushes content to Instagram, TikTok, Google reviews where new customers actually look",
+      "MCP server + 10 autonomous agents — Loyverse has none of that surface",
+      "Cross-platform reach (15 social platforms) vs a single in-store loyalty motion",
+    ],
+    rows: [
+      { feature: "Primary use case", socialPerks: "Customers post about you on social", competitor: "Point-of-sale + in-store loyalty", winner: "tie" },
+      { feature: "Starting price", socialPerks: "$0 (free tier)", competitor: "$0 POS + paid add-ons", winner: "tie" },
+      { feature: "POS / inventory / multi-store", socialPerks: "No", competitor: "Yes (core product)", winner: "them" },
+      { feature: "Drives social posts", socialPerks: "Yes — 107 actions across 15 platforms", competitor: "No", winner: "us" },
+      { feature: "Influencer matching", socialPerks: "Yes", competitor: "No", winner: "us" },
+      { feature: "Autonomous agents (10)", socialPerks: "Yes", competitor: "No", winner: "us" },
+      { feature: "MCP server (AI agent integration)", socialPerks: "Yes", competitor: "No", winner: "us" },
+      { feature: "Open API", socialPerks: "Yes — 35 routes + OpenAPI spec", competitor: "Yes — REST API", winner: "tie" },
+    ],
+    verdict: {
+      pickUs: [
+        "Your goal is getting new customers via social posts and reviews",
+        "You already have a POS and just need the marketing layer",
+        "You're running operations through an AI assistant",
+        "You want cross-platform reach (Instagram, TikTok, Google, Yelp)",
+      ],
+      pickThem: [
+        "You need a POS system as the core of your business",
+        "Multi-store inventory and employee management are critical",
+        "You don't need to drive social posts or reviews",
+        "A closed-loop loyalty program is enough customer engagement",
+      ],
+    },
+    related: ["fivestars", "yelp-connect"],
+  },
+  {
+    slug: "yelp-connect",
+    competitor: "Yelp Connect (Yelp Ads)",
+    description: "Pay-per-click on Yelp's own surface vs incentivized customer posts across 15 platforms.",
+    shortDescription:
+      "Yelp Connect runs paid ads + review prompts inside Yelp's walled garden. Social Perks pays customers a small perk to post about a business across Instagram, TikTok, Google reviews, Facebook — wherever the customer already is.",
+    strengths: [
+      "Massive built-in audience on Yelp itself",
+      "Reviews surface exactly where local-search users are looking",
+      "Pay-per-result ad model — no monthly minimum",
+      "Trusted brand for restaurants, services, local businesses",
+    ],
+    ourAngle: [
+      "Yelp Ads are pay-to-play in a walled garden — Yelp decides who sees you and how much it costs",
+      "Yelp Connect can't reach Instagram, TikTok, or Google reviews; Social Perks reaches 15 platforms",
+      "Social Perks pays real customers a small perk — earned reputation, not bought attention",
+      "MCP server + autonomous agents — Yelp Connect has no agent surface",
+    ],
+    rows: [
+      { feature: "Primary use case", socialPerks: "Customers post about you on social", competitor: "Paid ads + reviews on Yelp", winner: "tie" },
+      { feature: "Audience", socialPerks: "Wherever your customers already are", competitor: "Yelp users only", winner: "us" },
+      { feature: "Drives Google reviews", socialPerks: "Yes (direct action)", competitor: "No — Yelp reviews only", winner: "us" },
+      { feature: "Drives Instagram / TikTok posts", socialPerks: "Yes", competitor: "No", winner: "us" },
+      { feature: "Cost model", socialPerks: "Per-perk awarded", competitor: "Per-click", winner: "tie" },
+      { feature: "Reach in local search results", socialPerks: "Indirect (via Google/Maps reviews)", competitor: "Direct (Yelp listing)", winner: "them" },
+      { feature: "Trust signal for restaurants", socialPerks: "Cross-platform reviews", competitor: "Yelp stars on Yelp", winner: "them" },
+      { feature: "MCP / agent integration", socialPerks: "Yes", competitor: "No", winner: "us" },
+    ],
+    verdict: {
+      pickUs: [
+        "You want reviews and posts on platforms beyond Yelp",
+        "You'd rather pay customers than pay Yelp for clicks",
+        "Your customer base is on Instagram / TikTok / Google reviews",
+        "You're tired of Yelp's pay-to-play algorithm",
+      ],
+      pickThem: [
+        "Yelp is the primary place your customers discover you (e.g. some food categories)",
+        "You want immediate placement in Yelp search results",
+        "You've already built a strong Yelp rating and want to defend it",
+        "Your customers don't post on social platforms",
+      ],
+    },
+    related: ["fivestars", "loyverse"],
+  },
 ];
 
 export function getVsEntry(slug: string): VsEntry | null {
