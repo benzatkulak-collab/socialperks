@@ -11,6 +11,8 @@ const FOOTER_LINKS = [
   { label: "Leaderboard", href: "/leaderboard" },
   { label: "Blog", href: "/blog" },
   { label: "Answers", href: "/answers" },
+  { label: "For developers", href: "/agents" },
+  { label: "Try MCP", href: "/agent/test" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Status", href: "/status" },

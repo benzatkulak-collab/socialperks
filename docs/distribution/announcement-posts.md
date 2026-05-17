@@ -8,6 +8,36 @@ The goal isn't to "go viral." It's to put the platform in front of
 the ~500 people who would actually build with an agent-native marketing
 API. HN/dev.to/Discord do that better than X for technical audiences.
 
+## What's live as of now (use these facts in any post)
+
+When tightening the drafts, fold in the current state — these are the
+specific things that make the post concrete:
+
+- ✅ **10 MCP tools live** at `https://socialperks.app/api/mcp` — 4 read
+  (getPricing, listActions, getBenchmarks, searchInfluencers) + 6 with
+  API key (listCampaigns, createCampaign, submitProof, reviewSubmission,
+  listSubmissions, getCampaignStats).
+- ✅ **OAuth-style consent flow** at `/agent/authorize` mints scoped
+  keys after a user approves in-browser.
+- ✅ **Per-call cost meter** on every `tools/call` response —
+  `_meta.cost` (free / plan / cash), `_meta.rateLimit`,
+  `_meta.durationMs`, `_meta.downstreamStatus`.
+- ✅ **Self-serve in-browser sandbox** at `/agent/test` — pick a tool,
+  fill args, see the real response. No signup, no API key for read tools.
+- ✅ **Official MCP Registry entry:**
+  `io.github.benzatkulak-collab/socialperks` —
+  <https://registry.modelcontextprotocol.io/v0/servers?search=socialperks>
+- ✅ **awesome-mcp-servers PR open:**
+  <https://github.com/punkpeye/awesome-mcp-servers/pull/6463>
+- ✅ **Runnable examples** in `examples/` — TypeScript (~200 lines, no
+  Anthropic SDK), Claude-driven agent, raw curl.
+- ✅ **One-click Claude Desktop install** snippet on the homepage at
+  <https://socialperks.app/#install>.
+
+Drop the sandbox URL into the HN comment, the dev.to body, and the X
+thread CTA — it's the single highest-conversion link because the
+reader can verify the claims in 10 seconds.
+
 ---
 
 ## 1. Hacker News — Show HN draft
@@ -67,8 +97,14 @@ the trust model in general. The platform is live and I'm onboarding
 the first batch of users by hand right now, so very interested in
 how it lands with people who'd actually build with it.
 
+If you want to poke at it without writing any code, there's a live
+in-browser sandbox at https://socialperks.app/agent/test — pick a
+tool, fill in args, see the real JSON-RPC response with the _meta
+cost envelope. No signup for the read tools.
+
 Endpoint: https://socialperks.app/api/mcp
-Manifest: GET the same URL
+Sandbox: https://socialperks.app/agent/test
+Registry: io.github.benzatkulak-collab/socialperks (listed in the official MCP Registry)
 Repo: https://github.com/benzatkulak-collab/socialperks
 Docs: https://github.com/benzatkulak-collab/socialperks/blob/main/AGENTS.md
 ```
@@ -274,11 +310,14 @@ Agents budget BEFORE invoking (from the manifest) and verify AFTER
 ### Post 5 (the CTA)
 
 ```
-Working examples (no Anthropic SDK required, just fetch + stdlib http):
-github.com/benzatkulak-collab/socialperks/tree/main/examples
+Live in-browser sandbox (no signup, no key for read tools):
+socialperks.app/agent/test
 
-MCP endpoint: socialperks.app/api/mcp
-Docs: github.com/benzatkulak-collab/socialperks/blob/main/AGENTS.md
+Already in the official MCP Registry as
+io.github.benzatkulak-collab/socialperks
+
+Examples (fetch + stdlib http, no Anthropic SDK):
+github.com/benzatkulak-collab/socialperks/tree/main/examples
 
 If you're building agent integrations and have opinions on the OAuth
 shape or cost-meter design, would love to hear them.
@@ -302,13 +341,17 @@ Hey y'all — I just shipped agent-native primitives for Social Perks
 (small-business marketing platform). Sharing in case anyone wants
 to look at the shapes / poke holes:
 
-• MCP server at socialperks.app/api/mcp (9 tools, read + write)
+• MCP server at socialperks.app/api/mcp (10 tools, read + write)
 • OAuth-style key issuance at /agent/authorize → token exchange
   at /api/v1/agent-auth/token (RFC 6749 close enough that
   off-the-shelf clients work)
 • Every tools/call response includes _meta.cost + _meta.rateLimit
   so agents can budget calls
 • User-facing audit trail at /dashboard/agents
+• Live in-browser sandbox at socialperks.app/agent/test — no signup
+  for read tools, schema-driven form, shows the _meta envelope
+• Already in the official registry as
+  io.github.benzatkulak-collab/socialperks
 
 Example agent (TypeScript, ~200 lines, no Anthropic SDK):
 github.com/benzatkulak-collab/socialperks/blob/main/examples/full-flow.ts

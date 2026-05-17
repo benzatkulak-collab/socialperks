@@ -39,12 +39,20 @@ export default function LandingPage() {
                 Build with Social Perks
               </h2>
             </div>
-            <Link
-              href="/agents"
-              className="text-sm text-brand-cyan hover:text-brand-white underline-offset-4 hover:underline transition-colors whitespace-nowrap"
-            >
-              MCP docs + API →
-            </Link>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              <Link
+                href="/agent/test"
+                className="text-sm text-brand-cyan hover:text-brand-white underline-offset-4 hover:underline transition-colors whitespace-nowrap"
+              >
+                Try MCP in browser →
+              </Link>
+              <Link
+                href="/agents"
+                className="text-sm text-brand-cyan hover:text-brand-white underline-offset-4 hover:underline transition-colors whitespace-nowrap"
+              >
+                MCP docs + API →
+              </Link>
+            </div>
           </div>
           <ClaudeDesktopInstall variant="compact" />
         </div>

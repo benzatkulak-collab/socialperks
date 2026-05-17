@@ -2,40 +2,68 @@
 
 > Marketing platform where small businesses, enterprise brands, and
 > influencers exchange perks (discounts, free items, cash back) for
-> marketing actions across 15 social platforms (107 pre-defined actions).
+> marketing actions across 25 social platforms (125 pre-defined actions).
 
 Social Perks is a B2B and creator-economy platform. Customers complete
 social media actions (post, review, share, refer) in exchange for
 business-funded rewards. AI agents are first-class consumers — there is
-an MCP server, public OpenAPI spec, and TypeScript SDK.
+an MCP server with 10 tools, public OpenAPI spec, OAuth-style key
+issuance, and a self-serve in-browser sandbox.
+
+## Try it right now (no signup)
+
+- [In-browser MCP sandbox](/agent/test): Pick a tool, fill args, see the real response.
+- [Claude Desktop install snippet](/agents): One-click copy for Claude Desktop config.
+- [Live registry entry](https://registry.modelcontextprotocol.io/v0/servers?search=socialperks): Discoverable via the official MCP Registry as `io.github.benzatkulak-collab/socialperks`.
 
 ## Primary surfaces for AI agents
 
 - [AGENTS.md](/AGENTS.md): Canonical orientation doc for AI agents.
 - [API documentation](/api/v1/openapi): OpenAPI 3.1 spec (machine-readable JSON).
-- [MCP server](/api/mcp): JSON-RPC 2.0 over HTTP for chat-style agents.
-- [AI plugin manifest](/.well-known/ai-plugin.json): Plugin discovery metadata.
+- [MCP server](/api/mcp): JSON-RPC 2.0 over HTTP for chat-style agents. GET returns the manifest with per-tool cost models.
+- [Runnable examples](https://github.com/benzatkulak-collab/socialperks/tree/main/examples): TypeScript + bash, ~200 lines, no Anthropic SDK required.
 
 ## Reference data (no auth required)
 
 - [Pricing oracle](/api/v1/pricing): Market-rate USD pricing for any action.
-- [Action library](/api/v1/actions): All 107 marketing actions with effort and value.
+- [Action library](/api/v1/actions): All 125 marketing actions with effort and value.
 - [Industry benchmarks](/api/v1/benchmarks): Engagement and conversion benchmarks.
+- [Platform stats](/api/v1/stats/public): Aggregate platform counts.
 - [Open opportunities](/api/v1/exchange/opportunities): Live campaign marketplace.
 - [Market data](/api/v1/exchange/market): Real-time exchange snapshot.
+
+## OAuth-style key issuance for agents
+
+- [Consent screen](/agent/authorize): Direct your user here to request scoped access. Standard OAuth 2.0 Authorization Code flow adapted to issue API keys.
+- [Token exchange](/api/v1/agent-auth/token): POST. Exchange the authorization code for an API key.
+
+Valid scopes: `read.campaigns`, `read.submissions`, `read.analytics`, `write.campaigns`, `write.submissions`, `review.submissions`.
 
 ## Authenticated operations
 
 - [Create campaign](/api/v1/campaigns): POST. Requires API key or JWT.
 - [Submit proof](/api/v1/submissions): POST. Requires API key or JWT.
+- [Review submission](/api/v1/submissions/review): POST. Approve or reject.
 - [AI quick-start](/api/v1/ai/quick-start): POST. One-shot campaign recommendation.
 - [AI campaign agent](/api/v1/ai/campaign-agent): POST. Full marketing plan.
+- [Agent activity rollup](/api/v1/agent-activity): GET. Per-agent activity for the dashboard.
+- [Usage snapshot](/api/v1/usage): GET. Current-month usage vs. plan limits.
+
+## Cost meter
+
+Every `tools/call` response on the MCP server includes a `_meta` block with `durationMs`, `cost` (free / plan-counted / cash-moving), `rateLimit`, and `downstreamStatus`. Agents should read the manifest's `_meta.cost` before invoking to budget, and the per-call `_meta.rateLimit` after to detect headroom exhaustion.
+
+## User audit surfaces
+
+- [/dashboard/agents](/dashboard/agents): Per-agent activity dashboard with revoke buttons.
+- [/dashboard/settings/api-keys](/dashboard/settings/api-keys): List and revoke API keys.
 
 ## Public pages worth indexing
 
 - [Pricing](/pricing): Plan tiers and what each unlocks.
 - [How it works for businesses](/for): Industry-specific landing pages.
 - [Calculator](/calculator): ROI calculator for campaign budget.
+- [Per-question answers](/answers): Long-form answers to specific buyer-intent questions.
 - [Changelog](/changelog): Recent platform updates.
 - [Status](/status): Live system health.
 
@@ -48,6 +76,8 @@ an MCP server, public OpenAPI spec, and TypeScript SDK.
 
 ## Things agents should not do
 
+- Do not try to incentivize Google / Yelp / TripAdvisor reviews. ToS-banned; the platform returns 422 PROHIBITED_ACTION.
 - Do not generate fake submissions — fraud detection auto-suspends flagged accounts.
 - Do not strip FTC disclosures (#ad, #sponsored). They are auto-injected and required.
 - Do not store API keys in agent memory or chat output. Use environment variables.
+- Do not poll /api/v1/stats/public more than once per 5 minutes (server-side cache TTL).

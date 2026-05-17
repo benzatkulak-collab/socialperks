@@ -20,7 +20,7 @@
 import { NextResponse } from "next/server";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://social-perks.example.com";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://socialperks.app";
 
 function buildSpec() {
   return {
@@ -30,7 +30,7 @@ function buildSpec() {
       version: "1.0.0",
       summary: "Marketing actions in exchange for perks",
       description:
-        "Social Perks is a marketing platform where businesses offer perks (discounts, free items, cash back) to customers and influencers in exchange for marketing actions across 15 social platforms (107 actions total). This API exposes pricing, action discovery, campaign management, submission tracking, and an exchange marketplace.",
+        "Social Perks is a marketing platform where businesses offer perks (discounts, free items, cash back) to customers and influencers in exchange for marketing actions across 25 social platforms (125 actions total). This API exposes pricing, action discovery, campaign management, submission tracking, an exchange marketplace, and the OAuth-style agent key-issuance flow described at https://socialperks.app/AGENTS.md.",
       contact: {
         name: "Social Perks",
         url: SITE_URL,
@@ -374,6 +374,146 @@ function buildSpec() {
           summary: "Submit proof of completed action",
           security: [{ BearerAuth: [] }, { ApiKey: [] }],
           responses: { "201": { description: "Submission accepted" } },
+        },
+      },
+      "/submissions/review": {
+        post: {
+          tags: ["Submissions"],
+          summary: "Approve or reject a submission",
+          description:
+            "Approve releases the perk and closes the submission. Reject requires a reason (1–500 chars). Owner business or API key with review.submissions scope only.",
+          security: [{ BearerAuth: [] }, { ApiKey: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["submissionId", "decision"],
+                  properties: {
+                    submissionId: { type: "string" },
+                    decision: { type: "string", enum: ["approve", "reject"] },
+                    reason: { type: "string", maxLength: 500 },
+                  },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Decision recorded" } },
+        },
+      },
+      "/agent-auth/token": {
+        post: {
+          tags: ["Auth"],
+          summary: "Exchange an OAuth authorization code for an API key",
+          description:
+            "Step 4 of the agent OAuth flow (see /agent/authorize for steps 1–3). Single-use, 60-second TTL on the code. Response shape mirrors RFC 6749 token responses so off-the-shelf OAuth clients work.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["code"],
+                  properties: {
+                    code: { type: "string", description: "Authorization code from the /agent/authorize redirect." },
+                    grant_type: {
+                      type: "string",
+                      enum: ["authorization_code"],
+                      description: "Optional. If present, must be 'authorization_code'.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "API key minted",
+              content: {
+                "application/json": {
+                  schema: {
+                    allOf: [
+                      { $ref: "#/components/schemas/SuccessEnvelope" },
+                      {
+                        type: "object",
+                        properties: {
+                          data: {
+                            type: "object",
+                            properties: {
+                              access_token: { type: "string", example: "sp_live_..." },
+                              token_type: { type: "string", const: "bearer" },
+                              scope: { type: "string", example: "read.campaigns write.campaigns" },
+                              business_id: { type: "string" },
+                              agent_name: { type: "string" },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid or expired code" },
+          },
+        },
+      },
+      "/agent-activity": {
+        get: {
+          tags: ["Auth"],
+          summary: "Per-agent activity rollup",
+          description:
+            "Returns each API key's activity for the calling business: campaigns created, submissions filed/reviewed, last-used timestamp. Used by /dashboard/agents.",
+          security: [{ BearerAuth: [] }, { ApiKey: [] }],
+          responses: { "200": { description: "Activity rollup" } },
+        },
+      },
+      "/usage": {
+        get: {
+          tags: ["Auth"],
+          summary: "Current-month usage vs. plan limits",
+          description:
+            "Returns campaigns / submissions / AI-generations usage for the calling business plus the limits for the active plan. Agents should call this before write tools to avoid PLAN_LIMIT_EXCEEDED.",
+          security: [{ BearerAuth: [] }, { ApiKey: [] }],
+          responses: { "200": { description: "Usage snapshot" } },
+        },
+      },
+      "/stats/public": {
+        get: {
+          tags: ["Reference"],
+          summary: "Platform aggregate counts",
+          description:
+            "Anonymous, cached, rounded aggregate platform counts (total campaigns, businesses, active campaigns). Below an activity floor the response is { show: false } and counts are zero. Cached server-side for 5 minutes.",
+          responses: {
+            "200": {
+              description: "Aggregate counts",
+              content: {
+                "application/json": {
+                  schema: {
+                    allOf: [
+                      { $ref: "#/components/schemas/SuccessEnvelope" },
+                      {
+                        type: "object",
+                        properties: {
+                          data: {
+                            type: "object",
+                            properties: {
+                              show: { type: "boolean" },
+                              campaigns: { type: "integer" },
+                              businesses: { type: "integer" },
+                              active: { type: "integer" },
+                              updatedAt: { type: "string", format: "date-time" },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
         },
       },
     },
