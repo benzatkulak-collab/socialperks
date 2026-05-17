@@ -1,0 +1,27 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "social_perks",
+  "name_for_human": "Social Perks",
+  "description_for_model": "Marketing platform where small businesses, enterprise brands, and influencers exchange perks (discounts, free items, cash back) for marketing actions across 25 social platforms (125 actions). Agents can read pricing, action catalog, industry benchmarks, and influencer data without auth. With an API key issued via the OAuth-style consent flow at /agent/authorize, agents can create campaigns, submit content proofs, review submissions, and read campaign stats. Every MCP tools/call response carries a _meta.cost / _meta.rateLimit envelope so agents can budget calls. CRITICAL: Google, Yelp, and TripAdvisor reviews CANNOT be incentivized (their ToS prohibits it); the platform blocks these campaigns at the API level. All other platforms support incentivized content with auto-injected FTC disclosures (#ad, branded-content tags) that agents must not strip.",
+  "description_for_human": "Run agent-driven customer marketing for small businesses. Create campaigns, submit content proofs, review submissions — with built-in FTC compliance and per-call cost meter.",
+  "auth": {
+    "type": "oauth",
+    "client_url": "https://socialperks.app/agent/authorize",
+    "scope": "read.campaigns read.submissions write.campaigns write.submissions",
+    "authorization_url": "https://socialperks.app/api/v1/agent-auth/token",
+    "authorization_content_type": "application/json",
+    "verification_tokens": {}
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://socialperks.app/api/v1/openapi"
+  },
+  "logo_url": "https://socialperks.app/icon.png",
+  "contact_email": "hello@socialperks.app",
+  "legal_info_url": "https://socialperks.app/terms",
+  "mcp": {
+    "url": "https://socialperks.app/api/mcp",
+    "transport": "streamable-http",
+    "registry_name": "io.github.benzatkulak-collab/socialperks"
+  }
+}
