@@ -228,6 +228,20 @@ export function requirePermission(
 
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 
+// Per-request rate-limit info stash so `withTiming` can copy the headers
+// onto the eventual response. Previously X-RateLimit-* were only emitted on
+// 429s — every successful response shipped without them, which (a) means
+// the CLAUDE.md guarantee is wrong and (b) makes client-side back-off logic
+// impossible since callers learn the budget only after they've exhausted it.
+const rateLimitInfo = new WeakMap<
+  NextRequest,
+  ReturnType<typeof checkRateLimit>
+>();
+
+export function getRateLimitInfo(req: NextRequest) {
+  return rateLimitInfo.get(req);
+}
+
 export function rateLimit(
   req: NextRequest,
   tier: RateLimitTier = "standard"
@@ -238,6 +252,7 @@ export function rateLimit(
     "unknown";
   const endpoint = new URL(req.url).pathname;
   const result = checkRateLimit(ip, endpoint, tier);
+  rateLimitInfo.set(req, result);
 
   if (!result.allowed) {
     return err("RATE_LIMIT_EXCEEDED", "Too many requests", 429, rateLimitHeaders(result));
@@ -313,6 +328,17 @@ export function withTiming(handler: Handler): Handler {
     res.headers.set("X-Response-Time", `${duration.toFixed(1)}ms`);
     if (!res.headers.has("X-Request-Id")) {
       res.headers.set("X-Request-Id", requestId);
+    }
+
+    // If the route ran rateLimit() and it allowed the request through,
+    // surface the budget on the success response too. Without this, callers
+    // had no way to learn their remaining quota until they hit 429.
+    const rl = rateLimitInfo.get(req);
+    if (rl && !res.headers.has("X-RateLimit-Limit")) {
+      const headers = rateLimitHeaders(rl);
+      for (const [k, v] of Object.entries(headers)) {
+        res.headers.set(k, v);
+      }
     }
 
     // Add Server-Timing header for performance diagnostics

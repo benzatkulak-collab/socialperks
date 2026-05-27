@@ -80,6 +80,16 @@ auth=$(json_get '.data.accessToken')
 [ "$code" = "200" ] && [ -n "$auth" ] && ok "login as $DEMO_EMAIL → 200" \
                                       || fail "login" "got $code, accessToken='$auth'"
 
+# Re-fetch CSRF token after login — the token is bound to session id, which
+# changes from anon-derived to the authenticated user's id. The frontend
+# helper invalidates and re-fetches on CSRF_TOKEN_INVALID automatically; we
+# do it explicitly here so each test is self-contained.
+csrf=$(curl -sS -m 10 -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+  -H "Authorization: Bearer $auth" "$BASE_URL/api/v1/csrf" \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["csrfToken"])')
+[ -n "$csrf" ] && ok "post-login CSRF token issued" \
+              || fail "post-login CSRF" "no token returned"
+
 # Without CSRF token: should be 403 CSRF_TOKEN_MISSING
 code=$(curl -sS -o "$RESP" -w '%{http_code}' -m 10 \
   -X POST -H "Content-Type: application/json" \
