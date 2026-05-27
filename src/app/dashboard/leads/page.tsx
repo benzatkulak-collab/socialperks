@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import type { Lead, OutreachStatus } from "@/lib/leads/types";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 import { OUTREACH_STATUSES } from "@/lib/leads/types";
 import { trackLeadSearchUsed } from "@/lib/analytics/plausible";
 
@@ -78,9 +79,8 @@ export default function LeadsDashboardPage() {
     setSearchError(null);
     trackLeadSearchUsed(`${industry} ${city} ${stateCode}`);
     try {
-      const res = await fetch("/api/v1/leads/search", {
+      const res = await apiFetch("/api/v1/leads/search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ industry, city, state: stateCode }),
       });
       const json = await res.json();

@@ -12,6 +12,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -23,6 +24,9 @@ import { getOrTrainModel, retrainModel } from "@/lib/ml/model-singleton";
 export const GET = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const rl = rateLimit(req, "standard");
   if (rl) return rl;
@@ -57,6 +61,9 @@ interface TrainBody {
 export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const rl = rateLimit(req, "strict");
   if (rl) return rl;

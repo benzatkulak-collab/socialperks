@@ -12,6 +12,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -30,6 +31,9 @@ import {
 export const GET = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
@@ -57,6 +61,9 @@ export const GET = withTiming(async (req: NextRequest) => {
 export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const limited = rateLimit(req, "standard");
   if (limited) return limited;

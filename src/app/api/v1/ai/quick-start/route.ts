@@ -12,6 +12,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -28,6 +29,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit
   const rl = rateLimit(req, "standard");

@@ -17,7 +17,7 @@ import { POST as authPOST } from "../auth/route";
 import { POST } from "../billing/checkout/route";
 import { createRequest, parseResponse, authHeaders } from "./helpers";
 
-async function signupAndGetToken(): Promise<string> {
+async function signupAndGetToken(): Promise<{ token: string; userId: string }> {
   const res = await authPOST(
     createRequest("/api/v1/auth", {
       method: "POST",
@@ -29,8 +29,8 @@ async function signupAndGetToken(): Promise<string> {
       },
     })
   );
-  const json = (await res.json()) as { data: { accessToken: string } };
-  return json.data.accessToken;
+  const json = (await res.json()) as { data: { accessToken: string; user: { id: string } } };
+  return { token: json.data.accessToken, userId: json.data.user.id };
 }
 
 describe("Billing Checkout API", () => {
@@ -49,12 +49,12 @@ describe("Billing Checkout API", () => {
   });
 
   it("POST /billing/checkout — invalid plan returns 400", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/billing/checkout", {
         method: "POST",
         body: { plan: "bogus", interval: "monthly" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -65,12 +65,12 @@ describe("Billing Checkout API", () => {
   });
 
   it("POST /billing/checkout — invalid interval returns 400", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/billing/checkout", {
         method: "POST",
         body: { plan: "pro", interval: "weekly" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -81,12 +81,12 @@ describe("Billing Checkout API", () => {
   });
 
   it("POST /billing/checkout — mock mode (no Stripe configured) returns a mock URL", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/billing/checkout", {
         method: "POST",
         body: { plan: "pro", interval: "monthly" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -100,12 +100,12 @@ describe("Billing Checkout API", () => {
   });
 
   it("POST /billing/checkout — enterprise plan returns a checkout URL in mock mode", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/billing/checkout", {
         method: "POST",
         body: { plan: "enterprise", interval: "annual" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -117,12 +117,12 @@ describe("Billing Checkout API", () => {
   });
 
   it("POST /billing/checkout — defaults interval to monthly when omitted", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/billing/checkout", {
         method: "POST",
         body: { plan: "pro" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);

@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import type React from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 import {
   trackUpgradeClicked,
   trackCheckoutStarted,
@@ -104,9 +105,8 @@ export default function UpgradePage(): React.ReactElement {
     trackUpgradeClicked(plan, "upgrade_page");
     trackCheckoutStarted(plan, interval);
     try {
-      const res = await fetch("/api/v1/billing/checkout", {
+      const res = await apiFetch("/api/v1/billing/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, interval }),
       });
       const data = await res.json();

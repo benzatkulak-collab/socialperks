@@ -12,6 +12,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -26,6 +27,9 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // List active sessions for this user
   const sessions = sessionStore.listByUser(user.id);
@@ -53,6 +57,9 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const body = await parseBody<{
     action?: string;

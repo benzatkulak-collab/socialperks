@@ -8,7 +8,7 @@
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, withTiming, requireAuth } from "../../_shared";
+import { ok, err, withTiming, requireAuth, requireCsrf } from "../../_shared";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { subscriptions, getOrCreateCustomerId } from "@/lib/billing/store";
 
@@ -19,6 +19,9 @@ function getAppUrl(): string {
 export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const appUrl = getAppUrl();
   const returnUrl = `${appUrl}/dashboard?portal=closed`;

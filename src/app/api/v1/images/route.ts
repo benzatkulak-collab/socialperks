@@ -16,6 +16,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   getQuery,
   paginate,
@@ -61,6 +62,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — standard for uploads
   const limited = rateLimit(req, "standard");
@@ -192,6 +196,9 @@ export const GET = withTiming(async (req: NextRequest) => {
   // Auth required
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   // Rate limit — relaxed for reads
   const limited = rateLimit(req, "relaxed");

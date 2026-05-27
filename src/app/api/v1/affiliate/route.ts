@@ -9,7 +9,7 @@
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, requireAuth, rateLimit, parseBody, withTiming } from "../_shared";
+import { ok, err, requireAuth, requireCsrf, rateLimit, parseBody, withTiming } from "../_shared";
 import {
   createAffiliate,
   getAffiliateByUser,
@@ -25,6 +25,9 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
+
+  const csrfError = requireCsrf(req, auth);
+  if (csrfError) return csrfError;
 
   const aff = getAffiliateByUser(auth.id);
   if (!aff) {
@@ -56,6 +59,9 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
+
+  const csrfError = requireCsrf(req, auth);
+  if (csrfError) return csrfError;
 
   const body = await parseBody<{ action?: string }>(req);
   if (body instanceof Response) return body;

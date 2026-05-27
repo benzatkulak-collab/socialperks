@@ -6,7 +6,7 @@
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, requireAuth, rateLimit, parseBody, withTiming } from "../_shared";
+import { ok, err, requireAuth, requireCsrf, rateLimit, parseBody, withTiming } from "../_shared";
 import {
   generateReferralCode,
   createReferralLink,
@@ -24,6 +24,9 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
+
+  const csrfError = requireCsrf(req, auth);
+  if (csrfError) return csrfError;
 
   if (!auth.businessId) {
     return err("NOT_A_BUSINESS", "Referral program is only available to business accounts", 403);
@@ -50,6 +53,9 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
+
+  const csrfError = requireCsrf(req, auth);
+  if (csrfError) return csrfError;
 
   const body = await parseBody<{
     action?: string;

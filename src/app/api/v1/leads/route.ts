@@ -10,6 +10,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   getQuery,
@@ -26,6 +27,9 @@ import { OUTREACH_STATUSES, type OutreachStatus } from "@/lib/leads/types";
 export const GET = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const rl = rateLimit(req, "relaxed");
   if (rl) return rl;
@@ -67,6 +71,9 @@ interface PatchBody {
 export const PATCH = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const rl = rateLimit(req, "standard");
   if (rl) return rl;

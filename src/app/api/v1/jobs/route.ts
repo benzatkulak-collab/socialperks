@@ -14,6 +14,7 @@ import {
   getQuery,
   parseBody,
   requireAuth,
+  requireCsrf,
   withTiming,
 } from "../_shared";
 import { allQueues, getQueueByName } from "@/lib/jobs/registry";
@@ -31,6 +32,9 @@ export const GET = withTiming(async (req: NextRequest) => {
   if (IS_PRODUCTION) {
     const user = requireAuth(req);
     if (user instanceof Response) return user;
+
+    const csrfError = requireCsrf(req, user);
+    if (csrfError) return csrfError;
     if (user.role !== "enterprise") {
       return err("FORBIDDEN", "Admin access required", 403);
     }
@@ -85,6 +89,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (IS_PRODUCTION) {
     const user = requireAuth(req);
     if (user instanceof Response) return user;
+
+    const csrfError = requireCsrf(req, user);
+    if (csrfError) return csrfError;
     if (user.role !== "enterprise") {
       return err("FORBIDDEN", "Admin access required", 403);
     }

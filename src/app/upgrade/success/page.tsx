@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react"
 import type React from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 import {
   trackCheckoutCompleted,
   trackSubscriptionActive,
@@ -55,7 +56,7 @@ export default function UpgradeSuccessPage(): React.ReactElement {
     setPortalLoading(true);
     setPortalError(null);
     try {
-      const res = await fetch("/api/v1/billing/portal", { method: "POST" });
+      const res = await apiFetch("/api/v1/billing/portal", { method: "POST" });
       const data = await res.json();
       if (!res.ok || !data?.data?.url) {
         throw new Error(

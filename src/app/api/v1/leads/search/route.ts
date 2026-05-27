@@ -13,6 +13,7 @@ import {
   ok,
   err,
   requireAuth,
+  requireCsrf,
   rateLimit,
   parseBody,
   withTiming,
@@ -34,6 +35,9 @@ interface SearchBody {
 export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const rl = rateLimit(req, "standard");
   if (rl) return rl;

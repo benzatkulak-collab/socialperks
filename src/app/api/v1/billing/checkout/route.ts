@@ -9,7 +9,7 @@
  */
 
 import type { NextRequest } from "next/server";
-import { ok, err, withTiming, requireAuth, parseBody } from "../../_shared";
+import { ok, err, withTiming, requireAuth, requireCsrf, parseBody } from "../../_shared";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { getOrCreateCustomerId } from "@/lib/billing/store";
 
@@ -52,6 +52,9 @@ function getAppUrl(): string {
 export const POST = withTiming(async (req: NextRequest) => {
   const user = requireAuth(req);
   if (user instanceof Response) return user;
+
+  const csrfError = requireCsrf(req, user);
+  if (csrfError) return csrfError;
 
   const body = await parseBody<CheckoutBody>(req);
   if (body instanceof Response) return body;

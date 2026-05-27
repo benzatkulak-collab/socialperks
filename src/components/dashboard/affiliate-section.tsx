@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Stat } from "@/components/ui/stat";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -106,10 +107,8 @@ export function AffiliateSection() {
     setEnrolling(true);
     setError(null);
     try {
-      const res = await fetch("/api/v1/affiliate", {
+      const res = await apiFetch("/api/v1/affiliate", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create" }),
       });
       const json = await res.json();

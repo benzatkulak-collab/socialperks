@@ -16,7 +16,7 @@ import { POST as authPOST } from "../auth/route";
 import { POST } from "../leads/search/route";
 import { createRequest, parseResponse, authHeaders } from "./helpers";
 
-async function signupAndGetToken(): Promise<string> {
+async function signupAndGetToken(): Promise<{ token: string; userId: string }> {
   const res = await authPOST(
     createRequest("/api/v1/auth", {
       method: "POST",
@@ -28,8 +28,8 @@ async function signupAndGetToken(): Promise<string> {
       },
     })
   );
-  const json = (await res.json()) as { data: { accessToken: string } };
-  return json.data.accessToken;
+  const json = (await res.json()) as { data: { accessToken: string; user: { id: string } } };
+  return { token: json.data.accessToken, userId: json.data.user.id };
 }
 
 describe("Leads Search API", () => {
@@ -47,12 +47,12 @@ describe("Leads Search API", () => {
   });
 
   it("POST /leads/search — missing industry returns 400", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/leads/search", {
         method: "POST",
         body: { city: "Portland" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -62,12 +62,12 @@ describe("Leads Search API", () => {
   });
 
   it("POST /leads/search — missing city returns 400", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/leads/search", {
         method: "POST",
         body: { industry: "coffee shop" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -77,12 +77,12 @@ describe("Leads Search API", () => {
   });
 
   it("POST /leads/search — returns scored leads sorted by fit", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/leads/search", {
         method: "POST",
         body: { industry: "coffee shop", city: "Portland", state: "OR" },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
@@ -112,12 +112,12 @@ describe("Leads Search API", () => {
   });
 
   it("POST /leads/search — respects limit param", async () => {
-    const token = await signupAndGetToken();
+    const { token, userId } = await signupAndGetToken();
     const res = await POST(
       createRequest("/api/v1/leads/search", {
         method: "POST",
         body: { industry: "coffee shop", city: "Portland", limit: 3 },
-        headers: authHeaders(token),
+        headers: authHeaders(token, userId),
       })
     );
     const data = await parseResponse(res);
