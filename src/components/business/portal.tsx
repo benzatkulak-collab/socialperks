@@ -112,10 +112,55 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
         if (cancelled || !body) return;
-        const list = (body?.data?.campaigns ?? body?.campaigns ?? []) as ActiveCampaign[];
-        if (Array.isArray(list) && list.length > 0) {
-          setMyCampaigns(list);
-        }
+        const raw = (body?.data?.campaigns ?? body?.campaigns ?? []) as unknown[];
+        if (!Array.isArray(raw) || raw.length === 0) return;
+        // Normalize the lifecycle shape coming back from the API
+        // (`completions: {current,max}`, `budget: {...}`, etc.) to the flat
+        // `ActiveCampaign` shape this component renders. Without this the
+        // portal crashed with React error #31 ("Objects are not valid as
+        // a React child") because portal-home renders `{c.completions}`
+        // directly as text — which works for a number, not an object.
+        const normalized: ActiveCampaign[] = raw.map((r) => {
+          const rec = r as Record<string, unknown>;
+          const completionsRaw = rec.completions as
+            | number
+            | { current?: number }
+            | undefined;
+          const completionsCount =
+            typeof completionsRaw === "number"
+              ? completionsRaw
+              : (completionsRaw?.current ?? 0);
+          const budget = rec.budget as
+            | { allocated?: number; type?: string }
+            | undefined;
+          const expiry = rec.expiry as { launchedAt?: string } | undefined;
+          const stateField = rec.state ?? rec.status;
+          return {
+            id: String(rec.id ?? ""),
+            name: String(rec.name ?? rec.id ?? "Campaign"),
+            platform: String(rec.platform ?? "—"),
+            platformIcon: String(rec.platformIcon ?? "🔗"),
+            action: String(rec.action ?? "—"),
+            rewardType:
+              (budget?.type as "pct" | "dol") ??
+              ((rec.rewardType as "pct" | "dol" | "free") || "pct"),
+            rewardValue:
+              budget?.allocated != null
+                ? String(budget.allocated)
+                : String(rec.rewardValue ?? ""),
+            status:
+              stateField === "active" ||
+              stateField === "paused" ||
+              stateField === "ended"
+                ? (stateField as "active" | "paused" | "ended")
+                : "active",
+            completions: completionsCount,
+            createdAt: String(
+              expiry?.launchedAt ?? rec.createdAt ?? new Date().toISOString()
+            ),
+          };
+        });
+        setMyCampaigns(normalized);
       })
       .catch(() => {
         /* leave myCampaigns empty; UI will show "No campaigns yet" */
