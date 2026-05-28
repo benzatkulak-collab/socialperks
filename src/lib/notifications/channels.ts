@@ -91,7 +91,7 @@ export async function notifySubmission(args: {
   channels: { slackWebhookUrl?: string; smsTo?: string };
 }): Promise<SendResult[]> {
   const results: SendResult[] = [];
-  const message = `New submission for ${args.businessName} — proof: ${args.proofUrl} — review at https://socialperks.io/dashboard?campaign=${args.campaignId}&submission=${args.submissionId}`;
+  const message = `New submission for ${args.businessName} — proof: ${args.proofUrl} — review at https://socialperks.app/dashboard?campaign=${args.campaignId}&submission=${args.submissionId}`;
   if (args.channels.slackWebhookUrl) {
     results.push(await sendSlack({ webhookUrl: args.channels.slackWebhookUrl, text: message }));
   }

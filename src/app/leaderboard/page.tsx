@@ -17,7 +17,7 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://socialperks.io");
+    : "https://socialperks.app");
 
 function tierFromFollowers(f: number): "Mega" | "Macro" | "Mid" | "Micro" {
   if (f >= 1_000_000) return "Mega";

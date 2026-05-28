@@ -10,10 +10,10 @@ and ready to paste. Each file is self-contained.
 - [ ] Vercel deployment protection toggled OFF (§ 2) ⬅ **critical for
       everything below**
 - [ ] Postgres provisioned + `DATABASE_URL` set (§ 3)
-- [ ] `https://socialperks.io/` returns 200 to anonymous traffic
-- [ ] `https://socialperks.io/api/v1/openapi` returns the spec
-- [ ] `https://socialperks.io/api/mcp` returns the manifest
-- [ ] `https://socialperks.io/sitemap.xml` lists 496 URLs
+- [ ] `https://socialperks.app/` returns 200 to anonymous traffic
+- [ ] `https://socialperks.app/api/v1/openapi` returns the spec
+- [ ] `https://socialperks.app/api/mcp` returns the manifest
+- [ ] `https://socialperks.app/sitemap.xml` lists 496 URLs
 
 ## Day-by-day playbook
 

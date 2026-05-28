@@ -6,7 +6,7 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://socialperks.io");
+    : "https://socialperks.app");
 
 export const metadata: Metadata = {
   title: "Security at Social Perks",
@@ -102,8 +102,8 @@ export default function SecurityPage() {
         <Section title="Vulnerability disclosure">
           <p className="text-brand-text leading-relaxed mb-3">
             If you discover a security issue, please report it to{" "}
-            <a href="mailto:security@socialperks.io" className="text-brand-cyan underline">
-              security@socialperks.io
+            <a href="mailto:security@socialperks.app" className="text-brand-cyan underline">
+              security@socialperks.app
             </a>{" "}
             with steps to reproduce. We commit to:
           </p>

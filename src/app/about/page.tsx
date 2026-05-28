@@ -157,7 +157,7 @@ export default function AboutPage() {
             <p className="mt-4 text-sm text-brand-muted">
               Interested in joining?{" "}
               <a
-                href="mailto:careers@socialperks.io"
+                href="mailto:careers@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2 transition-colors hover:text-brand-cyan/80"
               >
                 Get in touch
@@ -178,28 +178,28 @@ export default function AboutPage() {
             <p className="mt-2">
               General:{" "}
               <a
-                href="mailto:hello@socialperks.io"
+                href="mailto:hello@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2"
               >
-                hello@socialperks.io
+                hello@socialperks.app
               </a>
             </p>
             <p>
               Press:{" "}
               <a
-                href="mailto:press@socialperks.io"
+                href="mailto:press@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2"
               >
-                press@socialperks.io
+                press@socialperks.app
               </a>
             </p>
             <p>
               Support:{" "}
               <a
-                href="mailto:support@socialperks.io"
+                href="mailto:support@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2"
               >
-                support@socialperks.io
+                support@socialperks.app
               </a>
             </p>
           </div>

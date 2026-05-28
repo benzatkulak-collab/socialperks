@@ -12,7 +12,7 @@ import { ok, err, rateLimit, parseBody, withTiming } from "../_shared";
 import { validateEmail, validateString, validateEnum } from "@/lib/security/validate";
 import { emailProvider, contactFormEmail } from "@/lib/email";
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@socialperks.io";
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@socialperks.app";
 
 const SUBJECTS = [
   "General Question",

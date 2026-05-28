@@ -21,7 +21,7 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://socialperks.io");
+    : "https://socialperks.app");
 
 export const dynamic = "force-static";
 export const dynamicParams = false;

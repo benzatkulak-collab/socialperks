@@ -259,10 +259,10 @@ export default function TermsPage() {
             <p>
               If you have questions about these Terms, contact us at{" "}
               <a
-                href="mailto:legal@socialperks.io"
+                href="mailto:legal@socialperks.app"
                 className="text-brand-cyan underline underline-offset-2 transition-colors hover:text-brand-cyan/80"
               >
-                legal@socialperks.io
+                legal@socialperks.app
               </a>
               .
             </p>

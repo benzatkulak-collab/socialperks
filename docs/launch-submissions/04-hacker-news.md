@@ -73,10 +73,10 @@ Open to feedback on any of it — auth design, FTC interpretation,
 pricing approach, MCP transport choice (HTTP vs SSE vs stdio), schema
 choices.
 
-Site: https://socialperks.io
+Site: https://socialperks.app
 GitHub: https://github.com/benzatkulak-collab/socialperks
-Agent docs: https://socialperks.io/AGENTS.md
-OpenAPI: https://socialperks.io/api/v1/openapi
+Agent docs: https://socialperks.app/AGENTS.md
+OpenAPI: https://socialperks.app/api/v1/openapi
 ```
 
 ## What to AVOID

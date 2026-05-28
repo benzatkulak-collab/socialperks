@@ -50,13 +50,13 @@ export const WEBHOOK_EVENTS = [
 export const CODE_EXAMPLES: Record<string, { label: string; code: string }> = {
   curl: {
     label: "cURL",
-    code: `curl -X GET "https://api.socialperks.io/v1/campaigns" \\
+    code: `curl -X GET "https://api.socialperks.app/v1/campaigns" \\
   -H "Authorization: Bearer sk_live_your_api_key" \\
   -H "Content-Type: application/json"`,
   },
   javascript: {
     label: "JavaScript",
-    code: `const response = await fetch('https://api.socialperks.io/v1/campaigns', {
+    code: `const response = await fetch('https://api.socialperks.app/v1/campaigns', {
   method: 'GET',
   headers: {
     'Authorization': 'Bearer sk_live_your_api_key',
@@ -72,7 +72,7 @@ const campaigns = await response.json();
     code: `import requests
 
 response = requests.get(
-    'https://api.socialperks.io/v1/campaigns',
+    'https://api.socialperks.app/v1/campaigns',
     headers={
         'Authorization': 'Bearer sk_live_your_api_key',
         'Content-Type': 'application/json',

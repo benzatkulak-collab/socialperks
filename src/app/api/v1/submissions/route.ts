@@ -267,7 +267,7 @@ async function notifyFirstSubmission(campaignId: string, businessId: string): Pr
     const business = await businessRepo.findById(businessId);
     if (!business) return;
     const campaignName = "your campaign";
-    const message = `🎉 Your Social Perks campaign "${campaignName}" just got its first customer post! Check the dashboard: https://${process.env.NEXT_PUBLIC_SITE_URL ?? "socialperks.io"}/dashboard`;
+    const message = `🎉 Your Social Perks campaign "${campaignName}" just got its first customer post! Check the dashboard: https://${process.env.NEXT_PUBLIC_SITE_URL ?? "socialperks.app"}/dashboard`;
     if (business.email) {
       const { emailQueue } = await import("@/lib/jobs/registry");
       emailQueue.add({

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     description:
       "Explore industry-specific marketing campaigns. From restaurants to real estate, find the right template for your business.",
     type: "website",
-    url: "https://socialperks.io/for",
+    url: "https://socialperks.app/for",
     siteName: "Social Perks",
   },
   twitter: {
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
       "Explore ready-made social media marketing campaigns for 20 industries.",
   },
   alternates: {
-    canonical: "https://socialperks.io/for",
+    canonical: "https://socialperks.app/for",
   },
 };
 
@@ -51,7 +51,7 @@ export default function IndustriesIndexPage() {
             name: "Social Perks — Industries",
             description:
               "Explore social media marketing campaigns tailored for 20 different industries.",
-            url: "https://socialperks.io/for",
+            url: "https://socialperks.app/for",
             mainEntity: {
               "@type": "ItemList",
               numberOfItems: INDUSTRIES.length,
@@ -59,7 +59,7 @@ export default function IndustriesIndexPage() {
                 "@type": "ListItem",
                 position: i + 1,
                 name: industry.name,
-                url: `https://socialperks.io/for/${industry.slug}`,
+                url: `https://socialperks.app/for/${industry.slug}`,
               })),
             },
           }),

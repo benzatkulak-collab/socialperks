@@ -66,10 +66,10 @@ export default function ContactPage() {
                 <div>
                   <p className="text-brand-muted">Email</p>
                   <a
-                    href="mailto:support@socialperks.io"
+                    href="mailto:support@socialperks.app"
                     className="text-brand-cyan underline underline-offset-2 transition-colors hover:text-brand-cyan/80"
                   >
-                    support@socialperks.io
+                    support@socialperks.app
                   </a>
                 </div>
                 <div>

@@ -19,7 +19,7 @@ export function EmbedCode({ businessId, businessName, widgetOrigin }: EmbedCodeP
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const codeRef = useRef<HTMLPreElement>(null);
 
-  const origin = widgetOrigin || (typeof window !== "undefined" ? window.location.origin : "https://socialperks.io");
+  const origin = widgetOrigin || (typeof window !== "undefined" ? window.location.origin : "https://socialperks.app");
 
   const snippet = `<script src="${origin}/widget.js" data-business-id="${businessId}" data-theme="${theme}"></script>`;
 

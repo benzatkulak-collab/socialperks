@@ -20,7 +20,7 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://socialperks.io");
+    : "https://socialperks.app");
 
 export const metadata: Metadata = {
   title:
@@ -82,7 +82,7 @@ export default function BenchmarksPage() {
       "Top platforms by volume",
       "Top campaign types",
     ],
-    license: "https://socialperks.io/terms",
+    license: "https://socialperks.app/terms",
   };
 
   return (
