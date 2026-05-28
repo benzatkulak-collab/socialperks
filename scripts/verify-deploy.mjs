@@ -7,11 +7,11 @@
  * Schema.org markup, and content-type. Exits non-zero on any failure.
  *
  * Usage:
- *   node scripts/verify-deploy.mjs https://socialperks.io
+ *   node scripts/verify-deploy.mjs https://socialperks.app
  *   node scripts/verify-deploy.mjs http://localhost:3000
  *
  * Or via npm:
- *   BASE_URL=https://socialperks.io npm run verify:deploy
+ *   BASE_URL=https://socialperks.app npm run verify:deploy
  */
 
 const BASE = (process.argv[2] ?? process.env.BASE_URL ?? "http://localhost:3000").replace(

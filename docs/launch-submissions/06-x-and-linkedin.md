@@ -23,7 +23,7 @@ what "agent-friendly" actually means and what we built.
 campaigns (customer posts about you → gets a discount) and AI agents
 can drive the whole flow programmatically.
 
-Site: https://socialperks.io
+Site: https://socialperks.app
 Repo: https://github.com/benzatkulak-collab/socialperks
 ```
 
@@ -92,7 +92,7 @@ what's growing fastest.
 - Listing your business and running incentivized campaigns
 - Being one of the first influencers on the marketplace
 
-Reply or DM. https://socialperks.io
+Reply or DM. https://socialperks.app
 ```
 
 ## LinkedIn post (single longer post — LinkedIn rewards long-form)
@@ -141,7 +141,7 @@ The numbers from our pilot:
 • Total marketing dollars circulated to customers (not ad platforms):
   $24,000 in 90 days
 
-Live now: https://socialperks.io
+Live now: https://socialperks.app
 
 If you run a small business and want to try this, it's free to sign
 up. If you build software and want to integrate, the API is public

@@ -16,7 +16,7 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://socialperks.io");
+    : "https://socialperks.app");
 
 // Cross-product of cities × industries. Generates ~480 indexable
 // long-tail pages — far higher search volume in aggregate than head

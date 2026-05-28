@@ -82,10 +82,10 @@ you need. The MCP server is at `/api/mcp`. We welcome bots — robots.txt
 explicitly allows GPTBot, ClaudeBot, OAI-SearchBot, PerplexityBot,
 and others.
 
-🔗 https://socialperks.io
-📚 Agent docs: https://socialperks.io/AGENTS.md
-🔧 OpenAPI: https://socialperks.io/api/v1/openapi
-🤖 MCP: https://socialperks.io/api/mcp
+🔗 https://socialperks.app
+📚 Agent docs: https://socialperks.app/AGENTS.md
+🔧 OpenAPI: https://socialperks.app/api/v1/openapi
+🤖 MCP: https://socialperks.app/api/mcp
 ```
 
 ## First comment (you post this immediately after launching)

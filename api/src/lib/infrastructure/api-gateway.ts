@@ -170,21 +170,21 @@ export class OpenAPIGenerator {
         version: "1.0.0",
         contact: {
           name: "Social Perks Developer Support",
-          url: "https://developers.socialperks.io",
-          email: "api@socialperks.io",
+          url: "https://developers.socialperks.app",
+          email: "api@socialperks.app",
         },
         license: {
           name: "Proprietary",
-          url: "https://socialperks.io/terms",
+          url: "https://socialperks.app/terms",
         },
       },
       servers: [
         {
-          url: "https://api.socialperks.io/v1",
+          url: "https://api.socialperks.app/v1",
           description: "Production",
         },
         {
-          url: "https://sandbox.socialperks.io/v1",
+          url: "https://sandbox.socialperks.app/v1",
           description: "Sandbox",
         },
         {
@@ -992,7 +992,7 @@ export class SDKGenerator {
 
   generateCurl(endpoint: EndpointSpec): string {
     const lines: string[] = [];
-    const baseUrl = "https://api.socialperks.io/v1";
+    const baseUrl = "https://api.socialperks.app/v1";
 
     let url = `${baseUrl}${endpoint.path}`;
 

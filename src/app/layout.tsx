@@ -11,12 +11,12 @@ import { safeJsonForScript } from "@/lib/security/json-ld";
 // metadataBase prefers an explicit NEXT_PUBLIC_SITE_URL env var so OG image
 // URLs resolve correctly on whatever host you're actually deployed to
 // (vercel.app preview, custom domain, local dev). Falls back to the
-// canonical socialperks.io for the configured prod domain.
+// canonical socialperks.app for the configured prod domain.
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://socialperks.io");
+    : "https://socialperks.app");
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

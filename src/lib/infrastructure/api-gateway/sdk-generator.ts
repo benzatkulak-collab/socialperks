@@ -253,7 +253,7 @@ export class SDKGenerator {
 
   generateCurl(endpoint: EndpointSpec): string {
     const lines: string[] = [];
-    const baseUrl = "https://api.socialperks.io/v1";
+    const baseUrl = "https://api.socialperks.app/v1";
 
     let url = `${baseUrl}${endpoint.path}`;
 

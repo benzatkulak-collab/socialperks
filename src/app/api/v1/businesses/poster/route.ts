@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     process.env.NEXT_PUBLIC_SITE_URL ??
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "https://socialperks.io");
+      : "https://socialperks.app");
   const claimUrl = `${baseUrl}/c/${campaignId}`;
 
   const qrSize = 25;

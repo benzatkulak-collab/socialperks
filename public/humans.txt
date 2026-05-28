@@ -1,7 +1,7 @@
 /* TEAM */
     Built by: the Social Perks team
-    Site: https://socialperks.io
-    Contact: hello@socialperks.io
+    Site: https://socialperks.app
+    Contact: hello@socialperks.app
     Location: United States
 
 /* THANKS */
@@ -16,13 +16,13 @@
     Auth: JWT (httpOnly cookies) + API keys (sp_live_...)
 
 /* FOR DEVELOPERS */
-    Public API: https://socialperks.io/api/v1/openapi
-    MCP server: https://socialperks.io/api/mcp
-    Agent docs: https://socialperks.io/AGENTS.md
-    LLM-friendly summary: https://socialperks.io/llms.txt
+    Public API: https://socialperks.app/api/v1/openapi
+    MCP server: https://socialperks.app/api/mcp
+    Agent docs: https://socialperks.app/AGENTS.md
+    LLM-friendly summary: https://socialperks.app/llms.txt
 
 /* FOR AI AGENTS */
-    Robots policy: https://socialperks.io/robots.txt — explicitly welcomes
+    Robots policy: https://socialperks.app/robots.txt — explicitly welcomes
     GPTBot, ClaudeBot, OAI-SearchBot, PerplexityBot, Google-Extended,
     Applebot-Extended, CCBot, cohere-ai, ChatGPT-User, anthropic-ai,
     Bytespider, DuckAssistBot, and Claude-Web.

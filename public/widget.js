@@ -5,7 +5,7 @@
  * "Earn a Perk" button and a slide-up campaign browser to any website.
  *
  * Usage:
- *   <script src="https://socialperks.io/widget.js"
+ *   <script src="https://socialperks.app/widget.js"
  *           data-business-id="biz_123"
  *           data-theme="dark"></script>
  */
@@ -427,7 +427,7 @@
 
     // Footer
     html += '<div class="sp-widget-footer">';
-    html += '  <a href="https://socialperks.io" target="_blank" rel="noopener noreferrer">Powered by Social Perks</a>';
+    html += '  <a href="https://socialperks.app" target="_blank" rel="noopener noreferrer">Powered by Social Perks</a>';
     html += "</div>";
 
     panel.innerHTML = html;

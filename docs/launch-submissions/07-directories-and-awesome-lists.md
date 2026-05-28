@@ -13,7 +13,7 @@ Add an entry under the most-relevant category (likely "Marketing"
 or "Business" — they may need to add the section).
 
 ```markdown
-- [Social Perks](https://socialperks.io/api/mcp) — Marketing platform
+- [Social Perks](https://socialperks.app/api/mcp) — Marketing platform
   MCP server with 5 tools (getPricing, listActions, getBenchmarks,
   listCampaigns, searchInfluencers) for incentivized social media
   campaigns across 25 platforms.
@@ -24,7 +24,7 @@ or "Business" — they may need to add the section).
 Where: https://github.com/Mermade/awesome-openapi3
 
 ```markdown
-- [Social Perks](https://socialperks.io/api/v1/openapi) — Marketing
+- [Social Perks](https://socialperks.app/api/v1/openapi) — Marketing
   platform with public OpenAPI 3.1 spec covering pricing, actions,
   campaigns, AI generation, exchange marketplace.
 ```
@@ -56,7 +56,7 @@ Where: https://github.com/public-apis/public-apis
 ```markdown
 | API | Description | Auth | HTTPS | CORS |
 |---|---|---|---|---|
-| [Social Perks](https://socialperks.io/api/v1/openapi) | Marketing platform — pricing oracle, action catalog, benchmarks | apiKey | Yes | Yes |
+| [Social Perks](https://socialperks.app/api/v1/openapi) | Marketing platform — pricing oracle, action catalog, benchmarks | apiKey | Yes | Yes |
 ```
 
 Goes under the "Business" or "Open Data" section.
@@ -139,8 +139,8 @@ Customers post, businesses pay them with perks. AI agents included.
 Add to top of README:
 
 ```markdown
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-brightgreen)](https://socialperks.io/api/v1/openapi)
-[![MCP Server](https://img.shields.io/badge/MCP-server-blue)](https://socialperks.io/api/mcp)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.1-brightgreen)](https://socialperks.app/api/v1/openapi)
+[![MCP Server](https://img.shields.io/badge/MCP-server-blue)](https://socialperks.app/api/mcp)
 [![SDK](https://img.shields.io/npm/v/@social-perks/sdk)](https://www.npmjs.com/package/@social-perks/sdk)
 [![License](https://img.shields.io/badge/License-Proprietary-yellow)](#)
 ```

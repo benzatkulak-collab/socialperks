@@ -331,7 +331,7 @@ export const GUIDES: Guide[] = [
     steps: [
       {
         name: "Add the MCP server to your client config",
-        text: "Add this to your MCP client's config file: { \"mcpServers\": { \"social-perks\": { \"url\": \"https://socialperks.io/api/mcp\", \"transport\": \"http\" } } }. Restart the client to pick up the change.",
+        text: "Add this to your MCP client's config file: { \"mcpServers\": { \"social-perks\": { \"url\": \"https://socialperks.app/api/mcp\", \"transport\": \"http\" } } }. Restart the client to pick up the change.",
       },
       {
         name: "Verify the tools list",

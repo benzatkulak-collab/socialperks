@@ -775,7 +775,7 @@ class TenantManager {
  * Priority order:
  *   1. Explicit `X-Tenant-ID` header
  *   2. Custom domain via `X-Tenant-Domain` header
- *   3. Subdomain extraction from `Host` header (`{slug}.socialperks.io`)
+ *   3. Subdomain extraction from `Host` header (`{slug}.socialperks.app`)
  *   4. API key prefix (`sk_{tenantId}_...`)
  */
 class TenantResolver {
@@ -825,19 +825,19 @@ class TenantResolver {
 
   /**
    * Extract subdomain slug from a host string.
-   * Expects format: `{slug}.socialperks.io` or `{slug}.socialperks.io:3000`.
+   * Expects format: `{slug}.socialperks.app` or `{slug}.socialperks.app:3000`.
    */
   extractSubdomain(host: string): string | null {
     // Strip port if present
     const hostWithoutPort = host.split(":")[0];
     const parts = hostWithoutPort.split(".");
 
-    // Must have at least 3 parts: slug.socialperks.io
+    // Must have at least 3 parts: slug.socialperks.app
     if (parts.length < 3) return null;
 
     // The root domain is the last two parts
     const rootDomain = parts.slice(-2).join(".");
-    if (rootDomain !== "socialperks.io" && rootDomain !== "socialperks.com") {
+    if (rootDomain !== "socialperks.app" && rootDomain !== "socialperks.com") {
       return null;
     }
 

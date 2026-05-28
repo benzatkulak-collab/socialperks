@@ -12,7 +12,7 @@ Submissions are made via PR to
 ## Prerequisites
 
 - [ ] Site deployed publicly (deployment protection OFF)
-- [ ] `https://socialperks.io/api/v1/openapi` returns 200 with valid OpenAPI 3.1
+- [ ] `https://socialperks.app/api/v1/openapi` returns 200 with valid OpenAPI 3.1
 - [ ] OpenAPI spec validates (use https://editor.swagger.io/ to confirm)
 
 ## How to submit
@@ -21,14 +21,14 @@ Submissions are made via PR to
 # 1. Fork the directory
 gh repo fork APIs-guru/openapi-directory --clone --remote
 
-# 2. Add Social Perks under APIs/socialperks.io/
+# 2. Add Social Perks under APIs/socialperks.app/
 cd openapi-directory
-mkdir -p APIs/socialperks.io/1.0.0
-curl https://socialperks.io/api/v1/openapi > APIs/socialperks.io/1.0.0/openapi.json
+mkdir -p APIs/socialperks.app/1.0.0
+curl https://socialperks.app/api/v1/openapi > APIs/socialperks.app/1.0.0/openapi.json
 
 # 3. Commit + PR
 git checkout -b add-social-perks
-git add APIs/socialperks.io/
+git add APIs/socialperks.app/
 git commit -m "Add Social Perks API"
 git push origin add-social-perks
 gh pr create --title "Add Social Perks API" --body "$(cat <<'EOF'
@@ -36,16 +36,16 @@ Adds the Social Perks API — a marketing platform where small businesses
 exchange perks (discounts, free items) for marketing actions across 25
 social platforms (125 actions total).
 
-The OpenAPI 3.1 spec at https://socialperks.io/api/v1/openapi covers:
+The OpenAPI 3.1 spec at https://socialperks.app/api/v1/openapi covers:
 
 - Reference data (pricing, actions, benchmarks) — public, no auth required
 - Campaign management — auth via x-api-key or JWT
 - Submissions and AI generation
 - Marketplace exchange endpoints
 
-Site: https://socialperks.io
-Spec: https://socialperks.io/api/v1/openapi
-Docs: https://socialperks.io/AGENTS.md
+Site: https://socialperks.app
+Spec: https://socialperks.app/api/v1/openapi
+Docs: https://socialperks.app/AGENTS.md
 
 Validates against the OpenAPI 3.1 schema. Public endpoints are CDN-cached.
 EOF
@@ -70,6 +70,6 @@ EOF
 
 ## After it lands
 
-- The API shows up at `https://api.apis.guru/v2/specs/socialperks.io/1.0.0/openapi.json`
+- The API shows up at `https://api.apis.guru/v2/specs/socialperks.app/1.0.0/openapi.json`
 - It's auto-updated weekly from your live URL
 - Tracker integrations (apitracker.io etc.) pick it up automatically

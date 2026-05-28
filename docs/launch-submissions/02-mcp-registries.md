@@ -7,7 +7,7 @@ it. There are three primary registries.
 ## Prerequisites
 
 - [ ] Site deployed publicly
-- [ ] `https://socialperks.io/api/mcp` returns the server manifest on GET
+- [ ] `https://socialperks.app/api/mcp` returns the server manifest on GET
 - [ ] `POST /api/mcp` with `{"jsonrpc":"2.0","method":"tools/list","id":1}` returns the 5 tools
 
 ## Registry 1: smithery.ai
@@ -28,11 +28,11 @@ description: |
   social media action, browse the full action catalog, get industry
   benchmarks, list your active campaigns, and search the influencer
   marketplace.
-home_page: https://socialperks.io
+home_page: https://socialperks.app
 repository: https://github.com/benzatkulak-collab/socialperks
 license: Proprietary
 transport: http
-url: https://socialperks.io/api/mcp
+url: https://socialperks.app/api/mcp
 tags:
   - marketing
   - small-business
@@ -42,7 +42,7 @@ tags:
   - ftc-compliance
   - perks
 auth_required: optional
-authentication_url: https://socialperks.io/dashboard/api-keys
+authentication_url: https://socialperks.app/dashboard/api-keys
 tools:
   - getPricing
   - listActions
@@ -75,9 +75,9 @@ marketing campaigns:
 - listCampaigns — caller's active campaigns (auth required)
 - searchInfluencers — marketplace search
 
-Endpoint: https://socialperks.io/api/mcp
-Manifest: https://socialperks.io/api/mcp (GET)
-Docs: https://socialperks.io/AGENTS.md
+Endpoint: https://socialperks.app/api/mcp
+Manifest: https://socialperks.app/api/mcp (GET)
+Docs: https://socialperks.app/AGENTS.md
 ```
 
 ## Registry 3: Glama (modelcontextprotocol-servers)
@@ -88,7 +88,7 @@ Up-and-coming registry, more curated.
 
 Provide:
 - Name: Social Perks
-- URL: https://socialperks.io/api/mcp
+- URL: https://socialperks.app/api/mcp
 - Category: Business / Marketing
 - Description: (paste smithery description above)
 

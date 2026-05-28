@@ -34,7 +34,7 @@ Two questions for the community:
    How are you all handling that — manual reminders, templates,
    something else?
 
-I ended up building a tool around this idea (https://socialperks.io)
+I ended up building a tool around this idea (https://socialperks.app)
 because the manual coordination was getting silly. But I'm more
 curious how others handle it without tooling.
 ```
@@ -119,7 +119,7 @@ What surprised me:
   to be the moat.
 
 Repo: https://github.com/benzatkulak-collab/socialperks
-Site: https://socialperks.io
+Site: https://socialperks.app
 
 Happy to answer anything technical.
 ```
