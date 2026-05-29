@@ -39,13 +39,13 @@ Paste each row below. **Environment:** Production (also tick Preview if you want
 
 | Name | Value |
 |---|---|
-| `AUTH_SECRET` | `ea74fa61b75a13375097030b5ed1b99e5c5036230f788e4ee27dbcd76083e9e3` |
-| `CSRF_SECRET` | `f7315d5b1f3bca1dda16fb7fea1d48f0d3181253cb5b990a52c4e687600047e4` |
-| `CRON_SECRET` | `4be3d01821e526f1472f2b5e8343537169cdba6ff3c76189` |
-| `READINESS_TOKEN` | `ef04375f68424bdb544e8eb6cd094bc369ebe75341c1b204` |
-| `WAITLIST_ADMIN_TOKEN` | `90602476c7df0ce06992f5bf0325a8a3652fa02db80d7a8e` |
-| `WEBHOOK_SECRET` | `a759321c4ddd3074334a091783af07c16ad8474238dbb941f20d57325ad366d0` |
-| `WEBHOOK_VERIFY_TOKEN` | `d888a83acdc1a63b090df93bd978332e` |
+| `AUTH_SECRET` | `REDACTED_ROTATED` |
+| `CSRF_SECRET` | `REDACTED_ROTATED` |
+| `CRON_SECRET` | `REDACTED_ROTATED` |
+| `READINESS_TOKEN` | `REDACTED_ROTATED` |
+| `WAITLIST_ADMIN_TOKEN` | `REDACTED_ROTATED` |
+| `WEBHOOK_SECRET` | `REDACTED_ROTATED` |
+| `WEBHOOK_VERIFY_TOKEN` | `REDACTED_ROTATED` |
 | `NEXT_PUBLIC_SITE_URL` | `https://social-perks-benzatkulak-4901s-projects.vercel.app` |
 
 After saving each one, hit "Save". Vercel won't deploy automatically — see Section 7 to trigger redeploy.
@@ -53,13 +53,13 @@ After saving each one, hit "Save". Vercel won't deploy automatically — see Sec
 ### 1.B — CLI bulk-set
 
 ```bash
-vercel env add AUTH_SECRET production <<< "ea74fa61b75a13375097030b5ed1b99e5c5036230f788e4ee27dbcd76083e9e3"
-vercel env add CSRF_SECRET production <<< "f7315d5b1f3bca1dda16fb7fea1d48f0d3181253cb5b990a52c4e687600047e4"
-vercel env add CRON_SECRET production <<< "4be3d01821e526f1472f2b5e8343537169cdba6ff3c76189"
-vercel env add READINESS_TOKEN production <<< "ef04375f68424bdb544e8eb6cd094bc369ebe75341c1b204"
-vercel env add WAITLIST_ADMIN_TOKEN production <<< "90602476c7df0ce06992f5bf0325a8a3652fa02db80d7a8e"
-vercel env add WEBHOOK_SECRET production <<< "a759321c4ddd3074334a091783af07c16ad8474238dbb941f20d57325ad366d0"
-vercel env add WEBHOOK_VERIFY_TOKEN production <<< "d888a83acdc1a63b090df93bd978332e"
+vercel env add AUTH_SECRET production <<< "REDACTED_ROTATED"
+vercel env add CSRF_SECRET production <<< "REDACTED_ROTATED"
+vercel env add CRON_SECRET production <<< "REDACTED_ROTATED"
+vercel env add READINESS_TOKEN production <<< "REDACTED_ROTATED"
+vercel env add WAITLIST_ADMIN_TOKEN production <<< "REDACTED_ROTATED"
+vercel env add WEBHOOK_SECRET production <<< "REDACTED_ROTATED"
+vercel env add WEBHOOK_VERIFY_TOKEN production <<< "REDACTED_ROTATED"
 vercel env add NEXT_PUBLIC_SITE_URL production <<< "https://social-perks-benzatkulak-4901s-projects.vercel.app"
 ```
 
@@ -285,7 +285,7 @@ vercel --prod --force
 # Wait ~3 min, then smoke test:
 curl https://your-prod-host/                      # 200
 curl https://your-prod-host/api/v1/health         # 200, status: ok
-curl -H "Authorization: Bearer ef04375f68424bdb544e8eb6cd094bc369ebe75341c1b204" \
+curl -H "Authorization: Bearer REDACTED_ROTATED" \
      https://your-prod-host/api/v1/health/readiness | jq .
 ```
 
@@ -342,7 +342,7 @@ curl -i "$HOST/api/v1/cron/waitlist-drip"        # → 401
 curl -i "$HOST/api/v1/cron/campaign-sweeps"      # → 401
 
 # 7. Cron endpoints accept the secret
-curl -H "Authorization: Bearer 4be3d01821e526f1472f2b5e8343537169cdba6ff3c76189" \
+curl -H "Authorization: Bearer REDACTED_ROTATED" \
      "$HOST/api/v1/cron/waitlist-drip"           # → 200, ran: true (or skipped reason)
 ```
 
@@ -382,17 +382,17 @@ git revert <bad-commit> && git push
 
 ```ini
 # Auth (BLOCKING — runtime throws without these)
-AUTH_SECRET=ea74fa61b75a13375097030b5ed1b99e5c5036230f788e4ee27dbcd76083e9e3
-CSRF_SECRET=f7315d5b1f3bca1dda16fb7fea1d48f0d3181253cb5b990a52c4e687600047e4
+AUTH_SECRET=REDACTED_ROTATED
+CSRF_SECRET=REDACTED_ROTATED
 
 # Cron (BLOCKING — drip and sweeps 503 without)
-CRON_SECRET=4be3d01821e526f1472f2b5e8343537169cdba6ff3c76189
+CRON_SECRET=REDACTED_ROTATED
 
 # Readiness probe (BEARER token to view detailed checks)
-READINESS_TOKEN=ef04375f68424bdb544e8eb6cd094bc369ebe75341c1b204
+READINESS_TOKEN=REDACTED_ROTATED
 
 # Waitlist admin
-WAITLIST_ADMIN_TOKEN=90602476c7df0ce06992f5bf0325a8a3652fa02db80d7a8e
+WAITLIST_ADMIN_TOKEN=REDACTED_ROTATED
 WAITLIST_NOTIFY_EMAIL=YOUR-EMAIL@example.com
 
 # Public site URL (used by OG image URLs, password reset links, etc.)
@@ -416,8 +416,8 @@ RESEND_API_KEY=re_xxx
 EMAIL_FROM=Social Perks <noreply@yourdomain.com>
 
 # Webhooks (REQUIRED for platform → us)
-WEBHOOK_SECRET=a759321c4ddd3074334a091783af07c16ad8474238dbb941f20d57325ad366d0
-WEBHOOK_VERIFY_TOKEN=d888a83acdc1a63b090df93bd978332e
+WEBHOOK_SECRET=REDACTED_ROTATED
+WEBHOOK_VERIFY_TOKEN=REDACTED_ROTATED
 
 # OAuth (per-platform; defer until first verification needed)
 OAUTH_IG_CLIENT_ID=

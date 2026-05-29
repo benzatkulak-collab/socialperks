@@ -118,6 +118,12 @@ async function hydrateFromDb(): Promise<void> {
       );
     `);
 
+    // Lock the table down: enable RLS so the anon/authenticated PostgREST
+    // roles can't reach password hashes via the Supabase REST API. The
+    // app_prod owner this runs as bypasses RLS, so the app is unaffected.
+    // Idempotent — a no-op if RLS is already enabled.
+    await db.query(`ALTER TABLE auth_users ENABLE ROW LEVEL SECURITY;`);
+
     const result = await db.query<UserRow>(`SELECT * FROM auth_users`);
     for (const row of result.rows) {
       // Skip if the in-memory store already has this user (seeded admin etc.)
@@ -191,6 +197,15 @@ export async function ensureUsersSeeded(): Promise<void> {
       };
       users.set(ADMIN_EMAIL, record);
       if (!existing) void persistUser(record);
+    }
+
+    // SECURITY: demo accounts (yoga@demo.com … seeded with the public PIN
+    // "1234" as their password) must never exist in production. PIN login is
+    // already blocked in prod, but password login is not — so a seeded demo
+    // account is a known-credentials backdoor. Only the admin is seeded here.
+    if (process.env.NODE_ENV === "production") {
+      seeded = true;
+      return;
     }
 
     const seed = createSeedData();
