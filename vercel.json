@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "github": { "silent": true },
   "crons": [
     { "path": "/api/v1/cron/waitlist-drip", "schedule": "0 14 * * *" },
     { "path": "/api/v1/cron/campaign-sweeps", "schedule": "0 9 * * *" },
