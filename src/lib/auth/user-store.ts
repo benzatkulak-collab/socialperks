@@ -257,9 +257,15 @@ export function hasUser(email: string): boolean {
 
 // ─── Write API ──────────────────────────────────────────────────────────────
 
-export function putUser(record: UserRecord): void {
+export function putUser(record: UserRecord): Promise<void> {
   users.set(record.email.toLowerCase().trim(), record);
-  void persistUser(record);
+  // Return the persist promise so durability-critical callers (signup,
+  // password reset) can `await` it. On serverless, a fire-and-forget
+  // write is aborted when the function freezes after the HTTP response,
+  // so the row never reaches Postgres unless the caller awaits. The map
+  // write above is synchronous, so non-awaiting callers still see the
+  // user immediately in-process.
+  return persistUser(record);
 }
 
 export function updateUser(
