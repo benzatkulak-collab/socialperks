@@ -102,6 +102,7 @@ export const submissionReviewerAgent: Agent = {
   // and the action is reversible (admin can override any decision from
   // /admin/submissions). The agent only acts above its confidence
   // threshold; everything ambiguous still queues for human review.
+  level: 3,
   defaultMode: "live",
   intervalSeconds: 60,
   config: {

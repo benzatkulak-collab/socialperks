@@ -25,6 +25,7 @@ export const GET = withTiming(async (req: NextRequest) => {
     id: agent.id,
     name: agent.name,
     description: agent.description,
+    level: agent.level ?? null,
     intervalSeconds: agent.intervalSeconds,
     configSpec: agent.config,
     mode: state.mode,

@@ -77,6 +77,7 @@ export const anomalyDetectorAgent: Agent = {
   id: "anomaly-detector",
   name: "Anomaly Detector",
   description: "Tracks key metrics over time and emits alerts when current values deviate from rolling baseline.",
+  level: 1,
   defaultMode: "dry-run",
   intervalSeconds: 3600,
   config: {

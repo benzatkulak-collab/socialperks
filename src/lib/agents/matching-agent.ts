@@ -77,6 +77,7 @@ export const matchingAgent: Agent = {
   id: "matching-agent",
   name: "Matching Agent",
   description: "Scores every influencer × active-campaign pair and surfaces high-confidence matches for recommendation.",
+  level: 2,
   defaultMode: "dry-run",
   intervalSeconds: 1800,
   config: {

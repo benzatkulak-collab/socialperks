@@ -791,6 +791,21 @@ class FinancialLedger {
   }
 
   /**
+   * Repair a drifted projection: set the stored balance equal to the
+   * entry-derived balance (the source of truth). Returns true if a
+   * correction was applied, false if already consistent or the account is
+   * unknown. Idempotent — re-running on a consistent account is a no-op.
+   */
+  reconcileBalance(accountId: string): boolean {
+    const account = this.accounts.get(accountId);
+    if (!account) return false;
+    const check = this.verifyBalance(accountId);
+    if (check.isConsistent) return false;
+    account.balance = check.calculatedBalance;
+    return true;
+  }
+
+  /**
    * Get all ledger entries related to a specific entity (campaign, perk, etc.).
    */
   getAuditTrail(entityId: string): LedgerEntry[] {

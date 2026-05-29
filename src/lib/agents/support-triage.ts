@@ -78,6 +78,7 @@ export const supportTriageAgent: Agent = {
   id: "support-triage",
   name: "Support Triage",
   description: "Classifies incoming contact-form messages and routes to category queues.",
+  level: 2,
   defaultMode: "dry-run",
   intervalSeconds: 300,
   config: {

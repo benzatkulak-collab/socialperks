@@ -113,6 +113,7 @@ export const billingRecoveryAgent: Agent = {
   // agent is idempotent (same step won't fire twice). Day-14 cancel
   // is the dangerous edge case; admin can pause the agent any time
   // via /admin/agents if a billing migration is in flight.
+  level: 4,
   defaultMode: "live",
   intervalSeconds: 3600,
   config: {

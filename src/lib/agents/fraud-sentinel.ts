@@ -109,6 +109,7 @@ export const fraudSentinelAgent: Agent = {
   id: "fraud-sentinel",
   name: "Fraud Sentinel",
   description: "Scores users for abuse signals and auto-suspends high-risk accounts above threshold.",
+  level: 4,
   defaultMode: "dry-run",
   intervalSeconds: 300,
   config: {

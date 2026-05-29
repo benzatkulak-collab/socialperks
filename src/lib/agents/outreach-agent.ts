@@ -51,6 +51,7 @@ export const outreachAgent: Agent = {
   id: "outreach-agent",
   name: "Outreach Agent",
   description: "Identifies dormant influencers matching active campaigns and proposes targeted outreach.",
+  level: 3,
   defaultMode: "dry-run",
   intervalSeconds: 86400, // once a day is plenty
   config: {
