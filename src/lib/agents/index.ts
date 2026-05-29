@@ -17,6 +17,7 @@ import { outreachAgent } from "./outreach-agent";
 import { supportTriageAgent } from "./support-triage";
 import { payoutRunnerAgent } from "./payout-runner";
 import { anomalyDetectorAgent } from "./anomaly-detector";
+import { acquisitionAgent } from "./acquisition-agent";
 
 // Original three
 agentRegistry.register(submissionReviewerAgent);
@@ -31,6 +32,7 @@ agentRegistry.register(outreachAgent);
 agentRegistry.register(supportTriageAgent);
 agentRegistry.register(payoutRunnerAgent);
 agentRegistry.register(anomalyDetectorAgent);
+agentRegistry.register(acquisitionAgent);
 
 export { agentRegistry };
 export type { Agent, AgentDecision, AgentMode, AgentRunReport, AgentState } from "./types";

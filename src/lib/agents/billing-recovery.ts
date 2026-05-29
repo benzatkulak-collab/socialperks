@@ -109,11 +109,13 @@ export const billingRecoveryAgent: Agent = {
   id: "billing-recovery",
   name: "Billing Recovery",
   description: "Retries failed payments and runs a dunning sequence; cancels subscriptions at day 14.",
-  // Promoted to live: dunning sequence is industry-standard and the
-  // agent is idempotent (same step won't fire twice). Day-14 cancel
-  // is the dangerous edge case; admin can pause the agent any time
-  // via /admin/agents if a billing migration is in flight.
-  defaultMode: "live",
+  // Defaults to dry-run: the shared /api/v1/cron/agents tick (wired in
+  // vercel.json) runs every non-off agent on a schedule, so we gate
+  // dunning emails + the day-14 cancel behind an explicit live flip
+  // from /admin/agents rather than letting them fire autonomously. The
+  // sequence is idempotent (same step won't fire twice), so enabling
+  // live is safe whenever the team is ready.
+  defaultMode: "dry-run",
   intervalSeconds: 3600,
   config: {
     threshold: { min: 0.5, max: 1, default: 1, step: 0.05 },
