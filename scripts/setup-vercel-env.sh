@@ -38,14 +38,15 @@ set_env() {
   echo "$value" | vercel env add "$name" "$ENV_TARGET" >/dev/null
 }
 
-# Generated production secrets (rotate if leaked):
-set_env AUTH_SECRET             "ea74fa61b75a13375097030b5ed1b99e5c5036230f788e4ee27dbcd76083e9e3"
-set_env CSRF_SECRET             "f7315d5b1f3bca1dda16fb7fea1d48f0d3181253cb5b990a52c4e687600047e4"
-set_env CRON_SECRET             "4be3d01821e526f1472f2b5e8343537169cdba6ff3c76189"
-set_env READINESS_TOKEN         "ef04375f68424bdb544e8eb6cd094bc369ebe75341c1b204"
-set_env WAITLIST_ADMIN_TOKEN    "90602476c7df0ce06992f5bf0325a8a3652fa02db80d7a8e"
-set_env WEBHOOK_SECRET          "a759321c4ddd3074334a091783af07c16ad8474238dbb941f20d57325ad366d0"
-set_env WEBHOOK_VERIFY_TOKEN    "d888a83acdc1a63b090df93bd978332e"
+# Secrets are generated fresh at run time — NEVER hard-code them in git.
+# (These were committed here previously and have since been rotated on Vercel.)
+set_env AUTH_SECRET             "$(openssl rand -hex 32)"
+set_env CSRF_SECRET             "$(openssl rand -hex 32)"
+set_env CRON_SECRET             "$(openssl rand -hex 24)"
+set_env READINESS_TOKEN         "$(openssl rand -hex 24)"
+set_env WAITLIST_ADMIN_TOKEN    "$(openssl rand -hex 24)"
+set_env WEBHOOK_SECRET          "$(openssl rand -hex 32)"
+set_env WEBHOOK_VERIFY_TOKEN    "$(openssl rand -hex 16)"
 
 # Public site URL — set to your custom domain once you have one.
 set_env NEXT_PUBLIC_SITE_URL    "https://social-perks-benzatkulak-4901s-projects.vercel.app"
@@ -68,5 +69,5 @@ echo "After setting them, redeploy:"
 echo "   vercel --prod --force"
 echo ""
 echo "Then verify:"
-echo "   curl -H 'Authorization: Bearer ef04375f68424bdb544e8eb6cd094bc369ebe75341c1b204' \\"
+echo "   curl -H 'Authorization: Bearer <your READINESS_TOKEN>' \\"
 echo "        \"\$YOUR_HOST/api/v1/health/readiness\" | jq ."
