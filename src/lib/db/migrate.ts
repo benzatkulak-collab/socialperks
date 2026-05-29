@@ -348,7 +348,7 @@ export function generateSQL(): string {
         `    CREATE POLICY ${selectPolicyName}\n` +
         `      ON ${tableName}\n` +
         `      FOR SELECT\n` +
-        `      USING (business_id = current_setting('app.tenant_id', true));\n` +
+        `      USING (business_id::text = current_setting('app.tenant_id', true));\n` +
         `  END IF;\n` +
         `END $$;`,
     );
@@ -363,7 +363,7 @@ export function generateSQL(): string {
         `    CREATE POLICY ${insertPolicyName}\n` +
         `      ON ${tableName}\n` +
         `      FOR INSERT\n` +
-        `      WITH CHECK (business_id = current_setting('app.tenant_id', true));\n` +
+        `      WITH CHECK (business_id::text = current_setting('app.tenant_id', true));\n` +
         `  END IF;\n` +
         `END $$;`,
     );
@@ -378,8 +378,8 @@ export function generateSQL(): string {
         `    CREATE POLICY ${updatePolicyName}\n` +
         `      ON ${tableName}\n` +
         `      FOR UPDATE\n` +
-        `      USING (business_id = current_setting('app.tenant_id', true))\n` +
-        `      WITH CHECK (business_id = current_setting('app.tenant_id', true));\n` +
+        `      USING (business_id::text = current_setting('app.tenant_id', true))\n` +
+        `      WITH CHECK (business_id::text = current_setting('app.tenant_id', true));\n` +
         `  END IF;\n` +
         `END $$;`,
     );
@@ -394,7 +394,7 @@ export function generateSQL(): string {
         `    CREATE POLICY ${deletePolicyName}\n` +
         `      ON ${tableName}\n` +
         `      FOR DELETE\n` +
-        `      USING (business_id = current_setting('app.tenant_id', true));\n` +
+        `      USING (business_id::text = current_setting('app.tenant_id', true));\n` +
         `  END IF;\n` +
         `END $$;`,
     );
