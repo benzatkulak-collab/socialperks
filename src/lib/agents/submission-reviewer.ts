@@ -98,11 +98,13 @@ export const submissionReviewerAgent: Agent = {
   id: "submission-reviewer",
   name: "Submission Reviewer",
   description: "Auto-approves clean submissions; rejects obvious abuse; queues ambiguous for human review.",
-  // Promoted to live: the threshold gate + dry-run runs prove safety,
-  // and the action is reversible (admin can override any decision from
-  // /admin/submissions). The agent only acts above its confidence
-  // threshold; everything ambiguous still queues for human review.
-  defaultMode: "live",
+  // Defaults to dry-run: the shared /api/v1/cron/agents tick (wired in
+  // vercel.json) runs every non-off agent on a schedule, so auto-approve/
+  // reject stays gated behind an explicit live flip from /admin/agents.
+  // Decisions are reversible (admin override in /admin/submissions) and
+  // threshold-gated (ambiguous cases still queue for human review), so
+  // enabling live is safe whenever the team is ready.
+  defaultMode: "dry-run",
   intervalSeconds: 60,
   config: {
     threshold: { min: 0.5, max: 0.99, default: 0.8, step: 0.01 },
