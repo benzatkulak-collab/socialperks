@@ -263,7 +263,13 @@ export const POST = withTiming(async (req: NextRequest) => {
         suspensionReason: null,
         createdAt: new Date().toISOString(),
       };
-      putUser(record);
+      // Await the durable write: on serverless the function freezes after
+      // the response is sent, which would abort a fire-and-forget INSERT and
+      // lose the account. Awaiting guarantees the row is committed to
+      // Postgres before we return. persistUser is best-effort internally
+      // (logs DB failures, never throws), so this won't break signup if the
+      // DB is briefly unavailable — the in-memory record still works.
+      await putUser(record);
 
       const session = sessionStore.create(userId, userRole, sanitizedEmail, businessId);
       const { tokens, headers } = buildCookieHeaders(userId, userRole, sanitizedEmail, businessId);
@@ -560,7 +566,9 @@ export const POST = withTiming(async (req: NextRequest) => {
       }
 
       storedUser.passwordHash = await hashPassword(newPassword);
-      putUser(storedUser);
+      // Await so the new password hash is durably persisted before responding
+      // (serverless aborts fire-and-forget writes after the response).
+      await putUser(storedUser);
       resetTokens.delete(resetToken);
 
       return ok({
