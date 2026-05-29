@@ -268,16 +268,23 @@ export function putUser(record: UserRecord): Promise<void> {
   return persistUser(record);
 }
 
-export function updateUser(
+export async function updateUser(
   email: string,
   patch: Partial<Omit<UserRecord, "id" | "email" | "createdAt">>
-): UserRecord | null {
+): Promise<UserRecord | null> {
   const key = email.toLowerCase().trim();
   const existing = users.get(key);
   if (!existing) return null;
   const updated = { ...existing, ...patch };
   users.set(key, updated);
-  void persistUser(updated);
+  // Await the durable write so the mutation (suspend/unsuspend, role change,
+  // password reset) is committed to Postgres before the caller responds. A
+  // fire-and-forget write is aborted when a serverless function freezes after
+  // the HTTP response — e.g. an admin suspend would update the in-memory map
+  // but never reach the DB, so the account returns to active on the next cold
+  // start (same bug fixed for putUser in #102). The map write above is
+  // synchronous, so non-awaiting callers still see the change in-process.
+  await persistUser(updated);
   return updated;
 }
 

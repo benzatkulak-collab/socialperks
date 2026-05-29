@@ -22,6 +22,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Mirror the tsconfig `paths` mapping. Vitest has no tsconfig-paths
+      // plugin and the workspace package isn't symlinked into node_modules,
+      // so without this any test importing a module that pulls in
+      // `@social-perks/shared/*` (e.g. the user-store) fails to resolve.
+      "@social-perks/shared": path.resolve(__dirname, "./packages/shared/src"),
     },
   },
 });
