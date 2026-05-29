@@ -397,7 +397,15 @@ export class PostgresConnection implements DatabaseConnection {
       username: config.primary.user,
       password: config.primary.password,
       ssl: config.primary.ssl ? { rejectUnauthorized: false } : false,
-      max: this.config.pool.max ?? 10,
+      // Cap connections per instance. Behind a transaction pooler (e.g.
+      // Supabase Supavisor) each serverless instance should hold only a few
+      // client connections — the pooler fans them in. 10+ per instance
+      // exhausts the upstream pool under burst.
+      max: Math.min(this.config.pool.max ?? 10, 3),
+      // Transaction-mode poolers don't support prepared statements; without
+      // this, queries fail with "prepared statement ... does not exist".
+      // Harmless on direct/session connections, so set unconditionally.
+      prepare: false,
       idle_timeout: Math.floor((this.config.pool.idleTimeoutMs ?? 30000) / 1000),
       connect_timeout: Math.floor((this.config.pool.connectionTimeoutMs ?? 5000) / 1000),
     });

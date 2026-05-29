@@ -161,22 +161,18 @@ export async function ensureUsersSeeded(): Promise<void> {
     // came from DB — so a real user's password changes survive cold start.
     await hydrateFromDb();
 
-    // Admin first.
+    // Admin first. Only seeded when ADMIN_PASSWORD is set — no default
+    // credential is bundled in source. Without it, the admin login is
+    // simply unavailable (a warning is logged) instead of shipping a
+    // known, hardcoded password.
     const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminPassword && process.env.NODE_ENV === "production") {
-      console.error(
-        "[AUTH] WARNING: ADMIN_PASSWORD env var is not set in production. " +
-          "Admin account will not be seeded."
+    if (!adminPassword) {
+      console.warn(
+        `[AUTH] ADMIN_PASSWORD is not set — admin account (${ADMIN_EMAIL}) ` +
+          `will not be seeded. Set ADMIN_PASSWORD to enable the admin login.`
       );
     } else {
-      const pw = adminPassword ?? "Peytonis#2";
-      if (!adminPassword) {
-        console.warn(
-          `[AUTH] Seeding admin (${ADMIN_EMAIL}) with bundled default password. ` +
-            `Set ADMIN_PASSWORD env var to override.`
-        );
-      }
-      const passwordHash = await hashPassword(pw);
+      const passwordHash = await hashPassword(adminPassword);
       const now = new Date().toISOString();
       // If the admin row already came from DB, preserve its
       // passwordHash (it may have been rotated via admin reset).
