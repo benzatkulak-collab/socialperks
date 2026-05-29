@@ -17,6 +17,9 @@ import { outreachAgent } from "./outreach-agent";
 import { supportTriageAgent } from "./support-triage";
 import { payoutRunnerAgent } from "./payout-runner";
 import { anomalyDetectorAgent } from "./anomaly-detector";
+import { ledgerReconcilerAgent } from "./ledger-reconciler";
+import { derivedDataRefresherAgent } from "./derived-data-refresher";
+import { lifecycleNotifierAgent } from "./lifecycle-notifier";
 
 // Original three
 agentRegistry.register(submissionReviewerAgent);
@@ -31,6 +34,12 @@ agentRegistry.register(outreachAgent);
 agentRegistry.register(supportTriageAgent);
 agentRegistry.register(payoutRunnerAgent);
 agentRegistry.register(anomalyDetectorAgent);
+
+// L5 agents — idempotent / self-healing / event-bound, safe to run fully
+// autonomously (see each file's header for why no human-in-loop is needed).
+agentRegistry.register(ledgerReconcilerAgent);
+agentRegistry.register(derivedDataRefresherAgent);
+agentRegistry.register(lifecycleNotifierAgent);
 
 export { agentRegistry };
 export type { Agent, AgentDecision, AgentMode, AgentRunReport, AgentState } from "./types";

@@ -19,6 +19,16 @@
 
 export type AgentMode = "off" | "dry-run" | "live";
 export type AgentStatus = "idle" | "running" | "errored";
+/**
+ * Autonomy level (informational taxonomy):
+ *   1 — observe & alert (read-only)
+ *   2 — propose (flags items, logs only)
+ *   3 — act on safe cases, escalate the rest
+ *   4 — autonomous consequential action within guardrails
+ *   5 — fully autonomous; reserved for idempotent / self-healing /
+ *       event-bound actions where a wrong run is cheap and self-correcting
+ */
+export type AgentLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface AgentDecision {
   /** Stable id for the decision (e.g. resource id this is about). */
@@ -55,6 +65,8 @@ export interface Agent {
   name: string;
   /** One-line description shown in the agent card. */
   description: string;
+  /** Autonomy level (see AgentLevel). Optional/informational; not enforced. */
+  level?: AgentLevel;
   /** Default mode if the registry has no override. */
   defaultMode: AgentMode;
   /** Suggested run interval in seconds (informational; the scheduler may override). */

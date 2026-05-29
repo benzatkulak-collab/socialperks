@@ -56,6 +56,7 @@ interface AgentRow {
   id: string;
   name: string;
   description: string;
+  level: number | null;
   intervalSeconds: number;
   configSpec: AgentConfigSpec;
   mode: Mode;
@@ -185,6 +186,7 @@ export default function AdminAgentsPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-heading text-base text-brand-white italic">{a.name}</h3>
+                  {a.level != null && <Badge color="cyan" size="sm">L{a.level}</Badge>}
                   <Badge color={modeColor(a.mode)} dot size="sm">{a.mode}</Badge>
                   <Badge color={statusColor(a.status)} size="sm">{a.status}</Badge>
                   <span className="text-2xs text-brand-muted font-mono">{a.id}</span>

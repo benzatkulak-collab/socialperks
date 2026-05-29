@@ -95,6 +95,7 @@ export const complianceWatchdogAgent: Agent = {
   id: "compliance-watchdog",
   name: "Compliance Watchdog",
   description: "Scans approved submissions for FTC disclosure markers; flags ones missing required disclosures.",
+  level: 2,
   defaultMode: "dry-run",
   intervalSeconds: 3600,
   config: {

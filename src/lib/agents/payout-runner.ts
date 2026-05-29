@@ -52,6 +52,7 @@ export const payoutRunnerAgent: Agent = {
   id: "payout-runner",
   name: "Payout Runner",
   description: "Executes pending cashback payouts on a schedule, with sanity checks before each transfer.",
+  level: 4,
   defaultMode: "dry-run",
   intervalSeconds: 21600, // 6 hours
   config: {

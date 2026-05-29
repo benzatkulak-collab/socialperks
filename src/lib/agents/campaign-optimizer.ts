@@ -66,6 +66,7 @@ export const campaignOptimizerAgent: Agent = {
   id: "campaign-optimizer",
   name: "Campaign Optimizer",
   description: "Identifies underperforming campaigns and proposes reward/tier/effort changes to lift completions.",
+  level: 2,
   defaultMode: "dry-run",
   intervalSeconds: 3600,
   config: {
