@@ -47,8 +47,22 @@ describe("getPlanLimits", () => {
   it("returns correct limits for every known plan", () => {
     expect(getPlanLimits("free")).toEqual(PLAN_LIMITS.free);
     expect(getPlanLimits("starter")).toEqual(PLAN_LIMITS.starter);
-    expect(getPlanLimits("pro")).toEqual(PLAN_LIMITS.pro);
+    expect(getPlanLimits("professional")).toEqual(PLAN_LIMITS.professional);
     expect(getPlanLimits("enterprise")).toEqual(PLAN_LIMITS.enterprise);
+  });
+
+  it("resolves a stored 'professional' subscription to real (non-free) limits", () => {
+    // Regression: checkout stores plan="professional", but enforcement used
+    // to key on "pro" — so this silently fell back to free-tier limits and
+    // throttled paying customers to 1 campaign.
+    const professional = getPlanLimits("professional");
+    expect(professional).toEqual(PLAN_LIMITS.professional);
+    expect(professional.maxCampaigns).toBe(50);
+    expect(professional).not.toEqual(PLAN_LIMITS.free);
+  });
+
+  it("maps the legacy 'pro' alias to professional limits", () => {
+    expect(getPlanLimits("pro")).toEqual(PLAN_LIMITS.professional);
   });
 
   it("defaults unknown plans to free limits", () => {
@@ -234,8 +248,8 @@ describe("checkAiGenerationLimit", () => {
     expect(result.limit).toBe(3);
   });
 
-  it("pro plan has 500 AI generation limit", () => {
-    const result = checkAiGenerationLimit(bizId, "pro");
+  it("professional plan has 500 AI generation limit", () => {
+    const result = checkAiGenerationLimit(bizId, "professional");
     expect(result.limit).toBe(500);
     expect(result.allowed).toBe(true);
   });
@@ -256,10 +270,10 @@ describe("checkFeatureAccess", () => {
     expect(checkFeatureAccess("starter", "qrCodes")).toBe(true);
   });
 
-  it("pro plan has all features", () => {
-    expect(checkFeatureAccess("pro", "analytics")).toBe(true);
-    expect(checkFeatureAccess("pro", "api")).toBe(true);
-    expect(checkFeatureAccess("pro", "qrCodes")).toBe(true);
+  it("professional plan has all features", () => {
+    expect(checkFeatureAccess("professional", "analytics")).toBe(true);
+    expect(checkFeatureAccess("professional", "api")).toBe(true);
+    expect(checkFeatureAccess("professional", "qrCodes")).toBe(true);
   });
 
   it("enterprise plan has all features", () => {

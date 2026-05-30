@@ -131,6 +131,20 @@ describe("drip sequence engine", () => {
       expect(day14).toBeUndefined();
     });
 
+    it("skips day-14 upgrade email for professional plan users", () => {
+      // Regression: checkout stores plan="professional"; the condition used
+      // to check only "pro", so paying Professional users were nagged to
+      // upgrade to the tier they already had.
+      const user = makeBusinessUser({
+        signupDate: daysAgo(14),
+        plan: "professional",
+      });
+      const due = getDueEmails([user], NOW);
+
+      const day14 = due.find((d) => d.step.delayDays === 14);
+      expect(day14).toBeUndefined();
+    });
+
     it("skips day-14 upgrade email for enterprise plan users", () => {
       const user = makeBusinessUser({
         signupDate: daysAgo(14),

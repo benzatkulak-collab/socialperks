@@ -36,31 +36,13 @@ export function isStripeConfigured(): boolean {
 // ─── Billing Plans ───────────────────────────────────────────────────────────
 
 /**
- * Plans available for billing. Maps to Stripe Price IDs in production.
+ * Plan definitions live elsewhere, split by concern — this module does NOT
+ * define plans, to avoid a third drifting copy (which is exactly what used
+ * to live here):
+ *   - `billing/store.ts` → `PLANS`: display names, prices, and Stripe price
+ *     IDs. Source of truth for the pricing page and checkout.
+ *   - `billing/enforcement.ts` → `PLAN_LIMITS`: campaign / usage / feature
+ *     gating. Source of truth for what a plan can actually do.
+ *
+ * This module exports only the Stripe client + `isStripeConfigured`.
  */
-export const PLANS = {
-  free: {
-    name: "Free",
-    priceId: process.env.STRIPE_PRICE_FREE ?? null,
-    maxCampaigns: 3,
-    maxActions: 5,
-  },
-  starter: {
-    name: "Starter",
-    priceId: process.env.STRIPE_PRICE_STARTER ?? null,
-    maxCampaigns: 10,
-    maxActions: 20,
-  },
-  pro: {
-    name: "Pro",
-    priceId: process.env.STRIPE_PRICE_PRO ?? null,
-    maxCampaigns: 50,
-    maxActions: 107,
-  },
-  enterprise: {
-    name: "Enterprise",
-    priceId: process.env.STRIPE_PRICE_ENTERPRISE ?? null,
-    maxCampaigns: Infinity,
-    maxActions: 107,
-  },
-} as const;

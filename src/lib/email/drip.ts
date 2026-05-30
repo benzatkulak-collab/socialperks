@@ -237,7 +237,13 @@ export const businessSequence: DripStep[] = [
   {
     delayDays: 14,
     templateFn: businessDay14Upgrade,
-    condition: (user) => user.plan !== "pro" && user.plan !== "enterprise",
+    // Skip the upgrade nudge for anyone already on the middle/top tier.
+    // Checkout stores "professional"; "pro" kept as a defensive alias so a
+    // legacy value can't accidentally re-trigger the nag for a paying user.
+    condition: (user) =>
+      user.plan !== "professional" &&
+      user.plan !== "pro" &&
+      user.plan !== "enterprise",
   },
 ];
 

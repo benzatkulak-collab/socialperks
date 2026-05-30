@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { humanizeApiError } from "@/lib/api/error-messages";
+import { track } from "@/lib/analytics";
 
 type Status =
   | { kind: "idle" }
@@ -48,7 +49,17 @@ export function WaitlistForm({ vertical = "coffee_shops", variant = "stacked" }:
         setStatus({ kind: "error", message });
         return;
       }
-      setStatus({ kind: "success", alreadyOnList: Boolean(json.data?.alreadyOnList) });
+      const alreadyOnList = Boolean(json.data?.alreadyOnList);
+      // Funnel: top-of-funnel beachhead event. This was the one missing
+      // step in the PostHog funnel — signup/checkout were already tracked.
+      // No PII: we send the coarse vertical + booleans, never the email/city.
+      track("waitlist_submitted", {
+        vertical,
+        alreadyOnList,
+        hasBusinessName: businessName.trim().length > 0,
+        hasCity: city.trim().length > 0,
+      });
+      setStatus({ kind: "success", alreadyOnList });
     } catch {
       setStatus({ kind: "error", message: "Couldn't reach the server. Try again?" });
     }

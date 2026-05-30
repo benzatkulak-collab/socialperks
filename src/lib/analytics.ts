@@ -30,6 +30,7 @@
  *   - signup_completed   { role: "business"|"influencer", planIntent?: string }
  *   - checkout_started   { plan: string, period: "monthly"|"annual" }
  *   - checkout_completed { plan: string }
+ *   - waitlist_submitted { vertical: "coffee_shops"|"other", alreadyOnList: boolean, hasBusinessName: boolean, hasCity: boolean }
  */
 
 type KnownEvent =
@@ -37,7 +38,8 @@ type KnownEvent =
   | "signup_started"
   | "signup_completed"
   | "checkout_started"
-  | "checkout_completed";
+  | "checkout_completed"
+  | "waitlist_submitted";
 
 type EventProps = Record<string, string | number | boolean | null | undefined>;
 

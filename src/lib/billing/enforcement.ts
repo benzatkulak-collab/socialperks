@@ -42,7 +42,7 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     hasApiAccess: false,
     hasQrCodes: true,
   },
-  pro: {
+  professional: {
     maxCampaigns: 50,
     maxCompletionsPerMonth: 5000,
     maxActions: 107,
@@ -108,10 +108,19 @@ export function getBusinessPlan(businessId: string): string {
 }
 
 /**
+ * Legacy plan-key alias. Billing/checkout (and the rest of the app) call the
+ * middle tier "professional"; some older code and tests used "pro". Normalize
+ * so a stored "professional" subscription — the ONLY value checkout ever
+ * writes — resolves to real limits instead of silently falling back to "free".
+ */
+const PLAN_ALIASES: Record<string, string> = { pro: "professional" };
+
+/**
  * Return the PlanLimits for a plan. Unknown plans default to "free".
  */
 export function getPlanLimits(plan: string): PlanLimits {
-  return PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+  const key = PLAN_ALIASES[plan] ?? plan;
+  return PLAN_LIMITS[key] ?? PLAN_LIMITS.free;
 }
 
 // ─── Enforcement Error ──────────────────────────────────────────────────────

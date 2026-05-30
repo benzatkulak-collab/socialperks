@@ -299,7 +299,7 @@ export function registerPlatformEndpoints(gen: OpenAPIGenerator): void {
         businessId: { type: "string", description: "Business ID" },
         plan: {
           type: "string",
-          enum: ["free", "starter", "pro", "enterprise"],
+          enum: ["free", "starter", "professional", "enterprise"],
           description: "New plan",
         },
         paymentMethodId: { type: "string", description: "Payment method ID" },
