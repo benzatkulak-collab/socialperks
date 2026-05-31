@@ -30,11 +30,12 @@
 # AFTER RUNNING (to actually take money in prod):
 #   1. Set on Vercel (Production): STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
 #      and the six STRIPE_PRICE_* values this script prints.
-#   2. Apply the base DB schema via the app migrator (the v5 billing tables are
-#      already present; the migrator is needed for launched_campaigns et al.):
-#        - set ALLOW_MIGRATIONS=true and MIGRATION_TOKEN=<random> on Vercel
-#        - redeploy, then:  curl -X POST https://socialperks.app/api/v1/migrate \
-#                              -H "Authorization: Bearer $MIGRATION_TOKEN"
+#   2. Apply the DB schema via the app migrator (runs migrations v1..v5 — prod
+#      currently has NONE applied except the self-bootstrapping auth_users):
+#        - set MIGRATION_SECRET=<random> on Vercel (Production), redeploy, then:
+#            curl -X POST https://socialperks.app/api/v1/migrate \
+#              -H "Authorization: Bearer $MIGRATION_SECRET"
+#          (GET the same URL returns status without a secret.)
 #   3. Point Stripe's webhook (Dashboard → Developers → Webhooks) at
 #      https://socialperks.app/api/v1/billing/webhook and copy its signing
 #      secret into STRIPE_WEBHOOK_SECRET. Subscribe to: checkout.session.completed,
