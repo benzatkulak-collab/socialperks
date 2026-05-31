@@ -23,6 +23,9 @@ export function SubmitForm({ campaignId, actions }: SubmitFormProps) {
   const [selectedAction, setSelectedAction] = useState(actions[0]?.id ?? "");
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  // Honeypot — hidden from real users; the public endpoint rejects any
+  // submission where this is filled (bot signal).
+  const [honeypot, setHoneypot] = useState("");
 
   // ── Validation ──────────────────────────────────────────────────────────
 
@@ -57,18 +60,21 @@ export function SubmitForm({ campaignId, actions }: SubmitFormProps) {
       setErrorMessage("");
 
       try {
-        const res = await fetch("/api/v1/submissions", {
+        // Anonymous customers have no account/session, so this MUST hit the
+        // public endpoint (the authed /api/v1/submissions returns 401 for
+        // every real customer). The public route derives a stable customer
+        // id from the email itself — we don't send a client-built userId.
+        const res = await fetch("/api/v1/submissions/public", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             campaignId,
-            userId: `pub_${email.trim().toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
             actionId: selectedAction,
+            email: email.trim(),
             proofUrl: proofUrl.trim(),
             proofType,
+            website: honeypot,
             metadata: {
-              email: email.trim(),
               notes: notes.trim() || undefined,
               source: "public_campaign_page",
             },
@@ -90,7 +96,7 @@ export function SubmitForm({ campaignId, actions }: SubmitFormProps) {
         );
       }
     },
-    [canSubmit, campaignId, email, selectedAction, proofUrl, proofType, notes]
+    [canSubmit, campaignId, email, selectedAction, proofUrl, proofType, notes, honeypot]
   );
 
   // ── Success State ───────────────────────────────────────────────────────
@@ -128,6 +134,19 @@ export function SubmitForm({ campaignId, actions }: SubmitFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Honeypot — hidden from real users; bots that fill it are rejected
+          server-side. Positioned off-screen and excluded from tab order. */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+      />
+
       {/* Action Selector */}
       {actions.length > 1 && (
         <div>

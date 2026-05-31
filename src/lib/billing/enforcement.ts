@@ -42,6 +42,21 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     hasApiAccess: false,
     hasQrCodes: true,
   },
+  // NOTE: key MUST match the plan slug sold in src/lib/billing/store.ts
+  // ("professional"). It was previously "pro" only, so
+  // getPlanLimits("professional") fell through to the free tier and every
+  // paying Professional customer was silently capped at free limits.
+  professional: {
+    maxCampaigns: 50,
+    maxCompletionsPerMonth: 5000,
+    maxActions: 107,
+    aiGenerations: 500,
+    hasAnalytics: true,
+    hasApiAccess: true,
+    hasQrCodes: true,
+  },
+  // Back-compat alias for the legacy "pro" slug (older code + tests still
+  // reference it). Keep in sync with `professional` above — same paid tier.
   pro: {
     maxCampaigns: 50,
     maxCompletionsPerMonth: 5000,

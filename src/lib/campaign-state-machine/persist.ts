@@ -105,3 +105,68 @@ export async function loadLifecyclesForBusiness(
     return [];
   }
 }
+
+/**
+ * Load a single campaign lifecycle from Postgres by id and reconstruct a full
+ * `CampaignLifecycle`. Used as a cold-start fallback by the public campaign
+ * page: both the campaignManager's in-memory Map AND the event store are
+ * per-process, so after a redeploy the only durable copy of a launched
+ * campaign is this row — without this, /c/{id} 404s for a live campaign.
+ *
+ * `budget.spent` isn't persisted in launched_campaigns; it's reconstructed as
+ * 0 (the consumer page doesn't display spend). Returns null if not found.
+ */
+export async function loadLifecycle(
+  campaignId: string,
+): Promise<CampaignLifecycle | null> {
+  if (!usingDb) return null;
+  try {
+    const result = await db.query<{
+      id: string;
+      business_id: string;
+      state: string;
+      budget_allocated: number;
+      budget_type: string;
+      completions: number;
+      max_completions: number | null;
+      expires_at: string;
+      launched_at: string;
+      transitions: unknown;
+    }>(
+      `SELECT id, business_id, state, budget_allocated, budget_type, completions,
+              max_completions, expires_at, launched_at, transitions
+       FROM launched_campaigns
+       WHERE id = $1
+       LIMIT 1`,
+      [campaignId],
+    );
+    const r = result.rows[0];
+    if (!r) return null;
+
+    let transitions: CampaignLifecycle["transitions"] = [];
+    try {
+      const parsed =
+        typeof r.transitions === "string" ? JSON.parse(r.transitions) : r.transitions;
+      if (Array.isArray(parsed)) transitions = parsed as CampaignLifecycle["transitions"];
+    } catch {
+      transitions = [];
+    }
+
+    return {
+      id: r.id,
+      businessId: r.business_id,
+      state: r.state as CampaignLifecycle["state"],
+      budget: {
+        allocated: r.budget_allocated,
+        spent: 0,
+        type: r.budget_type as CampaignLifecycle["budget"]["type"],
+      },
+      completions: { current: r.completions, max: r.max_completions },
+      expiry: { launchedAt: r.launched_at, expiresAt: r.expires_at },
+      transitions,
+    };
+  } catch (e) {
+    console.error("[campaign-persist] loadLifecycle failed:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}

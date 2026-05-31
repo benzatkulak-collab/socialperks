@@ -22,6 +22,7 @@ import {
   subscriptions,
   generateStripeId,
   getOrCreateCustomerId,
+  hydrateSubscriptions,
   type Subscription,
 } from "@/lib/billing/store";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
@@ -105,6 +106,17 @@ export const POST = withTiming(async (req: NextRequest) => {
       billingPeriod === "annual"
         ? planConfig.annualPriceId
         : planConfig.monthlyPriceId;
+
+    // Stripe is live but this plan/period has no price ID configured. Refuse
+    // clearly instead of handing Stripe a bogus id (which 502s mid-checkout)
+    // or falling through to a fake/mock success URL and burning the customer.
+    if (stripe && isStripeConfigured() && !priceId) {
+      return err(
+        "BILLING_NOT_CONFIGURED",
+        `The ${plan} (${billingPeriod}) plan isn't available for purchase yet. Please reach out and we'll get you set up.`,
+        503,
+      );
+    }
 
     // Real Stripe when configured
     if (stripe && isStripeConfigured() && priceId) {
@@ -232,6 +244,11 @@ export const POST = withTiming(async (req: NextRequest) => {
     // Tenant isolation: only view billing for your own business
     const subAccess = checkResourceAccess(tenant, businessId);
     if (subAccess) return subAccess;
+
+    // Ensure the in-memory cache is warm before reading it. On a serverless
+    // cold start the Map is empty until hydrated from Postgres; without this
+    // await a paying customer's dashboard would briefly report "free".
+    await hydrateSubscriptions();
 
     // Find active subscription for business
     let activeSub: Subscription | null = null;

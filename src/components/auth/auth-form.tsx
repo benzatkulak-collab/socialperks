@@ -540,7 +540,7 @@ export function AuthForm({
                   <div className="mt-3 pt-3 border-t border-brand-cyan/20 flex items-start justify-between gap-3">
                     <p className="text-xs text-brand-text-dim">
                       <strong className="text-brand-text">Save ~17%</strong> on annual billing —
-                      that&apos;s {planIntent.plan === "professional" ? "$158" : "$58"} off per
+                      that&apos;s {planIntent.plan === "professional" ? "$98" : "$58"} off per
                       year (two months free).
                     </p>
                     <button

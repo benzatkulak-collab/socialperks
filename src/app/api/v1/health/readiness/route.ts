@@ -102,6 +102,48 @@ export async function GET(req: NextRequest) {
     ),
   };
 
+  // Stripe price IDs — a valid secret key is not enough. Without at least one
+  // purchasable monthly price, the checkout route 503s ("BILLING_NOT_CONFIGURED")
+  // for every plan, so the storefront looks live but takes no money.
+  const purchasable = (
+    [
+      "STRIPE_PRICE_STARTER_MONTHLY",
+      "STRIPE_PRICE_PROFESSIONAL_MONTHLY",
+      "STRIPE_PRICE_ENTERPRISE_MONTHLY",
+    ] as const
+  ).filter((k) => Boolean(process.env[k]));
+  checks.stripe_prices = check(
+    purchasable.length > 0,
+    `Purchasable monthly plans: ${purchasable.length}`,
+    "No STRIPE_PRICE_*_MONTHLY configured — every checkout returns 503",
+    !isProd,
+  );
+
+  // Billing tables — subscriptions + usage must be durable (migration v5),
+  // else paying customers revert to free on cold start and free-tier usage
+  // never caps. A valid DATABASE_URL with the tables missing is the silent
+  // failure this catches.
+  if (!(db instanceof InMemoryConnection)) {
+    let tablesDetail = "Billing tables present";
+    let tablesOk = true;
+    try {
+      const r = await db.query<{ subs: string | null; usage: string | null }>(
+        "SELECT to_regclass('business_subscriptions') AS subs, to_regclass('monthly_usage') AS usage",
+      );
+      const missingTables: string[] = [];
+      if (!r.rows[0]?.subs) missingTables.push("business_subscriptions");
+      if (!r.rows[0]?.usage) missingTables.push("monthly_usage");
+      tablesOk = missingTables.length === 0;
+      if (!tablesOk) tablesDetail = `Missing: ${missingTables.join(", ")} — run /api/v1/migrate`;
+    } catch (e) {
+      tablesOk = false;
+      tablesDetail = e instanceof Error ? e.message : "billing table check failed";
+    }
+    checks.billing_tables = check(tablesOk, "Billing tables present", tablesDetail, !isProd);
+  } else {
+    checks.billing_tables = check(true, "skipped (in-memory storage)", "");
+  }
+
   // Aggregate readiness — only "missing" (non-warning) failures count
   // against production-readiness. Warnings are noted but don't block.
   const missing = Object.entries(checks).filter(([, v]) => v.status === "missing");

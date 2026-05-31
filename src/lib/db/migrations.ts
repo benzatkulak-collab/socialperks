@@ -610,6 +610,68 @@ CREATE INDEX idx_sessions_email ON sessions(email);
 DROP TABLE IF EXISTS sessions;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 005: Billing durability — subscriptions, usage metering, webhook idempotency
+  //
+  // Without these tables the in-memory caches in billing/store.ts and
+  // billing/enforcement.ts evaporate on every serverless cold start, so paying
+  // customers silently revert to the free plan (while Stripe keeps billing) and
+  // free-tier usage counters reset to zero (free users get unlimited usage).
+  //
+  // NOTE on id types: schema.ts models business_id as `uuid REFERENCES
+  // businesses(id)`, but real signed-up businesses have non-uuid ids (e.g.
+  // "biz_usr_…") that live in auth_users, not the seeded `businesses` table.
+  // A uuid column + FK would make every real INSERT throw (and get swallowed),
+  // perpetuating the very bug we're fixing. So business_id is TEXT with no FK —
+  // consistent with monthly_usage.business_id, which is already a plain varchar.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 5,
+    name: "add_billing_tables",
+    up: `
+CREATE TABLE IF NOT EXISTS business_subscriptions (
+  id                     TEXT PRIMARY KEY,
+  business_id            TEXT NOT NULL,
+  stripe_customer_id     TEXT NOT NULL,
+  stripe_subscription_id TEXT NOT NULL UNIQUE,
+  plan                   TEXT NOT NULL,
+  billing_period         TEXT NOT NULL,
+  status                 TEXT NOT NULL,
+  current_period_start   TIMESTAMPTZ NOT NULL,
+  current_period_end     TIMESTAMPTZ NOT NULL,
+  cancel_at_period_end   BOOLEAN NOT NULL DEFAULT false,
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_business_subscriptions_business ON business_subscriptions(business_id);
+CREATE INDEX IF NOT EXISTS idx_business_subscriptions_status ON business_subscriptions(status);
+
+CREATE TABLE IF NOT EXISTS monthly_usage (
+  business_id     TEXT NOT NULL,
+  month           TEXT NOT NULL,
+  ai_generations  INTEGER NOT NULL DEFAULT 0,
+  completions     INTEGER NOT NULL DEFAULT 0,
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (business_id, month)
+);
+
+CREATE TABLE IF NOT EXISTS webhook_events (
+  event_id     TEXT NOT NULL,
+  source       TEXT NOT NULL,
+  received_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (event_id, source)
+);
+
+CREATE INDEX IF NOT EXISTS webhook_events_received_idx ON webhook_events(received_at);
+`,
+    down: `
+DROP TABLE IF EXISTS webhook_events;
+DROP TABLE IF EXISTS monthly_usage;
+DROP TABLE IF EXISTS business_subscriptions;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────
