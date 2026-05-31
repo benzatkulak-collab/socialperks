@@ -18,6 +18,8 @@ import {
 } from "../_shared";
 import {
   programs,
+  generateClaimCode,
+  registerClaimCode,
   type PerkProgram,
   type ProgramRule,
   type ProgramTier,
@@ -149,9 +151,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   const now = new Date().toISOString();
+  const claimCode = generateClaimCode();
   const program: PerkProgram = {
     id: crypto.randomUUID(),
     businessId,
+    claimCode,
     name: nameResult.data,
     description: description?.trim() ?? "",
     status: "active",
@@ -164,6 +168,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   };
 
   programs.set(program.id, program);
+  registerClaimCode(claimCode, program.id);
 
   return ok({ program }, 201);
 });
