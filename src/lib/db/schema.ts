@@ -869,12 +869,13 @@ export const SCHEMA = {
 
   business_subscriptions: {
     columns: {
-      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
-      business_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "businesses", column: "id", onDelete: "CASCADE" },
-      },
+      // NOTE: id + business_id are varchar, NOT uuid, and there is no FK to
+      // businesses(id). Real signed-up businesses have non-uuid ids (e.g.
+      // "biz_usr_…") that live in auth_users, not the seeded `businesses`
+      // table — a uuid column or FK would reject every real INSERT. Matches
+      // migration v5 (add_billing_tables) and monthly_usage.business_id.
+      id: { type: "varchar(100)", nullable: false },
+      business_id: { type: "varchar(100)", nullable: false },
       stripe_customer_id: { type: "varchar(100)", nullable: false },
       stripe_subscription_id: { type: "varchar(100)", nullable: false },
       plan: { type: "varchar(50)", nullable: false }, // starter | professional | enterprise
@@ -893,9 +894,9 @@ export const SCHEMA = {
       { columns: ["stripe_customer_id"], unique: false, name: "business_subs_stripe_customer_idx" },
       { columns: ["status"], unique: false, name: "business_subs_status_idx" },
     ],
-    relations: [
-      { type: "many-to-one", table: "businesses", foreignKey: "business_id", description: "Subscription belongs to a business" },
-    ],
+    // No FK relation to businesses — business_id is a plain string key
+    // (auth_users id), not a uuid into the seeded businesses table.
+    relations: [],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

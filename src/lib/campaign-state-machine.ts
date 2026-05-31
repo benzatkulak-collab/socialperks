@@ -691,6 +691,18 @@ class CampaignStateMachine {
     return lifecycle;
   }
 
+  /**
+   * Register a lifecycle directly into the in-memory map. Used to warm the
+   * cache from a durable source (e.g. the launched_campaigns DB row) on a
+   * cold start, when neither the map nor the event store has the campaign —
+   * without this, the public /c/{id} page 404s for a live campaign after a
+   * redeploy. Does not emit events or validate transitions; it's a cache
+   * hydration primitive, not a state transition.
+   */
+  register(lifecycle: CampaignLifecycle): void {
+    this.campaigns.set(lifecycle.id, lifecycle);
+  }
+
   // ── Private Helpers ─────────────────────────────────────────────────────
 
   private requireCampaign(campaignId: string): CampaignLifecycle {

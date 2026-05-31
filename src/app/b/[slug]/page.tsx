@@ -6,6 +6,7 @@ import { Footer } from "@/components/shared/footer";
 import { createSeedData } from "@/lib/seed";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { buildBusinessSlug, idFromSlug } from "@/lib/slugs";
+import { getUserByBusinessIdSuffix, ensureUsersSeeded } from "@/lib/auth/user-store";
 import { safeJsonForScript } from "@/lib/security/json-ld";
 
 interface PageProps {
@@ -18,21 +19,62 @@ const SITE_URL =
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : "https://socialperks.app");
 
-function findBusiness(slug: string) {
+interface BizProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  type: string;
+  location: string;
+}
+
+function normalizeBiz(b: {
+  id: string;
+  name: string;
+  avatar?: string;
+  type?: string;
+  location?: string;
+}): BizProfile {
+  return {
+    id: b.id,
+    name: b.name,
+    avatar: b.avatar ?? "🏪",
+    type: b.type ?? "",
+    location: b.location ?? "",
+  };
+}
+
+async function findBusiness(slug: string): Promise<BizProfile | null> {
   // Look up by trailing id-chunk first (fast, unambiguous), then fall
   // back to slug-equality search across seed data.
   const idTail = idFromSlug(slug);
   const seed = createSeedData();
   if (idTail) {
     const direct = seed.businesses.find((b) => b.id.endsWith(idTail));
-    if (direct) return direct;
+    if (direct) return normalizeBiz(direct);
   }
-  return seed.businesses.find((b) => buildBusinessSlug(b) === slug) ?? null;
+  const bySlug = seed.businesses.find((b) => buildBusinessSlug(b) === slug);
+  if (bySlug) return normalizeBiz(bySlug);
+
+  // Real signed-up businesses live in auth_users, not seed. The slug encodes
+  // the last 6 chars of their businessId — resolve the display name from the
+  // user store so a real business isn't rendered as a blank profile.
+  if (idTail) {
+    try {
+      await ensureUsersSeeded();
+      const user = getUserByBusinessIdSuffix(idTail);
+      if (user?.businessId) {
+        return { id: user.businessId, name: user.name, avatar: "🏪", type: "", location: "" };
+      }
+    } catch {
+      // fall through to null
+    }
+  }
+  return null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const biz = findBusiness(slug);
+  const biz = await findBusiness(slug);
   if (!biz) return {};
   const title = `${biz.name} — Social Perks campaigns`;
   const description = `${biz.name} is using Social Perks to turn customers into marketing. See active campaigns, perks, and how to participate.`;
@@ -56,7 +98,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BusinessProfilePage({ params }: PageProps) {
   const { slug } = await params;
-  const biz = findBusiness(slug);
+  const biz = await findBusiness(slug);
   if (!biz) notFound();
 
   const allLifecycles = campaignManager.listByBusiness(biz.id);

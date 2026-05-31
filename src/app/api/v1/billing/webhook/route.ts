@@ -17,7 +17,11 @@ import {
 } from "@/lib/billing/store";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { businessRepo } from "@/lib/db/repositories";
-import { emailQueue } from "@/lib/jobs/registry";
+import {
+  emailProvider,
+  subscriptionStartedEmail,
+  checkoutAbandonedEmail,
+} from "@/lib/email";
 import { creditReferral, findReferralByReferee } from "@/lib/referrals";
 import { markEventProcessed } from "@/lib/webhook-dedup";
 import { audit } from "@/lib/audit-log";
@@ -188,12 +192,13 @@ export const POST = withTiming(async (req: NextRequest) => {
         try {
           const business = await businessRepo.findById(businessId);
           if (business?.email && business?.name) {
-            emailQueue.add({
-              type: "subscription-started",
+            // Direct send — the job queue worker (startAllQueues) is never
+            // started in serverless, so an enqueued email silently never
+            // sends. This block is best-effort try/caught (above), so a
+            // failed email never fails the webhook.
+            await emailProvider.send({
               to: business.email,
-              name: business.name,
-              plan,
-              billingPeriod,
+              ...subscriptionStartedEmail(business.name, plan, billingPeriod),
             });
           }
         } catch (e) {
@@ -318,17 +323,15 @@ export const POST = withTiming(async (req: NextRequest) => {
             recoveryUrl ??
             `https://socialperks.app/pricing?utm_source=abandoned_checkout#${plan}`;
 
-          emailQueue.add({
-            type: "checkout-abandoned",
+          // Direct send — the job queue worker is never started in
+          // serverless, so an enqueued email silently never sends.
+          await emailProvider.send({
             to: email,
-            name,
-            plan,
-            billingPeriod,
-            resumeUrl,
+            ...checkoutAbandonedEmail(name, plan, billingPeriod, resumeUrl),
           });
 
           console.warn(
-            `[Billing Webhook] Enqueued abandoned-checkout email for businessId=${businessId} plan=${plan}`
+            `[Billing Webhook] Sent abandoned-checkout email for businessId=${businessId} plan=${plan}`
           );
         } catch (e) {
           console.error(

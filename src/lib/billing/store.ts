@@ -11,8 +11,8 @@ import { db, InMemoryConnection } from "@/lib/db/connection";
 
 export interface PlanConfig {
   name: string;
-  monthlyPriceId: string;
-  annualPriceId: string;
+  monthlyPriceId: string | null;
+  annualPriceId: string | null;
   monthlyPrice: number;
   annualPrice: number;
   features: string[];
@@ -21,24 +21,24 @@ export interface PlanConfig {
 export const PLANS: Record<string, PlanConfig> = {
   starter: {
     name: "Starter",
-    monthlyPriceId: process.env.STRIPE_PRICE_STARTER_MONTHLY ?? "price_starter_monthly",
-    annualPriceId: process.env.STRIPE_PRICE_STARTER_ANNUAL ?? "price_starter_annual",
+    monthlyPriceId: process.env.STRIPE_PRICE_STARTER_MONTHLY ?? null,
+    annualPriceId: process.env.STRIPE_PRICE_STARTER_ANNUAL ?? null,
     monthlyPrice: 29,
     annualPrice: 290,
     features: ["5 active campaigns", "Basic analytics", "Email support"],
   },
   professional: {
     name: "Professional",
-    monthlyPriceId: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY ?? "price_professional_monthly",
-    annualPriceId: process.env.STRIPE_PRICE_PROFESSIONAL_ANNUAL ?? "price_professional_annual",
-    monthlyPrice: 79,
-    annualPrice: 790,
+    monthlyPriceId: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY ?? null,
+    annualPriceId: process.env.STRIPE_PRICE_PROFESSIONAL_ANNUAL ?? null,
+    monthlyPrice: 49,
+    annualPrice: 490,
     features: ["25 active campaigns", "Advanced analytics", "Priority support", "API access"],
   },
   enterprise: {
     name: "Enterprise",
-    monthlyPriceId: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY ?? "price_enterprise_monthly",
-    annualPriceId: process.env.STRIPE_PRICE_ENTERPRISE_ANNUAL ?? "price_enterprise_annual",
+    monthlyPriceId: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY ?? null,
+    annualPriceId: process.env.STRIPE_PRICE_ENTERPRISE_ANNUAL ?? null,
     monthlyPrice: 249,
     annualPrice: 2490,
     features: [
@@ -155,3 +155,85 @@ export function getOrCreateCustomerId(businessId: string): string {
   }
   return generateStripeId("cus");
 }
+
+// ─── Cold-start hydration ────────────────────────────────────────────────────
+//
+// The `subscriptions` Map is per-process and empty on every serverless cold
+// start. Without rehydration, getBusinessPlan() (in billing/enforcement.ts,
+// which reads this Map) reports "free" for a paying customer until the next
+// Stripe webhook happens to repopulate the cache — silently downgrading them
+// while Stripe keeps billing. We warm the Map from Postgres once per process.
+// getBusinessPlan stays synchronous; the first read on a cold instance may
+// briefly miss (returns "free") while this runs, then self-corrects.
+
+interface SubscriptionRow {
+  stripe_subscription_id: string;
+  business_id: string;
+  stripe_customer_id: string;
+  plan: string;
+  billing_period: string;
+  status: string;
+  current_period_start: string | Date;
+  current_period_end: string | Date;
+  cancel_at_period_end: boolean;
+  created_at: string | Date;
+}
+
+function toIso(v: string | Date): string {
+  return v instanceof Date ? v.toISOString() : new Date(v).toISOString();
+}
+
+function rowToSubscription(r: SubscriptionRow): Subscription {
+  return {
+    id: r.stripe_subscription_id,
+    businessId: r.business_id,
+    customerId: r.stripe_customer_id,
+    plan: r.plan,
+    billingPeriod: r.billing_period === "annual" ? "annual" : "monthly",
+    status: r.status as Subscription["status"],
+    currentPeriodStart: toIso(r.current_period_start),
+    currentPeriodEnd: toIso(r.current_period_end),
+    cancelAtPeriodEnd: Boolean(r.cancel_at_period_end),
+    createdAt: toIso(r.created_at),
+  };
+}
+
+let _hydrationPromise: Promise<void> | null = null;
+
+/**
+ * Load all live subscriptions from Postgres into the in-memory Map. Runs once
+ * per process (cached promise). Best-effort: on error we log, clear the cached
+ * promise so a later call can retry, and never throw — a DB blip must not block
+ * billing reads or checkout.
+ */
+export function hydrateSubscriptions(): Promise<void> {
+  if (!usingDb) return Promise.resolve();
+  if (_hydrationPromise) return _hydrationPromise;
+  _hydrationPromise = (async () => {
+    try {
+      const result = await db.query<SubscriptionRow>(
+        `SELECT stripe_subscription_id, business_id, stripe_customer_id, plan,
+                billing_period, status, current_period_start, current_period_end,
+                cancel_at_period_end, created_at
+           FROM business_subscriptions
+          WHERE status IN ('active', 'trialing', 'past_due')`,
+      );
+      for (const row of result.rows) {
+        const sub = rowToSubscription(row);
+        // Don't clobber a fresher entry a webhook wrote after hydration began.
+        if (!subscriptions.has(sub.id)) subscriptions.set(sub.id, sub);
+      }
+    } catch (e) {
+      console.error(
+        "[billing] subscription hydration failed:",
+        e instanceof Error ? e.message : e,
+      );
+      _hydrationPromise = null;
+    }
+  })();
+  return _hydrationPromise;
+}
+
+// Warm the cache as soon as this module loads on a fresh instance, so it's
+// likely populated before the first billing read happens.
+void hydrateSubscriptions();

@@ -237,7 +237,10 @@ export const businessSequence: DripStep[] = [
   {
     delayDays: 14,
     templateFn: businessDay14Upgrade,
-    condition: (user) => user.plan !== "pro" && user.plan !== "enterprise",
+    condition: (user) =>
+      user.plan !== "professional" &&
+      user.plan !== "pro" &&
+      user.plan !== "enterprise",
   },
 ];
 

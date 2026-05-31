@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { loadLifecycle } from "@/lib/campaign-state-machine/persist";
 import { createSeedData } from "@/lib/seed";
+import { getUserByBusinessId, ensureUsersSeeded } from "@/lib/auth/user-store";
 import { PLATFORMS, findAction, findPlatform } from "@/lib/platforms";
 import { SubmitForm } from "./submit-form";
 import { InviteUnlock } from "@/components/campaign/invite-unlock";
@@ -15,17 +17,59 @@ interface PageProps {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Resolve business info from seed data (will be replaced by DB lookup). */
-function getBusinessInfo(businessId: string) {
-  const seed = createSeedData();
-  return seed.businesses.find((b) => b.id === businessId) ?? null;
+interface BusinessInfo {
+  name: string;
+  avatar: string;
+  type: string;
+  location: string;
 }
 
-/** Look up a campaign from the state machine, with rehydrate fallback. */
-function getCampaign(campaignId: string) {
+/**
+ * Resolve a campaign's business identity for display. Seeded demo businesses
+ * live in seed data; real signed-up businesses live in auth_users (keyed by
+ * `biz_<userId>`), so we fall back to the user store — otherwise a real
+ * business renders as a nameless "Campaign".
+ */
+async function getBusinessInfo(businessId: string): Promise<BusinessInfo | null> {
+  const seed = createSeedData();
+  const seeded = seed.businesses.find((b) => b.id === businessId);
+  if (seeded) {
+    return {
+      name: seeded.name,
+      avatar: seeded.avatar ?? "🏪",
+      type: seeded.type ?? "",
+      location: seeded.location ?? "",
+    };
+  }
+  try {
+    // Hydrates the in-memory user map from Postgres on a cold start.
+    await ensureUsersSeeded();
+    const user = getUserByBusinessId(businessId);
+    if (user) {
+      return { name: user.name, avatar: "🏪", type: "", location: "" };
+    }
+  } catch {
+    // fall through to null — page degrades to a generic header
+  }
+  return null;
+}
+
+/**
+ * Look up a campaign: in-memory map → event-store rehydrate → durable DB row.
+ * The first two are per-process and wiped on redeploy, so the DB fallback is
+ * what keeps a live campaign's /c/{id} page from 404ing after a cold start.
+ */
+async function getCampaign(campaignId: string) {
   let lifecycle = campaignManager.getState(campaignId);
   if (!lifecycle) {
     lifecycle = campaignManager.rehydrate(campaignId) ?? undefined;
+  }
+  if (!lifecycle) {
+    const fromDb = await loadLifecycle(campaignId);
+    if (fromDb) {
+      campaignManager.register(fromDb);
+      lifecycle = fromDb;
+    }
   }
   return lifecycle ?? null;
 }
@@ -36,7 +80,7 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { campaignId } = await params;
-  const campaign = getCampaign(campaignId);
+  const campaign = await getCampaign(campaignId);
 
   if (!campaign) {
     return {
@@ -44,7 +88,7 @@ export async function generateMetadata({
     };
   }
 
-  const business = getBusinessInfo(campaign.businessId);
+  const business = await getBusinessInfo(campaign.businessId);
   const businessName = business?.name ?? "A local business";
 
   // Try to extract campaign name from event store
@@ -72,14 +116,14 @@ export async function generateMetadata({
 
 export default async function CampaignPage({ params }: PageProps) {
   const { campaignId } = await params;
-  const campaign = getCampaign(campaignId);
+  const campaign = await getCampaign(campaignId);
 
   // Campaign not found
   if (!campaign) {
     notFound();
   }
 
-  const business = getBusinessInfo(campaign.businessId);
+  const business = await getBusinessInfo(campaign.businessId);
   const isTerminal =
     campaign.state === "ended" || campaign.state === "expired";
 
@@ -171,9 +215,9 @@ export default async function CampaignPage({ params }: PageProps) {
           <h1 className="text-2xl sm:text-3xl font-heading italic text-brand-white mb-1">
             {business?.name ?? "Campaign"}
           </h1>
-          {business && (
+          {business && (business.type || business.location) && (
             <p className="text-xs text-brand-muted">
-              {business.type} &middot; {business.location}
+              {[business.type, business.location].filter(Boolean).join(" · ")}
             </p>
           )}
         </div>

@@ -266,6 +266,35 @@ export function getUserById(id: string): UserRecord | undefined {
   return undefined;
 }
 
+/**
+ * Find a user by their businessId (the `biz_<userId>` value set at signup
+ * for business accounts). Public pages (/c, /b) use this to resolve a real
+ * business's display name — real businesses live here in auth_users, NOT in
+ * the seeded `businesses` table, so a businessRepo lookup would miss them and
+ * render them as a nameless "Campaign". Synchronous map read; call
+ * `ensureUsersSeeded()` first on a cold start so the map is hydrated from PG.
+ */
+export function getUserByBusinessId(businessId: string): UserRecord | undefined {
+  for (const user of users.values()) {
+    if (user.businessId === businessId) return user;
+  }
+  return undefined;
+}
+
+/**
+ * Find a business user by the trailing chunk of their businessId — used by the
+ * /b/[slug] profile page, whose slug encodes `…-{businessId.slice(-6)}`. Suffix
+ * collisions are theoretically possible but vanishingly unlikely at current
+ * scale; returns the first match. Call `ensureUsersSeeded()` first on a cold
+ * start so the map is hydrated from Postgres.
+ */
+export function getUserByBusinessIdSuffix(suffix: string): UserRecord | undefined {
+  for (const user of users.values()) {
+    if (user.businessId && user.businessId.slice(-6) === suffix) return user;
+  }
+  return undefined;
+}
+
 export function hasUser(email: string): boolean {
   return users.has(email.toLowerCase().trim());
 }

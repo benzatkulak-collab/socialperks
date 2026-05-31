@@ -14,6 +14,7 @@
  */
 
 import type { NextRequest } from "next/server";
+import QRCode from "qrcode";
 
 export const runtime = "nodejs";
 
@@ -26,33 +27,18 @@ function escape(s: string, max = 80): string {
     .slice(0, max);
 }
 
-// Tiny QR encoder — uses a stable pseudo-pattern for visual QR-feel.
-// For production scanning we'd swap in a real QR lib; until DATABASE_URL
-// is set this is the placeholder. The middle of the QR carries a clear
-// "scan to claim" label so even if the encoded URL is decorative the
-// printout is still functional via the printed URL below it.
-function fauxQR(seed: string, size = 25): boolean[][] {
-  const grid: boolean[][] = Array.from({ length: size }, () => Array(size).fill(false));
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+// Real, scannable QR matrix from the `qrcode` package. Each cell is a module
+// (true = dark). Error-correction level "M" tolerates ~15% occlusion (a logo
+// or smudge on a printed poster) while staying compact.
+function qrMatrix(text: string): boolean[][] {
+  const qr = QRCode.create(text, { errorCorrectionLevel: "M" });
+  const size = qr.modules.size;
+  const data = qr.modules.data;
+  const grid: boolean[][] = [];
   for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      h = (h * 16807) % 2147483647;
-      grid[r][c] = (h & 1) === 1;
-    }
-  }
-  // Finder patterns (the three corner squares — recognizable as QR)
-  const finder = [
-    [0, 0], [0, size - 7], [size - 7, 0],
-  ];
-  for (const [r0, c0] of finder) {
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        const onBorder = r === 0 || r === 6 || c === 0 || c === 6;
-        const inner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-        grid[r0 + r][c0 + c] = onBorder || inner;
-      }
-    }
+    const row: boolean[] = [];
+    for (let c = 0; c < size; c++) row.push(data[r * size + c] === 1);
+    grid.push(row);
   }
   return grid;
 }
@@ -69,9 +55,11 @@ export async function GET(req: NextRequest) {
       : "https://socialperks.app");
   const claimUrl = `${baseUrl}/c/${campaignId}`;
 
-  const qrSize = 25;
-  const grid = fauxQR(claimUrl, qrSize);
-  const cell = 12;
+  const grid = qrMatrix(claimUrl);
+  const qrSize = grid.length;
+  // Keep the QR roughly 300px wide regardless of module count, so the poster
+  // layout stays stable as the encoded URL length (and thus QR version) varies.
+  const cell = Math.max(6, Math.round(300 / qrSize));
   const qrPx = qrSize * cell;
   const rects: string[] = [];
   for (let r = 0; r < qrSize; r++) {

@@ -223,8 +223,12 @@ describe("Monthly Usage Reset", () => {
   it("returns 0 for a different month", () => {
     recordUsage("biz_abc", "api_calls", 100);
 
-    // Query a different month (last month)
+    // Query a different month (last month). Pin the day to 1 BEFORE shifting
+    // the month: on the 29th–31st, `setMonth(getMonth()-1)` can roll into the
+    // current month (e.g. May 31 → "Apr 31" → May 1), making the test read the
+    // current month's usage and fail only on those days.
     const lastMonth = new Date();
+    lastMonth.setDate(1);
     lastMonth.setMonth(lastMonth.getMonth() - 1);
 
     const usage = getUsage("biz_abc", "api_calls", lastMonth);
@@ -235,8 +239,10 @@ describe("Monthly Usage Reset", () => {
     // Record in current month
     recordUsage("biz_abc", "api_calls", 50);
 
-    // Query future month
+    // Query future month. Pin the day to 1 before shifting to avoid the same
+    // end-of-month rollover described above.
     const futureMonth = new Date();
+    futureMonth.setDate(1);
     futureMonth.setMonth(futureMonth.getMonth() + 1);
 
     expect(getUsage("biz_abc", "api_calls")).toBe(50);
