@@ -18,10 +18,9 @@ import {
   verifyJWT,
 } from "@/lib/auth";
 import { createSeedData } from "@social-perks/shared/seed";
-import { emailProvider, passwordResetEmail } from "@/lib/email";
+import { emailProvider, passwordResetEmail, welcomeEmail } from "@/lib/email";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import { trackReferralSignup } from "@/lib/referrals";
-import { emailQueue } from "@/lib/jobs/registry";
 import {
   ensureUsersSeeded,
   getUserByEmail,
@@ -274,8 +273,16 @@ export const POST = withTiming(async (req: NextRequest) => {
       const session = sessionStore.create(userId, userRole, sanitizedEmail, businessId);
       const { tokens, headers } = buildCookieHeaders(userId, userRole, sanitizedEmail, businessId);
 
-      // Enqueue welcome email via job queue (retries on failure)
-      emailQueue.add({ type: "welcome", to: sanitizedEmail, name: sanitizedName });
+      // Welcome email — sent directly, NOT via the job queue. The queue's
+      // worker (startAllQueues) is never started in serverless, so an enqueued
+      // job silently never sends. Awaited for the same reason putUser is: a
+      // fire-and-forget call is killed when the function freezes after the
+      // response. A failed welcome email must never fail signup.
+      try {
+        await emailProvider.send({ to: sanitizedEmail, ...welcomeEmail(sanitizedName) });
+      } catch (e) {
+        console.error("[auth] welcome email failed:", e instanceof Error ? e.message : e);
+      }
 
       eventPublisher.publish("user.created", { userId, email: sanitizedEmail, role: userRole });
 
