@@ -93,7 +93,7 @@ export const PATCH = withTiming(async (req: NextRequest) => {
   switch (action) {
     case "suspend": {
       const reason = typeof body.reason === "string" ? body.reason.slice(0, 500) : null;
-      const updated = updateUser(email, {
+      const updated = await updateUser(email, {
         suspendedAt: new Date().toISOString(),
         suspensionReason: reason,
       });
@@ -109,7 +109,7 @@ export const PATCH = withTiming(async (req: NextRequest) => {
     }
 
     case "unsuspend": {
-      const updated = updateUser(email, { suspendedAt: null, suspensionReason: null });
+      const updated = await updateUser(email, { suspendedAt: null, suspensionReason: null });
       audit({
         action: "admin.user.unsuspended",
         actor: `user:${user.id}`,
@@ -125,7 +125,7 @@ export const PATCH = withTiming(async (req: NextRequest) => {
       if (!body.role || !VALID_ROLES.includes(body.role)) {
         return err("INVALID_INPUT", `role must be one of: ${VALID_ROLES.join(", ")}`);
       }
-      const updated = updateUser(email, { role: body.role });
+      const updated = await updateUser(email, { role: body.role });
       audit({
         action: "admin.user.role_changed",
         actor: `user:${user.id}`,
@@ -143,7 +143,7 @@ export const PATCH = withTiming(async (req: NextRequest) => {
         return err("WEAK_PASSWORD", "newPassword must be 8-128 chars");
       }
       const passwordHash = await hashPassword(newPassword);
-      const updated = updateUser(email, { passwordHash });
+      const updated = await updateUser(email, { passwordHash });
       audit({
         action: "admin.user.password_reset",
         actor: `user:${user.id}`,
