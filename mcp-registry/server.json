@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.benzatkulak-collab/social-perks",
+  "description": "Autonomous customer-marketing platform for small businesses. Pays customers a small perk to post about a business across 15 social platforms (Instagram, TikTok, Google reviews, Facebook, X, etc.). Tools let AI agents create campaigns, review submissions, and recommend pricing.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/benzatkulak-collab/socialperks",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://socialperks.app/api/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Optional. Bearer <api-key> for tenant-scoped mutations (createCampaign, submitProof, reviewSubmission, etc.). Anonymous calls work for read-only tools.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

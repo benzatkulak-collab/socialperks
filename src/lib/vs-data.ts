@@ -344,6 +344,139 @@ export const VS_ENTRIES: VsEntry[] = [
     },
     related: ["fivestars", "loyverse"],
   },
+  {
+    slug: "square-loyalty",
+    competitor: "Square Loyalty",
+    description: "POS-bundled loyalty program vs paying customers to post about you on social.",
+    shortDescription:
+      "Square Loyalty is the loyalty add-on for Square POS — punch cards, points, rewards built into the checkout. Social Perks pays customers a small perk to post about a business on Instagram / TikTok / Google reviews. Different jobs; often used together.",
+    strengths: [
+      "Tightly integrated with Square POS — auto-tracks visits and spend",
+      "Customers earn rewards passively just by paying with their card",
+      "Reasonably priced ($45–$95/mo depending on location count)",
+      "Trusted Square brand recognition with consumers",
+    ],
+    ourAngle: [
+      "Square Loyalty rewards customers for already coming back; Social Perks creates new traffic by getting customers to post publicly",
+      "Loyalty is a closed-loop incentive — it doesn't reach customers' friends. Social Perks pushes content to Instagram / TikTok / Google reviews where new customers actually look",
+      "MCP-native + 10 autonomous agents — Square has none of that surface",
+      "Self-serve free tier vs $45/mo Square Loyalty minimum",
+    ],
+    rows: [
+      { feature: "Primary use case", socialPerks: "Customers post about you on social", competitor: "Repeat-visit loyalty + rewards", winner: "tie" },
+      { feature: "Starting price", socialPerks: "$0 (free tier)", competitor: "$45/mo per location", winner: "us" },
+      { feature: "Square POS integration", socialPerks: "Manual / API", competitor: "Native (Square is the parent)", winner: "them" },
+      { feature: "Drives social posts", socialPerks: "Yes — 107 actions × 15 platforms", competitor: "No", winner: "us" },
+      { feature: "Drives Google reviews", socialPerks: "Yes (direct action)", competitor: "Indirect (loyalty members are happier)", winner: "us" },
+      { feature: "Influencer matching", socialPerks: "Yes", competitor: "No", winner: "us" },
+      { feature: "Autonomous agents", socialPerks: "Yes — 10 included", competitor: "No", winner: "us" },
+      { feature: "MCP server (AI agent integration)", socialPerks: "Yes", competitor: "No", winner: "us" },
+      { feature: "Auto-tracks spend per customer", socialPerks: "No", competitor: "Yes (via POS)", winner: "them" },
+    ],
+    verdict: {
+      pickUs: [
+        "Your goal is reaching NEW customers via social posts",
+        "You're not on Square POS, or you want a marketing layer separately",
+        "You want to drive Google / Yelp / Instagram reviews specifically",
+        "You're running operations through an AI assistant",
+      ],
+      pickThem: [
+        "You're already deep in the Square ecosystem and want loyalty bundled with payments",
+        "Your main need is repeat-visit retention, not new-customer acquisition",
+        "You'd prefer one vendor for POS + loyalty + customer database",
+        "Your customers don't post on social platforms",
+      ],
+    },
+    related: ["fivestars", "loyverse", "yelp-connect"],
+  },
+  {
+    slug: "mailchimp",
+    competitor: "Mailchimp",
+    description: "Email marketing platform vs paying customers to post — different funnels entirely.",
+    shortDescription:
+      "Mailchimp is the most-used SMB email platform — newsletters, automations, audience segmentation. Social Perks pays customers a small perk to post about a business on social media. They solve different acquisition problems and are often used together.",
+    strengths: [
+      "Dominant brand recognition with SMB owners",
+      "Mature audience-segmentation and email-automation builder",
+      "Generous free tier (500 contacts, 1,000 sends/mo)",
+      "Huge integration ecosystem (Shopify, WordPress, every CRM)",
+    ],
+    ourAngle: [
+      "Mailchimp acts on people you already have email addresses for. Social Perks creates NEW awareness when customers post about you on platforms their followers see",
+      "Email open rates are 20–30% on a good day; a customer's Instagram story reaches 100% of their audience momentarily",
+      "MCP-native — agents can run Social Perks campaigns end-to-end. Mailchimp's agent surface is limited to their template assistants",
+      "FTC compliance auto-injected at the campaign level (matters because Social Perks orchestrates incentivized content)",
+    ],
+    rows: [
+      { feature: "Primary use case", socialPerks: "Customers post about you on social", competitor: "Email marketing + automation", winner: "tie" },
+      { feature: "Starting price", socialPerks: "$0 (free tier)", competitor: "$0 → $13/mo over 500 contacts", winner: "tie" },
+      { feature: "Owns the customer relationship", socialPerks: "No (each post is one-shot)", competitor: "Yes (email list = your asset)", winner: "them" },
+      { feature: "Reaches your customers' followers", socialPerks: "Yes (every post does)", competitor: "No (your list only)", winner: "us" },
+      { feature: "Drives Instagram / TikTok content", socialPerks: "Yes — 107 actions", competitor: "No (email only)", winner: "us" },
+      { feature: "Audience segmentation", socialPerks: "Light (per-program members)", competitor: "Mature (multi-dimensional)", winner: "them" },
+      { feature: "Autonomous agents", socialPerks: "Yes — 10 included", competitor: "Template AI assistants only", winner: "us" },
+      { feature: "MCP server (AI agent integration)", socialPerks: "Yes", competitor: "No", winner: "us" },
+    ],
+    verdict: {
+      pickUs: [
+        "You need NEW customers, not just to email existing ones",
+        "Your audience is on Instagram / TikTok / Google reviews",
+        "You don't have a meaningful email list yet (most small businesses)",
+        "You're running operations through an AI assistant",
+      ],
+      pickThem: [
+        "You already have an engaged email list (>500 contacts)",
+        "Email is your primary channel (e-commerce, newsletters, SaaS)",
+        "You need complex automation flows and audience segmentation",
+        "Your customers are people who'd unsubscribe from posts but read emails",
+      ],
+    },
+    related: ["yotpo"],
+  },
+  {
+    slug: "birdeye",
+    competitor: "Birdeye",
+    description: "Multi-location reputation-management suite vs incentivized customer posts.",
+    shortDescription:
+      "Birdeye is an enterprise reputation-management platform — review collection across 200+ sites, response automation, sentiment analytics. Social Perks pays individual customers a small perk to post about a business in exchange for a discount. Different scale, different motion.",
+    strengths: [
+      "Mature multi-location enterprise feature set",
+      "Native integrations with Google, Yelp, Facebook, Healthgrades, and 200+ niche sites",
+      "Sentiment dashboards, AI response generation, sentiment heatmaps",
+      "Trusted brand for franchises, healthcare, automotive dealerships",
+    ],
+    ourAngle: [
+      "Birdeye is built for organizations with thousands of locations and large customer-experience budgets ($300+/mo minimum)",
+      "Social Perks is built for SMBs who don't have a CX team — agents handle the work that Birdeye expects you to staff",
+      "Birdeye drives reviews on existing platforms; Social Perks orchestrates new content creation (Instagram posts, TikToks, etc.) not just reviews",
+      "MCP-native + free tier — Birdeye has no agent surface and requires a sales call to get pricing",
+    ],
+    rows: [
+      { feature: "Primary use case", socialPerks: "Customers post + leave reviews", competitor: "Enterprise review collection + sentiment", winner: "tie" },
+      { feature: "Starting price", socialPerks: "$0 (free tier)", competitor: "~$299/mo, sales-quoted", winner: "us" },
+      { feature: "Signup", socialPerks: "Self-serve, 5 min", competitor: "Sales call required", winner: "us" },
+      { feature: "Drives Instagram / TikTok content", socialPerks: "Yes", competitor: "No (review-focused)", winner: "us" },
+      { feature: "Review-site coverage", socialPerks: "Google, Yelp, FB + 12 platforms", competitor: "200+ sites including niche industry", winner: "them" },
+      { feature: "Sentiment analytics + AI responses", socialPerks: "Basic (per submission)", competitor: "Full enterprise dashboard", winner: "them" },
+      { feature: "Multi-location support", socialPerks: "Yes ($99/mo)", competitor: "Core competency (enterprise pricing)", winner: "them" },
+      { feature: "Autonomous agents + MCP", socialPerks: "Yes", competitor: "No", winner: "us" },
+    ],
+    verdict: {
+      pickUs: [
+        "You're an SMB without budget for $300/mo reputation tools",
+        "You want NEW content created (posts, photos), not just reviews collected",
+        "You'd rather self-serve than sit through a sales demo",
+        "You want autonomous agents handling the work, not staffing a CX team",
+      ],
+      pickThem: [
+        "You manage 50+ locations and need enterprise-grade reputation infrastructure",
+        "Industry-specific review sites (Healthgrades, Cars.com, Avvo) matter to you",
+        "You have a CX team that needs sentiment dashboards and response analytics",
+        "You're in a regulated industry where review-response automation matters",
+      ],
+    },
+    related: ["yotpo", "yelp-connect"],
+  },
 ];
 
 export function getVsEntry(slug: string): VsEntry | null {
