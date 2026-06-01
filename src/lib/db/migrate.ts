@@ -274,15 +274,27 @@ export function generateSQL(): string {
   }
 
   // ── updated_at trigger function ─────────────────────────────────────────
+  //
+  // Guarded create instead of CREATE OR REPLACE. On managed Postgres (Supabase)
+  // the function can already exist from a prior migration and be owned by a
+  // different role; CREATE OR REPLACE then fails with "must be owner of
+  // function set_updated_at", aborting the whole idempotent migration. A
+  // NOT EXISTS guard needs no ownership when the function is already present,
+  // and the body is stable so there is nothing to replace.
 
   statements.push(
-    `CREATE OR REPLACE FUNCTION set_updated_at()\n` +
-      `RETURNS TRIGGER AS $$\n` +
+    `DO $$\n` +
       `BEGIN\n` +
-      `  NEW.updated_at = now();\n` +
-      `  RETURN NEW;\n` +
-      `END;\n` +
-      `$$ LANGUAGE plpgsql;`,
+      `  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'set_updated_at') THEN\n` +
+      `    CREATE FUNCTION set_updated_at()\n` +
+      `    RETURNS TRIGGER AS $fn$\n` +
+      `    BEGIN\n` +
+      `      NEW.updated_at = now();\n` +
+      `      RETURN NEW;\n` +
+      `    END;\n` +
+      `    $fn$ LANGUAGE plpgsql;\n` +
+      `  END IF;\n` +
+      `END $$;`,
   );
   statements.push("");
 
