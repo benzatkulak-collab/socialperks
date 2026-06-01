@@ -28,8 +28,49 @@ const DEV_MASTER_KEY = "dev-only-master-key-do-not-use-in-production-00";
 // Internal Helpers
 // =============================================================================
 
+let _cachedKey: string | undefined;
+let _devWarned = false;
+
 function getMasterKey(): string {
-  return process.env.ENCRYPTION_MASTER_KEY || DEV_MASTER_KEY;
+  if (_cachedKey) return _cachedKey;
+  const fromEnv = process.env.ENCRYPTION_MASTER_KEY;
+  if (fromEnv) {
+    if (fromEnv.length < 32) {
+      throw new Error(
+        "FATAL: ENCRYPTION_MASTER_KEY is too short (need >=32 chars). Generate with: openssl rand -base64 48"
+      );
+    }
+    _cachedKey = fromEnv;
+    return _cachedKey;
+  }
+
+  // SECURITY: in production, the silent fallback to DEV_MASTER_KEY is
+  // catastrophic — every tenant's at-rest data would be encrypted under
+  // a key that's literally hardcoded in this repo. Match the
+  // AUTH_SECRET / CSRF_SECRET / webhook-secret pattern: hard error in
+  // production, warn (once) in dev. The audit (PR #55, finding #3)
+  // flagged this as the gap that wasn't here.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "FATAL: ENCRYPTION_MASTER_KEY environment variable must be set in production"
+    );
+  }
+
+  if (!_devWarned) {
+    _devWarned = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[ENCRYPTION] WARNING: Using default dev master key. Set ENCRYPTION_MASTER_KEY for production."
+    );
+  }
+  _cachedKey = DEV_MASTER_KEY;
+  return _cachedKey;
+}
+
+/** Test helper — clear the cached key so tests can mutate the env var. */
+export function _resetEncryptionKeyCache(): void {
+  _cachedKey = undefined;
+  _devWarned = false;
 }
 
 /**
