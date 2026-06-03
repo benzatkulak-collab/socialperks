@@ -123,25 +123,36 @@ export async function GET(req: NextRequest) {
   // else paying customers revert to free on cold start and free-tier usage
   // never caps. A valid DATABASE_URL with the tables missing is the silent
   // failure this catches.
+  // Perk wallet table — earned perks/redemptions must be durable (migration
+  // v6), else the reward ledger the product sells drops on every cold start.
   if (!(db instanceof InMemoryConnection)) {
     let tablesDetail = "Billing tables present";
     let tablesOk = true;
+    let perksOk = true;
+    let perksDetail = "Perk wallet table present";
     try {
-      const r = await db.query<{ subs: string | null; usage: string | null }>(
-        "SELECT to_regclass('business_subscriptions') AS subs, to_regclass('monthly_usage') AS usage",
+      const r = await db.query<{ subs: string | null; usage: string | null; perks: string | null }>(
+        "SELECT to_regclass('business_subscriptions') AS subs, to_regclass('monthly_usage') AS usage, to_regclass('perk_wallet_entries') AS perks",
       );
       const missingTables: string[] = [];
       if (!r.rows[0]?.subs) missingTables.push("business_subscriptions");
       if (!r.rows[0]?.usage) missingTables.push("monthly_usage");
       tablesOk = missingTables.length === 0;
       if (!tablesOk) tablesDetail = `Missing: ${missingTables.join(", ")} — run /api/v1/migrate`;
+
+      perksOk = !!r.rows[0]?.perks;
+      if (!perksOk) perksDetail = "Missing: perk_wallet_entries — run /api/v1/migrate (earned perks won't persist)";
     } catch (e) {
       tablesOk = false;
       tablesDetail = e instanceof Error ? e.message : "billing table check failed";
+      perksOk = false;
+      perksDetail = e instanceof Error ? e.message : "perk table check failed";
     }
     checks.billing_tables = check(tablesOk, "Billing tables present", tablesDetail, !isProd);
+    checks.perk_tables = check(perksOk, "Perk wallet table present", perksDetail, !isProd);
   } else {
     checks.billing_tables = check(true, "skipped (in-memory storage)", "");
+    checks.perk_tables = check(true, "skipped (in-memory storage)", "");
   }
 
   // Aggregate readiness — only "missing" (non-warning) failures count

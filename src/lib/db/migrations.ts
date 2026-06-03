@@ -672,6 +672,55 @@ DROP TABLE IF EXISTS monthly_usage;
 DROP TABLE IF EXISTS business_subscriptions;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 006: Durable perk wallet — the earned-perk / redemption ledger
+  //
+  // perk-wallet.ts kept the entire reward ledger in a module-level Map, so every
+  // earned perk, balance, and redemption evaporated on each serverless cold
+  // start (and was never shared across instances) — the core product promise
+  // silently losing data. This makes it durable.
+  //
+  // Why a NEW table instead of the v1 `earned_perks`/`perk_wallets` tables:
+  // those were modelled as `UUID PRIMARY KEY` with FKs to users(id)/
+  // businesses(id)/launched_campaigns(id). But the runtime model uses string
+  // ids that aren't uuids and don't live in those seeded tables — perk ids are
+  // `perk_<uuid>`, business ids are `biz_usr_…` (in auth_users), etc. Inserting
+  // the real EarnedPerk into the v1 tables would throw on every write (wrong id
+  // type + FK violations) and get swallowed — the same trap v5 documents for
+  // billing. So this is a flat, TEXT-keyed, FK-free table that mirrors the
+  // actual EarnedPerk shape. The v1 tables are left as immutable history.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 6,
+    name: "add_perk_wallet_entries",
+    up: `
+CREATE TABLE IF NOT EXISTS perk_wallet_entries (
+  id              TEXT PRIMARY KEY,
+  user_id         TEXT NOT NULL,
+  business_id     TEXT NOT NULL,
+  campaign_id     TEXT NOT NULL,
+  submission_id   TEXT NOT NULL UNIQUE,
+  value           NUMERIC(12,2) NOT NULL,
+  type            TEXT NOT NULL,
+  status          TEXT NOT NULL,
+  earned_at       TIMESTAMPTZ NOT NULL,
+  redeemed_at     TIMESTAMPTZ,
+  expires_at      TIMESTAMPTZ NOT NULL,
+  redemption_code TEXT NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_user ON perk_wallet_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_business ON perk_wallet_entries(business_id);
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_user_business ON perk_wallet_entries(user_id, business_id);
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_status ON perk_wallet_entries(status);
+`,
+    down: `
+DROP TABLE IF EXISTS perk_wallet_entries;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────
