@@ -54,6 +54,29 @@ export const RequestContext = {
   },
 };
 
+// -- Secret / PII redaction ---------------------------------------------------
+// Scrubs values whose KEY looks sensitive before anything reaches stdout / a log
+// drain. Key-name based (not value-sniffing) so normal fields pass through —
+// prevents a careless `logger.info({ body })` from leaking creds/tokens.
+const SENSITIVE_KEY = /pass(word|code)?|secret|token|auth(orization)?|api[-_]?key|cookie|credential|bearer|signature|session|otp|\bpin\b|ssn|card(number)?|cvv|private[-_]?key/i;
+
+function redactValue(value: unknown, depth: number): unknown {
+  if (value == null || depth > 6) return value;
+  if (Array.isArray(value)) return value.map((v) => redactValue(v, depth + 1));
+  if (typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = SENSITIVE_KEY.test(k) ? "[REDACTED]" : redactValue(v, depth + 1);
+    }
+    return out;
+  }
+  return value;
+}
+
+function redactMeta(meta: Record<string, unknown>): Record<string, unknown> {
+  return redactValue(meta, 0) as Record<string, unknown>;
+}
+
 // -- Logger -------------------------------------------------------------------
 
 export class Logger {
@@ -75,7 +98,7 @@ export class Logger {
       message,
       timestamp: new Date().toISOString(),
       service: this.service,
-      ...meta,
+      ...(meta ? redactMeta(meta) : {}),
     };
 
     this.output(entry);

@@ -147,7 +147,9 @@ async function hydrateFromDb(): Promise<void> {
 
 // ─── Admin Bootstrap ────────────────────────────────────────────────────────
 
-const ADMIN_EMAIL = "benzatkulak@gmail.com";
+// Founder/admin account — configurable via env so it isn't hardcoded in source.
+// Defaults to the original for backward compatibility (no behavior change unless set).
+const ADMIN_EMAIL = process.env.FOUNDER_EMAIL ?? "benzatkulak@gmail.com";
 const ADMIN_NAME = "Platform Admin";
 const ADMIN_USER_ID = "usr_admin_root";
 

@@ -6,7 +6,7 @@
  * and AI review flow.
  */
 
-import { isSafeUrl } from "@/lib/security/url";
+import { assertSafeUrl } from "@/lib/security/url";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -200,8 +200,12 @@ export async function checkProofUrl(
   // fetch. Disable redirect-follow because attackers can chain a public
   // URL → 30x → internal IP and exfiltrate via the response body. We
   // re-check after a single hop manually.
-  const safety = isSafeUrl(url);
-  if (safety !== null) {
+  // assertSafeUrl also resolves DNS and re-checks the resolved IPs against
+  // private/internal ranges (defeats hostname→private-IP SSRF), unlike the
+  // sync isSafeUrl which only validated scheme + literal-IP hosts.
+  try {
+    await assertSafeUrl(url);
+  } catch (e) {
     return {
       reachable: false,
       statusCode: 0,
@@ -210,7 +214,7 @@ export async function checkProofUrl(
       contentType: null,
       redirectedUrl: null,
       confidence,
-      checks: [...checks, `unsafe_url:${safety}`],
+      checks: [...checks, `unsafe_url:${e instanceof Error ? e.message : "blocked"}`],
     };
   }
 

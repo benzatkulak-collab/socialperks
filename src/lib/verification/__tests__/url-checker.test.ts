@@ -4,6 +4,15 @@ import {
   detectPlatform,
   isValidHttpsUrl,
 } from "../url-checker";
+import { promises as dnsPromises } from "node:dns";
+
+// checkProofUrl now resolves DNS via assertSafeUrl before fetching (SSRF guard).
+// Mock node:dns so hostname cases resolve to a public IP — keeps these unit
+// tests hermetic (no real network). Literal-IP / non-https cases reject before
+// DNS, so they're unaffected.
+vi.mock("node:dns", () => ({
+  promises: { lookup: vi.fn().mockResolvedValue([{ address: "93.184.216.34", family: 4 }]) },
+}));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // URL FORMAT VALIDATION
@@ -163,6 +172,11 @@ describe("checkProofUrl", () => {
   beforeEach(() => {
     // Reset fetch mock before each test
     global.fetch = vi.fn();
+    // Re-arm the dns mock each test — afterEach's restoreAllMocks resets it,
+    // and assertSafeUrl resolves the hostname before the (mocked) fetch.
+    vi.mocked(dnsPromises.lookup).mockResolvedValue(
+      [{ address: "93.184.216.34", family: 4 }] as never,
+    );
   });
 
   afterEach(() => {

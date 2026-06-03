@@ -44,7 +44,9 @@ export interface CampaignRecommendation {
   suggestedDuration: string; // "ongoing", "3 months", "seasonal"
   bestLaunchTime: string; // "immediately", "monday morning", "start of month"
 
-  // Projections
+  // Projections — ILLUSTRATIVE estimates from category assumptions, NOT measured
+  // results or your historical data. `isEstimate` + `basis` make that explicit to
+  // any consumer/UI so these are never presented as real performance data.
   projectedResults: {
     monthlyPosts: number;
     monthlyReviews: number;
@@ -52,6 +54,8 @@ export interface CampaignRecommendation {
     estimatedNewCustomers: number;
     estimatedROI: number; // multiplier, e.g., 3.5x
     costPerAcquisition: number;
+    isEstimate: boolean;
+    basis: string;
   };
 
   // Reasoning
