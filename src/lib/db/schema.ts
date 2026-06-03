@@ -994,6 +994,192 @@ export const SCHEMA = {
     relations: [],
   },
 
+  // ── Durable value loop (perk wallet / payouts / referral ledger / programs) ──
+  // App-generated string ids (perk_… / biz_usr_… / ref_… / uuid), FK-free —
+  // same rationale as business_subscriptions. Source of truth for these tables;
+  // they are also created in prod directly. Columns match the lib queries.
+  perk_wallet_entries: {
+    columns: {
+      id: { type: "text", nullable: false },
+      user_id: { type: "text", nullable: false },
+      business_id: { type: "text", nullable: false },
+      campaign_id: { type: "text", nullable: false },
+      submission_id: { type: "text", nullable: false },
+      value: { type: "decimal(10,2)", nullable: false },
+      type: { type: "text", nullable: false },
+      status: { type: "text", nullable: false },
+      earned_at: { type: "timestamptz", nullable: false },
+      redeemed_at: { type: "timestamptz", nullable: true },
+      expires_at: { type: "timestamptz", nullable: false },
+      redemption_code: { type: "text", nullable: false },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "perk_wallet_entries_pkey" },
+      { columns: ["submission_id"], unique: true, name: "perk_wallet_entries_submission_unique" },
+      { columns: ["user_id"], unique: false, name: "idx_perk_wallet_entries_user" },
+      { columns: ["business_id"], unique: false, name: "idx_perk_wallet_entries_business" },
+      { columns: ["user_id", "business_id"], unique: false, name: "idx_perk_wallet_entries_user_business" },
+      { columns: ["status"], unique: false, name: "idx_perk_wallet_entries_status" },
+    ],
+    relations: [],
+  },
+
+  payout_accounts: {
+    columns: {
+      influencer_id: { type: "text", nullable: false },
+      stripe_account_id: { type: "text", nullable: true },
+      status: { type: "text", nullable: false },
+      onboarding_url: { type: "text", nullable: true },
+      payouts_enabled: { type: "boolean", nullable: false, default: "false" },
+      created_at: { type: "timestamptz", nullable: false },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["influencer_id"], unique: true, name: "payout_accounts_pkey" },
+      { columns: ["stripe_account_id"], unique: false, name: "idx_payout_accounts_stripe" },
+    ],
+    relations: [],
+  },
+
+  payout_requests: {
+    columns: {
+      id: { type: "text", nullable: false },
+      influencer_id: { type: "text", nullable: false },
+      amount: { type: "int", nullable: false },
+      currency: { type: "text", nullable: false },
+      status: { type: "text", nullable: false },
+      stripe_transfer_id: { type: "text", nullable: true },
+      created_at: { type: "timestamptz", nullable: false },
+      completed_at: { type: "timestamptz", nullable: true },
+      failure_reason: { type: "text", nullable: true },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "payout_requests_pkey" },
+      { columns: ["influencer_id"], unique: false, name: "idx_payout_requests_influencer" },
+      { columns: ["stripe_transfer_id"], unique: false, name: "idx_payout_requests_transfer" },
+    ],
+    relations: [],
+  },
+
+  referrals: {
+    columns: {
+      id: { type: "text", nullable: false },
+      referrer_id: { type: "text", nullable: false },
+      referrer_email: { type: "text", nullable: false },
+      referee_id: { type: "text", nullable: true },
+      referee_email: { type: "text", nullable: false },
+      code: { type: "text", nullable: false },
+      status: { type: "text", nullable: false },
+      credit_amount: { type: "decimal(10,2)", nullable: false },
+      created_at: { type: "timestamptz", nullable: false },
+      converted_at: { type: "timestamptz", nullable: true },
+      credited_at: { type: "timestamptz", nullable: true },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "referrals_pkey" },
+      { columns: ["referrer_id"], unique: false, name: "idx_referrals_referrer" },
+      { columns: ["referee_id"], unique: false, name: "idx_referrals_referee" },
+      { columns: ["code"], unique: false, name: "idx_referrals_code" },
+    ],
+    relations: [],
+  },
+
+  business_referral_codes: {
+    columns: {
+      business_id: { type: "text", nullable: false },
+      code: { type: "text", nullable: false },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["business_id"], unique: true, name: "business_referral_codes_pkey" },
+      { columns: ["code"], unique: true, name: "business_referral_codes_code_unique" },
+    ],
+    relations: [],
+  },
+
+  perk_programs: {
+    columns: {
+      id: { type: "text", nullable: false },
+      business_id: { type: "text", nullable: false },
+      name: { type: "text", nullable: false },
+      description: { type: "text", nullable: false, default: "''" },
+      status: { type: "text", nullable: false },
+      rules: { type: "text", nullable: false, default: "'[]'" },
+      tiers: { type: "text", nullable: false, default: "'[]'" },
+      cycle: { type: "text", nullable: false },
+      cycle_start_day: { type: "int", nullable: false, default: "1" },
+      created_at: { type: "timestamptz", nullable: false },
+      updated_at: { type: "timestamptz", nullable: false },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "perk_programs_pkey" },
+      { columns: ["business_id"], unique: false, name: "idx_perk_programs_business" },
+    ],
+    relations: [],
+  },
+
+  program_members: {
+    columns: {
+      id: { type: "text", nullable: false },
+      program_id: { type: "text", nullable: false },
+      member_id: { type: "text", nullable: false },
+      name: { type: "text", nullable: false, default: "''" },
+      email: { type: "text", nullable: false, default: "''" },
+      enrolled_at: { type: "timestamptz", nullable: false },
+      total_points: { type: "int", nullable: false, default: "0" },
+      current_tier: { type: "text", nullable: true },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "program_members_pkey" },
+      { columns: ["program_id"], unique: false, name: "idx_program_members_program" },
+    ],
+    relations: [],
+  },
+
+  program_submissions: {
+    columns: {
+      id: { type: "text", nullable: false },
+      program_id: { type: "text", nullable: false },
+      member_id: { type: "text", nullable: false },
+      action_id: { type: "text", nullable: false },
+      platform_id: { type: "text", nullable: false },
+      proof_url: { type: "text", nullable: false, default: "''" },
+      proof_type: { type: "text", nullable: false, default: "''" },
+      points: { type: "int", nullable: false, default: "0" },
+      status: { type: "text", nullable: false },
+      submitted_at: { type: "timestamptz", nullable: false },
+      reviewed_at: { type: "timestamptz", nullable: true },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "program_submissions_pkey" },
+      { columns: ["program_id"], unique: false, name: "idx_program_submissions_program" },
+    ],
+    relations: [],
+  },
+
+  program_payouts: {
+    columns: {
+      id: { type: "text", nullable: false },
+      program_id: { type: "text", nullable: false },
+      member_id: { type: "text", nullable: false },
+      amount: { type: "decimal(10,2)", nullable: false },
+      currency: { type: "text", nullable: false, default: "'usd'" },
+      status: { type: "text", nullable: false },
+      requested_at: { type: "timestamptz", nullable: false },
+      processed_at: { type: "timestamptz", nullable: true },
+      note: { type: "text", nullable: true },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "program_payouts_pkey" },
+      { columns: ["program_id"], unique: false, name: "idx_program_payouts_program" },
+    ],
+    relations: [],
+  },
+
 } as const satisfies Record<string, TableDef>;
 
 // ─── Helper Types ────────────────────────────────────────────────────────────
