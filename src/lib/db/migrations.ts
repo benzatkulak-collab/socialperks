@@ -765,6 +765,47 @@ DROP TABLE IF EXISTS payout_requests;
 DROP TABLE IF EXISTS payout_accounts;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 8,
+    name: "add_referral_code_tables",
+    // Backs src/lib/referrals/codes.ts (the share-link loop). These tables were
+    // queried by the code in production but never created by any migration, so
+    // the /referrals/code, /click and /me routes 500'd against Postgres — tests
+    // passed only because codes.ts falls back to an in-memory map under
+    // InMemoryConnection. Column names/types match codes.ts's queries exactly.
+    up: `
+CREATE TABLE IF NOT EXISTS referral_codes (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id       TEXT,
+  influencer_id     TEXT,
+  code              TEXT NOT NULL UNIQUE,
+  uses_count        INTEGER NOT NULL DEFAULT 0,
+  conversions_count INTEGER NOT NULL DEFAULT 0,
+  reward_unlocked   BOOLEAN NOT NULL DEFAULT false,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_referral_codes_business ON referral_codes(business_id);
+CREATE INDEX IF NOT EXISTS idx_referral_codes_influencer ON referral_codes(influencer_id);
+
+CREATE TABLE IF NOT EXISTS referral_attributions (
+  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code                     TEXT NOT NULL,
+  attributed_business_id   TEXT,
+  attributed_influencer_id TEXT,
+  attributed_email         TEXT,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_referral_attributions_code ON referral_attributions(code);
+`,
+    down: `
+DROP TABLE IF EXISTS referral_attributions;
+DROP TABLE IF EXISTS referral_codes;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────
