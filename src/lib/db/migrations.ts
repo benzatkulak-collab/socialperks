@@ -721,6 +721,50 @@ CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_status ON perk_wallet_entries
 DROP TABLE IF EXISTS perk_wallet_entries;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 7,
+    name: "add_payout_tables",
+    // Influencer payout accounts (Stripe Connect) + transfer history. Flat,
+    // TEXT-keyed, FK-free (matches v6 perk_wallet_entries). Stripe is the source
+    // of truth for the transfer itself; these tables make the influencer→account
+    // mapping and payout history durable across serverless cold starts so an
+    // onboarded creator isn't re-onboarded (duplicate Connect accounts) and
+    // their cash-out history doesn't vanish on deploy.
+    up: `
+CREATE TABLE IF NOT EXISTS payout_accounts (
+  influencer_id     TEXT PRIMARY KEY,
+  stripe_account_id TEXT,
+  status            TEXT NOT NULL,
+  onboarding_url    TEXT,
+  payouts_enabled   BOOLEAN NOT NULL DEFAULT false,
+  created_at        TIMESTAMPTZ NOT NULL,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS payout_requests (
+  id                 TEXT PRIMARY KEY,
+  influencer_id      TEXT NOT NULL,
+  amount             INTEGER NOT NULL,
+  currency           TEXT NOT NULL,
+  status             TEXT NOT NULL,
+  stripe_transfer_id TEXT,
+  created_at         TIMESTAMPTZ NOT NULL,
+  completed_at       TIMESTAMPTZ,
+  failure_reason     TEXT,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payout_accounts_stripe ON payout_accounts(stripe_account_id);
+CREATE INDEX IF NOT EXISTS idx_payout_requests_influencer ON payout_requests(influencer_id);
+CREATE INDEX IF NOT EXISTS idx_payout_requests_transfer ON payout_requests(stripe_transfer_id);
+`,
+    down: `
+DROP TABLE IF EXISTS payout_requests;
+DROP TABLE IF EXISTS payout_accounts;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

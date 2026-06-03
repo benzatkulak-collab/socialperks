@@ -23,6 +23,7 @@ import {
   getAccountStatus,
   requestPayout,
   getPayoutHistory,
+  hydratePayouts,
 } from "@/lib/payouts";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
@@ -37,6 +38,9 @@ export const GET = withTiming(async (req: NextRequest) => {
   // Identity is derived from the session, never the client — prevents an IDOR
   // where `?influencerId=` would expose another creator's payout account/history.
   const influencerId = user.id;
+
+  // Warm the cache from durable storage before reading (cold-start safety).
+  await hydratePayouts();
 
   const account = await getAccountStatus(influencerId);
   const history = getPayoutHistory(influencerId);
@@ -81,6 +85,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   // Identity from the session only (ignore body.influencerId) — prevents acting
   // on another creator's payout account or triggering their payouts (IDOR).
   const influencerId = user.id;
+
+  // Warm the cache from durable storage before any account/payout lookup.
+  await hydratePayouts();
 
   // ── create_account ─────────────────────────────────────────────────────
   if (action === "create_account") {
