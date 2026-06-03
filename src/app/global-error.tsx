@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { captureError } from "@/lib/monitoring";
+
 // Catches errors thrown during root layout rendering (rare but real).
 // Must include its own <html> and <body> because the layout itself failed.
 export default function GlobalError({
@@ -9,6 +12,10 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    captureError(error, { source: "app/global-error", digest: error.digest });
+  }, [error]);
+
   return (
     <html lang="en">
       <body

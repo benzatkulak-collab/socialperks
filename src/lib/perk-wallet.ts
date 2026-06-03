@@ -23,6 +23,7 @@ import type { DiscountType, PerkStatus } from "./types";
 import { emitPerkEvent } from "./events";
 import { ledger } from "./financial-ledger";
 import { db, getInMemoryStore } from "@/lib/db/connection";
+import { captureError } from "@/lib/monitoring";
 
 // ─── In-Memory Store (write-through cache) ───────────────────────────────────
 
@@ -605,7 +606,7 @@ export async function persistPerk(
       ],
     );
   } catch (e) {
-    console.error("[PerkWallet] DB persistPerk failed:", e instanceof Error ? e.message : e);
+    captureError(e, { source: "perk-wallet.persistPerk" });
   }
 }
 
@@ -653,7 +654,7 @@ export function hydrateWallets(): Promise<void> {
         }
       }
     } catch (e) {
-      console.error("[PerkWallet] hydration failed:", e instanceof Error ? e.message : e);
+      captureError(e, { source: "perk-wallet.hydrate" });
       _hydrationPromise = null;
     }
   })();

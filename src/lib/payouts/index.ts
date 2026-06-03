@@ -7,6 +7,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { captureError } from "@/lib/monitoring";
 import { db, getInMemoryStore } from "@/lib/db/connection";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -171,7 +172,7 @@ export async function persistAccount(a: PayoutAccount): Promise<void> {
       [a.influencerId, a.stripeAccountId, a.status, a.onboardingUrl, a.payoutsEnabled, a.createdAt],
     );
   } catch (e) {
-    console.error("[Payouts] DB persistAccount failed:", e instanceof Error ? e.message : e);
+    captureError(e, { source: "payouts.persistAccount", influencerId: a.influencerId });
   }
 }
 
@@ -201,7 +202,7 @@ export async function persistRequest(p: PayoutRequest): Promise<void> {
       [p.id, p.influencerId, p.amount, p.currency, p.status, p.stripeTransferId, p.createdAt, p.completedAt, p.failureReason],
     );
   } catch (e) {
-    console.error("[Payouts] DB persistRequest failed:", e instanceof Error ? e.message : e);
+    captureError(e, { source: "payouts.persistRequest", payoutId: p.id });
   }
 }
 
@@ -251,7 +252,7 @@ export function hydratePayouts(): Promise<void> {
         }
       }
     } catch (e) {
-      console.error("[Payouts] hydration failed:", e instanceof Error ? e.message : e);
+      captureError(e, { source: "payouts.hydrate" });
       _hydrationPromise = null;
     }
   })();

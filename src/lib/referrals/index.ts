@@ -12,6 +12,7 @@
  */
 
 import { db, getInMemoryStore } from "@/lib/db/connection";
+import { captureError } from "@/lib/monitoring";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -383,7 +384,7 @@ export async function persistReferral(referral: Referral): Promise<void> {
       ],
     );
   } catch (e) {
-    console.error("[Referrals] DB persistReferral failed:", e instanceof Error ? e.message : e);
+    captureError(e, { source: "referrals.persistReferral", referralId: referral.id });
   }
 }
 
@@ -403,7 +404,7 @@ export async function persistBusinessCode(businessId: string, code: string): Pro
       [businessId, code],
     );
   } catch (e) {
-    console.error("[Referrals] DB persistBusinessCode failed:", e instanceof Error ? e.message : e);
+    captureError(e, { source: "referrals.persistBusinessCode", businessId });
   }
 }
 
@@ -449,7 +450,7 @@ export function hydrateReferrals(): Promise<void> {
         if (!businessCodeIndex.has(row.business_id)) businessCodeIndex.set(row.business_id, row.code);
       }
     } catch (e) {
-      console.error("[Referrals] hydration failed:", e instanceof Error ? e.message : e);
+      captureError(e, { source: "referrals.hydrate" });
       _hydrationPromise = null;
     }
   })();
