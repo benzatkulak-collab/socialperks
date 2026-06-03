@@ -27,7 +27,12 @@ function findInfluencer(slug: string) {
   return seed.influencers.find((i) => buildInfluencerSlug(i) === slug) ?? null;
 }
 
-/** Estimated total earnings — placeholder until real submission ledger lands. */
+/**
+ * Illustrative earning POTENTIAL for the public profile — NOT realized
+ * earnings. These are demo/seed profiles with no real ledger yet, so this must
+ * never be presented as money the creator has actually made. Replaced by the
+ * real submission → perk → revenue ledger when it lands.
+ */
 function estimateEarnings(i: { followerCount: number }): number {
   // Rough heuristic for the public profile placeholder. Real numbers
   // will replace this once submission → perk → revenue ledger persists.
@@ -132,12 +137,12 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-brand-cyan/30 bg-brand-cyan/5 p-5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-brand-cyan">
-              Earnings
+              Earning potential
             </p>
             <p className="mt-2 font-heading text-2xl italic text-brand-white">
               ~${earnings.toLocaleString()}
             </p>
-            <p className="mt-1 text-xs text-brand-muted">last 90 days · est.</p>
+            <p className="mt-1 text-xs text-brand-muted">illustrative estimate</p>
           </div>
           <div className="rounded-2xl border border-brand-border/40 bg-brand-surface/30 p-5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-brand-muted">
