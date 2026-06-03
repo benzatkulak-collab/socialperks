@@ -103,7 +103,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint, typecheck, test, api-typecheck, api-test]
+    needs: [lint, typecheck, test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
