@@ -22,7 +22,7 @@ import {
   subscriptionStartedEmail,
   checkoutAbandonedEmail,
 } from "@/lib/email";
-import { creditReferral, findReferralByReferee } from "@/lib/referrals";
+import { creditReferral, findReferralByReferee, hydrateReferrals, persistReferral } from "@/lib/referrals";
 import { markEventProcessed } from "@/lib/webhook-dedup";
 import { audit } from "@/lib/audit-log";
 
@@ -209,9 +209,11 @@ export const POST = withTiming(async (req: NextRequest) => {
         // earns the credit at the moment of paid conversion. Best-effort
         // for the same reason as above.
         try {
+          await hydrateReferrals();
           const referral = findReferralByReferee(businessId);
           if (referral && referral.status !== "credited") {
-            creditReferral(referral.id);
+            const credited = creditReferral(referral.id);
+            await persistReferral(credited);
             console.warn(
               `[Billing Webhook] Credited referral ${referral.id} (referrer ${referral.referrerId}) for paid conversion of ${businessId}`
             );

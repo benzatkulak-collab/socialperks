@@ -14,6 +14,9 @@ import {
   getReferralStats,
   createReferral,
   trackReferralSignup,
+  hydrateReferrals,
+  persistReferral,
+  persistBusinessCode,
 } from "@/lib/referrals";
 
 // ─── GET /api/v1/referrals ─────────────────────────────────────────────────
@@ -29,7 +32,11 @@ export const GET = withTiming(async (req: NextRequest) => {
     return err("NOT_A_BUSINESS", "Referral program is only available to business accounts", 403);
   }
 
+  // Warm the cache from durable storage before reading (cold-start safety).
+  await hydrateReferrals();
+
   const code = generateReferralCode(auth.businessId);
+  await persistBusinessCode(auth.businessId, code);
   const link = createReferralLink(code);
   const stats = getReferralStats(auth.businessId);
   const referrals = getReferralsByReferrer(auth.businessId);
@@ -51,6 +58,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
 
+  // Warm the cache from durable storage before any referral lookup/mutation.
+  await hydrateReferrals();
+
   const body = await parseBody<{
     action?: string;
     refereeEmail?: string;
@@ -69,6 +79,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       }
 
       const code = generateReferralCode(auth.businessId);
+      await persistBusinessCode(auth.businessId, code);
       const link = createReferralLink(code);
 
       // If a refereeEmail was provided, create a pending referral
@@ -82,6 +93,7 @@ export const POST = withTiming(async (req: NextRequest) => {
         }
 
         const referral = createReferral(auth.businessId, auth.email, sanitizedEmail, code);
+        await persistReferral(referral);
         return ok({ code, link, referral }, 201);
       }
 
@@ -103,6 +115,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       }
 
       const referral = trackReferralSignup(code, refereeId, refereeEmail);
+      await persistReferral(referral);
       return ok({ referral });
     }
 

@@ -806,6 +806,47 @@ DROP TABLE IF EXISTS referral_attributions;
 DROP TABLE IF EXISTS referral_codes;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 9,
+    name: "add_referrals_ledger",
+    // Backs src/lib/referrals/index.ts (the B2B referral ledger). Was in-memory,
+    // so the referee→referrer mapping was lost on cold start and the billing
+    // webhook could never credit the referrer on paid conversion. `referrals`
+    // holds the records; `business_referral_codes` keeps each business's
+    // generated code stable across deploys (so shared links keep resolving).
+    up: `
+CREATE TABLE IF NOT EXISTS referrals (
+  id             TEXT PRIMARY KEY,
+  referrer_id    TEXT NOT NULL,
+  referrer_email TEXT NOT NULL,
+  referee_id     TEXT,
+  referee_email  TEXT NOT NULL,
+  code           TEXT NOT NULL,
+  status         TEXT NOT NULL,
+  credit_amount  NUMERIC(12,2) NOT NULL,
+  created_at     TIMESTAMPTZ NOT NULL,
+  converted_at   TIMESTAMPTZ,
+  credited_at    TIMESTAMPTZ,
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_referee ON referrals(referee_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(code);
+
+CREATE TABLE IF NOT EXISTS business_referral_codes (
+  business_id TEXT PRIMARY KEY,
+  code        TEXT NOT NULL UNIQUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`,
+    down: `
+DROP TABLE IF EXISTS business_referral_codes;
+DROP TABLE IF EXISTS referrals;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

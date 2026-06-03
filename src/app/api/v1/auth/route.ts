@@ -20,7 +20,7 @@ import {
 import { createSeedData } from "@social-perks/shared/seed";
 import { emailProvider, passwordResetEmail, welcomeEmail } from "@/lib/email";
 import { eventPublisher } from "@/lib/realtime/publisher";
-import { trackReferralSignup } from "@/lib/referrals";
+import { trackReferralSignup, hydrateReferrals, persistReferral } from "@/lib/referrals";
 import {
   ensureUsersSeeded,
   getUserByEmail,
@@ -289,7 +289,9 @@ export const POST = withTiming(async (req: NextRequest) => {
       // Track referral signup if a referral code was provided
       if (body.referralCode && typeof body.referralCode === "string") {
         try {
-          trackReferralSignup(body.referralCode, userId, sanitizedEmail);
+          await hydrateReferrals();
+          const referral = trackReferralSignup(body.referralCode, userId, sanitizedEmail);
+          await persistReferral(referral);
         } catch {
           // Non-blocking: don't fail signup if referral tracking fails
         }
