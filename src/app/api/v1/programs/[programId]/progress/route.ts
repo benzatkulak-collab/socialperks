@@ -17,6 +17,7 @@ import {
   programs,
   programMembers,
   programSubmissions,
+  hydratePrograms,
   type ProgramTier,
 } from "@/lib/programs/store";
 
@@ -38,6 +39,7 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (limited) return limited;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {

@@ -14,7 +14,7 @@ import {
   parseBody,
   withTiming,
 } from "../../_shared";
-import { programs, type PerkProgram, type ProgramRule, type ProgramTier } from "@/lib/programs/store";
+import { programs, hydratePrograms, persistProgram, type PerkProgram, type ProgramRule, type ProgramTier } from "@/lib/programs/store";
 import { requireOwnership } from "@/lib/security/owner";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
@@ -34,6 +34,7 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (limited) return limited;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -63,6 +64,7 @@ export const PUT = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (csrfErr) return csrfErr;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -98,6 +100,7 @@ export const PUT = withTiming(async (req: NextRequest, ctx?: unknown) => {
   };
 
   programs.set(programId, updated);
+  await persistProgram(updated);
 
   return ok({ program: updated });
 });
@@ -118,6 +121,7 @@ export const DELETE = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (csrfErr) return csrfErr;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -135,6 +139,7 @@ export const DELETE = withTiming(async (req: NextRequest, ctx?: unknown) => {
     updatedAt: new Date().toISOString(),
   };
   programs.set(programId, ended);
+  await persistProgram(ended);
 
   return ok({ program: ended });
 });

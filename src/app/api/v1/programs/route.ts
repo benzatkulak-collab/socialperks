@@ -18,6 +18,8 @@ import {
 } from "../_shared";
 import {
   programs,
+  hydratePrograms,
+  persistProgram,
   type PerkProgram,
   type ProgramRule,
   type ProgramTier,
@@ -47,6 +49,9 @@ export const GET = withTiming(async (req: NextRequest) => {
   }
 
   const { page, perPage } = paginate(params);
+
+  // Warm the cache from durable storage before reading (cold-start safety).
+  await hydratePrograms();
 
   // Collect programs for business
   const businessPrograms: PerkProgram[] = [];
@@ -164,6 +169,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   };
 
   programs.set(program.id, program);
+  await persistProgram(program);
 
   return ok({ program }, 201);
 });

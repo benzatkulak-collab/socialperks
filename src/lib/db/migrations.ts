@@ -847,6 +847,78 @@ DROP TABLE IF EXISTS business_referral_codes;
 DROP TABLE IF EXISTS referrals;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 10,
+    name: "add_perk_program_tables",
+    // Backs src/lib/programs/store.ts (the /api/v1/programs/* surface). Was four
+    // in-memory Maps with no schema, so every perk program, member, action
+    // submission and cash-back payout was lost on each serverless cold start.
+    // rules/tiers are JSON kept as TEXT (we never query inside them).
+    up: `
+CREATE TABLE IF NOT EXISTS perk_programs (
+  id              TEXT PRIMARY KEY,
+  business_id     TEXT NOT NULL,
+  name            TEXT NOT NULL,
+  description     TEXT NOT NULL DEFAULT '',
+  status          TEXT NOT NULL,
+  rules           TEXT NOT NULL DEFAULT '[]',
+  tiers           TEXT NOT NULL DEFAULT '[]',
+  cycle           TEXT NOT NULL,
+  cycle_start_day INTEGER NOT NULL DEFAULT 1,
+  created_at      TIMESTAMPTZ NOT NULL,
+  updated_at      TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_perk_programs_business ON perk_programs(business_id);
+
+CREATE TABLE IF NOT EXISTS program_members (
+  id           TEXT PRIMARY KEY,
+  program_id   TEXT NOT NULL,
+  member_id    TEXT NOT NULL,
+  name         TEXT NOT NULL DEFAULT '',
+  email        TEXT NOT NULL DEFAULT '',
+  enrolled_at  TIMESTAMPTZ NOT NULL,
+  total_points INTEGER NOT NULL DEFAULT 0,
+  current_tier TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_program_members_program ON program_members(program_id);
+
+CREATE TABLE IF NOT EXISTS program_submissions (
+  id           TEXT PRIMARY KEY,
+  program_id   TEXT NOT NULL,
+  member_id    TEXT NOT NULL,
+  action_id    TEXT NOT NULL,
+  platform_id  TEXT NOT NULL,
+  proof_url    TEXT NOT NULL DEFAULT '',
+  proof_type   TEXT NOT NULL DEFAULT '',
+  points       INTEGER NOT NULL DEFAULT 0,
+  status       TEXT NOT NULL,
+  submitted_at TIMESTAMPTZ NOT NULL,
+  reviewed_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_program_submissions_program ON program_submissions(program_id);
+
+CREATE TABLE IF NOT EXISTS program_payouts (
+  id           TEXT PRIMARY KEY,
+  program_id   TEXT NOT NULL,
+  member_id    TEXT NOT NULL,
+  amount       NUMERIC(12,2) NOT NULL,
+  currency     TEXT NOT NULL DEFAULT 'usd',
+  status       TEXT NOT NULL,
+  requested_at TIMESTAMPTZ NOT NULL,
+  processed_at TIMESTAMPTZ,
+  note         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_program_payouts_program ON program_payouts(program_id);
+`,
+    down: `
+DROP TABLE IF EXISTS program_payouts;
+DROP TABLE IF EXISTS program_submissions;
+DROP TABLE IF EXISTS program_members;
+DROP TABLE IF EXISTS perk_programs;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

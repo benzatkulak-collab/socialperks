@@ -19,6 +19,8 @@ import {
 import {
   programs,
   programMembers,
+  hydratePrograms,
+  persistMember,
   type ProgramMember,
 } from "@/lib/programs/store";
 import { validateEmail, validateString } from "@/lib/security/validate";
@@ -40,6 +42,7 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (limited) return limited;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -94,6 +97,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (csrfErr) return csrfErr;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -149,6 +153,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   };
 
   programMembers.set(member.id, member);
+  await persistMember(member);
 
   return ok({ member }, 201);
 });
