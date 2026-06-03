@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
-import { apiFetchJson } from "@/lib/api/csrf-fetch";
+import { apiFetch, apiFetchJson } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -280,7 +280,7 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
     setCashOutError("");
 
     try {
-      const res = await fetch("/api/v1/payouts", {
+      const res = await apiFetch("/api/v1/payouts", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -326,7 +326,7 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
       // Convert dollars to cents for the payout API
       const amountInCents = Math.round(availableBalance * 100);
 
-      const res = await fetch("/api/v1/payouts", {
+      const res = await apiFetch("/api/v1/payouts", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

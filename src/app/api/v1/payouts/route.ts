@@ -15,7 +15,6 @@ import {
   requireCsrf,
   rateLimit,
   parseBody,
-  getQuery,
   withTiming,
 } from "../_shared";
 import {
@@ -35,8 +34,9 @@ export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
 
-  const query = getQuery(req);
-  const influencerId = query.get("influencerId") ?? user.id;
+  // Identity is derived from the session, never the client — prevents an IDOR
+  // where `?influencerId=` would expose another creator's payout account/history.
+  const influencerId = user.id;
 
   const account = await getAccountStatus(influencerId);
   const history = getPayoutHistory(influencerId);
@@ -78,7 +78,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (body instanceof Response) return body;
 
   const { action } = body;
-  const influencerId = body.influencerId ?? user.id;
+  // Identity from the session only (ignore body.influencerId) — prevents acting
+  // on another creator's payout account or triggering their payouts (IDOR).
+  const influencerId = user.id;
 
   // ── create_account ─────────────────────────────────────────────────────
   if (action === "create_account") {
