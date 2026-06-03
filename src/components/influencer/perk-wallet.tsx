@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
+import { apiFetch, apiFetchJson } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,18 @@ interface PayoutEntry {
   createdAt: string;
   completedAt: string | null;
   failureReason: string | null;
+}
+
+/** A durable earned perk from GET /api/v1/wallet (the redeemable reward). */
+interface WalletPerk {
+  id: string;
+  businessId: string;
+  campaignId: string;
+  value: number;
+  type: "pct" | "dol";
+  status: "available" | "redeemed" | "expired";
+  redemptionCode: string;
+  expiresAt: string;
 }
 
 type CashOutStep = "idle" | "form" | "submitting" | "success" | "error";
@@ -104,6 +117,12 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
   const [payoutHistory, setPayoutHistory] = useState<PayoutEntry[]>([]);
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [setupLoading, setSetupLoading] = useState(false);
+
+  // ── Redeemable perks state (durable wallet) ───────────────────────────
+  const [perks, setPerks] = useState<WalletPerk[]>([]);
+  const [perksLoading, setPerksLoading] = useState(true);
+  const [redeemingId, setRedeemingId] = useState<string | null>(null);
+  const [redeemError, setRedeemError] = useState("");
 
   // ── Fetch submissions ─────────────────────────────────────────────────
 
@@ -174,13 +193,53 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
     }
   }, [influencerId]);
 
+  // ── Fetch redeemable perks (durable wallet) ───────────────────────────
+
+  const fetchPerks = useCallback(async () => {
+    setPerksLoading(true);
+    try {
+      const body = await apiFetchJson<{
+        data: { wallets: { businessId: string; perks: WalletPerk[] }[] };
+      }>("/api/v1/wallet");
+      const flat: WalletPerk[] = (body.data?.wallets ?? []).flatMap((w) =>
+        w.perks.map((p) => ({ ...p, businessId: w.businessId }))
+      );
+      setPerks(flat);
+    } catch (e: unknown) {
+      if (e instanceof Error) console.warn("[PerkWallet] Perks fetch failed:", e.message);
+    } finally {
+      setPerksLoading(false);
+    }
+  }, []);
+
+  const handleRedeem = useCallback(async (perkId: string) => {
+    setRedeemingId(perkId);
+    setRedeemError("");
+    try {
+      await apiFetchJson("/api/v1/wallet/redeem", {
+        method: "POST",
+        body: JSON.stringify({ perkId }),
+      });
+      setPerks((prev) =>
+        prev.map((p) => (p.id === perkId ? { ...p, status: "redeemed" } : p))
+      );
+    } catch (e: unknown) {
+      setRedeemError(
+        e instanceof Error ? e.message : "Redemption failed. Please try again."
+      );
+    } finally {
+      setRedeemingId(null);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSubmissions();
     fetchPayoutStatus();
+    fetchPerks();
     return () => {
       abortRef.current?.abort();
     };
-  }, [fetchSubmissions, fetchPayoutStatus]);
+  }, [fetchSubmissions, fetchPayoutStatus, fetchPerks]);
 
   // ── Computed values ───────────────────────────────────────────────────
 
@@ -208,6 +267,12 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
     [submissions]
   );
 
+  // Show active + already-redeemed perks; hide expired to reduce noise.
+  const visiblePerks = useMemo(
+    () => perks.filter((p) => p.status === "available" || p.status === "redeemed"),
+    [perks]
+  );
+
   // ── Set up payout account ─────────────────────────────────────────────
 
   const handleSetupPayouts = useCallback(async () => {
@@ -215,7 +280,7 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
     setCashOutError("");
 
     try {
-      const res = await fetch("/api/v1/payouts", {
+      const res = await apiFetch("/api/v1/payouts", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -261,7 +326,7 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
       // Convert dollars to cents for the payout API
       const amountInCents = Math.round(availableBalance * 100);
 
-      const res = await fetch("/api/v1/payouts", {
+      const res = await apiFetch("/api/v1/payouts", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -355,6 +420,70 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
             color="#FBBF24"
           />
         </Card>
+      </AnimateOnScroll>
+
+      {/* ── Section 1.5: Redeemable Perks (durable wallet) ───────────────── */}
+      <AnimateOnScroll animation="fade-up" delay={60}>
+        <h2 className="text-sm font-semibold text-brand-dim mb-3">
+          Redeemable Perks
+        </h2>
+        {redeemError && (
+          <div className="text-xs text-brand-red font-medium mb-2" role="alert">
+            {redeemError}
+          </div>
+        )}
+        {perksLoading ? (
+          <Card className="text-center py-8 mb-6">
+            <div className="text-xs text-brand-dim">Loading perks…</div>
+          </Card>
+        ) : visiblePerks.length === 0 ? (
+          <Card className="text-center py-10 mb-6">
+            <div className="text-2xl mb-2">&#x1F39F;&#xFE0F;</div>
+            <div className="text-sm font-bold mb-1">No redeemable perks yet</div>
+            <div className="text-xs text-brand-dim">
+              Approved campaign perks appear here with a code to redeem in-store.
+            </div>
+          </Card>
+        ) : (
+          <div className="space-y-2 mb-6">
+            {visiblePerks.map((perk) => {
+              const label = perk.type === "pct" ? `${perk.value}% off` : `$${perk.value}`;
+              const isRedeemed = perk.status === "redeemed";
+              return (
+                <Card key={perk.id} padding="sm">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-brand-text">
+                        {label} perk
+                      </div>
+                      <div className="font-mono text-xs text-brand-muted">
+                        Code:{" "}
+                        <span className="text-brand-text tracking-wider">
+                          {perk.redemptionCode}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <Badge color={isRedeemed ? "purple" : "green"}>
+                        {isRedeemed ? "redeemed" : "available"}
+                      </Badge>
+                      {!isRedeemed && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleRedeem(perk.id)}
+                          loading={redeemingId === perk.id}
+                          disabled={redeemingId === perk.id}
+                        >
+                          Mark Redeemed
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </AnimateOnScroll>
 
       {/* ── Section 2: Perk History ──────────────────────────────────────── */}

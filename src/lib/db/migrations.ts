@@ -672,6 +672,253 @@ DROP TABLE IF EXISTS monthly_usage;
 DROP TABLE IF EXISTS business_subscriptions;
 `,
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 006: Durable perk wallet — the earned-perk / redemption ledger
+  //
+  // perk-wallet.ts kept the entire reward ledger in a module-level Map, so every
+  // earned perk, balance, and redemption evaporated on each serverless cold
+  // start (and was never shared across instances) — the core product promise
+  // silently losing data. This makes it durable.
+  //
+  // Why a NEW table instead of the v1 `earned_perks`/`perk_wallets` tables:
+  // those were modelled as `UUID PRIMARY KEY` with FKs to users(id)/
+  // businesses(id)/launched_campaigns(id). But the runtime model uses string
+  // ids that aren't uuids and don't live in those seeded tables — perk ids are
+  // `perk_<uuid>`, business ids are `biz_usr_…` (in auth_users), etc. Inserting
+  // the real EarnedPerk into the v1 tables would throw on every write (wrong id
+  // type + FK violations) and get swallowed — the same trap v5 documents for
+  // billing. So this is a flat, TEXT-keyed, FK-free table that mirrors the
+  // actual EarnedPerk shape. The v1 tables are left as immutable history.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 6,
+    name: "add_perk_wallet_entries",
+    up: `
+CREATE TABLE IF NOT EXISTS perk_wallet_entries (
+  id              TEXT PRIMARY KEY,
+  user_id         TEXT NOT NULL,
+  business_id     TEXT NOT NULL,
+  campaign_id     TEXT NOT NULL,
+  submission_id   TEXT NOT NULL UNIQUE,
+  value           NUMERIC(12,2) NOT NULL,
+  type            TEXT NOT NULL,
+  status          TEXT NOT NULL,
+  earned_at       TIMESTAMPTZ NOT NULL,
+  redeemed_at     TIMESTAMPTZ,
+  expires_at      TIMESTAMPTZ NOT NULL,
+  redemption_code TEXT NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_user ON perk_wallet_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_business ON perk_wallet_entries(business_id);
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_user_business ON perk_wallet_entries(user_id, business_id);
+CREATE INDEX IF NOT EXISTS idx_perk_wallet_entries_status ON perk_wallet_entries(status);
+`,
+    down: `
+DROP TABLE IF EXISTS perk_wallet_entries;
+`,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 7,
+    name: "add_payout_tables",
+    // Influencer payout accounts (Stripe Connect) + transfer history. Flat,
+    // TEXT-keyed, FK-free (matches v6 perk_wallet_entries). Stripe is the source
+    // of truth for the transfer itself; these tables make the influencer→account
+    // mapping and payout history durable across serverless cold starts so an
+    // onboarded creator isn't re-onboarded (duplicate Connect accounts) and
+    // their cash-out history doesn't vanish on deploy.
+    up: `
+CREATE TABLE IF NOT EXISTS payout_accounts (
+  influencer_id     TEXT PRIMARY KEY,
+  stripe_account_id TEXT,
+  status            TEXT NOT NULL,
+  onboarding_url    TEXT,
+  payouts_enabled   BOOLEAN NOT NULL DEFAULT false,
+  created_at        TIMESTAMPTZ NOT NULL,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS payout_requests (
+  id                 TEXT PRIMARY KEY,
+  influencer_id      TEXT NOT NULL,
+  amount             INTEGER NOT NULL,
+  currency           TEXT NOT NULL,
+  status             TEXT NOT NULL,
+  stripe_transfer_id TEXT,
+  created_at         TIMESTAMPTZ NOT NULL,
+  completed_at       TIMESTAMPTZ,
+  failure_reason     TEXT,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payout_accounts_stripe ON payout_accounts(stripe_account_id);
+CREATE INDEX IF NOT EXISTS idx_payout_requests_influencer ON payout_requests(influencer_id);
+CREATE INDEX IF NOT EXISTS idx_payout_requests_transfer ON payout_requests(stripe_transfer_id);
+`,
+    down: `
+DROP TABLE IF EXISTS payout_requests;
+DROP TABLE IF EXISTS payout_accounts;
+`,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 8,
+    name: "add_referral_code_tables",
+    // Backs src/lib/referrals/codes.ts (the share-link loop). These tables were
+    // queried by the code in production but never created by any migration, so
+    // the /referrals/code, /click and /me routes 500'd against Postgres — tests
+    // passed only because codes.ts falls back to an in-memory map under
+    // InMemoryConnection. Column names/types match codes.ts's queries exactly.
+    up: `
+CREATE TABLE IF NOT EXISTS referral_codes (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id       TEXT,
+  influencer_id     TEXT,
+  code              TEXT NOT NULL UNIQUE,
+  uses_count        INTEGER NOT NULL DEFAULT 0,
+  conversions_count INTEGER NOT NULL DEFAULT 0,
+  reward_unlocked   BOOLEAN NOT NULL DEFAULT false,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_referral_codes_business ON referral_codes(business_id);
+CREATE INDEX IF NOT EXISTS idx_referral_codes_influencer ON referral_codes(influencer_id);
+
+CREATE TABLE IF NOT EXISTS referral_attributions (
+  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code                     TEXT NOT NULL,
+  attributed_business_id   TEXT,
+  attributed_influencer_id TEXT,
+  attributed_email         TEXT,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_referral_attributions_code ON referral_attributions(code);
+`,
+    down: `
+DROP TABLE IF EXISTS referral_attributions;
+DROP TABLE IF EXISTS referral_codes;
+`,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 9,
+    name: "add_referrals_ledger",
+    // Backs src/lib/referrals/index.ts (the B2B referral ledger). Was in-memory,
+    // so the referee→referrer mapping was lost on cold start and the billing
+    // webhook could never credit the referrer on paid conversion. `referrals`
+    // holds the records; `business_referral_codes` keeps each business's
+    // generated code stable across deploys (so shared links keep resolving).
+    up: `
+CREATE TABLE IF NOT EXISTS referrals (
+  id             TEXT PRIMARY KEY,
+  referrer_id    TEXT NOT NULL,
+  referrer_email TEXT NOT NULL,
+  referee_id     TEXT,
+  referee_email  TEXT NOT NULL,
+  code           TEXT NOT NULL,
+  status         TEXT NOT NULL,
+  credit_amount  NUMERIC(12,2) NOT NULL,
+  created_at     TIMESTAMPTZ NOT NULL,
+  converted_at   TIMESTAMPTZ,
+  credited_at    TIMESTAMPTZ,
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_referee ON referrals(referee_id);
+CREATE INDEX IF NOT EXISTS idx_referrals_code ON referrals(code);
+
+CREATE TABLE IF NOT EXISTS business_referral_codes (
+  business_id TEXT PRIMARY KEY,
+  code        TEXT NOT NULL UNIQUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`,
+    down: `
+DROP TABLE IF EXISTS business_referral_codes;
+DROP TABLE IF EXISTS referrals;
+`,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 10,
+    name: "add_perk_program_tables",
+    // Backs src/lib/programs/store.ts (the /api/v1/programs/* surface). Was four
+    // in-memory Maps with no schema, so every perk program, member, action
+    // submission and cash-back payout was lost on each serverless cold start.
+    // rules/tiers are JSON kept as TEXT (we never query inside them).
+    up: `
+CREATE TABLE IF NOT EXISTS perk_programs (
+  id              TEXT PRIMARY KEY,
+  business_id     TEXT NOT NULL,
+  name            TEXT NOT NULL,
+  description     TEXT NOT NULL DEFAULT '',
+  status          TEXT NOT NULL,
+  rules           TEXT NOT NULL DEFAULT '[]',
+  tiers           TEXT NOT NULL DEFAULT '[]',
+  cycle           TEXT NOT NULL,
+  cycle_start_day INTEGER NOT NULL DEFAULT 1,
+  created_at      TIMESTAMPTZ NOT NULL,
+  updated_at      TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_perk_programs_business ON perk_programs(business_id);
+
+CREATE TABLE IF NOT EXISTS program_members (
+  id           TEXT PRIMARY KEY,
+  program_id   TEXT NOT NULL,
+  member_id    TEXT NOT NULL,
+  name         TEXT NOT NULL DEFAULT '',
+  email        TEXT NOT NULL DEFAULT '',
+  enrolled_at  TIMESTAMPTZ NOT NULL,
+  total_points INTEGER NOT NULL DEFAULT 0,
+  current_tier TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_program_members_program ON program_members(program_id);
+
+CREATE TABLE IF NOT EXISTS program_submissions (
+  id           TEXT PRIMARY KEY,
+  program_id   TEXT NOT NULL,
+  member_id    TEXT NOT NULL,
+  action_id    TEXT NOT NULL,
+  platform_id  TEXT NOT NULL,
+  proof_url    TEXT NOT NULL DEFAULT '',
+  proof_type   TEXT NOT NULL DEFAULT '',
+  points       INTEGER NOT NULL DEFAULT 0,
+  status       TEXT NOT NULL,
+  submitted_at TIMESTAMPTZ NOT NULL,
+  reviewed_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_program_submissions_program ON program_submissions(program_id);
+
+CREATE TABLE IF NOT EXISTS program_payouts (
+  id           TEXT PRIMARY KEY,
+  program_id   TEXT NOT NULL,
+  member_id    TEXT NOT NULL,
+  amount       NUMERIC(12,2) NOT NULL,
+  currency     TEXT NOT NULL DEFAULT 'usd',
+  status       TEXT NOT NULL,
+  requested_at TIMESTAMPTZ NOT NULL,
+  processed_at TIMESTAMPTZ,
+  note         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_program_payouts_program ON program_payouts(program_id);
+`,
+    down: `
+DROP TABLE IF EXISTS program_payouts;
+DROP TABLE IF EXISTS program_submissions;
+DROP TABLE IF EXISTS program_members;
+DROP TABLE IF EXISTS perk_programs;
+`,
+  },
 ];
 
 // ─── Migration Runner ───────────────────────────────────────────────────────

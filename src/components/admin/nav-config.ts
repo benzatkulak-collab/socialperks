@@ -27,7 +27,6 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/campaigns", label: "Campaigns", group: "Operations", glyph: "C" },
   { href: "/admin/submissions", label: "Submissions", group: "Operations", glyph: "S" },
   { href: "/admin/programs", label: "Programs", group: "Operations", glyph: "P" },
-  { href: "/admin/exchange", label: "Exchange", group: "Operations", glyph: "X" },
 
   // Money
   { href: "/admin/billing", label: "Billing", group: "Money", glyph: "$" },

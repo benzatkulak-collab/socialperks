@@ -20,6 +20,8 @@ import {
   programs,
   programMembers,
   payouts,
+  hydratePrograms,
+  persistPayout,
   type Payout,
 } from "@/lib/programs/store";
 import { validateEnum, validateNumber, validateString } from "@/lib/security/validate";
@@ -43,6 +45,7 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (limited) return limited;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -100,6 +103,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (csrfErr) return csrfErr;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -188,6 +192,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     };
 
     payouts.set(payout.id, payout);
+    await persistPayout(payout);
     return ok({ payout }, 201);
   }
 
@@ -211,6 +216,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
       note: body.note ?? payout.note,
     };
     payouts.set(payoutId, updated);
+    await persistPayout(updated);
 
     return ok({ payout: updated });
   }
@@ -235,6 +241,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
       note: body.note ?? payout.note,
     };
     payouts.set(payoutId, updated);
+    await persistPayout(updated);
 
     return ok({ payout: updated });
   }
@@ -259,6 +266,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
       note: body.note ?? payout.note,
     };
     payouts.set(payoutId, updated);
+    await persistPayout(updated);
 
     return ok({ payout: updated });
   }

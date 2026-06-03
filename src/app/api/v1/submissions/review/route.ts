@@ -14,7 +14,7 @@ import {
 } from "../../_shared";
 import { withTenant, checkResourceAccess } from "../../_tenant";
 import { reviewSubmission, calculatePerkValue, getSubmissionById } from "@/lib/submissions";
-import { awardPerk } from "@/lib/perk-wallet";
+import { awardPerk, persistPerk } from "@/lib/perk-wallet";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
 import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
@@ -155,6 +155,12 @@ export const POST = withTiming(async (req: NextRequest) => {
     );
 
     if (awardResult.success) {
+      // Persist the earned perk durably so it survives serverless cold starts
+      // (the in-memory cache write inside awardPerk already succeeded).
+      if (awardResult.data) {
+        await persistPerk(awardResult.data, submission.userId, campaign.businessId);
+      }
+
       // Record usage against monthly completion limit
       recordCompletion(completionBusinessId);
 

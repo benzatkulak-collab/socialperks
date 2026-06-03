@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { db, InMemoryConnection } from "@/lib/db/connection";
+import { captureError } from "@/lib/monitoring";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Social Perks — Billing Store
@@ -145,7 +146,7 @@ export async function persistSubscription(sub: Subscription): Promise<void> {
     // continue. Stripe will retry if we 5xx, so successful return here
     // means we acknowledged the event with at least the in-memory cache
     // updated.
-    console.error("[billing] DB persistSubscription failed:", e instanceof Error ? e.message : e);
+    captureError(e, { source: "billing.persistSubscription", subscriptionId: sub.id, businessId: sub.businessId });
   }
 }
 

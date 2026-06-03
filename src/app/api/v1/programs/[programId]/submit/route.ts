@@ -18,6 +18,8 @@ import {
   programs,
   programMembers,
   programSubmissions,
+  hydratePrograms,
+  persistSubmission,
   type ProgramSubmission,
 } from "@/lib/programs/store";
 import { validateString, validateEnum } from "@/lib/security/validate";
@@ -44,6 +46,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   if (csrfErr) return csrfErr;
 
   const { programId } = await (ctx as RouteContext).params;
+  await hydratePrograms();
   const program = programs.get(programId);
 
   if (!program) {
@@ -161,6 +164,7 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
   };
 
   programSubmissions.set(submission.id, submission);
+  await persistSubmission(submission);
 
   return ok({ submission }, 201);
 });

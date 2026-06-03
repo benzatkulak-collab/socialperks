@@ -7,6 +7,8 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { captureError } from "@/lib/monitoring";
+import { db, getInMemoryStore } from "@/lib/db/connection";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -51,6 +53,215 @@ function addPayoutToIndex(influencerId: string, payoutId: string): void {
   influencerPayouts.set(influencerId, existing);
 }
 
+// ─── Durable persistence (write-through cache + cold-start hydration) ─────────
+//
+// The Maps above are a per-process write-through cache. Every mutation is also
+// persisted to Postgres (tables `payout_accounts` / `payout_requests`, migration
+// 007) so the influencer→Connect-account mapping and payout history survive a
+// serverless cold start — otherwise an onboarded creator gets a duplicate
+// Connect account and loses their cash-out history on every deploy. In tests/dev
+// (InMemoryConnection) the same code path persists to the in-memory row store,
+// so durability is exercised end-to-end, not mocked. Stripe remains the source
+// of truth for the transfer itself.
+
+const ACCOUNTS_TABLE = "payout_accounts";
+const REQUESTS_TABLE = "payout_requests";
+
+interface PayoutAccountRow {
+  influencer_id: string;
+  stripe_account_id: string | null;
+  status: string;
+  onboarding_url: string | null;
+  payouts_enabled: boolean;
+  created_at: string | Date;
+}
+
+interface PayoutRequestRow {
+  id: string;
+  influencer_id: string;
+  amount: number | string;
+  currency: string;
+  status: string;
+  stripe_transfer_id: string | null;
+  created_at: string | Date;
+  completed_at: string | Date | null;
+  failure_reason: string | null;
+}
+
+function iso(v: string | Date): string {
+  return v instanceof Date ? v.toISOString() : String(v);
+}
+function isoOrNull(v: string | Date | null): string | null {
+  return v == null ? null : iso(v);
+}
+
+// Note: *toRow helpers are used only for the InMemoryConnection path (the
+// Postgres path uses positional params). The in-memory store keys by `id`, so
+// the account row carries `id = influencerId` (its real PK).
+function accountToRow(a: PayoutAccount): Record<string, unknown> {
+  return {
+    id: a.influencerId,
+    influencer_id: a.influencerId,
+    stripe_account_id: a.stripeAccountId,
+    status: a.status,
+    onboarding_url: a.onboardingUrl,
+    payouts_enabled: a.payoutsEnabled,
+    created_at: a.createdAt,
+  };
+}
+function rowToAccount(r: PayoutAccountRow): PayoutAccount {
+  return {
+    influencerId: r.influencer_id,
+    stripeAccountId: r.stripe_account_id,
+    status: r.status as PayoutAccount["status"],
+    onboardingUrl: r.onboarding_url,
+    payoutsEnabled: Boolean(r.payouts_enabled),
+    createdAt: iso(r.created_at),
+  };
+}
+function requestToRow(p: PayoutRequest): Record<string, unknown> {
+  return {
+    id: p.id,
+    influencer_id: p.influencerId,
+    amount: p.amount,
+    currency: p.currency,
+    status: p.status,
+    stripe_transfer_id: p.stripeTransferId,
+    created_at: p.createdAt,
+    completed_at: p.completedAt,
+    failure_reason: p.failureReason,
+  };
+}
+function rowToRequest(r: PayoutRequestRow): PayoutRequest {
+  return {
+    id: r.id,
+    influencerId: r.influencer_id,
+    amount: typeof r.amount === "string" ? parseInt(r.amount, 10) : r.amount,
+    currency: r.currency,
+    status: r.status as PayoutRequest["status"],
+    stripeTransferId: r.stripe_transfer_id,
+    createdAt: iso(r.created_at),
+    completedAt: isoOrNull(r.completed_at),
+    failureReason: r.failure_reason,
+  };
+}
+
+/** Write-through persist for a payout account (best-effort; never throws). */
+export async function persistAccount(a: PayoutAccount): Promise<void> {
+  const store = getInMemoryStore();
+  if (store) {
+    if (store.selectById(ACCOUNTS_TABLE, a.influencerId)) {
+      store.update(ACCOUNTS_TABLE, a.influencerId, accountToRow(a));
+    } else {
+      store.insert(ACCOUNTS_TABLE, accountToRow(a));
+    }
+    return;
+  }
+  try {
+    await db.query(
+      `INSERT INTO payout_accounts
+         (influencer_id, stripe_account_id, status, onboarding_url,
+          payouts_enabled, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       ON CONFLICT (influencer_id) DO UPDATE SET
+         stripe_account_id = EXCLUDED.stripe_account_id,
+         status = EXCLUDED.status,
+         onboarding_url = EXCLUDED.onboarding_url,
+         payouts_enabled = EXCLUDED.payouts_enabled,
+         updated_at = NOW()`,
+      [a.influencerId, a.stripeAccountId, a.status, a.onboardingUrl, a.payoutsEnabled, a.createdAt],
+    );
+  } catch (e) {
+    captureError(e, { source: "payouts.persistAccount", influencerId: a.influencerId });
+  }
+}
+
+/** Write-through persist for a payout request (insert on create, upsert on status change). */
+export async function persistRequest(p: PayoutRequest): Promise<void> {
+  const store = getInMemoryStore();
+  if (store) {
+    if (store.selectById(REQUESTS_TABLE, p.id)) {
+      store.update(REQUESTS_TABLE, p.id, requestToRow(p));
+    } else {
+      store.insert(REQUESTS_TABLE, requestToRow(p));
+    }
+    return;
+  }
+  try {
+    await db.query(
+      `INSERT INTO payout_requests
+         (id, influencer_id, amount, currency, status, stripe_transfer_id,
+          created_at, completed_at, failure_reason, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+       ON CONFLICT (id) DO UPDATE SET
+         status = EXCLUDED.status,
+         stripe_transfer_id = EXCLUDED.stripe_transfer_id,
+         completed_at = EXCLUDED.completed_at,
+         failure_reason = EXCLUDED.failure_reason,
+         updated_at = NOW()`,
+      [p.id, p.influencerId, p.amount, p.currency, p.status, p.stripeTransferId, p.createdAt, p.completedAt, p.failureReason],
+    );
+  } catch (e) {
+    captureError(e, { source: "payouts.persistRequest", payoutId: p.id });
+  }
+}
+
+let _hydrationPromise: Promise<void> | null = null;
+
+/**
+ * Load persisted payout accounts + requests into the cache once per process
+ * (cached promise). Best-effort: on error log, clear the promise to allow retry,
+ * never throw. Routes that read or mutate payout state await this first so a
+ * cold instance never sees an empty store.
+ */
+export function hydratePayouts(): Promise<void> {
+  if (_hydrationPromise) return _hydrationPromise;
+  _hydrationPromise = (async () => {
+    try {
+      const store = getInMemoryStore();
+      const accountRows: PayoutAccountRow[] = store
+        ? (store.selectMany(ACCOUNTS_TABLE, {}, { perPage: 1_000_000 }).rows as unknown as PayoutAccountRow[])
+        : (
+            await db.query<PayoutAccountRow>(
+              `SELECT influencer_id, stripe_account_id, status, onboarding_url,
+                      payouts_enabled, created_at
+                 FROM payout_accounts`,
+            )
+          ).rows;
+      for (const r of accountRows) {
+        const a = rowToAccount(r);
+        if (!payoutAccounts.has(a.influencerId)) payoutAccounts.set(a.influencerId, a);
+      }
+
+      const requestRows: PayoutRequestRow[] = store
+        ? (store.selectMany(REQUESTS_TABLE, {}, { perPage: 1_000_000 }).rows as unknown as PayoutRequestRow[])
+        : (
+            await db.query<PayoutRequestRow>(
+              `SELECT id, influencer_id, amount, currency, status, stripe_transfer_id,
+                      created_at, completed_at, failure_reason
+                 FROM payout_requests ORDER BY created_at ASC`,
+            )
+          ).rows;
+      // Stable created_at order so getPayoutHistory's reverse() yields newest-first.
+      const sorted = [...requestRows].sort((x, y) => iso(x.created_at).localeCompare(iso(y.created_at)));
+      for (const r of sorted) {
+        const p = rowToRequest(r);
+        if (!payoutRequests.has(p.id)) {
+          payoutRequests.set(p.id, p);
+          addPayoutToIndex(p.influencerId, p.id);
+        }
+      }
+    } catch (e) {
+      captureError(e, { source: "payouts.hydrate" });
+      _hydrationPromise = null;
+    }
+  })();
+  return _hydrationPromise;
+}
+
+// Warm the cache as soon as this module loads on a fresh instance.
+void hydratePayouts();
+
 // ─── Account Management ─────────────────────────────────────────────────────
 
 /**
@@ -94,6 +305,7 @@ export async function createConnectAccount(
       };
 
       payoutAccounts.set(influencerId, payoutAccount);
+      await persistAccount(payoutAccount);
       console.warn(
         `[Payouts] Created Stripe Connect account ${account.id} for influencer ${influencerId}`
       );
@@ -118,6 +330,7 @@ export async function createConnectAccount(
   };
 
   payoutAccounts.set(influencerId, payoutAccount);
+  await persistAccount(payoutAccount);
   console.warn(
     `[Payouts] Created mock Connect account ${mockAccountId} for influencer ${influencerId}`
   );
@@ -152,11 +365,10 @@ export async function getOnboardingLink(
         type: "account_onboarding",
       });
 
-      // Cache the onboarding URL
-      payoutAccounts.set(influencerId, {
-        ...account,
-        onboardingUrl: accountLink.url,
-      });
+      // Cache + persist the onboarding URL
+      const linked: PayoutAccount = { ...account, onboardingUrl: accountLink.url };
+      payoutAccounts.set(influencerId, linked);
+      await persistAccount(linked);
 
       return { url: accountLink.url };
     } catch (e) {
@@ -169,10 +381,9 @@ export async function getOnboardingLink(
   // Mock mode
   const mockUrl = `https://connect.stripe.com/express/onboarding/${account.stripeAccountId}?return_url=${encodeURIComponent(returnUrl)}&refresh_url=${encodeURIComponent(refreshUrl)}`;
 
-  payoutAccounts.set(influencerId, {
-    ...account,
-    onboardingUrl: mockUrl,
-  });
+  const linkedMock: PayoutAccount = { ...account, onboardingUrl: mockUrl };
+  payoutAccounts.set(influencerId, linkedMock);
+  await persistAccount(linkedMock);
 
   return { url: mockUrl, mock: true };
 }
@@ -204,6 +415,7 @@ export async function getAccountStatus(
       };
 
       payoutAccounts.set(influencerId, updatedAccount);
+      await persistAccount(updatedAccount);
       return updatedAccount;
     } catch (e) {
       console.warn(
@@ -278,6 +490,7 @@ export async function requestPayout(
 
       payoutRequests.set(payoutId, payout);
       addPayoutToIndex(influencerId, payoutId);
+      await persistRequest(payout);
 
       console.warn(
         `[Payouts] Created transfer ${transfer.id} for $${(amount / 100).toFixed(2)} to ${account.stripeAccountId}`
@@ -303,6 +516,7 @@ export async function requestPayout(
 
       payoutRequests.set(payoutId, failedPayout);
       addPayoutToIndex(influencerId, payoutId);
+      await persistRequest(failedPayout);
 
       throw new Error(message);
     }
@@ -324,6 +538,7 @@ export async function requestPayout(
 
   payoutRequests.set(payoutId, payout);
   addPayoutToIndex(influencerId, payoutId);
+  await persistRequest(payout);
 
   console.warn(
     `[Payouts] Created mock transfer ${mockTransferId} for $${(amount / 100).toFixed(2)}`
@@ -351,11 +566,11 @@ export function getPayoutHistory(
 /**
  * Update account status when Stripe sends account.updated event.
  */
-export function handleAccountUpdated(
+export async function handleAccountUpdated(
   stripeAccountId: string,
   detailsSubmitted: boolean,
   payoutsEnabled: boolean
-): void {
+): Promise<void> {
   for (const [influencerId, account] of payoutAccounts) {
     if (account.stripeAccountId === stripeAccountId) {
       const newStatus: PayoutAccount["status"] = detailsSubmitted
@@ -364,15 +579,15 @@ export function handleAccountUpdated(
           : "restricted"
         : "pending";
 
-      payoutAccounts.set(influencerId, {
-        ...account,
-        status: newStatus,
-        payoutsEnabled,
-      });
+      // Cache write is synchronous (before the await) so callers that don't
+      // await still see the update; persistence is the awaited durable step.
+      const updated: PayoutAccount = { ...account, status: newStatus, payoutsEnabled };
+      payoutAccounts.set(influencerId, updated);
 
       console.warn(
         `[Payouts] Account ${stripeAccountId} updated: status=${newStatus}, payoutsEnabled=${payoutsEnabled}`
       );
+      await persistAccount(updated);
       break;
     }
   }
@@ -381,11 +596,13 @@ export function handleAccountUpdated(
 /**
  * Mark a payout as processing when transfer.created fires.
  */
-export function handleTransferCreated(stripeTransferId: string): void {
+export async function handleTransferCreated(stripeTransferId: string): Promise<void> {
   for (const [id, payout] of payoutRequests) {
     if (payout.stripeTransferId === stripeTransferId) {
-      payoutRequests.set(id, { ...payout, status: "processing" });
+      const updated: PayoutRequest = { ...payout, status: "processing" };
+      payoutRequests.set(id, updated);
       console.warn(`[Payouts] Transfer ${stripeTransferId} created (processing)`);
+      await persistRequest(updated);
       break;
     }
   }
@@ -394,15 +611,17 @@ export function handleTransferCreated(stripeTransferId: string): void {
 /**
  * Mark a payout as completed when transfer.paid fires.
  */
-export function handleTransferPaid(stripeTransferId: string): void {
+export async function handleTransferPaid(stripeTransferId: string): Promise<void> {
   for (const [id, payout] of payoutRequests) {
     if (payout.stripeTransferId === stripeTransferId) {
-      payoutRequests.set(id, {
+      const updated: PayoutRequest = {
         ...payout,
         status: "completed",
         completedAt: new Date().toISOString(),
-      });
+      };
+      payoutRequests.set(id, updated);
       console.warn(`[Payouts] Transfer ${stripeTransferId} paid (completed)`);
+      await persistRequest(updated);
       break;
     }
   }
@@ -411,31 +630,57 @@ export function handleTransferPaid(stripeTransferId: string): void {
 /**
  * Mark a payout as failed when transfer.failed fires.
  */
-export function handleTransferFailed(
+export async function handleTransferFailed(
   stripeTransferId: string,
   failureReason: string
-): void {
+): Promise<void> {
   for (const [id, payout] of payoutRequests) {
     if (payout.stripeTransferId === stripeTransferId) {
-      payoutRequests.set(id, {
+      const updated: PayoutRequest = {
         ...payout,
         status: "failed",
         completedAt: new Date().toISOString(),
         failureReason,
-      });
+      };
+      payoutRequests.set(id, updated);
       console.warn(
         `[Payouts] Transfer ${stripeTransferId} failed: ${failureReason}`
       );
+      await persistRequest(updated);
       break;
     }
   }
 }
 
 /**
- * Reset all stores. Useful for testing.
+ * Reset all stores (cache AND durable rows). Useful for testing isolation.
+ * In production the durable store is Postgres (never InMemoryConnection), so the
+ * row-deletion branch is a no-op there.
  */
 export function _resetStores(): void {
   payoutAccounts.clear();
   payoutRequests.clear();
   influencerPayouts.clear();
+  const store = getInMemoryStore();
+  if (store) {
+    for (const r of store.selectMany(ACCOUNTS_TABLE, {}, { perPage: 1_000_000 }).rows) {
+      store.delete(ACCOUNTS_TABLE, r.id as string);
+    }
+    for (const r of store.selectMany(REQUESTS_TABLE, {}, { perPage: 1_000_000 }).rows) {
+      store.delete(REQUESTS_TABLE, r.id as string);
+    }
+  }
+  _hydrationPromise = null;
+}
+
+/**
+ * Test-only: simulate a serverless cold start. Drops the in-memory cache but
+ * KEEPS the durable backing rows, and resets hydration so a subsequent
+ * `hydratePayouts()` reloads from the durable store.
+ */
+export function __resetPayoutCacheForTests(): void {
+  payoutAccounts.clear();
+  payoutRequests.clear();
+  influencerPayouts.clear();
+  _hydrationPromise = null;
 }

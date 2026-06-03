@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { captureError } from "@/lib/monitoring";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -10,10 +11,9 @@ interface ErrorProps {
 
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
-    // Surface the error so it shows up in Vercel runtime logs and any
-    // future error tracker (Sentry etc). The `digest` is the only
-    // identifier we should expose to users.
-    console.error("[app/error] unhandled route error:", error);
+    // Surface the error to logs + Sentry (when SENTRY_DSN/NEXT_PUBLIC_SENTRY_DSN
+    // is set). The `digest` is the only identifier we expose to users.
+    captureError(error, { source: "app/error", digest: error.digest });
   }, [error]);
 
   return (

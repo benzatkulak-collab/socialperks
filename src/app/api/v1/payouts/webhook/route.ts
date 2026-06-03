@@ -16,6 +16,7 @@ import {
   handleTransferCreated,
   handleTransferPaid,
   handleTransferFailed,
+  hydratePayouts,
 } from "@/lib/payouts";
 
 // ─── Replay Protection ──────────────────────────────────────────────────────
@@ -125,6 +126,10 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   // ── Handle event types ──────────────────────────────────────────────────
 
+  // Warm the cache so handlers can find the account/request to update even on a
+  // cold instance (they look up by Stripe id in the in-memory maps).
+  await hydratePayouts();
+
   switch (eventType) {
     case "account.updated": {
       console.warn(
@@ -137,7 +142,7 @@ export const POST = withTiming(async (req: NextRequest) => {
         const payoutsEnabled = eventData.payouts_enabled as boolean;
 
         if (accountId) {
-          handleAccountUpdated(
+          await handleAccountUpdated(
             accountId,
             detailsSubmitted ?? false,
             payoutsEnabled ?? false
@@ -155,7 +160,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       if (eventData) {
         const transferId = eventData.id as string;
         if (transferId) {
-          handleTransferCreated(transferId);
+          await handleTransferCreated(transferId);
         }
       }
       break;
@@ -169,7 +174,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       if (eventData) {
         const transferId = eventData.id as string;
         if (transferId) {
-          handleTransferPaid(transferId);
+          await handleTransferPaid(transferId);
         }
       }
       break;
@@ -186,7 +191,7 @@ export const POST = withTiming(async (req: NextRequest) => {
           (eventData.failure_message as string) ??
           "Transfer failed (no reason provided)";
         if (transferId) {
-          handleTransferFailed(transferId, failureMessage);
+          await handleTransferFailed(transferId, failureMessage);
         }
       }
       break;

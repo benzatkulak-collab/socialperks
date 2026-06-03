@@ -148,8 +148,8 @@ export function Nav() {
           >
             Log In
           </Link>
-          <a
-            href="#signup"
+          <Link
+            href="/dashboard#signup"
             className="
               rounded-xl bg-brand-cyan px-5 py-2.5 text-sm font-semibold text-brand-bg
               transition-all duration-fast ease-smooth
@@ -159,7 +159,7 @@ export function Nav() {
             "
           >
             Get Started
-          </a>
+          </Link>
         </div>
 
         {/* Mobile hamburger */}
@@ -274,8 +274,8 @@ export function Nav() {
             >
               Log In
             </Link>
-            <a
-              href="#signup"
+            <Link
+              href="/dashboard#signup"
               onClick={() => setMobileOpen(false)}
               className="
                 rounded-xl bg-brand-cyan px-4 py-3 text-center
@@ -287,7 +287,7 @@ export function Nav() {
               "
             >
               Get Started
-            </a>
+            </Link>
           </div>
         </div>
       </div>
