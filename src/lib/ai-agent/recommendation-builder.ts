@@ -97,6 +97,10 @@ export function buildRecommendation(
       estimatedNewCustomers,
       estimatedROI: Math.max(1.2, estimatedROI),
       costPerAcquisition: Math.max(1, costPerAcquisition),
+      isEstimate: true,
+      basis:
+        "Illustrative estimate from category assumptions (≈1.2% of estimated reach converts). " +
+        "Not based on your historical data — treat as directional only.",
     },
     reasoning: params.reasoning,
     dataPoints: params.dataPoints,

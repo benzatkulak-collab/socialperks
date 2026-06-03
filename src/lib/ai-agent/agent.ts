@@ -57,7 +57,7 @@ class MarketingAgent {
     const criticalRecs = recommendations.filter(r => r.priority === "critical" || r.priority === "high");
 
     const strategy = {
-      summary: `Your ${profile.type} marketing plan focuses on ${this._goalLabel(primaryGoal)} through ${recommendations.length} coordinated campaigns. ${criticalRecs.length > 0 ? `Start with "${criticalRecs[0].name}" as your foundation, then layer on additional campaigns.` : "Build momentum by launching campaigns in phases."} Expected ROI: ${avgROI.toFixed(1)}x within the first 3 months.`,
+      summary: `Your ${profile.type} marketing plan focuses on ${this._goalLabel(primaryGoal)} through ${recommendations.length} coordinated campaigns. ${criticalRecs.length > 0 ? `Start with "${criticalRecs[0].name}" as your foundation, then layer on additional campaigns.` : "Build momentum by launching campaigns in phases."} Estimated ROI (illustrative — based on category assumptions, not your historical data): ~${avgROI.toFixed(1)}x in the first 3 months.`,
       primaryGoal: this._goalLabel(primaryGoal),
       timeline: "3-6 months for full implementation, results visible within 2-4 weeks",
       totalMonthlyBudget,

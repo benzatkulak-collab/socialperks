@@ -636,6 +636,9 @@ export interface Benchmark {
   topCampaignTypes: string[];
   avgROI: number;
   monthlyActions: number;
+  /** "estimate" — these are illustrative category defaults, not measured industry data. */
+  basis: "estimate";
+  disclaimer: string;
 }
 
 export function getBenchmarks(businessType: string): Benchmark {
@@ -681,5 +684,9 @@ export function getBenchmarks(businessType: string): Benchmark {
     topCampaignTypes: [...new Set(topCampaignTypes)].slice(0, 4),
     avgROI,
     monthlyActions: Math.floor(avgCompletionRate * 4.5),
+    basis: "estimate",
+    disclaimer:
+      "Illustrative category estimates, not measured industry data. Pre-launch defaults — " +
+      "replace with real cohort data once available.",
   };
 }
