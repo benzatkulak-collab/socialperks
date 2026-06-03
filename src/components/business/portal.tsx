@@ -565,21 +565,14 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
                   {tab === "home" ? "Dashboard" : "Analytics"}
                 </button>
               ))}
-              {/* Programs and Exchange live at top-level Next routes — the
-                  /api/v1/programs and /api/v1/exchange APIs already exist
-                  but had no UI entry point. Link out rather than embedding
-                  to keep the portal bundle small. */}
+              {/* Programs lives at a top-level Next route — the /api/v1/programs
+                  API exists; the portal links out rather than embedding it to
+                  keep the portal bundle small. */}
               <a
                 href="/programs"
                 className="px-3 py-1.5 rounded-md text-xs font-medium text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
               >
                 Programs
-              </a>
-              <a
-                href="/exchange"
-                className="px-3 py-1.5 rounded-md text-xs font-medium text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
-              >
-                Exchange
               </a>
             </nav>
           </div>
