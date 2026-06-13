@@ -1,4 +1,4 @@
-import { businessRepo, userRepo, influencerRepo, campaignRepo } from "./repositories";
+import { businessRepo, userRepo, influencerRepo } from "./repositories";
 import { hashPassword } from "@/lib/auth";
 import { createSeedData } from "@/lib/seed";
 
@@ -73,32 +73,12 @@ export async function seedDatabase(): Promise<void> {
     }
   }
 
-  // Seed a few campaigns per business
-  const businessList = await businessRepo.findMany({}, { perPage: 100 });
-  const campaignTemplates = [
-    { name: "Google Photos Campaign", description: "Upload photos of your visit to Google", actions: ["go_ph"], discount_value: 15, discount_type: "pct" as const },
-    { name: "Instagram Story Feature", description: "Share your experience on Instagram Stories", actions: ["ig_st"], discount_value: 10, discount_type: "pct" as const },
-    { name: "TikTok Video Review", description: "Create a short TikTok about your visit", actions: ["tt_vd"], discount_value: 20, discount_type: "pct" as const },
-  ];
-
-  for (const biz of businessList.data.slice(0, 5)) {
-    for (const template of campaignTemplates) {
-      try {
-        await campaignRepo.create({
-          business_id: biz.id,
-          name: `${template.name} — ${biz.name}`,
-          description: template.description,
-          actions: template.actions,
-          discount_value: template.discount_value,
-          discount_type: template.discount_type,
-          expires_in_days: 30,
-          use_tiers: true,
-        });
-      } catch (err) {
-        console.warn(`[Seed] Failed to seed campaign for ${biz.name}:`, err);
-      }
-    }
-  }
+  // NOTE: campaign seeding was removed. It wrote to the dead v1
+  // `launched_campaigns` table via the (now-deleted) CampaignRepository; the
+  // live read path is the campaign state machine backed by
+  // `launched_campaign_state`, so seeded rows never surfaced anywhere. Demo
+  // campaigns, if needed, should be launched through campaignManager +
+  // persistLifecycle() (src/lib/campaign-state-machine/persist.ts).
 
   console.info("[Seed] Database seeded successfully");
 }

@@ -335,8 +335,10 @@ export function generateSQL(): string {
   statements.push("");
 
   // Tables that require RLS with a direct business_id column.
-  // campaign_submissions is isolated transitively via launched_campaigns.
-  const rlsTables = ["launched_campaigns", "perk_wallets", "api_keys", "webhooks", "platform_connections"];
+  // (The v1 launched_campaigns / perk_wallets tables were dropped; their durable
+  // replacements — launched_campaign_state / perk_wallet_entries — are TEXT-keyed
+  // and tenant-scoped in application code, not via Postgres RLS.)
+  const rlsTables = ["api_keys", "webhooks", "platform_connections"];
 
   for (const tableName of rlsTables) {
     // Only apply if the table exists in the schema

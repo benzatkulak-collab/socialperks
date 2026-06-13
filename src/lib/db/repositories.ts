@@ -25,19 +25,9 @@ export {
   type UpdateInfluencerInput,
   type InfluencerFilter,
 
-  // Campaign
-  CampaignRepository,
-  type CampaignRow,
-  type CreateCampaignInput,
-  type UpdateCampaignInput,
-  type CampaignFilter,
-
-  // Submission
-  SubmissionRepository,
-  type SubmissionRow,
-  type CreateSubmissionInput,
-  type UpdateSubmissionInput,
-  type SubmissionFilter,
+  // NOTE: Campaign + Submission repositories were removed (they wrote to the
+  // dead v1 launched_campaigns / campaign_submissions tables). Live persistence
+  // is in campaign-state-machine/persist.ts and submissions/persist.ts.
 
   // User
   UserRepository,
@@ -49,7 +39,5 @@ export {
   // Singleton instances
   businessRepo,
   influencerRepo,
-  campaignRepo,
-  submissionRepo,
   userRepo,
 } from "./repositories/index";

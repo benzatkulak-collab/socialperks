@@ -105,8 +105,6 @@ export const SCHEMA = {
     relations: [
       { type: "many-to-one", table: "businesses", foreignKey: "business_id", description: "User belongs to a business (for owners and managers)" },
       { type: "one-to-one", table: "influencers", foreignKey: "influencer_id", description: "User has an influencer profile" },
-      { type: "one-to-many", table: "campaign_submissions", foreignKey: "user_id", description: "User has many submissions" },
-      { type: "one-to-many", table: "perk_wallets", foreignKey: "user_id", description: "User has many perk wallets (one per business)" },
       { type: "one-to-many", table: "notifications", foreignKey: "user_id", description: "User has many notifications" },
     ],
   },
@@ -152,8 +150,6 @@ export const SCHEMA = {
     ],
     relations: [
       { type: "one-to-many", table: "users", foreignKey: "business_id", description: "Business has many team members" },
-      { type: "one-to-many", table: "launched_campaigns", foreignKey: "business_id", description: "Business has many campaigns" },
-      { type: "one-to-many", table: "perk_wallets", foreignKey: "business_id", description: "Business has many customer wallets" },
       { type: "one-to-many", table: "api_keys", foreignKey: "business_id", description: "Business has many API keys" },
       { type: "one-to-many", table: "webhooks", foreignKey: "business_id", description: "Business has many webhooks" },
       { type: "one-to-many", table: "platform_connections", foreignKey: "business_id", description: "Business has many platform connections" },
@@ -203,7 +199,6 @@ export const SCHEMA = {
     relations: [
       { type: "one-to-one", table: "users", foreignKey: "user_id", description: "Influencer belongs to a user account" },
       { type: "one-to-many", table: "influencer_platforms", foreignKey: "influencer_id", description: "Influencer has many platform connections" },
-      { type: "one-to-many", table: "campaign_submissions", foreignKey: "user_id", description: "Influencer has many submissions (via user)" },
     ],
   },
 
@@ -266,195 +261,10 @@ export const SCHEMA = {
       { columns: ["category"], unique: false, name: "campaigns_category_idx" },
       { columns: ["business_type"], unique: false, name: "campaigns_business_type_idx" },
     ],
-    relations: [
-      { type: "one-to-many", table: "launched_campaigns", foreignKey: "from_suggestion", description: "Template used by many launched campaigns" },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LAUNCHED CAMPAIGNS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  launched_campaigns: {
-    columns: {
-      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
-      business_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "businesses", column: "id", onDelete: "CASCADE" },
-      },
-      name: { type: "varchar(255)", nullable: false },
-      description: { type: "text", nullable: false },
-      actions: { type: "text[]", nullable: false },
-      discount_value: { type: "decimal(10,2)", nullable: false },
-      discount_type: { type: "varchar(50)", nullable: false },
-      guidelines: { type: "text", nullable: true },
-      max_completions: { type: "int", nullable: true },
-      expires_in_days: { type: "int", nullable: false },
-      use_tiers: { type: "boolean", nullable: false, default: "false" },
-      status: { type: "varchar(50)", nullable: false, default: "'active'" },
-      from_suggestion: {
-        type: "uuid",
-        nullable: true,
-        references: { table: "campaigns", column: "id", onDelete: "SET NULL" },
-      },
-      completion_count: { type: "int", nullable: false, default: "0" },
-      budget_cap: { type: "decimal(10,2)", nullable: true },
-      budget_used: { type: "decimal(10,2)", nullable: false, default: "0" },
-      ftc_disclosures: { type: "text[]", nullable: false, default: "'{}'" },
-      tags: { type: "text[]", nullable: false, default: "'{}'" },
-      expires_at: { type: "timestamptz", nullable: true },
-      created_at: { type: "timestamptz", nullable: false, default: "now()" },
-      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
-    },
-    indexes: [
-      { columns: ["id"], unique: true, name: "launched_campaigns_pkey" },
-      { columns: ["business_id"], unique: false, name: "launched_campaigns_business_id_idx" },
-      { columns: ["status"], unique: false, name: "launched_campaigns_status_idx" },
-      { columns: ["business_id", "status"], unique: false, name: "launched_campaigns_business_status_idx" },
-      { columns: ["from_suggestion"], unique: false, name: "launched_campaigns_from_suggestion_idx" },
-      { columns: ["expires_at"], unique: false, name: "launched_campaigns_expires_at_idx" },
-      { columns: ["created_at"], unique: false, name: "launched_campaigns_created_at_idx" },
-    ],
-    relations: [
-      { type: "many-to-one", table: "businesses", foreignKey: "business_id", description: "Campaign belongs to a business" },
-      { type: "many-to-one", table: "campaigns", foreignKey: "from_suggestion", description: "Campaign was created from a suggestion" },
-      { type: "one-to-many", table: "campaign_submissions", foreignKey: "campaign_id", description: "Campaign has many submissions" },
-      { type: "one-to-many", table: "earned_perks", foreignKey: "campaign_id", description: "Campaign generates many perks" },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CAMPAIGN SUBMISSIONS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  campaign_submissions: {
-    columns: {
-      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
-      campaign_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "launched_campaigns", column: "id", onDelete: "CASCADE" },
-      },
-      user_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "users", column: "id", onDelete: "CASCADE" },
-      },
-      action_id: { type: "varchar(50)", nullable: false },
-      proof_url: { type: "text", nullable: false },
-      proof_type: { type: "varchar(50)", nullable: false },
-      status: { type: "varchar(50)", nullable: false, default: "'pending'" },
-      platform_id: { type: "varchar(50)", nullable: true },
-      metrics: { type: "jsonb", nullable: true },
-      auto_verified: { type: "boolean", nullable: false, default: "false" },
-      review_note: { type: "text", nullable: true },
-      reviewed_by: {
-        type: "uuid",
-        nullable: true,
-        references: { table: "users", column: "id", onDelete: "SET NULL" },
-      },
-      submitted_at: { type: "timestamptz", nullable: false, default: "now()" },
-      reviewed_at: { type: "timestamptz", nullable: true },
-      expires_at: { type: "timestamptz", nullable: true },
-    },
-    indexes: [
-      { columns: ["id"], unique: true, name: "campaign_submissions_pkey" },
-      { columns: ["campaign_id"], unique: false, name: "campaign_submissions_campaign_id_idx" },
-      { columns: ["user_id"], unique: false, name: "campaign_submissions_user_id_idx" },
-      { columns: ["status"], unique: false, name: "campaign_submissions_status_idx" },
-      { columns: ["campaign_id", "user_id", "action_id"], unique: true, name: "campaign_submissions_unique_action" },
-      { columns: ["campaign_id", "status"], unique: false, name: "campaign_submissions_campaign_status_idx" },
-      { columns: ["submitted_at"], unique: false, name: "campaign_submissions_submitted_at_idx" },
-      { columns: ["platform_id"], unique: false, name: "campaign_submissions_platform_id_idx" },
-    ],
-    relations: [
-      { type: "many-to-one", table: "launched_campaigns", foreignKey: "campaign_id", description: "Submission belongs to a campaign" },
-      { type: "many-to-one", table: "users", foreignKey: "user_id", description: "Submission belongs to a user" },
-      { type: "many-to-one", table: "users", foreignKey: "reviewed_by", description: "Submission reviewed by a user" },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PERK WALLETS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  perk_wallets: {
-    columns: {
-      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
-      user_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "users", column: "id", onDelete: "CASCADE" },
-      },
-      business_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "businesses", column: "id", onDelete: "CASCADE" },
-      },
-      total_available: { type: "decimal(10,2)", nullable: false, default: "0" },
-      total_lifetime: { type: "decimal(10,2)", nullable: false, default: "0" },
-      created_at: { type: "timestamptz", nullable: false, default: "now()" },
-      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
-    },
-    indexes: [
-      { columns: ["id"], unique: true, name: "perk_wallets_pkey" },
-      { columns: ["user_id", "business_id"], unique: true, name: "perk_wallets_user_business_unique" },
-      { columns: ["user_id"], unique: false, name: "perk_wallets_user_id_idx" },
-      { columns: ["business_id"], unique: false, name: "perk_wallets_business_id_idx" },
-    ],
-    relations: [
-      { type: "many-to-one", table: "users", foreignKey: "user_id", description: "Wallet belongs to a user" },
-      { type: "many-to-one", table: "businesses", foreignKey: "business_id", description: "Wallet is for a specific business" },
-      { type: "one-to-many", table: "earned_perks", foreignKey: "wallet_id", description: "Wallet contains many earned perks" },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // EARNED PERKS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  earned_perks: {
-    columns: {
-      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
-      wallet_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "perk_wallets", column: "id", onDelete: "CASCADE" },
-      },
-      campaign_id: {
-        type: "uuid",
-        nullable: false,
-        references: { table: "launched_campaigns", column: "id", onDelete: "CASCADE" },
-      },
-      submission_id: {
-        type: "uuid",
-        nullable: true,
-        references: { table: "campaign_submissions", column: "id", onDelete: "SET NULL" },
-      },
-      value: { type: "decimal(10,2)", nullable: false },
-      type: { type: "varchar(50)", nullable: false },
-      status: { type: "varchar(50)", nullable: false, default: "'available'" },
-      description: { type: "text", nullable: true },
-      redemption_code: { type: "varchar(100)", nullable: true },
-      earned_at: { type: "timestamptz", nullable: false, default: "now()" },
-      redeemed_at: { type: "timestamptz", nullable: true },
-      expires_at: { type: "timestamptz", nullable: false },
-    },
-    indexes: [
-      { columns: ["id"], unique: true, name: "earned_perks_pkey" },
-      { columns: ["wallet_id"], unique: false, name: "earned_perks_wallet_id_idx" },
-      { columns: ["campaign_id"], unique: false, name: "earned_perks_campaign_id_idx" },
-      { columns: ["status"], unique: false, name: "earned_perks_status_idx" },
-      { columns: ["redemption_code"], unique: true, name: "earned_perks_redemption_code_unique" },
-      { columns: ["expires_at"], unique: false, name: "earned_perks_expires_at_idx" },
-      { columns: ["wallet_id", "status"], unique: false, name: "earned_perks_wallet_status_idx" },
-    ],
-    relations: [
-      { type: "many-to-one", table: "perk_wallets", foreignKey: "wallet_id", description: "Perk belongs to a wallet" },
-      { type: "many-to-one", table: "launched_campaigns", foreignKey: "campaign_id", description: "Perk was earned from a campaign" },
-      { type: "many-to-one", table: "campaign_submissions", foreignKey: "submission_id", description: "Perk was earned from a specific submission" },
-    ],
+    // NOTE: the `launched_campaigns` relation was removed — that v1 table was
+    // dropped (campaigns are now persisted in `launched_campaign_state`, which
+    // does not carry a from_suggestion FK).
+    relations: [],
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1045,10 +855,11 @@ export const SCHEMA = {
     relations: [],
   },
 
-  // Durable submissions (cold-start safe). Flat, TEXT-keyed, FK-free — the v1
-  // `campaign_submissions` is UUID-keyed with FKs to launched_campaigns/users and
-  // rejects the engine's `sub_`/`cust_`/`camp_` TEXT ids, so writes to it silently
-  // failed and nothing read them back. Mirrors the perk_wallet_entries pattern.
+  // Durable submissions (cold-start safe). Flat, TEXT-keyed, FK-free. Replaced
+  // the v1 `campaign_submissions` table (now dropped from this schema), which was
+  // UUID-keyed with FKs to launched_campaigns/users and rejected the engine's
+  // `sub_`/`cust_`/`camp_` TEXT ids, so writes to it silently failed and nothing
+  // read them back. Mirrors the perk_wallet_entries pattern.
   campaign_submissions_v2: {
     columns: {
       id: { type: "text", nullable: false },
@@ -1078,12 +889,13 @@ export const SCHEMA = {
     relations: [],
   },
 
-  // Durable campaign lifecycle (cold-start safe). Flat, TEXT-keyed, FK-free — the
-  // v1 `launched_campaigns` is UUID-keyed with FKs to businesses(id) and uses
-  // different column names (status/budget_cap/completion_count), so the engine's
-  // write-through silently failed against it and every redeploy wiped all
-  // campaigns (the dashboard "amnesia" bug). Arrays (actions, ftc_disclosures)
-  // and the transition log are stored as JSON-in-TEXT.
+  // Durable campaign lifecycle (cold-start safe). Flat, TEXT-keyed, FK-free.
+  // Replaced the v1 `launched_campaigns` table (now dropped from this schema),
+  // which was UUID-keyed with FKs to businesses(id) and used different column
+  // names (status/budget_cap/completion_count), so the engine's write-through
+  // silently failed against it and every redeploy wiped all campaigns (the
+  // dashboard "amnesia" bug). Arrays (actions, ftc_disclosures) and the
+  // transition log are stored as JSON-in-TEXT.
   launched_campaign_state: {
     columns: {
       id: { type: "text", nullable: false },
