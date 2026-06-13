@@ -928,6 +928,24 @@ export const SCHEMA = {
     relations: [],
   },
 
+  // Notification dedup ledger (cold-start safe). Flat, TEXT-keyed, FK-free.
+  // Records that a specific notification was already sent so a redeploy can't
+  // re-spam recipients (e.g. creator match-notify emails). Keyed by a synthetic
+  // id like `match-notify:<campaignId>:<influencerId>`. The previous code
+  // (mis)used the uuid-keyed `notifications` table for this — a TEXT id into a
+  // uuid PK plus nonexistent columns — so every dedup write silently failed and
+  // dedup degraded to a process-local Set wiped on every cold start.
+  notify_dedup: {
+    columns: {
+      id: { type: "text", nullable: false },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "notify_dedup_pkey" },
+    ],
+    relations: [],
+  },
+
   payout_accounts: {
     columns: {
       influencer_id: { type: "text", nullable: false },
