@@ -1026,6 +1026,39 @@ export const SCHEMA = {
     relations: [],
   },
 
+  // Durable submissions (cold-start safe). Flat, TEXT-keyed, FK-free — the v1
+  // `campaign_submissions` is UUID-keyed with FKs to launched_campaigns/users and
+  // rejects the engine's `sub_`/`cust_`/`camp_` TEXT ids, so writes to it silently
+  // failed and nothing read them back. Mirrors the perk_wallet_entries pattern.
+  campaign_submissions_v2: {
+    columns: {
+      id: { type: "text", nullable: false },
+      campaign_id: { type: "text", nullable: false },
+      user_id: { type: "text", nullable: false },
+      action_id: { type: "text", nullable: false },
+      proof_url: { type: "text", nullable: false },
+      proof_type: { type: "text", nullable: false },
+      status: { type: "text", nullable: false },
+      submitted_at: { type: "timestamptz", nullable: false },
+      reviewed_at: { type: "timestamptz", nullable: true },
+      reviewed_by: { type: "text", nullable: true },
+      review_note: { type: "text", nullable: true },
+      perk_awarded: { type: "boolean", nullable: false, default: "false" },
+      metadata: { type: "text", nullable: true }, // JSON-as-text (we never query inside it)
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "campaign_submissions_v2_pkey" },
+      // NOTE: deliberately NO unique on (campaign_id,user_id,action_id) — the
+      // engine allows re-submission after rejection/expiry; a unique would throw.
+      { columns: ["user_id"], unique: false, name: "idx_campaign_submissions_v2_user" },
+      { columns: ["campaign_id"], unique: false, name: "idx_campaign_submissions_v2_campaign" },
+      { columns: ["status"], unique: false, name: "idx_campaign_submissions_v2_status" },
+    ],
+    relations: [],
+  },
+
   payout_accounts: {
     columns: {
       influencer_id: { type: "text", nullable: false },

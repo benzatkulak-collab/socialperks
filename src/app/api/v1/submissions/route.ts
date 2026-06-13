@@ -18,7 +18,7 @@ import {
 } from "../_shared";
 import { withTenant } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
-import { createSubmission, getSubmissions, getSubmissionById } from "@/lib/submissions";
+import { createSubmission, getSubmissions, getSubmissionById, hydrateSubmissions } from "@/lib/submissions";
 import type { SubmissionFilters } from "@/lib/submissions";
 import type { ProofType, SubmissionStatus } from "@/lib/types";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
@@ -102,6 +102,10 @@ export const GET = withTiming(async (req: NextRequest) => {
     if (!v.success) return err("INVALID_ACTION_ID", v.error, 400);
     filters.actionId = v.data;
   }
+
+  // Cold-start: rehydrate the in-memory cache from durable storage so a fresh
+  // serverless instance doesn't report an empty submission list / zero earnings.
+  await hydrateSubmissions();
 
   let result = getSubmissions(filters, page, perPage);
 

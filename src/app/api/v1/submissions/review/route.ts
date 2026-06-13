@@ -13,7 +13,7 @@ import {
   withTiming,
 } from "../../_shared";
 import { withTenant, checkResourceAccess } from "../../_tenant";
-import { reviewSubmission, calculatePerkValue, getSubmissionById } from "@/lib/submissions";
+import { reviewSubmission, calculatePerkValue, getSubmissionById, hydrateSubmissions } from "@/lib/submissions";
 import { awardPerk, persistPerk } from "@/lib/perk-wallet";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
@@ -84,6 +84,8 @@ export const POST = withTiming(async (req: NextRequest) => {
   // themselves perks.
   // Look up the submission, derive its campaignId server-side, then check
   // that the campaign's owning business matches the caller's tenant.
+  // Cold-start: rehydrate so a pre-deploy submission isn't a phantom 404.
+  await hydrateSubmissions();
   const existingSubmission = getSubmissionById(sv.data);
   if (!existingSubmission) {
     return err("NOT_FOUND", "Submission not found", 404);
