@@ -16,6 +16,13 @@ const DEFAULT_INFLUENCER_AVATAR = "\uD83C\uDFA4";
 export interface AuthFormProps {
   data: SeedData;
   save: (d: SeedData) => void;
+  /**
+   * The auth intent captured from the landing hash before it was cleared, e.g.
+   * "signup", "login", or "signup?plan=professional&period=annual". Used to pick
+   * the initial screen (so `#signup` opens signup, not login) and to recover plan
+   * intent — window.location.hash is no longer readable here (app.tsx strips it).
+   */
+  initialHash?: string;
   onBack: () => void;
   onAuth: (
     user: SeedBusiness | SeedInfluencer,
@@ -27,11 +34,17 @@ export interface AuthFormProps {
 export function AuthForm({
   data,
   save,
+  initialHash = "",
   onBack,
   onAuth,
   onEnterpriseDemo,
 }: AuthFormProps) {
-  const [screen, setScreen] = useState<"login" | "signup" | "signup-form" | "forgot" | "forgot-success">("login");
+  // Default to the signup screen when the visitor arrived via a "#signup" CTA
+  // (the primary hero/landing CTAs). Previously this always opened on "login",
+  // so first-time visitors saw "Welcome back" and had to hunt for "Sign up free".
+  const [screen, setScreen] = useState<"login" | "signup" | "signup-form" | "forgot" | "forgot-success">(
+    initialHash.startsWith("signup") ? "signup" : "login"
+  );
   const [signupRole, setSignupRole] = useState<"business" | "influencer">("business");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,9 +68,10 @@ export function AuthForm({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // The hash is "#signup?plan=professional&period=annual" so we have
-    // to parse it ourselves — URL.searchParams only reads the query.
-    const hash = window.location.hash.replace(/^#/, "");
+    // initialHash is "signup?plan=professional&period=annual" (captured by app.tsx
+    // before it cleared the URL hash) so we parse it ourselves — URL.searchParams
+    // only reads the query portion.
+    const hash = initialHash;
     const [, queryString] = hash.split("?");
     if (!queryString) {
       // Fall back to any persisted intent so a refresh doesn't lose it.
@@ -88,7 +102,7 @@ export function AuthForm({
       setSignupRole("business");
       setScreen("signup-form");
     }
-  }, []);
+  }, [initialHash]);
 
   const handleLogin = useCallback(async () => {
     setError("");

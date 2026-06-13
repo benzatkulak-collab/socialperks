@@ -155,6 +155,11 @@ export function SocialPerksApp() {
     INITIAL_SEED_DATA
   );
   const [screen, setScreen] = useState<"landing" | "auth" | "business" | "influencer" | "enterprise">("landing");
+  // The auth intent captured from the landing hash (e.g. "signup?plan=pro&period=annual").
+  // Captured here BEFORE we clear the URL hash, then handed to AuthForm so it can
+  // default to the right screen (signup vs login) and recover any plan intent —
+  // neither of which can read window.location.hash, because we strip it below.
+  const [authHash, setAuthHash] = useState("");
   const [currentUser, setCurrentUser] = useState<SeedBusiness | SeedInfluencer | null>(null);
   const [userRole, setUserRole] = useState<"business" | "influencer" | "enterprise" | null>(null);
   const [restoring, setRestoring] = useState(true);
@@ -274,7 +279,10 @@ export function SocialPerksApp() {
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash;
-      if (hash === "#login" || hash === "#signup") {
+      // Match "#login"/"#signup" AND their plan-intent variants
+      // ("#signup?plan=professional&period=annual") that the pricing CTAs use.
+      if (/^#(login|signup)(\?|$)/.test(hash)) {
+        setAuthHash(hash.replace(/^#/, ""));
         setScreen("auth");
         // Clear hash so back button works naturally
         window.history.replaceState(null, "", window.location.pathname);
@@ -353,6 +361,7 @@ export function SocialPerksApp() {
           <AuthForm
             data={data}
             save={save}
+            initialHash={authHash}
             onBack={handleBackToLanding}
             onAuth={handleAuth}
             onEnterpriseDemo={handleEnterpriseDemo}

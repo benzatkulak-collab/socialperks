@@ -9,8 +9,24 @@
  */
 
 import type { CampaignTier } from "./types";
+import { findAction } from "./platforms";
 
 const uid = () => crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+
+/**
+ * Legal guard: a campaign may only be SUGGESTED if every action in it can be
+ * legally incentivized. Reviews on Google/Yelp/TripAdvisor/Google Maps are
+ * non-incentivizable (`action.incentivizable === false`) and the campaign-create
+ * path already blocks them at launch (422). Suggesting such campaigns anyway
+ * misleads the user and contradicts our public "we block incentivized reviews by
+ * design" claim — so we drop them at generation time, the single source of truth
+ * being `findAction(id).incentivizable`.
+ */
+function dropNonIncentivizable(campaigns: GeneratedCampaign[]): GeneratedCampaign[] {
+  return campaigns.filter((c) =>
+    c.actions.every((id) => findAction(id)?.incentivizable !== false)
+  );
+}
 
 // ═══════════════ Trait Detection ═══════════════
 
@@ -470,7 +486,7 @@ export function generateCampaigns(options: GenerateOptions): GeneratedCampaign[]
   }
 
   // Apply size limits
-  return campaigns.slice(0, sizeMods.maxCampaigns);
+  return dropNonIncentivizable(campaigns).slice(0, sizeMods.maxCampaigns);
 }
 
 // ═══════════════ Campaign Recommendation Engine ═══════════════
