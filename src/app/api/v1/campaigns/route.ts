@@ -421,6 +421,7 @@ export const PUT = withTiming(async (req: NextRequest) => {
     const nv = validateString(body.name, "name", { min: 1, max: 200 });
     if (!nv.success) return err("INVALID_NAME", nv.error, 400);
     updates.name = nv.data;
+    lifecycle.name = nv.data; // keep the warm lifecycle + durable row in sync
   }
 
   if (body.description !== undefined) {

@@ -86,7 +86,7 @@ function lifecycleToRow(
   return {
     id: lc.id,
     business_id: lc.businessId,
-    name: keepMeta(extra?.name, existing?.name),
+    name: keepMeta(extra?.name ?? lc.name, existing?.name),
     description: keepMeta(extra?.description, existing?.description),
     guidelines: keepMeta(extra?.guidelines, existing?.guidelines),
     actions: JSON.stringify(lc.actions ?? extra?.actions ?? []),
@@ -94,8 +94,9 @@ function lifecycleToRow(
     budget_allocated: lc.budget.allocated,
     budget_spent: lc.budget.spent,
     budget_type: lc.budget.type,
-    discount_value: keepMeta(extra?.discountValue, existing?.discount_value),
-    discount_type: keepMeta(extra?.discountType, existing?.discount_type),
+    // discount value/type are the same data as budget.allocated/type.
+    discount_value: extra?.discountValue ?? lc.budget.allocated,
+    discount_type: extra?.discountType ?? lc.budget.type,
     completions: lc.completions.current,
     max_completions: lc.completions.max,
     ftc_disclosures: JSON.stringify(extra?.ftcDisclosures ?? pjsonArray(existing?.ftc_disclosures as string)),
@@ -123,6 +124,7 @@ function rowToLifecycle(r: CampaignDbRow): CampaignLifecycle {
     expiry: { launchedAt: toIso(r.launched_at), expiresAt: toIso(r.expires_at) },
     transitions: pjsonArray<StateTransition>(r.transitions),
     actions: actions.length > 0 ? actions : undefined,
+    name: r.name ?? undefined,
   };
 }
 
@@ -164,14 +166,14 @@ export async function persistLifecycle(
          discount_type = COALESCE(EXCLUDED.discount_type, launched_campaign_state.discount_type),
          completions = EXCLUDED.completions,
          max_completions = EXCLUDED.max_completions,
-         ftc_disclosures = EXCLUDED.ftc_disclosures,
+         ftc_disclosures = COALESCE(EXCLUDED.ftc_disclosures, launched_campaign_state.ftc_disclosures),
          expires_at = EXCLUDED.expires_at,
          transitions = EXCLUDED.transitions,
          updated_at = NOW()`,
       [
         lifecycle.id,
         lifecycle.businessId,
-        extra?.name ?? null,
+        extra?.name ?? lifecycle.name ?? null,
         extra?.description ?? null,
         extra?.guidelines ?? null,
         JSON.stringify(lifecycle.actions ?? extra?.actions ?? []),
@@ -179,11 +181,14 @@ export async function persistLifecycle(
         lifecycle.budget.allocated,
         lifecycle.budget.spent,
         lifecycle.budget.type,
-        extra?.discountValue ?? null,
-        extra?.discountType ?? null,
+        // discount value/type are the same data as budget.allocated/type.
+        extra?.discountValue ?? lifecycle.budget.allocated,
+        extra?.discountType ?? lifecycle.budget.type,
         lifecycle.completions.current,
         lifecycle.completions.max,
-        JSON.stringify(extra?.ftcDisclosures ?? []),
+        // Bind NULL (not '[]') when no disclosures supplied so the COALESCE above
+        // preserves any previously-stored value, matching the in-memory keepMeta.
+        extra?.ftcDisclosures != null ? JSON.stringify(extra.ftcDisclosures) : null,
         lifecycle.expiry.launchedAt,
         lifecycle.expiry.expiresAt,
         JSON.stringify(lifecycle.transitions ?? []),
@@ -243,8 +248,13 @@ export async function loadLifecyclesForBusiness(businessId: string): Promise<Cam
 
 // ─── Cold-start hydration into the campaignManager ───────────────────────────
 
-/** Businesses whose campaigns we've already loaded this process (avoid re-querying). */
-const hydratedBusinesses = new Set<string>();
+/**
+ * Per-business in-flight load promise. We cache the PROMISE (not a boolean) so
+ * concurrent callers on a freshly-warmed lambda await the SAME load and never
+ * read the manager before its register() loop has run — the read-after-mark race
+ * a boolean guard would allow. Mirrors the perk-wallet/programs `_hydrationPromise`.
+ */
+const businessLoads = new Map<string, Promise<void>>();
 
 /**
  * Ensure a single campaign is in the manager, loading + registering it from the
@@ -262,25 +272,30 @@ export async function ensureCampaignLoaded(campaignId: string): Promise<Campaign
 /**
  * Ensure all of a business's campaigns are in the manager. Runs the durable load
  * once per business per process; registers only ids the manager doesn't already
- * hold so a fresher in-memory write is never clobbered.
+ * hold so a fresher in-memory write is never clobbered. Concurrent callers share
+ * the in-flight promise, so the manager is fully populated before any of them read.
  */
-export async function ensureBusinessCampaignsLoaded(businessId: string): Promise<void> {
-  if (hydratedBusinesses.has(businessId)) return;
-  hydratedBusinesses.add(businessId); // mark first to avoid a concurrent stampede
-  try {
-    const rows = await loadLifecyclesForBusiness(businessId);
-    for (const lc of rows) {
-      if (!campaignManager.getState(lc.id)) campaignManager.register(lc);
+export function ensureBusinessCampaignsLoaded(businessId: string): Promise<void> {
+  const existing = businessLoads.get(businessId);
+  if (existing) return existing;
+  const p = (async () => {
+    try {
+      const rows = await loadLifecyclesForBusiness(businessId);
+      for (const lc of rows) {
+        if (!campaignManager.getState(lc.id)) campaignManager.register(lc);
+      }
+    } catch (e) {
+      businessLoads.delete(businessId); // allow a retry on the next request
+      captureError(e, { source: "campaign-persist.ensureBusinessCampaignsLoaded" });
     }
-  } catch (e) {
-    hydratedBusinesses.delete(businessId); // allow a retry on the next request
-    captureError(e, { source: "campaign-persist.ensureBusinessCampaignsLoaded" });
-  }
+  })();
+  businessLoads.set(businessId, p);
+  return p;
 }
 
 /** Test helper: drop durable rows + the per-business load guard. */
 export function clearCampaignStore(): void {
-  hydratedBusinesses.clear();
+  businessLoads.clear();
   const store = getInMemoryStore();
   if (!store) return;
   for (const r of store.selectMany(CAMPAIGN_TABLE, {}, { perPage: 1_000_000 }).rows) {
@@ -290,5 +305,5 @@ export function clearCampaignStore(): void {
 
 /** Test helper: simulate a cold start — forget which businesses were hydrated. */
 export function __resetCampaignHydrationForTests(): void {
-  hydratedBusinesses.clear();
+  businessLoads.clear();
 }

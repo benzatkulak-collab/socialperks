@@ -25,6 +25,7 @@ import { validateId, validateString, validateEnum } from "@/lib/security/validat
 import { checkProofUrl } from "@/lib/verification/url-checker";
 import { findAction } from "@/lib/platforms";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { ensureCampaignLoaded, ensureBusinessCampaignsLoaded } from "@/lib/campaign-state-machine/persist";
 import { eventPublisher } from "@/lib/realtime/publisher";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
@@ -51,10 +52,14 @@ export const GET = withTiming(async (req: NextRequest) => {
     const v = validateId(campaignId);
     if (!v.success) return err("INVALID_CAMPAIGN_ID", v.error, 400);
 
-    // If authenticated, verify the campaign belongs to the tenant
+    // If authenticated, verify the campaign belongs to the tenant. Cold-start:
+    // load the campaign from durable storage FIRST and DENY when it's unknown —
+    // otherwise a fresh lambda's empty manager makes getState return undefined,
+    // the ownership check is skipped, and the caller can read another business's
+    // submissions (proof URLs + customer emails). Deny on missing, not fall-through.
     if (tenantBusinessId) {
-      const campaign = campaignManager.getState(v.data);
-      if (campaign && campaign.businessId !== tenantBusinessId) {
+      const campaign = await ensureCampaignLoaded(v.data);
+      if (!campaign || campaign.businessId !== tenantBusinessId) {
         return err("TENANT_ACCESS_DENIED", "Cannot access submissions for another business's campaign", 403);
       }
     }
@@ -78,6 +83,9 @@ export const GET = withTiming(async (req: NextRequest) => {
   // the tenant's campaign IDs and filtering post-query.
   let tenantCampaignIds: Set<string> | null = null;
   if (tenantBusinessId && !campaignId && !businessId) {
+    // Cold-start: hydrate the tenant's durable campaigns so the scope set isn't
+    // empty (which would silently hide the entire review queue after a redeploy).
+    await ensureBusinessCampaignsLoaded(tenantBusinessId);
     const tenantCampaigns = campaignManager.listByBusiness(tenantBusinessId);
     tenantCampaignIds = new Set(tenantCampaigns.map((c) => c.id));
   }

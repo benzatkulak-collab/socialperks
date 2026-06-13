@@ -13,6 +13,7 @@
 import type { NextRequest } from "next/server";
 import { ok, err, rateLimit, getQuery, withTiming } from "../../_shared";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { ensureBusinessCampaignsLoaded } from "@/lib/campaign-state-machine/persist";
 import { validateId } from "@/lib/security/validate";
 import { eventStore } from "@/lib/events";
 import { findAction } from "@/lib/platforms";
@@ -63,7 +64,9 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   const businessId = v.data;
 
-  // Fetch active campaigns for this business
+  // Fetch active campaigns for this business. Cold-start: hydrate first so the
+  // embedded widget doesn't render empty (breaking the funnel) after a redeploy.
+  await ensureBusinessCampaignsLoaded(businessId);
   const allCampaigns = campaignManager.listByBusiness(businessId);
   const activeCampaigns = allCampaigns.filter((c) => c.state === "active");
 

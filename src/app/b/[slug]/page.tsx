@@ -5,6 +5,7 @@ import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { createSeedData } from "@/lib/seed";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { ensureBusinessCampaignsLoaded } from "@/lib/campaign-state-machine/persist";
 import { buildBusinessSlug, idFromSlug } from "@/lib/slugs";
 import { getUserByBusinessIdSuffix, ensureUsersSeeded } from "@/lib/auth/user-store";
 import { safeJsonForScript } from "@/lib/security/json-ld";
@@ -101,6 +102,9 @@ export default async function BusinessProfilePage({ params }: PageProps) {
   const biz = await findBusiness(slug);
   if (!biz) notFound();
 
+  // Cold-start: hydrate so this public, SEO-indexed profile (and its JSON-LD)
+  // shows the business's real active campaigns after a redeploy.
+  await ensureBusinessCampaignsLoaded(biz.id);
   const allLifecycles = campaignManager.listByBusiness(biz.id);
   const activeCampaigns = allLifecycles.filter((c) => c.state === "active");
 

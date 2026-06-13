@@ -109,6 +109,12 @@ export interface CampaignLifecycle {
    * reject. Now part of the canonical lifecycle.
    */
   readonly actions?: string[];
+  /**
+   * Human-readable campaign name. Carried on the lifecycle so it survives a cold
+   * start via the durable store (rowToLifecycle reads it back) — otherwise the
+   * dashboard falls back to the raw `camp_…` id. Mutable: edited via PUT.
+   */
+  name?: string;
 }
 
 // ─── Launch Configuration ───────────────────────────────────────────────────
@@ -190,6 +196,7 @@ class CampaignStateMachine {
       },
       transitions: [],
       actions: config.actions ? [...config.actions] : undefined,
+      name: config.name,
     };
 
     this.campaigns.set(campaignId, lifecycle);

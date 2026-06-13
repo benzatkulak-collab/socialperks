@@ -60,6 +60,8 @@ describe("Campaign durability", () => {
     expect(restored!.completions.max).toBe(100);
     // actions must round-trip — the public claim page gates allowed actions on it.
     expect(restored!.actions).toEqual(["ig_st", "ig_rl"]);
+    // name must round-trip — else the dashboard shows the raw camp_… id.
+    expect(restored!.name).toBe("Story Tag Special");
   });
 
   it("rehydrates a business's full campaign list into the manager (dashboard fix)", async () => {
