@@ -31,7 +31,28 @@ import { validateId, validateString, validateEnum } from "@/lib/security/validat
 import { createSubmission } from "@/lib/submissions";
 import type { ProofType } from "@/lib/types";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { loadLifecycle } from "@/lib/campaign-state-machine/persist";
 import { findAction } from "@/lib/platforms";
+
+/**
+ * Durable campaign lookup: in-memory map → event-store rehydrate → Postgres row.
+ * The claim page (/c/[id]) already does this; the public SUBMIT path did not,
+ * so on a cold serverless instance (routinely a different lambda than the one
+ * that rendered the page) `getState` returned undefined and a live campaign
+ * 404'd at the exact moment a customer submitted proof. Mirrors page.tsx.
+ */
+async function resolveCampaign(campaignId: string) {
+  let lifecycle = campaignManager.getState(campaignId);
+  if (!lifecycle) lifecycle = campaignManager.rehydrate(campaignId) ?? undefined;
+  if (!lifecycle) {
+    const fromDb = await loadLifecycle(campaignId);
+    if (fromDb) {
+      campaignManager.register(fromDb);
+      lifecycle = fromDb;
+    }
+  }
+  return lifecycle ?? null;
+}
 
 export const POST = withTiming(async (req: NextRequest) => {
   // 1. Strict rate-limit — anonymous endpoint, no auth bucket to attribute
@@ -63,8 +84,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (!cv.success) return err("INVALID_CAMPAIGN_ID", cv.error, 400);
 
   // 5. Campaign must exist and be active. Stops submissions to ended /
-  //    paused campaigns that would otherwise accumulate noise.
-  const lifecycle = campaignManager.getState(cv.data);
+  //    paused campaigns that would otherwise accumulate noise. Uses the durable
+  //    lookup (DB fallback) so a cold lambda doesn't 404 a live campaign.
+  const lifecycle = await resolveCampaign(cv.data);
   if (!lifecycle) return err("CAMPAIGN_NOT_FOUND", "Campaign not found", 404);
   if (lifecycle.state !== "active") {
     return err(

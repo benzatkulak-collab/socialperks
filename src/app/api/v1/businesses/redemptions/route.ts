@@ -17,6 +17,7 @@ import { NextResponse } from "next/server";
 import { ok, err, rateLimit, getQuery } from "../../_shared";
 import { withTenant, checkResourceAccess } from "../../_tenant";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { ensureBusinessCampaignsLoaded } from "@/lib/campaign-state-machine/persist";
 import { validateId } from "@/lib/security/validate";
 
 export async function GET(req: NextRequest) {
@@ -37,6 +38,8 @@ export async function GET(req: NextRequest) {
   const access = checkResourceAccess(tenant, v.data);
   if (access) return access;
 
+  // Cold-start: hydrate so the ROI view isn't all-zeros after a redeploy.
+  await ensureBusinessCampaignsLoaded(v.data);
   const campaigns = campaignManager.listByBusiness(v.data);
 
   // Aggregate the redemption-shaped view. Numbers are derived from the

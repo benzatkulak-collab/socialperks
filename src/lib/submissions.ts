@@ -9,7 +9,8 @@
  * `./submissions/persist.ts` when DATABASE_URL is set.
  */
 
-import { persistSubmission } from "@/lib/submissions/persist";
+import { persistSubmission, loadAllSubmissionRows, clearSubmissionStore } from "@/lib/submissions/persist";
+import { captureError } from "@/lib/monitoring";
 
 import type {
   SubmissionStatus,
@@ -411,6 +412,11 @@ export async function reviewSubmission(
 
   submissions.set(submissionId, updated);
 
+  // Durable write-through: persist the review decision so the approved/rejected
+  // status (and perkAwarded) survives a cold start. Awaited because the caller is
+  // async and a lost review is worse than a slightly slower response.
+  await persistSubmission(updated);
+
   // Emit event for analytics
   const eventType = decision === "approve" ? "submission.approved" : "submission.rejected";
   emitSubmissionEvent(eventType, submissionId, reviewerId, {
@@ -548,11 +554,13 @@ export function expireStaleSubmissions(maxAgeDays = 30): {
       submission.status === "pending" &&
       new Date(submission.submittedAt).getTime() < cutoffTime
     ) {
-      submissions.set(id, {
+      const expired: Submission = {
         ...submission,
         status: "expired",
         reviewNote: `Auto-expired after ${maxAgeDays} days without review`,
-      });
+      };
+      submissions.set(id, expired);
+      void persistSubmission(expired); // best-effort durable write-through
       expiredIds.push(id);
     }
   }
@@ -631,14 +639,72 @@ export function toApiSubmission(submission: Submission): CampaignSubmission {
   };
 }
 
+// ─── Cold-start hydration ────────────────────────────────────────────────────
+//
+// The submissions Map is empty on every serverless cold start. Without
+// rehydration, GET /api/v1/submissions returns nothing (creator earnings, the
+// admin review queue, and the business review surface all read empty) even
+// though the rows survive in `campaign_submissions_v2`. Warm the cache from the
+// durable store once per process. Best-effort; reads stay synchronous.
+
+let _hydrationPromise: Promise<void> | null = null;
+
+/**
+ * Load all persisted submissions into the in-memory cache + indexes. Runs once
+ * per process (cached promise). On error: capture, clear the cached promise so a
+ * later call retries, and never throw. Route read-handlers `await` this before
+ * reading the cache.
+ */
+export function hydrateSubmissions(): Promise<void> {
+  if (_hydrationPromise) return _hydrationPromise;
+  _hydrationPromise = (async () => {
+    try {
+      const rows = await loadAllSubmissionRows();
+      for (const r of rows) {
+        // Don't clobber a fresher entry a concurrent write added after hydration began.
+        if (submissions.has(r.id)) continue;
+        const sub: Submission = {
+          ...r,
+          proofType: r.proofType as ProofType,
+          status: r.status as SubmissionStatus,
+        };
+        submissions.set(sub.id, sub);
+        addToIndex(userSubmissions, sub.userId, sub.id);
+        addToIndex(campaignSubmissions, sub.campaignId, sub.id);
+      }
+    } catch (e) {
+      captureError(e, { source: "submissions.hydrate" });
+      _hydrationPromise = null;
+    }
+  })();
+  return _hydrationPromise;
+}
+
+// Warm the cache as soon as this module loads on a fresh instance.
+void hydrateSubmissions();
+
 // ─── Store Access (for testing / admin) ──────────────────────────────────────
 
 export function getStore(): Map<string, Submission> {
   return submissions;
 }
 
+/** Clear the in-memory cache AND the durable backing rows (test isolation). */
 export function clearStore(): void {
   submissions.clear();
   userSubmissions.clear();
   campaignSubmissions.clear();
+  clearSubmissionStore();
+  _hydrationPromise = null;
+}
+
+/**
+ * Test-only: simulate a serverless cold start — drop the in-memory cache but
+ * KEEP the durable rows, so a subsequent hydrateSubmissions() reloads them.
+ */
+export function __resetSubmissionsCacheForTests(): void {
+  submissions.clear();
+  userSubmissions.clear();
+  campaignSubmissions.clear();
+  _hydrationPromise = null;
 }

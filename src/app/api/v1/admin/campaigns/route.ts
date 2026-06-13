@@ -10,6 +10,7 @@
 import type { NextRequest } from "next/server";
 import { ok, err, requireAuth, rateLimit, parseBody, getQuery, withTiming } from "../../_shared";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { ensureCampaignLoaded, persistLifecycle } from "@/lib/campaign-state-machine/persist";
 import { audit } from "@/lib/audit-log";
 
 export const GET = withTiming(async (req: NextRequest) => {
@@ -24,7 +25,7 @@ export const GET = withTiming(async (req: NextRequest) => {
   const id = params.get("id");
   if (!id) return err("MISSING_FIELDS", "id query param required");
 
-  const lifecycle = campaignManager.getState(id);
+  const lifecycle = await ensureCampaignLoaded(id);
   if (!lifecycle) return err("CAMPAIGN_NOT_FOUND", "Campaign not found", 404);
 
   return ok({ campaign: lifecycle });
@@ -53,7 +54,9 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("INVALID_ACTION", "action must be pause, resume, or end");
   }
 
-  const lifecycle = campaignManager.getState(body.campaignId);
+  // Cold-start: load from durable storage so an admin can moderate a campaign
+  // the in-memory manager forgot after a redeploy.
+  const lifecycle = await ensureCampaignLoaded(body.campaignId);
   if (!lifecycle) return err("CAMPAIGN_NOT_FOUND", "Campaign not found", 404);
 
   const reason = body.reason ?? "Admin override";
@@ -71,6 +74,10 @@ export const POST = withTiming(async (req: NextRequest) => {
         updated = campaignManager.end(body.campaignId, user.id, reason);
         break;
     }
+
+    // Persist the admin override so a force pause/resume/end isn't reverted on
+    // the next cold start (a force-ended abusive campaign must stay ended).
+    void persistLifecycle(updated!);
 
     audit({
       action: "auth.role_changed", // closest existing enum — admin force action on resource

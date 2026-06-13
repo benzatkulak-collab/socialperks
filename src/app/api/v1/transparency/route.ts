@@ -48,7 +48,9 @@ export async function GET(req: NextRequest) {
         `SELECT COUNT(*)::text AS count FROM businesses`,
       ),
       db.query<{ count: string }>(
-        `SELECT COUNT(*)::text AS count FROM launched_campaigns WHERE state = 'active'`,
+        // Durable campaign state lives in launched_campaign_state (the v1
+        // launched_campaigns table has no `state` column and is never written).
+        `SELECT COUNT(*)::text AS count FROM launched_campaign_state WHERE state = 'active'`,
       ),
     ]);
 

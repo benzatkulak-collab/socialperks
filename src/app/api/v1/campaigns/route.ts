@@ -21,7 +21,7 @@ import { withTenant, checkResourceAccess } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import type { CampaignState, CampaignLifecycle } from "@/lib/campaign-state-machine";
-import { persistLifecycle } from "@/lib/campaign-state-machine/persist";
+import { persistLifecycle, ensureBusinessCampaignsLoaded, ensureCampaignLoaded } from "@/lib/campaign-state-machine/persist";
 import { validateId, validateString, validateNumber, validateEnum } from "@/lib/security/validate";
 import { requireOwnership } from "@/lib/security/owner";
 import { eventPublisher } from "@/lib/realtime/publisher";
@@ -64,6 +64,9 @@ export const GET = withTiming(async (req: NextRequest) => {
       return err("TENANT_ACCESS_DENIED", "Cannot access campaigns for another business", 403);
     }
 
+    // Cold-start: load this business's durable campaigns into the manager so a
+    // returning owner doesn't see an empty dashboard after a redeploy.
+    await ensureBusinessCampaignsLoaded(v.data);
     campaigns = campaignManager.listByBusiness(v.data);
 
     // Further narrow by state if provided
@@ -74,6 +77,7 @@ export const GET = withTiming(async (req: NextRequest) => {
     }
   } else if (tenantBusinessId) {
     // Authenticated user with no explicit businessId filter: scope to own tenant
+    await ensureBusinessCampaignsLoaded(tenantBusinessId);
     campaigns = campaignManager.listByBusiness(tenantBusinessId);
 
     if (stateParam) {
@@ -219,6 +223,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   // ── Plan enforcement: campaign limit (moved AFTER input validation) ──────
   // Running this AFTER all validation means malformed requests get a clear
   // 400 with the bad field, rather than the misleading "upgrade your plan".
+  // Cold-start: hydrate durable campaigns first so the limit counts the
+  // business's real active campaigns (else a fresh lambda counts 0 and lets a
+  // capped business over-create — or hides their real campaigns).
+  await ensureBusinessCampaignsLoaded(bv.data);
   const plan = getBusinessPlan(bv.data);
   const campaignCheck = checkCampaignLimit(bv.data, plan);
   if (!campaignCheck.allowed) {
@@ -348,8 +356,9 @@ export const PUT = withTiming(async (req: NextRequest) => {
   const cv = validateId(body.campaignId);
   if (!cv.success) return err("INVALID_CAMPAIGN_ID", cv.error, 400);
 
-  // Look up the campaign
-  const lifecycle = campaignManager.getState(cv.data);
+  // Look up the campaign (cold-start: load from durable storage if the
+  // manager's in-memory Map was wiped by a redeploy).
+  const lifecycle = await ensureCampaignLoaded(cv.data);
   if (!lifecycle) {
     return err("CAMPAIGN_NOT_FOUND", `Campaign ${cv.data} not found`, 404);
   }
@@ -384,6 +393,9 @@ export const PUT = withTiming(async (req: NextRequest) => {
           break;
       }
 
+      // Persist the transition so pause/resume/end survives a cold start.
+      void persistLifecycle(updated!);
+
       return ok({ campaign: updated! });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update campaign state";
@@ -409,6 +421,7 @@ export const PUT = withTiming(async (req: NextRequest) => {
     const nv = validateString(body.name, "name", { min: 1, max: 200 });
     if (!nv.success) return err("INVALID_NAME", nv.error, 400);
     updates.name = nv.data;
+    lifecycle.name = nv.data; // keep the warm lifecycle + durable row in sync
   }
 
   if (body.description !== undefined) {
@@ -488,6 +501,17 @@ export const PUT = withTiming(async (req: NextRequest) => {
   if (Object.keys(updates).length === 0) {
     return err("NO_UPDATES", "No valid fields provided to update", 400);
   }
+
+  // Persist the in-place lifecycle edits (budget/discount/maxCompletions/expiry
+  // were mutated above) plus the editable display fields, so a cold start
+  // doesn't revert them.
+  void persistLifecycle(lifecycle, {
+    name: typeof updates.name === "string" ? updates.name : undefined,
+    description: typeof updates.description === "string" ? updates.description : undefined,
+    guidelines: typeof updates.guidelines === "string" ? updates.guidelines : undefined,
+    discountValue: typeof updates.discountValue === "number" ? updates.discountValue : undefined,
+    discountType: typeof updates.discountType === "string" ? updates.discountType : undefined,
+  });
 
   eventPublisher.publish(
     "campaign.updated",

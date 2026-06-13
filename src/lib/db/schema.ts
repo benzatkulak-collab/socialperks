@@ -1026,6 +1026,77 @@ export const SCHEMA = {
     relations: [],
   },
 
+  // Durable submissions (cold-start safe). Flat, TEXT-keyed, FK-free — the v1
+  // `campaign_submissions` is UUID-keyed with FKs to launched_campaigns/users and
+  // rejects the engine's `sub_`/`cust_`/`camp_` TEXT ids, so writes to it silently
+  // failed and nothing read them back. Mirrors the perk_wallet_entries pattern.
+  campaign_submissions_v2: {
+    columns: {
+      id: { type: "text", nullable: false },
+      campaign_id: { type: "text", nullable: false },
+      user_id: { type: "text", nullable: false },
+      action_id: { type: "text", nullable: false },
+      proof_url: { type: "text", nullable: false },
+      proof_type: { type: "text", nullable: false },
+      status: { type: "text", nullable: false },
+      submitted_at: { type: "timestamptz", nullable: false },
+      reviewed_at: { type: "timestamptz", nullable: true },
+      reviewed_by: { type: "text", nullable: true },
+      review_note: { type: "text", nullable: true },
+      perk_awarded: { type: "boolean", nullable: false, default: "false" },
+      metadata: { type: "text", nullable: true }, // JSON-as-text (we never query inside it)
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "campaign_submissions_v2_pkey" },
+      // NOTE: deliberately NO unique on (campaign_id,user_id,action_id) — the
+      // engine allows re-submission after rejection/expiry; a unique would throw.
+      { columns: ["user_id"], unique: false, name: "idx_campaign_submissions_v2_user" },
+      { columns: ["campaign_id"], unique: false, name: "idx_campaign_submissions_v2_campaign" },
+      { columns: ["status"], unique: false, name: "idx_campaign_submissions_v2_status" },
+    ],
+    relations: [],
+  },
+
+  // Durable campaign lifecycle (cold-start safe). Flat, TEXT-keyed, FK-free — the
+  // v1 `launched_campaigns` is UUID-keyed with FKs to businesses(id) and uses
+  // different column names (status/budget_cap/completion_count), so the engine's
+  // write-through silently failed against it and every redeploy wiped all
+  // campaigns (the dashboard "amnesia" bug). Arrays (actions, ftc_disclosures)
+  // and the transition log are stored as JSON-in-TEXT.
+  launched_campaign_state: {
+    columns: {
+      id: { type: "text", nullable: false },
+      business_id: { type: "text", nullable: false },
+      name: { type: "text", nullable: true },
+      description: { type: "text", nullable: true },
+      guidelines: { type: "text", nullable: true },
+      actions: { type: "text", nullable: true }, // JSON array of action ids
+      state: { type: "text", nullable: false },
+      budget_allocated: { type: "decimal(10,2)", nullable: false, default: "0" },
+      budget_spent: { type: "decimal(10,2)", nullable: false, default: "0" },
+      budget_type: { type: "text", nullable: false },
+      discount_value: { type: "decimal(10,2)", nullable: true },
+      discount_type: { type: "text", nullable: true },
+      completions: { type: "int", nullable: false, default: "0" },
+      max_completions: { type: "int", nullable: true },
+      ftc_disclosures: { type: "text", nullable: true }, // JSON array
+      launched_at: { type: "timestamptz", nullable: false },
+      expires_at: { type: "timestamptz", nullable: false },
+      transitions: { type: "text", nullable: true }, // JSON array of state transitions
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+      updated_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "launched_campaign_state_pkey" },
+      { columns: ["business_id"], unique: false, name: "idx_launched_campaign_state_business" },
+      { columns: ["state"], unique: false, name: "idx_launched_campaign_state_state" },
+      { columns: ["business_id", "state"], unique: false, name: "idx_launched_campaign_state_biz_state" },
+    ],
+    relations: [],
+  },
+
   payout_accounts: {
     columns: {
       influencer_id: { type: "text", nullable: false },

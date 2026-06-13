@@ -13,9 +13,10 @@ import {
   withTiming,
 } from "../../_shared";
 import { withTenant, checkResourceAccess } from "../../_tenant";
-import { reviewSubmission, calculatePerkValue, getSubmissionById } from "@/lib/submissions";
+import { reviewSubmission, calculatePerkValue, getSubmissionById, hydrateSubmissions } from "@/lib/submissions";
 import { awardPerk, persistPerk } from "@/lib/perk-wallet";
 import { campaignManager } from "@/lib/campaign-state-machine";
+import { ensureCampaignLoaded, persistLifecycle } from "@/lib/campaign-state-machine/persist";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
 import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
 import type { LaunchedCampaign } from "@/lib/types";
@@ -84,11 +85,14 @@ export const POST = withTiming(async (req: NextRequest) => {
   // themselves perks.
   // Look up the submission, derive its campaignId server-side, then check
   // that the campaign's owning business matches the caller's tenant.
+  // Cold-start: rehydrate so a pre-deploy submission isn't a phantom 404.
+  await hydrateSubmissions();
   const existingSubmission = getSubmissionById(sv.data);
   if (!existingSubmission) {
     return err("NOT_FOUND", "Submission not found", 404);
   }
-  const campaignLifecycle = campaignManager.getState(existingSubmission.campaignId);
+  // Cold-start: load the campaign from durable storage if the manager was wiped.
+  const campaignLifecycle = await ensureCampaignLoaded(existingSubmission.campaignId);
   if (!campaignLifecycle) {
     return err("NOT_FOUND", "Campaign for this submission not found", 404);
   }
@@ -138,7 +142,9 @@ export const POST = withTiming(async (req: NextRequest) => {
     const lifecycle = campaignManager.getState(submission.campaignId);
     if (lifecycle && lifecycle.state === "active") {
       try {
-        campaignManager.recordCompletion(submission.campaignId);
+        const after = campaignManager.recordCompletion(submission.campaignId);
+        // Persist the incremented completion count (and any auto-end) durably.
+        void persistLifecycle(after.lifecycle);
       } catch (e) {
         console.warn(`[Campaign] Failed to record completion for campaign ${submission.campaignId}:`, e instanceof Error ? e.message : e);
       }

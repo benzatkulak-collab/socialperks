@@ -130,9 +130,13 @@ export async function GET(req: NextRequest) {
     let tablesOk = true;
     let perksOk = true;
     let perksDetail = "Perk wallet table present";
+    let subsTableOk = true;
+    let subsTableDetail = "Submission table present";
+    let campaignTableOk = true;
+    let campaignTableDetail = "Campaign table present";
     try {
-      const r = await db.query<{ subs: string | null; usage: string | null; perks: string | null }>(
-        "SELECT to_regclass('business_subscriptions') AS subs, to_regclass('monthly_usage') AS usage, to_regclass('perk_wallet_entries') AS perks",
+      const r = await db.query<{ subs: string | null; usage: string | null; perks: string | null; submissions: string | null; campaigns: string | null }>(
+        "SELECT to_regclass('business_subscriptions') AS subs, to_regclass('monthly_usage') AS usage, to_regclass('perk_wallet_entries') AS perks, to_regclass('campaign_submissions_v2') AS submissions, to_regclass('launched_campaign_state') AS campaigns",
       );
       const missingTables: string[] = [];
       if (!r.rows[0]?.subs) missingTables.push("business_subscriptions");
@@ -142,17 +146,31 @@ export async function GET(req: NextRequest) {
 
       perksOk = !!r.rows[0]?.perks;
       if (!perksOk) perksDetail = "Missing: perk_wallet_entries — run /api/v1/migrate (earned perks won't persist)";
+
+      subsTableOk = !!r.rows[0]?.submissions;
+      if (!subsTableOk) subsTableDetail = "Missing: campaign_submissions_v2 — run /api/v1/migrate (proof submissions won't persist)";
+
+      campaignTableOk = !!r.rows[0]?.campaigns;
+      if (!campaignTableOk) campaignTableDetail = "Missing: launched_campaign_state — run /api/v1/migrate (campaigns won't survive cold start)";
     } catch (e) {
       tablesOk = false;
       tablesDetail = e instanceof Error ? e.message : "billing table check failed";
       perksOk = false;
       perksDetail = e instanceof Error ? e.message : "perk table check failed";
+      subsTableOk = false;
+      subsTableDetail = e instanceof Error ? e.message : "submission table check failed";
+      campaignTableOk = false;
+      campaignTableDetail = e instanceof Error ? e.message : "campaign table check failed";
     }
     checks.billing_tables = check(tablesOk, "Billing tables present", tablesDetail, !isProd);
     checks.perk_tables = check(perksOk, "Perk wallet table present", perksDetail, !isProd);
+    checks.submission_tables = check(subsTableOk, "Submission table present", subsTableDetail, !isProd);
+    checks.campaign_tables = check(campaignTableOk, "Campaign table present", campaignTableDetail, !isProd);
   } else {
     checks.billing_tables = check(true, "skipped (in-memory storage)", "");
     checks.perk_tables = check(true, "skipped (in-memory storage)", "");
+    checks.submission_tables = check(true, "skipped (in-memory storage)", "");
+    checks.campaign_tables = check(true, "skipped (in-memory storage)", "");
   }
 
   // Aggregate readiness — only "missing" (non-warning) failures count
