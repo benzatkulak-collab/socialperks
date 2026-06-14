@@ -66,6 +66,8 @@ interface PricingTier {
    */
   planKey: "starter" | "professional" | "enterprise" | null;
   price: string;
+  /** Real annual total (matches Stripe + billing/store.ts); shown per-month on the annual toggle. */
+  annualPrice?: number;
   period: string;
   description: string;
   features: string[];
@@ -75,6 +77,20 @@ interface PricingTier {
   accent: string;
   badge?: string;
 }
+
+// Live Stripe Payment Links (hosted checkout). Lets the marketing site collect
+// real subscriptions today without the in-app checkout env wiring. Keyed by
+// plan + billing period. Free/Enterprise are handled separately in the CTA.
+const PAYMENT_LINKS: Record<"starter" | "professional", { monthly: string; annual: string }> = {
+  starter: {
+    monthly: "https://buy.stripe.com/28E7sLgb2gm24jx7rocjS02",
+    annual: "https://buy.stripe.com/dRm3cv1g87Pw8zNaDAcjS04",
+  },
+  professional: {
+    monthly: "https://buy.stripe.com/aFaeVd8IA0n48zN274cjS05",
+    annual: "https://buy.stripe.com/aFabJ13og0n47vJ4fccjS03",
+  },
+};
 
 const PRICING_TIERS: PricingTier[] = [
   {
@@ -98,6 +114,7 @@ const PRICING_TIERS: PricingTier[] = [
     name: "Starter",
     planKey: "starter",
     price: "$29",
+    annualPrice: 290,
     period: "/month",
     description: "For solo owners ready to grow.",
     features: [
@@ -116,6 +133,7 @@ const PRICING_TIERS: PricingTier[] = [
     name: "Pro",
     planKey: "professional",
     price: "$49",
+    annualPrice: 490,
     period: "/month",
     description: "Everything you need to scale.",
     features: [
@@ -250,7 +268,7 @@ export function PricingSection() {
             </span>
             {annual && (
               <span className="ml-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-xs font-semibold text-brand-green">
-                Save 20%
+                2 months free
               </span>
             )}
           </div>
@@ -339,14 +357,14 @@ export function PricingSection() {
                 ? parseInt(tier.price.replace("$", ""))
                 : null;
             const annualMonthlyAmount =
-              monthlyAmount !== null ? Math.round(monthlyAmount * 0.8) : null;
+              tier.annualPrice != null ? Math.round(tier.annualPrice / 12) : null;
             const displayPrice =
               annual && annualMonthlyAmount !== null
                 ? `$${annualMonthlyAmount}`
                 : tier.price;
             const annualSavings =
-              annual && monthlyAmount !== null && annualMonthlyAmount !== null
-                ? (monthlyAmount - annualMonthlyAmount) * 12
+              annual && monthlyAmount !== null && tier.annualPrice != null
+                ? monthlyAmount * 12 - tier.annualPrice
                 : 0;
 
             return (
@@ -417,7 +435,7 @@ export function PricingSection() {
                       ? "/dashboard#signup"
                       : tier.planKey === "enterprise"
                         ? "/contact?intent=enterprise"
-                        : `/dashboard#signup?plan=${tier.planKey}&period=${annual ? "annual" : "monthly"}`
+                        : PAYMENT_LINKS[tier.planKey][annual ? "annual" : "monthly"]
                   }
                   className={`block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                     tier.popular
