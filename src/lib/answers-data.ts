@@ -950,6 +950,338 @@ export const ANSWERS: AnswerPage[] = [
       },
     ],
   },
+  // ─── Added 2026-06-14 (free-Gemini drafts, adversarially fact-checked) ───
+  {
+    slug: "how-can-a-local-business-get-customers-to-post-on-social-media-without-paying-for-ads",
+    question: "How can a local business get customers to post on social media without paying for ads?",
+    shortAnswer:
+      "Local businesses can encourage customers to post on social media by offering small perks or discounts in exchange for authentic, disclosed user-generated content, leveraging word-of-mouth marketing.",
+    longAnswer:
+      "Many local businesses seek effective marketing without the high cost of traditional social media ads. The most powerful alternative is leveraging existing customers through authentic word-of-mouth marketing, which generates content without direct ad spend.\n\nInstead of paying platforms directly for ad impressions, businesses can offer a small incentive—like a discount, free item, or exclusive access—to customers who share their honest experiences on their personal social media accounts. This strategy is highly effective on platforms such as Instagram, TikTok, Facebook, and YouTube, where user-generated content (UGC) often resonates more authentically with audiences than branded advertisements.\n\nCrucially, this form of incentivized marketing is legal in the US, provided that the customer clearly and conspicuously discloses their relationship with the business. The Federal Trade Commission (FTC) Endorsement Guides mandate such disclosures, often through hashtags like #ad or using platform-specific \"Paid Partnership\" tags. The brand is responsible for ensuring these disclosures are made, and the FTC can pursue enforcement against brands that fail to do so.\n\nIt's vital to distinguish this from paying for reviews on platforms like Google, Yelp, or TripAdvisor, which strictly prohibit incentivized reviews and can penalize businesses for such practices. Word-of-mouth campaigns focus on generating organic-looking posts on social media feeds, not review platforms, thus avoiding these prohibitions.\n\nBy empowering customers to become brand advocates, businesses gain access to a network of trusted endorsements. This approach generates authentic content that builds trust and expands reach within the customers' social circles, often at a fraction of the cost of traditional paid advertising.\n\nSocial Perks streamlines this process by providing a platform where businesses can easily set up campaigns offering perks for social media posts. The platform ensures FTC compliance by automatically injecting the necessary platform-specific disclosure into every post (it cannot be disabled) and blocking submissions that do not meet the disclosure requirements, making it simple and safe for local businesses to harness the power of customer advocacy.",
+    keyPoints: [
+      "Offer customers small perks or discounts for posting about your business on social media.",
+      "Focus on platforms like Instagram, TikTok, Facebook, and YouTube for user-generated content.",
+      "Ensure all incentivized posts include clear FTC disclosures (e.g., #ad or Paid Partnership tag).",
+      "This differs from prohibited paid reviews on platforms like Google, Yelp, or TripAdvisor.",
+      "Leverage authentic word-of-mouth marketing to build trust and expand reach without ad spend.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-do-i-get-user-generated-content-for-my-business",
+        "how-do-i-ask-a-customer-for-an-instagram-post",
+        "is-it-legal-to-offer-discounts-for-instagram-posts",
+      ],
+      industries: ["restaurants", "coffee-shops", "salons"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Start your word-of-mouth campaign →",
+        href: "/dashboard#signup",
+        rationale: "This CTA encourages businesses to immediately apply the discussed strategy for generating customer social media posts.",
+      },
+    ],
+  },
+  {
+    slug: "what-metrics-should-i-track-to-measure-a-customer-social-media-campaign",
+    question: "What metrics should I track to measure a customer social media campaign?",
+    shortAnswer:
+      "Track reach, engagement (likes, comments, shares), website clicks, and new followers to measure the effectiveness of customer social media campaigns and understand their impact.",
+    longAnswer:
+      "Measuring the success of a customer social media campaign involves tracking several key metrics that provide insights into visibility, engagement, and potential business impact. These metrics help you understand how effectively customer-generated content is performing and contributing to your marketing goals.\n\nFirst, focus on **visibility metrics** such as **Reach** and **Impressions**. Reach indicates the number of unique users who saw the customer's post, while Impressions represent the total number of times the post was displayed. High reach means your message is getting in front of more eyes, expanding your brand's potential audience through authentic word-of-mouth.\n\nNext, **engagement metrics** are crucial for understanding how compelling the content is. These include **Likes**, **Comments**, **Shares**, and **Saves**. A high volume of engagement suggests that the content resonates with viewers, prompting interaction and further spreading its reach. Comments can also provide qualitative feedback on customer sentiment.\n\nFor direct impact, track **website clicks** or **link-in-bio clicks** if the customer's post directs traffic to a specific URL. While not all customer posts will include direct links, those that do offer a measurable pathway to your online presence. Additionally, monitor **new followers** gained during the campaign period, as this indicates direct brand growth driven by the customer content.\n\nFinally, consider **brand mentions** and **tags**. These show how often your business is being directly referenced by customers and their networks, reinforcing brand awareness. While harder to quantify directly, observing the overall sentiment in comments and shares can also provide valuable qualitative insights into how your brand is perceived.\n\nSocial Perks streamlines the generation of these valuable customer social media posts by providing a platform for incentivized content creation. By aggregating all customer-generated posts in one place, Social Perks makes it easier for businesses to monitor the volume and quality of content, which can then be analyzed using the native analytics tools of Instagram, TikTok, Facebook, or YouTube to track the metrics mentioned above.",
+    keyPoints: [
+      "Prioritize reach and impressions to gauge content visibility.",
+      "Measure engagement metrics like likes, comments, and shares to assess content effectiveness.",
+      "Track website clicks or new followers for direct business impact.",
+      "Monitor brand mentions and tags to understand organic brand awareness.",
+      "Social Perks facilitates the creation and collection of customer posts, enabling easier metric analysis.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "what-is-the-average-roi-of-customer-marketing-campaigns",
+        "how-long-does-customer-marketing-take-to-work",
+        "why-isnt-my-customer-campaign-getting-submissions",
+      ],
+      industries: ["restaurants", "coffee-shops", "retail"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Measure Your Next Customer Campaign →",
+        href: "/dashboard#signup",
+        rationale: "This CTA encourages businesses to explore how Social Perks can help them implement and track effective customer social media campaigns.",
+      },
+    ],
+  },
+  {
+    slug: "how-do-i-prevent-fake-or-low-quality-posts-in-a-customer-perk-campaign",
+    question: "How do I prevent fake or low-quality posts in a customer perk campaign?",
+    shortAnswer:
+      "Social Perks prevents fake or low-quality posts by enabling businesses to set clear campaign requirements, manually approve every submission before a perk is redeemed, and automatically applying FTC-compliant disclosures.",
+    longAnswer:
+      "Preventing fake or low-quality posts is crucial for maintaining brand integrity and ensuring your marketing efforts yield genuine results. While incentivized social media posts are legal and effective when properly disclosed, content quality directly impacts your brand's perception and the authenticity of your word-of-mouth marketing.\n\nThe primary mechanism to prevent low-quality content in a customer perk campaign is to establish clear, specific guidelines for what constitutes an acceptable post. This includes defining required elements such as photo/video quality, specific mentions, hashtags, and the overall tone or message. Without clear instructions, customers may submit generic or unhelpful content.\n\nSocial Perks empowers businesses with a robust approval process designed to ensure quality. After a customer posts about your business on Instagram, TikTok, Facebook, or YouTube, their submission is held for your review. You, the business owner, manually approve each post before the customer can redeem their perk. This means no customer receives their discount or free item until their post meets your standards. If a submission is low-quality, off-topic, or doesn't meet your campaign requirements, you can reject it, providing feedback if necessary, and the customer will not receive the perk.\n\nFurthermore, Social Perks automatically injects the platform-specific FTC disclosure (e.g., #ad or a Paid Partnership tag) into every campaign, blocking non-compliant submissions. While this primarily addresses legal compliance, it also reinforces the transparency of the exchange, which naturally deters purely fake or misleading content, as the incentive is openly acknowledged. This system is fundamentally different from prohibited practices like paying for reviews on sites like Google or Yelp, which Social Perks blocks by design. By focusing on genuine customer experiences shared transparently on social media, you ensure that the content you promote is both authentic and high-quality.\n\nUltimately, Social Perks provides the tools to define your quality standards, enforce them through a mandatory approval process, and ensure all content is legally compliant, giving you full control over your brand's presence in customer-generated social media posts.",
+    keyPoints: [
+      "Define clear, specific content requirements for all customer posts.",
+      "Manually approve every customer submission before they can redeem their perk.",
+      "Reject posts that do not meet your quality standards or campaign guidelines.",
+      "Leverage platform features that automatically ensure FTC-compliant disclosures.",
+      "Focus on genuine customer experiences, not paid reviews for prohibited platforms.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-do-i-verify-a-customer-actually-posted",
+        "why-isnt-my-customer-campaign-getting-submissions",
+        "what-is-the-ftc-rule-on-incentivized-reviews",
+      ],
+      industries: ["restaurants", "retail", "salons"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Set Up Your Quality-Controlled Perk Campaign →",
+        href: "/dashboard#signup",
+        rationale: "Setting up your campaign with clear guidelines and an approval process is crucial for ensuring high-quality customer posts.",
+      },
+    ],
+  },
+  {
+    slug: "what-types-of-local-businesses-benefit-most-from-customer-social-posts",
+    question: "What types of local businesses benefit most from customer social posts?",
+    shortAnswer:
+      "Businesses with strong visual appeal, unique experiences, or a focus on local community engagement benefit most from authentic customer social posts.",
+    longAnswer:
+      "While nearly any local business can leverage customer social posts, those with inherent visual appeal, experiential offerings, or a strong community focus tend to see the greatest returns. These characteristics naturally lend themselves to shareable content on platforms like Instagram, TikTok, Facebook, and YouTube.\n\nBusinesses that thrive on visual content, such as restaurants, coffee shops, bakeries, salons, barbershops, florists, and retail boutiques, are prime candidates. Customers love to share aesthetically pleasing food and drinks, stylish new hairstyles, beautiful floral arrangements, or unique retail finds. These posts act as compelling visual endorsements, showcasing the product or service in an authentic, relatable context that traditional advertising often struggles to replicate.\n\nExperiential businesses also see significant benefits. Yoga studios, gyms, entertainment venues, and unique service providers offer customers memorable moments they are eager to share. A post about a challenging workout, a relaxing spa day, or a fun class not only highlights the business but also positions the customer as someone enjoying a valuable experience, inspiring their followers to seek similar experiences.\n\nFurthermore, businesses deeply embedded in their local community or that rely heavily on word-of-mouth referrals gain immensely. When customers post about a local favorite, it reinforces community ties and builds trust among their social network. This peer-to-peer recommendation is incredibly powerful, often outweighing professional reviews because it comes from a trusted source.\n\nSocial Perks specifically helps these businesses by facilitating authentic customer posts on Instagram, TikTok, Facebook, and YouTube. The platform ensures all posts include the necessary FTC disclosures, making it easy for businesses to harness the power of genuine social media marketing without compliance worries.",
+    keyPoints: [
+      "Businesses with strong visual appeal or unique experiences benefit most.",
+      "Sectors like food, beauty, retail, and fitness are ideal for social sharing.",
+      "Local businesses relying on word-of-mouth and community ties thrive on these posts.",
+      "Customer social posts offer authentic, peer-to-peer recommendations.",
+      "Social Perks ensures FTC-compliant, genuine social media marketing.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-do-coffee-shops-use-instagram-to-grow",
+        "how-do-restaurants-get-more-user-generated-content",
+        "how-do-salons-and-spas-get-more-customers-from-instagram",
+      ],
+      industries: ["restaurants", "salons", "retail"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "See How Your Business Can Benefit →",
+        href: "/dashboard#signup",
+        rationale: "This CTA directly relates to the question of which businesses benefit, inviting them to explore how Social Perks can help their specific business.",
+      },
+    ],
+  },
+  {
+    slug: "how-do-i-write-a-customer-perk-offer-that-people-actually-want",
+    question: "How do I write a customer perk offer that people actually want?",
+    shortAnswer:
+      "Craft offers with high perceived value, exclusivity, and immediate gratification, such as a free item or significant discount, to motivate customer posts.",
+    longAnswer:
+      "To create a customer perk offer that genuinely motivates engagement, focus on providing clear, tangible value that outweighs the effort of posting. Customers are more likely to share their experience when the incentive feels generous and relevant to their interests.\n\nPrioritize perks with high perceived value, even if the cost to your business is modest. Free items, such as a complimentary appetizer, dessert, drink, or a small product, often resonate more strongly than a small percentage discount. Significant discounts, like 20-50% off a next purchase or a specific service, also perform well because they represent substantial savings. Consider offering an upgrade or an exclusive item not typically available, adding a layer of uniqueness to the incentive.\n\nThe perk should be easy to understand and redeem, offering immediate gratification. Avoid complex conditions or delayed rewards that might deter participation. For example, \"Free coffee with any pastry purchase\" is clear and instant, whereas \"Get 10% off your next visit if you spend over $50 within the next month\" is less appealing due to its conditions and delayed benefit. Ensure the perk aligns with your brand and encourages customers to experience more of what you offer, fostering genuine appreciation rather than just transactional engagement.\n\nAvoid offering perks that are too small or insignificant to justify the customer's effort in creating and posting content. A 5% discount on a low-cost item, for instance, rarely excites customers enough to go through the trouble of taking photos or videos and writing a post. The goal is to make the customer feel like they are receiving a special, worthwhile reward for their advocacy.\n\nSocial Perks helps businesses design compelling offers by providing tools to structure clear, attractive incentives, and ensures these perks are easily redeemable. Because a perk is given in exchange for a post, that post is an endorsement with a material connection and must carry a clear, conspicuous disclosure such as #ad or a Paid Partnership label—which Social Perks injects automatically and cannot be disabled. Perks are credited for a genuine, honest post and are never conditioned on a positive or five-star rating, and every submission is verified, with businesses able to manually approve it before the perk is released.",
+    keyPoints: [
+      "Offer high perceived value, like a free item or significant discount (20-50% off).",
+      "Ensure the perk is exclusive, relevant to your business, and easy to understand.",
+      "Provide immediate gratification with simple redemption processes.",
+      "Avoid minimal discounts that don't justify the customer's effort to post.",
+      "Disclose the incentive: posts need a clear #ad/#sponsored label (Social Perks auto-injects it), and credit a genuine post — never a required positive review.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-much-discount-should-i-offer-for-an-instagram-post",
+        "what-is-the-best-perk-to-offer-for-a-customer-review",
+        "how-do-i-start-a-customer-rewards-program",
+      ],
+      industries: ["restaurants", "coffee-shops", "salons"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Design Your Irresistible Perk Offer →",
+        href: "/dashboard#signup",
+        rationale: "This CTA directly relates to the process of crafting appealing offers for Social Perks, encouraging users to start creating their own desirable campaigns.",
+      },
+    ],
+  },
+  // ─── Added 2026-06-14 batch 2 (free-Gemini drafts, two-lens fact-checked) ───
+  {
+    slug: "is-user-generated-content-better-than-paid-ads-for-a-local-business",
+    question: "Is user-generated content better than paid ads for a local business?",
+    shortAnswer:
+      "Yes, user-generated content (UGC) often outperforms paid ads for local businesses by fostering authentic trust and social proof more effectively than traditional advertising.",
+    longAnswer:
+      "For local businesses, the question of whether user-generated content (UGC) is superior to paid ads isn't always a simple yes or no, but UGC frequently offers distinct advantages, particularly in building genuine customer relationships and credibility.\n\nUGC, especially in the form of social media posts from actual customers, provides unparalleled authenticity. Consumers are increasingly skeptical of traditional advertising, and in practice people tend to trust recommendations from other customers more than brand-created ads. A local business thrives on word-of-mouth, and UGC amplifies this effect digitally, showcasing real experiences from real customers. This social proof is invaluable, as it directly addresses potential customers' concerns about quality and reliability in a way that a polished ad cannot.\n\nWhile paid ads offer precise targeting and immediate reach, they can be expensive and suffer from 'ad fatigue,' where consumers become desensitized to promotional messages. For local businesses with limited marketing budgets, the return on investment (ROI) from authentic UGC can be significantly higher. UGC acts as a continuous, organic endorsement that resonates deeply within the local community, often leading to higher engagement rates and conversion because it feels less like marketing and more like a trusted recommendation.\n\nIt's crucial to distinguish between incentivized UGC on social media platforms and prohibited paid reviews. While paying for reviews on platforms like Google, Yelp, or TripAdvisor is strictly against their terms of service, incentivized posts on Instagram, TikTok, Facebook, or YouTube are legal in the US, provided there is clear and conspicuous disclosure (e.g., #ad or a Paid Partnership tag) as mandated by the FTC's Endorsement Guides. This transparency maintains trust while still allowing businesses to encourage valuable customer content.\n\nUltimately, UGC often provides a more sustainable and trustworthy foundation for local businesses to grow their customer base. It leverages the power of community and authentic experiences, which are critical for local success, complementing rather than replacing the strategic reach that paid ads can offer for specific campaigns. \n\nSocial Perks specifically helps local businesses generate compliant, authentic UGC by automatically injecting the necessary FTC disclosure into every campaign and blocking non-compliant submissions, ensuring your marketing efforts are both effective and legal.",
+    keyPoints: [
+      "UGC builds authentic trust and social proof more effectively than paid ads.",
+      "Peer recommendations tend to build more trust than brand advertising.",
+      "UGC often provides a higher ROI for local businesses due to its organic nature and lower cost.",
+      "Incentivized UGC on social media is legal with clear FTC disclosure, unlike paid reviews on review sites.",
+      "While paid ads offer reach, UGC fosters deeper community engagement and credibility.",
+    ],
+    category: "comparison",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-do-i-get-user-generated-content-for-my-business",
+        "what-is-the-average-roi-of-customer-marketing-campaigns",
+        "what-is-the-difference-between-influencer-marketing-and-customer-marketing",
+      ],
+      industries: ["restaurants", "salons", "retail"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Generate Authentic UGC for Your Business →",
+        href: "/dashboard#signup",
+        rationale: "This CTA directly relates to the benefits of user-generated content discussed in the answer and encourages businesses to explore how Social Perks can help them achieve it.",
+      },
+    ],
+  },
+  {
+    slug: "how-many-customers-do-i-need-for-a-customer-social-media-campaign-to-work",
+    question: "How many customers do I need for a customer social media campaign to work?",
+    shortAnswer:
+      "There isn't a magic number; even a small group of enthusiastic customers can drive significant impact, as quality and authenticity of posts matter more than sheer quantity.",
+    longAnswer:
+      "A common misconception about customer social media campaigns is that you need hundreds or thousands of participants for them to be effective. In reality, the success of such a campaign is less about the sheer number of customers participating and more about the quality, authenticity, and reach of the posts they create. Even a small, dedicated group of customers can generate substantial buzz and deliver meaningful results.\n\nThe primary goal of customer social media campaigns is to leverage genuine word-of-mouth marketing. People trust recommendations from their peers far more than traditional advertising. A single, well-crafted post from a customer with an engaged following can often outperform dozens of generic or unenthusiastic posts. What truly matters is that the content feels authentic and resonates with the customer's audience.\n\nConsider starting with a manageable number of customers, perhaps 10-20, who are already fans of your business. These \"superfans\" are more likely to create compelling content that genuinely reflects their honest experience. The perk is credited for a genuine, honest post — never conditioned on a positive or five-star rating; superfans tend to post positively on their own, but the endorsement must always reflect the customer's real opinion to stay FTC-compliant. As your campaign gains momentum and you refine your approach, you can gradually scale up. The key is to foster a community of advocates who are excited to share their experiences, rather than simply collecting a large volume of indifferent posts.\n\nConsistency is also vital. A continuous stream of authentic customer posts, even if from a rotating group of a few dozen customers over time, builds sustained awareness and trust. This organic growth is often more valuable than a single, massive burst of activity that quickly fades. Focus on encouraging customers to share their honest experiences, and make sure they disclose the incentive as required by FTC guidelines (#ad or a Paid Partnership label). Social Perks auto-injects this disclosure into every post — it cannot be disabled, and submissions without it are blocked.\n\nUltimately, the \"right\" number of customers is the number that allows you to generate authentic, high-quality social media content consistently. Start with what you can manage, focus on quality and authenticity, and let the genuine enthusiasm of your customers drive your campaign's success.\n\nSocial Perks helps businesses facilitate these campaigns by making it easy to offer perks to customers in exchange for compliant social media posts, ensuring authenticity and proper disclosure without needing a large team.",
+    keyPoints: [
+      "Quality and authenticity of posts are more important than quantity.",
+      "Even a small group of enthusiastic customers can generate significant impact.",
+      "Focus on engaging \"superfans\" who genuinely love your business.",
+      "Consistency over time builds sustained awareness and trust.",
+      "The goal is genuine, honest word-of-mouth — perks are never conditioned on positive reviews.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-long-does-customer-marketing-take-to-work",
+        "why-isnt-my-customer-campaign-getting-submissions",
+        "how-do-i-get-user-generated-content-for-my-business",
+      ],
+      industries: ["restaurants", "retail", "coffee-shops"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Start Your Customer Social Media Campaign →",
+        href: "/dashboard#signup",
+        rationale: "This CTA directly encourages businesses to begin implementing the tactics discussed for customer social media campaigns.",
+      },
+    ],
+  },
+  {
+    slug: "best-time-and-way-to-ask-customer-to-post-about-business",
+    question: "What is the best time and way to ask a customer to post about my business?",
+    shortAnswer:
+      "Ask shortly after a customer's visit, and make a clear, incentivized request — with proper FTC disclosure (#ad) on the post.",
+    longAnswer:
+      "The optimal time to ask a customer to post is shortly after a great visit, while the experience is fresh. This could be right after they finish a delicious meal, leave a salon with a fresh look, complete a satisfying purchase, or finish a workout session. At this moment, their satisfaction and enthusiasm are at their peak, making them most receptive to sharing their experience.\n\nOnce the timing is right, the 'way' you ask is equally crucial. First, make a direct and clear request; don't be vague. Second, offer a clear, attractive perk in exchange for their post. This incentivizes participation and provides a tangible benefit for their effort. Focus on visual social media platforms like Instagram, TikTok, Facebook, or YouTube, where authentic customer content thrives and can reach a wide audience.\n\nCrucially, it is vital that any incentivized post includes clear and conspicuous disclosure, such as #ad or a platform's 'Paid Partnership' tag. The FTC's Endorsement Guides mandate this transparency, and businesses are ultimately responsible for ensuring their endorsers comply. The FTC actively enforces these rules, with civil penalties up to $51,744 per violation under its 2024 rule. Timing the ask to a happy moment is fine, but the perk must be given for an honest, genuine post — it can never be conditioned on the post being positive or on a particular rating, and customers must be free to share their real experience. Note that incentivizing reviews on platforms like Google, Yelp, or TripAdvisor is strictly prohibited by their respective policies and should be avoided.\n\nBy combining perfect timing with a clear, incentivized ask and strict adherence to disclosure rules, you can effectively encourage customers to become genuine advocates for your brand. Social Perks streamlines this process by automatically injecting the platform-specific FTC disclosure into every campaign and blocking non-compliant submissions, ensuring your word-of-mouth marketing remains legal and effective.",
+    keyPoints: [
+      "Ask shortly after a customer's visit, while the experience is fresh.",
+      "Offer a clear, appealing perk in exchange for their post.",
+      "Focus on visual social media platforms like Instagram or TikTok.",
+      "Incentivized posts need clear FTC disclosure (#ad) — and the perk is for a genuine post, never conditioned on a positive review.",
+      "Do NOT incentivize reviews on Google, Yelp, or TripAdvisor.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-do-i-ask-a-customer-for-an-instagram-post",
+        "how-can-a-local-business-get-customers-to-post-on-social-media-without-paying-for-ads",
+        "what-is-the-ftc-rule-on-incentivized-reviews",
+      ],
+      industries: ["restaurants", "salons", "retail"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Launch Your First Perk Campaign →",
+        href: "/dashboard#signup",
+        rationale: "This CTA encourages businesses to implement the discussed tactics by starting a campaign on Social Perks to incentivize customer posts.",
+      },
+    ],
+  },
+  {
+    slug: "how-do-i-get-customers-to-make-video-content-like-reels-or-tiktoks-about-my-business",
+    question: "How do I get customers to make video content like Reels or TikToks about my business?",
+    shortAnswer:
+      "Offer a small perk or discount in exchange for customers creating and sharing video content like Reels or TikToks, ensuring clear disclosure of the incentive.",
+    longAnswer:
+      "Getting customers to create engaging video content like Instagram Reels or TikToks for your business is a powerful way to boost visibility and build authentic social proof. These short-form videos capture attention, drive engagement, and often have a higher organic reach than static posts, making them invaluable for modern marketing.\n\nThe most effective strategy involves offering a clear incentive. Customers are more likely to dedicate time and creativity to producing video content if they receive a small perk, such as a discount, a free item, or an exclusive offer. This exchange creates a mutually beneficial relationship where the customer gets value, and your business gains valuable, user-generated marketing material.\n\nIt's crucial that any incentivized social media content fully complies with legal and platform guidelines. In the US, the Federal Trade Commission (FTC) Endorsement Guides mandate \"clear and conspicuous\" disclosure when a material connection exists between an endorser and a brand. This means customers must explicitly state they received a perk for their post, typically using hashtags like #ad or #sponsored, or platform-specific tools like Instagram's \"Paid Partnership\" tag. Businesses are responsible for ensuring their endorsers make these disclosures, and the FTC actively enforces endorsement rules — with civil penalties up to $51,744 per violation under its 2024 rule. Paying for reviews on platforms like Google, Yelp, or TripAdvisor, however, is strictly prohibited by their respective policies and should be avoided.\n\nTo maximize your chances of success, make it easy and fun for customers to create content. Provide clear prompts or ideas for what kind of video you're looking for, such as showcasing a new product, demonstrating a service, or capturing the atmosphere of your location. Encourage authenticity and creativity, allowing customers to express their genuine experience with your business. You can suggest ideas — a beautifully plated dish, a stylish haircut, a unique retail display, a vibrant class — without dictating that the experience be portrayed positively. The perk is given for posting, never for posting something positive: under FTC rules an incentivized endorsement must reflect the customer's honest opinion, so you cannot require or reward a positive review or condition the perk on sentiment.\n\nSocial Perks lets you reward your own customers with a small perk for posting video content about your business. It auto-injects the required FTC disclosure (#ad / #sponsored or the platform's native paid-partnership label) into every post — it can't be turned off — blocks any submission that lacks proper disclosure, and verifies each post so you can review and approve it before a perk is credited.",
+    keyPoints: [
+      "Incentivize customers with a perk (discount, free item) for video content.",
+      "Ensure all incentivized posts include clear FTC-compliant disclosures like #ad.",
+      "Provide clear, easy-to-follow prompts to guide customer video creation.",
+      "Focus on authentic, visually appealing aspects of your business.",
+      "Social Perks auto-injects disclosure and verifies each post before crediting a perk.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "what-are-tiktoks-rules-on-paid-product-placement",
+        "how-do-i-ask-a-customer-for-an-instagram-post",
+        "how-do-i-get-user-generated-content-for-my-business",
+      ],
+      industries: ["restaurants", "salons", "retail"],
+      platformIds: ["ig", "tt", "yt"],
+    },
+    ctas: [
+      {
+        label: "Launch a Video Perk Campaign →",
+        href: "/dashboard#signup",
+        rationale: "This CTA encourages businesses to immediately apply the tactics discussed by setting up a campaign to get customer-generated video content.",
+      },
+    ],
+  },
+  {
+    slug: "what-should-i-include-in-a-customer-perk-campaign-brief",
+    question: "What should I include in a customer perk campaign brief?",
+    shortAnswer:
+      "A customer perk campaign brief should clearly define the perk, campaign goals, target audience, desired content, chosen social platforms, and any specific post requirements to guide participants effectively.",
+    longAnswer:
+      "A well-structured campaign brief is essential for any successful customer perk program, ensuring clarity for both the business and the participating customers. It acts as a blueprint, guiding customers on what to post and how, while aligning their efforts with your marketing objectives.\n\nFirst, clearly state the specific perk offered (e.g., \"free coffee with any pastry,\" \"20% off your next haircut,\" \"complimentary appetizer\"). Specify any conditions, such as minimum spend or specific days/times the perk is valid. This incentivizes participation and ensures customers understand the value exchange.\n\nNext, define your campaign objectives. What do you hope to achieve? Examples include increasing brand awareness, driving foot traffic, promoting a new menu item, or generating user-generated content (UGC). Defining your objective helps shape the entire campaign and allows you to measure its success.\n\nIdentify your target customer. Your own customers are the audience here, but you can still tailor your brief to the kinds of customers you most want posting. For instance, if you're a salon, you might focus on clients excited about a new style or service.\n\nCrucially, provide content direction without scripting positivity. Describe the *type* of content you're looking for — a photo of a specific dish, a video of your salon's ambiance, or a selfie with your product — and suggest a focus or aesthetic (\"Showcase our outdoor patio,\" \"Highlight our fresh ingredients\"). But the post must reflect the customer's own genuine experience: never require a positive review, a star rating, or specific praise as a condition of the perk — perks are earned for posting, not for posting something positive.\n\nSpecify which social media platforms you want posts on (Instagram, TikTok, Facebook, YouTube). Each platform has different strengths and content formats, so tailoring your brief to the chosen platform(s) is important. Also, include a clear call to action for the customer's post: what do you want their followers to do after seeing their content? Encourage them to include a specific CTA in their caption, such as \"Visit [Your Business Name] today!\" or \"Try their new [Product/Service]!\"\n\nFinally, remember FTC disclosure. Social Perks automatically injects the platform-specific disclosure (#ad, #sponsored, or the native Paid Partnership label) into every post, blocks any submission that lacks it, and does not allow the disclosure to be disabled — so every campaign meets the material-connection requirement automatically. This protects both your business and the customer. Use the elements above to plan your campaign: pick the platform(s), the action you want, and the perk, then give customers clear, honest guidance on what to post.",
+    keyPoints: [
+      "Clearly define the specific perk and any conditions.",
+      "Outline your campaign goals and target customer.",
+      "Provide detailed content guidelines and desired social platforms.",
+      "Include a call to action for the customer's post.",
+      "Social Perks auto-injects FTC disclosure into every post and blocks non-disclosed submissions.",
+    ],
+    category: "tactics",
+    lastReviewed: "2026-06-14",
+    related: {
+      answerSlugs: [
+        "how-do-i-write-a-customer-perk-offer-that-people-actually-want",
+        "how-do-i-prevent-fake-or-low-quality-posts-in-a-customer-perk-campaign",
+        "how-do-i-ask-a-customer-for-an-instagram-post",
+      ],
+      industries: ["restaurants", "salons", "retail"],
+      platformIds: ["ig", "tt", "fb", "yt"],
+    },
+    ctas: [
+      {
+        label: "Create Your First Perk Campaign →",
+        href: "/dashboard#signup",
+        rationale: "This CTA directly encourages users to apply the advice from the answer by starting their own campaign on Social Perks.",
+      },
+    ],
+  },
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────
