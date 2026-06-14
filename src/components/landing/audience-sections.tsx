@@ -111,13 +111,16 @@ export function AudienceSections() {
         <AnimateOnScroll animation="fade-in" className="rounded-2xl border border-brand-green/20 bg-brand-green/[0.02] p-6 sm:p-10 lg:p-12">
           <AnimateOnScroll animation="fade-up" className="mb-10 text-center sm:mb-12">
             <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-green sm:text-xs">
-              Real examples
+              Example scenarios
             </p>
             <h2 className="font-heading text-[clamp(1.75rem,3vw,2.5rem)] italic text-brand-white leading-tight">
               Here&apos;s what it looks like in practice
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
               Small discount in, real marketing out. Every time.
+            </p>
+            <p className="mx-auto mt-3 max-w-md text-xs text-brand-subtle">
+              Illustrative scenarios — actual results vary by offer, business, and reach.
             </p>
           </AnimateOnScroll>
 

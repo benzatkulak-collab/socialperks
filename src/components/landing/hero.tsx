@@ -67,7 +67,7 @@ export function Hero() {
         <div className="mt-16 w-full max-w-2xl animate-fade-up animate-delay-400 sm:mt-20">
           <div className="rounded-2xl border border-brand-border/50 bg-brand-surface/40 p-5 backdrop-blur-sm sm:p-8">
             <p className="mb-5 font-mono text-[11px] uppercase tracking-widest text-brand-muted">
-              Real example
+              Example scenario
             </p>
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
               <div className="flex-1 text-left">
@@ -93,6 +93,9 @@ export function Hero() {
               </div>
             </div>
           </div>
+          <p className="mt-5 text-center text-[11px] leading-relaxed text-brand-subtle">
+            Illustrative example — actual results depend on your offer and how many customers join in.
+          </p>
         </div>
       </div>
     </section>
