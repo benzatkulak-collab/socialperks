@@ -28,7 +28,7 @@
 
 import type { Agent, AgentDecision } from "./types";
 
-interface WaitlistLead {
+export interface WaitlistLead {
   email: string;
   businessName?: string;
   city?: string;
@@ -97,8 +97,10 @@ async function markContacted(email: string): Promise<void> {
  *   +0.10      — gave a business name (higher intent / complete profile)
  *   +0.05      — gave a city (lets us localize the pitch)
  *   -0.15      — sat past the cold cutoff (interest has likely cooled)
+ *
+ * @internal exported for unit tests only
  */
-function scoreLead(
+export function scoreLead(
   lead: WaitlistLead,
   nowMs: number,
   maxAgeDays: number,
