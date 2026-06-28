@@ -31,14 +31,14 @@ const EXAMPLES: Example[] = [
   {
     business: "Restaurant",
     offer: "Free appetizer",
-    action: "TikTok review",
+    action: "TikTok visit video",
     result: "45K views, 12% new customers",
   },
   {
     business: "Auto Shop",
     offer: "Free tire rotation",
-    action: "Yelp review",
-    result: "Jumped from 3.8 to 4.6 stars",
+    action: "Instagram before/after post",
+    result: "+40% more booking calls",
   },
   {
     business: "Salon",

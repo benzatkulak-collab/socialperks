@@ -194,7 +194,7 @@ export function PortalHome({
               <WelcomeStep
                 num={3}
                 title="Watch your stats fill in"
-                detail="When the first customer scans, you'll see it here. Submissions are reviewed automatically, and the customer gets their perk via SMS."
+                detail="When the first customer scans, you'll see it here. You review each submission, and once you approve it the customer gets their perk by email."
               />
             </ol>
           </div>

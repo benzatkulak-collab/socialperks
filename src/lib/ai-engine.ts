@@ -258,16 +258,17 @@ export function generateCampaigns(options: GenerateOptions): GeneratedCampaign[]
   const campaigns: GeneratedCampaign[] = [];
   const add = makeAdder(campaigns);
 
-  // ── REVIEWS (universal — the foundation for any business) ──
-  add("Google Review Drive", `Collect Google reviews from ${businessType} customers.`,
-    ["go_rv", "go_ph"], Math.round(5 * sizeMods.budgetMultiplier), "dol", "Reviews", "essential",
-    "Google reviews are #1 for local search ranking. Run this always.",
+  // ── LOCAL PRESENCE (compliance-safe — we never perk for reviews) ──
+  // Incentivized-review campaigns (go_rv/go_rd/go_rp/ta_rv/yp_rv) are illegal
+  // under FTC 16 CFR Part 465 + platform ToS, are stripped by
+  // dropNonIncentivizable() below, and contradict our public "we block
+  // incentivized reviews" promise. So we perk photos/check-ins/posts instead.
+  // (Previously the only Google campaign was an incentivized-review one, which
+  // got filtered out — leaving businesses with no Google campaign at all.)
+  add("Google Photos & Posts", `Get ${businessType} customers adding photos and posts to your Google Business Profile.`,
+    ["go_ph"], Math.round(5 * sizeMods.budgetMultiplier), "dol", "Engagement", "essential",
+    "Fresh photos and posts on your Google Business Profile lift local search visibility — and unlike reviews, perking them is fully FTC-compliant.",
     { tags: ["seo", "local", "evergreen"], estimatedReach: 2000, estimatedCompletionRate: 65, difficulty: "beginner", bestFor: ["all"] });
-
-  add("Detailed Reviews + Photos", "In-depth reviews with photos for maximum SEO impact.",
-    ["go_rd", "go_rp"], Math.round(10 * sizeMods.budgetMultiplier), "dol", "Reviews", "high_impact",
-    "Photo reviews get 2x clicks. Detailed reviews boost search relevance.",
-    { tags: ["seo", "photos", "high-value"], estimatedReach: 3000, estimatedCompletionRate: 45, difficulty: "intermediate" });
 
   if (!traits.b2b)
     add("Yelp Presence Builder", "Build Yelp presence with photos and check-ins (Yelp prohibits incentivized reviews).",
@@ -285,23 +286,9 @@ export function generateCampaigns(options: GenerateOptions): GeneratedCampaign[]
     "Nextdoor is hyperlocal — your actual neighbors see these.",
     { tags: ["hyperlocal", "neighborhood"], estimatedCompletionRate: 55, difficulty: "beginner", bestFor: ["local"] });
 
-  if (traits.food)
-    add("TripAdvisor Boost", "Build TripAdvisor for visitor discovery.",
-      ["ta_rv", "ta_rp"], Math.round(10 * sizeMods.budgetMultiplier), "dol", "Reviews", "growth",
-      "Essential for tourist areas. Drives walk-in traffic.",
-      { tags: ["tourism", "discovery"], difficulty: "intermediate" });
-
-  if (traits.healthcare)
-    add("Patient Review Program", "Encourage patients to share their experience.",
-      ["go_rv", "go_rp", "fb_rc"], Math.round(10 * sizeMods.budgetMultiplier), "dol", "Reviews", "essential",
-      "Healthcare reviews are the #1 factor in choosing a provider.",
-      { tags: ["healthcare", "trust"], estimatedCompletionRate: 40, difficulty: "beginner" });
-
-  if (traits.automotive)
-    add("Honest Mechanic Reviews", "Build trust through transparent reviews.",
-      ["go_rd", "go_rp", "yp_rv"], Math.round(10 * sizeMods.budgetMultiplier), "dol", "Reviews", "essential",
-      "Auto service lives and dies by reviews. Trust is everything.",
-      { tags: ["trust", "automotive"], difficulty: "beginner" });
+  // (Vertical review campaigns for food/healthcare/automotive were removed — they
+  // perked non-incentivizable review actions, were always stripped by
+  // dropNonIncentivizable(), and contradicted the compliance-by-design promise.)
 
   // ── SOCIAL CONTENT ──
   add("Instagram Stories", `Quick Story about your ${businessType}.`,

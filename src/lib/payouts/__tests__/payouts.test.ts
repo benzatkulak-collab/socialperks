@@ -13,14 +13,40 @@ import {
   payoutRequests,
   _resetStores,
 } from "../index";
+import { recordEarning } from "../../earnings";
+
+// requestPayout now caps each payout at the influencer's earned balance
+// (drain-the-account guard). Seed a generous balance for every influencer id
+// used below so the payout-mechanics tests exercise real, within-balance
+// requests. vitest isolates module state per file, so this earnings memory is
+// fresh for this suite and doesn't leak into other test files.
+function earningFor(influencerId: string, amountCents: number) {
+  return {
+    influencerId,
+    campaignId: "camp_seed",
+    businessId: "biz_seed",
+    submissionId: `sub_seed_${influencerId}`,
+    amountCents,
+    currency: "usd",
+    payoutId: null,
+    payoutAt: null,
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAYOUT MANAGEMENT — TESTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe("Payout Management (mock mode)", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     _resetStores();
+    // Generous earned balance for every influencer id the suite uses.
+    for (let i = 1; i <= 20; i++) {
+      await recordEarning(earningFor(`inf_${i}`, 1_000_000));
+    }
+    for (const id of ["inf_reset", "nonexistent"]) {
+      await recordEarning(earningFor(id, 1_000_000));
+    }
   });
 
   // ─── Account Creation ──────────────────────────────────────────────────────
@@ -143,6 +169,22 @@ describe("Payout Management (mock mode)", () => {
       );
       await expect(requestPayout("inf_9", 999)).rejects.toThrow(
         /Minimum payout amount/
+      );
+    });
+
+    it("throws when the amount exceeds the earned balance (drain-the-account guard)", async () => {
+      await createConnectAccount("inf_overdraw", "od@example.com");
+      const account = payoutAccounts.get("inf_overdraw")!;
+      payoutAccounts.set("inf_overdraw", {
+        ...account,
+        status: "active",
+        payoutsEnabled: true,
+      });
+      // This influencer earned only $10.00 (not seeded in beforeEach); a $50.00
+      // request must be rejected rather than draining the platform balance.
+      await recordEarning(earningFor("inf_overdraw", 1000));
+      await expect(requestPayout("inf_overdraw", 5000)).rejects.toThrow(
+        /exceeds available balance/
       );
     });
 

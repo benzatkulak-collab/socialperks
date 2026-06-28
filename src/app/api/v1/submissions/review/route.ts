@@ -99,6 +99,31 @@ export const POST = withTiming(async (req: NextRequest) => {
   const accessDenied = checkResourceAccess(tenant, campaignLifecycle.businessId);
   if (accessDenied) return accessDenied;
 
+  // Resolve the campaign server-side from the durable lifecycle so the perk
+  // award + notification email fire regardless of whether the caller sent
+  // body.campaign. The admin console (and any minimal client) only sends
+  // { submissionId, decision, note }; the old code gated awardPerk on
+  // body.campaign, so Approve silently awarded nothing and sent no email —
+  // the core loop dead-ended after approval. calculatePerkValue only reads
+  // discountValue/discountType/useTiers; the remaining fields are filled from
+  // the lifecycle (or safe defaults) so the LaunchedCampaign shape is honest.
+  const resolvedCampaign: LaunchedCampaign = body.campaign ?? {
+    id: campaignLifecycle.id,
+    businessId: campaignLifecycle.businessId,
+    name: campaignLifecycle.name ?? "your campaign",
+    description: "",
+    actions: campaignLifecycle.actions ?? [],
+    discountValue: campaignLifecycle.budget.allocated,
+    discountType: campaignLifecycle.budget.type,
+    expiresInDays: 0,
+    // Lifecycle doesn't carry the follower-tier flag; default off so the base
+    // perk is awarded. A client that wants tier bonuses can still pass
+    // body.campaign with useTiers + body.followerCount.
+    useTiers: false,
+    status: "active",
+    createdAt: campaignLifecycle.expiry.launchedAt,
+  };
+
   // Perform the review
   const result = await reviewSubmission(
     sv.data,
@@ -114,10 +139,12 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const submission = result.data!;
 
-  // If approving and campaign data is provided, calculate and award perk
+  // If approving, calculate and award the perk using the server-resolved
+  // campaign (above). Fires for every approval, not just ones where the
+  // caller happened to send body.campaign.
   let perk = null;
-  if (dv.data === "approve" && body.campaign) {
-    const campaign = body.campaign;
+  if (dv.data === "approve") {
+    const campaign = resolvedCampaign;
     const followerCount = body.followerCount ?? 0;
 
     // ── Plan enforcement: completion limit ──────────────────────────────────
@@ -177,20 +204,31 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
   }
 
-  // Fire-and-forget notification email to submitter (if email available)
-  if (body.submitterEmail) {
-    const recipientName = body.submitterName || "there";
-    const campaignName = body.campaign?.name || "your campaign";
+  // Fire-and-forget notification email to submitter. The recipient is resolved
+  // from the request OR the submission's stored metadata — the public /c submit
+  // persists { email, name } there (submissions/public/route.ts), so the
+  // "your perk is ready" email fires regardless of what the reviewing client
+  // sends. Previously gating on body.submitterEmail meant the customer was
+  // never told their perk was approved.
+  const submitterEmail =
+    body.submitterEmail ??
+    (typeof submission.metadata.email === "string" ? submission.metadata.email : undefined);
+  const submitterName =
+    body.submitterName ??
+    (typeof submission.metadata.name === "string" ? submission.metadata.name : undefined);
+  if (submitterEmail) {
+    const recipientName = submitterName || "there";
+    const campaignName = body.campaign?.name || resolvedCampaign.name || "your campaign";
 
     if (dv.data === "approve") {
       const perkDisplay = perk?.calculation
         ? `$${perk.calculation.totalValue.toFixed(2)}`
         : "a perk";
       const template = submissionApprovedEmail(recipientName, campaignName, perkDisplay);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
+      emailProvider.send({ to: submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     } else {
       const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
-      emailProvider.send({ to: body.submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
+      emailProvider.send({ to: submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     }
   }
 

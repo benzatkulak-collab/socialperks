@@ -78,20 +78,6 @@ interface PricingTier {
   badge?: string;
 }
 
-// Live Stripe Payment Links (hosted checkout). Lets the marketing site collect
-// real subscriptions today without the in-app checkout env wiring. Keyed by
-// plan + billing period. Free/Enterprise are handled separately in the CTA.
-const PAYMENT_LINKS: Record<"starter" | "professional", { monthly: string; annual: string }> = {
-  starter: {
-    monthly: "https://buy.stripe.com/28E7sLgb2gm24jx7rocjS02",
-    annual: "https://buy.stripe.com/dRm3cv1g87Pw8zNaDAcjS04",
-  },
-  professional: {
-    monthly: "https://buy.stripe.com/aFaeVd8IA0n48zN274cjS05",
-    annual: "https://buy.stripe.com/aFabJ13og0n47vJ4fccjS03",
-  },
-};
-
 const PRICING_TIERS: PricingTier[] = [
   {
     name: "Free",
@@ -139,7 +125,7 @@ const PRICING_TIERS: PricingTier[] = [
     features: [
       "50 active campaigns",
       "5,000 completions/month",
-      "Advanced analytics + AI insights",
+      "Advanced analytics + smart recommendations",
       "API access",
       "Priority verification",
       "Priority support",
@@ -159,7 +145,7 @@ const PRICING_TIERS: PricingTier[] = [
     features: [
       "Unlimited campaigns",
       "Multi-location management",
-      "Team permissions + SSO",
+      "Team permissions & role controls",
       "Dedicated account manager",
       "Custom integrations + SLA",
     ],
@@ -429,13 +415,21 @@ export function PricingSection() {
                 </ul>
 
                 {/* CTA */}
+                {/*
+                  Paid tiers route through signup → plan-intent → the in-app
+                  create_checkout path (billing/route.ts), which attaches the
+                  businessId metadata the webhook requires to provision the
+                  subscription. Linking straight to a static Stripe Payment Link
+                  here would capture money but provision NOTHING (the webhook
+                  drops events with no businessId), so we MUST go through signup.
+                */}
                 <a
                   href={
                     tier.planKey === null
                       ? "/dashboard#signup"
                       : tier.planKey === "enterprise"
                         ? "/contact?intent=enterprise"
-                        : PAYMENT_LINKS[tier.planKey][annual ? "annual" : "monthly"]
+                        : `/dashboard#signup?plan=${tier.planKey}&period=${annual ? "annual" : "monthly"}`
                   }
                   className={`block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                     tier.popular
@@ -509,16 +503,16 @@ const COMPARISON: ComparisonRow[] = [
   { group: "Campaigns & usage", feature: "Active campaigns", free: "1", starter: "10", pro: "50", enterprise: "Unlimited" },
   { feature: "Completions per month", free: "50", starter: "500", pro: "5,000", enterprise: "Unlimited" },
   { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 107", enterprise: "All 107" },
-  { feature: "AI campaign generations", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
+  { feature: "Campaign suggestions", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
   // Analytics
   { group: "Analytics", feature: "Basic analytics dashboard", free: true, starter: true, pro: true, enterprise: true },
-  { feature: "Advanced analytics + AI insights", free: false, starter: false, pro: true, enterprise: true },
+  { feature: "Advanced analytics + smart recommendations", free: false, starter: false, pro: true, enterprise: true },
   { feature: "CSV export", free: false, starter: true, pro: true, enterprise: true },
   // Features
   { group: "Features", feature: "QR codes for your counter", free: false, starter: true, pro: true, enterprise: true },
   { feature: "API access", free: false, starter: false, pro: true, enterprise: true },
   { feature: "Multi-location management", free: false, starter: false, pro: false, enterprise: true },
-  { feature: "Team permissions + SSO", free: false, starter: false, pro: false, enterprise: true },
+  { feature: "Team permissions & role controls", free: false, starter: false, pro: false, enterprise: true },
   { feature: "Custom integrations", free: false, starter: false, pro: false, enterprise: true },
   // Support
   { group: "Support", feature: "Email support", free: true, starter: true, pro: true, enterprise: true },
@@ -635,11 +629,11 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What's the difference between Starter and Pro?",
-    a: "Starter (10 campaigns, 500 completions/mo) is for a single solo owner who's launching a few campaigns at a time. Pro (50 campaigns, 5,000 completions/mo) adds AI insights, API access, and priority support — the right fit once you're running campaigns continuously or wiring Social Perks into your own tools.",
+    a: "Starter (10 campaigns, 500 completions/mo) is for a single solo owner who's launching a few campaigns at a time. Pro (50 campaigns, 5,000 completions/mo) adds smart recommendations, API access, and priority support — the right fit once you're running campaigns continuously or wiring Social Perks into your own tools.",
   },
   {
     q: "What if I have multiple locations?",
-    a: "That's the Enterprise tier. Multi-location dashboard, team permissions with SSO, brand-compliance review across stores, and a dedicated account manager. Reach out via Contact.",
+    a: "That's the Enterprise tier. Multi-location dashboard, team permissions and role controls, brand-compliance review across stores, and a dedicated account manager. Reach out via Contact.",
   },
 ];
 

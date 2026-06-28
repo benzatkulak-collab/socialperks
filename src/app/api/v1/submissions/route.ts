@@ -281,9 +281,12 @@ async function notifyFirstSubmission(campaignId: string, businessId: string): Pr
     const campaignName = "your campaign";
     const message = `🎉 Your Social Perks campaign "${campaignName}" just got its first customer post! Check the dashboard: https://${process.env.NEXT_PUBLIC_SITE_URL ?? "socialperks.app"}/dashboard`;
     if (business.email) {
-      const { emailQueue } = await import("@/lib/jobs/registry");
-      emailQueue.add({
-        type: "transactional",
+      // Direct send — the in-memory job queue worker (startAllQueues) is never
+      // started in serverless, so an enqueued job is silently never delivered.
+      // This activation email ("you got your first customer post!") is the
+      // value-proof moment, so send it inline best-effort like auth/webhook do.
+      const { emailProvider } = await import("@/lib/email");
+      await emailProvider.send({
         to: business.email,
         subject: "🎉 Your campaign just got its first customer post",
         html: `<p>${message.replace(/\n/g, "<br>")}</p>`,

@@ -9,6 +9,7 @@
 import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { captureError } from "@/lib/monitoring";
 import { db, getInMemoryStore } from "@/lib/db/connection";
+import { totalEarnedCents } from "@/lib/earnings";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -457,6 +458,24 @@ export async function requestPayout(
 
   if (amount < 1000) {
     throw new Error("Minimum payout amount is $10.00 (1000 cents).");
+  }
+
+  // ── Earned-balance ceiling (drain-the-account guard) ────────────────────────
+  // SECURITY: Without this, requestPayout transferred an ARBITRARY caller-supplied
+  // `amount` straight to stripe.transfers.create — any authenticated influencer
+  // could drain the platform's entire Stripe balance. Cap each payout at
+  // (total earned − amounts already committed to non-failed payouts). Fails
+  // closed: if no earnings were ever recorded, availableCents is 0 and every
+  // payout is rejected, which is the safe outcome.
+  const earnedCents = await totalEarnedCents(influencerId);
+  const committedCents = getPayoutHistory(influencerId)
+    .filter((p) => p.status !== "failed")
+    .reduce((sum, p) => sum + p.amount, 0);
+  const availableCents = Math.max(0, earnedCents - committedCents);
+  if (amount > availableCents) {
+    throw new Error(
+      `Payout exceeds available balance. Available: $${(availableCents / 100).toFixed(2)}, requested: $${(amount / 100).toFixed(2)}.`
+    );
   }
 
   const now = new Date().toISOString();
