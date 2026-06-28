@@ -19,6 +19,7 @@ import { campaignManager } from "@/lib/campaign-state-machine";
 import { ensureCampaignLoaded, persistLifecycle } from "@/lib/campaign-state-machine/persist";
 import { validateId, validateString, validateEnum } from "@/lib/security/validate";
 import { emailProvider, submissionApprovedEmail, submissionRejectedEmail } from "@/lib/email";
+import { perkLinkUrl } from "@/lib/security/perk-link";
 import type { LaunchedCampaign } from "@/lib/types";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import {
@@ -224,7 +225,14 @@ export const POST = withTiming(async (req: NextRequest) => {
       const perkDisplay = perk?.calculation
         ? `$${perk.calculation.totalValue.toFixed(2)}`
         : "a perk";
-      const template = submissionApprovedEmail(recipientName, campaignName, perkDisplay);
+      // Magic link to the customer's perk page — they have no account, so this
+      // signed token is the only way they can see and redeem their reward.
+      const template = submissionApprovedEmail(
+        recipientName,
+        campaignName,
+        perkDisplay,
+        perkLinkUrl(submission.userId)
+      );
       emailProvider.send({ to: submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     } else {
       const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
