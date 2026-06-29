@@ -18,9 +18,14 @@ export async function ensureDatabase(): Promise<void> {
       return;
     }
 
-    // Run migrations
-    const { runPendingMigrations } = await import("./migrations");
-    await runPendingMigrations(db);
+    // Use the schema-auto migrator (the canonical path that /api/v1/migrate and
+    // `npm run db:migrate` already run) so this lazy-init path — if ever wired
+    // up — creates EVERY table declared in schema.ts. The hand-written versioned
+    // registry in ./migrations is deprecated and INCOMPLETE (it omits waitlist,
+    // influencer_earnings, auth_sessions, audit_log), so calling it here would
+    // leave those tables missing and silently swallow their writes.
+    const { runMigrations } = await import("./migrate");
+    await runMigrations(db);
     console.info("[DB] Database initialized, migrations complete");
 
     // Seed demo data after migrations

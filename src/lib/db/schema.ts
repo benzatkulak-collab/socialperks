@@ -994,6 +994,22 @@ export const SCHEMA = {
     relations: [],
   },
 
+  // ── Drip email sent-state ──
+  // Which onboarding/nurture step each user has already received, so the daily
+  // cron doesn't re-blast the whole sequence after every serverless cold start
+  // (sent-state was an in-memory Map). FK-free string user ids.
+  drip_sends: {
+    columns: {
+      user_id: { type: "varchar(100)", nullable: false },
+      step_index: { type: "int", nullable: false },
+      sent_at: { type: "timestamptz", nullable: false, default: "now()" },
+    },
+    indexes: [
+      { columns: ["user_id", "step_index"], unique: true, name: "drip_sends_pkey" },
+    ],
+    relations: [],
+  },
+
   // ── Durable value loop (perk wallet / payouts / referral ledger / programs) ──
   // App-generated string ids (perk_… / biz_usr_… / ref_… / uuid), FK-free —
   // same rationale as business_subscriptions. Source of truth for these tables;

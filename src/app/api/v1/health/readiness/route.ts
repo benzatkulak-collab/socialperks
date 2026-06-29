@@ -135,12 +135,20 @@ export async function GET(req: NextRequest) {
     let campaignTableOk = true;
     let campaignTableDetail = "Campaign table present";
     try {
-      const r = await db.query<{ subs: string | null; usage: string | null; perks: string | null; submissions: string | null; campaigns: string | null }>(
-        "SELECT to_regclass('business_subscriptions') AS subs, to_regclass('monthly_usage') AS usage, to_regclass('perk_wallet_entries') AS perks, to_regclass('campaign_submissions_v2') AS submissions, to_regclass('launched_campaign_state') AS campaigns",
+      const r = await db.query<{ subs: string | null; usage: string | null; perks: string | null; submissions: string | null; campaigns: string | null; waitlist: string | null; earnings: string | null; sessions: string | null; audit: string | null }>(
+        "SELECT to_regclass('business_subscriptions') AS subs, to_regclass('monthly_usage') AS usage, to_regclass('perk_wallet_entries') AS perks, to_regclass('campaign_submissions_v2') AS submissions, to_regclass('launched_campaign_state') AS campaigns, to_regclass('waitlist') AS waitlist, to_regclass('influencer_earnings') AS earnings, to_regclass('auth_sessions') AS sessions, to_regclass('audit_log') AS audit",
       );
       const missingTables: string[] = [];
       if (!r.rows[0]?.subs) missingTables.push("business_subscriptions");
       if (!r.rows[0]?.usage) missingTables.push("monthly_usage");
+      // Funnel / auth / earnings tables that have live, error-swallowing write
+      // paths but were previously unchecked — a missing one would silently drop
+      // waitlist leads, sessions, audit events, or influencer earnings while the
+      // probe still reported green.
+      if (!r.rows[0]?.waitlist) missingTables.push("waitlist");
+      if (!r.rows[0]?.earnings) missingTables.push("influencer_earnings");
+      if (!r.rows[0]?.sessions) missingTables.push("auth_sessions");
+      if (!r.rows[0]?.audit) missingTables.push("audit_log");
       tablesOk = missingTables.length === 0;
       if (!tablesOk) tablesDetail = `Missing: ${missingTables.join(", ")} — run /api/v1/migrate`;
 

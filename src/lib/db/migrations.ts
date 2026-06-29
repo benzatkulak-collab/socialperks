@@ -1,13 +1,17 @@
 /**
  * Migration System for Social Perks
  * ──────────────────────────────────
- * Ordered, versioned migrations with up/down SQL.
- * Tracks applied migrations in a `_migrations` table.
+ * ⚠️ DEPRECATED — DO NOT ADD MIGRATIONS HERE. This hand-written versioned
+ * registry has NO live caller (the only caller, src/lib/db/init.ts, is itself
+ * uncalled, and now delegates to the schema-auto migrator anyway). It is also
+ * INCOMPLETE — it omits waitlist, influencer_earnings, auth_sessions and
+ * audit_log, which all have live write paths. The canonical migration system is
+ * src/lib/db/migrate.ts (`runMigrations`), which generates DDL from the SCHEMA
+ * object in schema.ts and is what /api/v1/migrate and `npm run db:migrate` run.
+ * Declare new tables in schema.ts (single source of truth) instead.
  *
- * Usage:
- *   import { runPendingMigrations, rollback } from "./migrations";
- *   await runPendingMigrations(db);   // apply all pending
- *   await rollback(db, 1);            // undo the last 1 migration(s)
+ * Ordered, versioned migrations with up/down SQL. Tracks applied migrations in
+ * a `_migrations` table. (Retained for rollback reference / history only.)
  */
 
 import type { DatabaseConnection } from "./connection";

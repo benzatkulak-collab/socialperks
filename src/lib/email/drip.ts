@@ -6,6 +6,10 @@
 // ==============================================================================
 
 import { escapeHtml } from "@/lib/security/sanitize";
+import { db, InMemoryConnection } from "@/lib/db/connection";
+import { captureError } from "@/lib/monitoring";
+
+const usingDb = !(db instanceof InMemoryConnection);
 
 // -- Types --------------------------------------------------------------------
 
@@ -283,6 +287,50 @@ export function hasSent(userId: string, stepIndex: number): boolean {
 /** Reset all sent state -- used in tests */
 export function resetSentState(): void {
   sentState.clear();
+  _dripHydrated = false;
+}
+
+// -- Durable sent-state (write-through to `drip_sends`) -----------------------
+//
+// The in-memory Map above is per-process and empty on every serverless cold
+// start. The daily drip cron therefore re-considered every past-due step "due"
+// and re-blasted the whole onboarding sequence after each cold start. The cron
+// now hydrates this Map from Postgres before computing due emails, and persists
+// each send through, so a step is sent at most once. hasSent/markSent stay
+// synchronous (the Map is the cache); durability is the cron's responsibility.
+
+let _dripHydrated = false;
+
+/** Load all recorded sends from Postgres into the in-memory Map (cold start). */
+export async function hydrateDripState(): Promise<void> {
+  if (!usingDb || _dripHydrated) return;
+  try {
+    const res = await db.query<{ user_id: string; step_index: number }>(
+      `SELECT user_id, step_index FROM drip_sends`,
+    );
+    for (const row of res.rows) {
+      const key = sentKey(row.user_id);
+      if (!sentState.has(key)) sentState.set(key, new Set());
+      sentState.get(key)!.add(Number(row.step_index));
+    }
+    _dripHydrated = true;
+  } catch (e) {
+    captureError(e, { source: "email.drip.hydrate" });
+  }
+}
+
+/** Write-through a sent step so it survives cold starts. Best-effort. */
+export async function persistSent(userId: string, stepIndex: number): Promise<void> {
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `INSERT INTO drip_sends (user_id, step_index, sent_at) VALUES ($1, $2, NOW())
+       ON CONFLICT (user_id, step_index) DO NOTHING`,
+      [userId, stepIndex],
+    );
+  } catch (e) {
+    captureError(e, { source: "email.drip.persistSent", userId });
+  }
 }
 
 // -- Core Engine --------------------------------------------------------------
