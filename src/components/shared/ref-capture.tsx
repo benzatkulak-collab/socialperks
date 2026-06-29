@@ -16,7 +16,11 @@ export function RefCapture() {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (!ref) return;
-    const code = ref.toUpperCase().slice(0, 12);
+    // Cap length to guard against an absurdly long injected value, but keep it
+    // wide enough for the real code format (e.g. "REF-XXXX-XXXX" is 13 chars —
+    // a 12-char slice silently dropped the last char and broke the exact-match
+    // lookup at signup).
+    const code = ref.toUpperCase().slice(0, 32);
 
     // Persist for 30 days. Cookie is the canonical attribution
     // mechanism (survives subdomain hops); localStorage is a fallback

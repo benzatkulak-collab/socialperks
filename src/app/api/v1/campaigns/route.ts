@@ -32,6 +32,7 @@ import {
   getBusinessPlan,
   buildPlanLimitError,
 } from "@/lib/billing/enforcement";
+import { hydrateSubscriptions } from "@/lib/billing/store";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
@@ -227,6 +228,9 @@ export const POST = withTiming(async (req: NextRequest) => {
   // business's real active campaigns (else a fresh lambda counts 0 and lets a
   // capped business over-create — or hides their real campaigns).
   await ensureBusinessCampaignsLoaded(bv.data);
+  // Cold-start: warm the subscription cache so a paying customer isn't read as
+  // "free" (and rejected at the free-tier campaign limit) right after a deploy.
+  await hydrateSubscriptions();
   const plan = getBusinessPlan(bv.data);
   const campaignCheck = checkCampaignLimit(bv.data, plan);
   if (!campaignCheck.allowed) {

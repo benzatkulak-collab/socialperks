@@ -127,6 +127,14 @@ export default async function CampaignPage({ params }: PageProps) {
   const isTerminal =
     campaign.state === "ended" || campaign.state === "expired";
 
+  // Attribution for the B2B2C "Powered by" links. A customer who discovers
+  // Social Perks via a business's claim page and clicks through is a
+  // referral-channel visit; without utm params that traffic was invisible to
+  // analytics. (Per-business ?ref credit additionally requires reconciling the
+  // two referral-code systems — tracked separately — but channel attribution
+  // works regardless.)
+  const poweredByHref = `/?utm_source=campaign_page&utm_medium=powered_by&utm_campaign=${encodeURIComponent(campaignId)}`;
+
   // Format the reward
   const budgetLabel =
     campaign.budget.type === "pct"
@@ -185,7 +193,7 @@ export default async function CampaignPage({ params }: PageProps) {
       <header className="border-b border-brand-border bg-brand-surface/50 backdrop-blur-sm">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <Link
-            href="/"
+            href={poweredByHref}
             className="text-xs font-heading italic text-brand-cyan tracking-wide hover:text-brand-white transition-colors"
           >
             Social Perks
@@ -344,7 +352,7 @@ export default async function CampaignPage({ params }: PageProps) {
           <p className="text-2xs text-brand-muted">
             Powered by{" "}
             <Link
-              href="/"
+              href={poweredByHref}
               className="text-brand-cyan hover:text-brand-white transition-colors"
             >
               Social Perks

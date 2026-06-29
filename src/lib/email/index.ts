@@ -226,19 +226,25 @@ export function checkoutAbandonedEmail(
 export function submissionApprovedEmail(
   userName: string,
   campaignName: string,
-  perkValue: string
+  perkValue: string,
+  // Magic-link URL to the customer's perk page (no login required). Pass the
+  // result of perkLinkUrl(userId). Falls back to the static /perks page for
+  // legacy callers, but anonymous customers can only redeem via the magic link.
+  perkUrl?: string
 ): EmailTemplate {
   const safeName = escapeHtml(userName);
   const safeCampaign = escapeHtml(campaignName);
   const safePerk = escapeHtml(perkValue);
+  const url = perkUrl || "https://socialperks.app/perks";
+  const safeUrl = escapeHtml(url);
   const subject = `Your submission for "${safeCampaign}" was approved!`;
   const html = wrapHtml(
     `<h1 style="color: #34D399; font-family: 'Instrument Serif', serif; font-style: italic;">Submission Approved!</h1>
 <p style="color: #94A3B8; line-height: 1.6;">Great news, ${safeName}! Your submission for <strong style="color: #E2E8F0;">${safeCampaign}</strong> has been approved.</p>
 <p style="color: #94A3B8; line-height: 1.6;">You earned a perk worth <strong style="color: #22D3EE;">${safePerk}</strong>.</p>
-<a href="https://socialperks.app/perks" style="display: inline-block; padding: 12px 24px; background-color: #34D399; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">View Your Perks</a>`
+<a href="${safeUrl}" style="display: inline-block; padding: 12px 24px; background-color: #34D399; color: #0C0F1A; border-radius: 8px; text-decoration: none; font-weight: 600;">View &amp; redeem your perk</a>`
   );
-  const text = `Your submission for "${campaignName}" was approved! You earned ${perkValue}. View your perks at https://socialperks.app/perks`;
+  const text = `Your submission for "${campaignName}" was approved! You earned ${perkValue}. View and redeem your perk: ${url}`;
   return { subject, html, text };
 }
 

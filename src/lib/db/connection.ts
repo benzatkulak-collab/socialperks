@@ -524,8 +524,20 @@ function createConnection(): DatabaseConnection {
       },
       pool: DEFAULT_POOL_CONFIG,
     });
-  } catch {
-    console.warn("[DB] Invalid DATABASE_URL, falling back to InMemoryConnection");
+  } catch (e) {
+    // A malformed DATABASE_URL is a genuine misconfiguration. In production we
+    // REFUSE to silently fall back to volatile in-memory storage — that would
+    // evaporate every write on cold start while /health could still look fine.
+    // (A *missing* url is handled above and gated at startup by
+    // src/instrumentation.ts; we don't throw on missing here so a build without
+    // the runtime secret injected yet doesn't break.)
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        `[DB] FATAL: DATABASE_URL is malformed (${e instanceof Error ? e.message : "parse error"}). ` +
+          `Refusing to run on volatile in-memory storage in production.`,
+      );
+    }
+    console.error("[DB] Invalid DATABASE_URL, falling back to InMemoryConnection (dev only)");
     return new InMemoryConnection();
   }
 }

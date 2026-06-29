@@ -1,13 +1,17 @@
 /**
  * Migration System for Social Perks
  * ──────────────────────────────────
- * Ordered, versioned migrations with up/down SQL.
- * Tracks applied migrations in a `_migrations` table.
+ * ⚠️ DEPRECATED — DO NOT ADD MIGRATIONS HERE. This hand-written versioned
+ * registry has NO live caller (the only caller, src/lib/db/init.ts, is itself
+ * uncalled, and now delegates to the schema-auto migrator anyway). It is also
+ * INCOMPLETE — it omits waitlist, influencer_earnings, auth_sessions and
+ * audit_log, which all have live write paths. The canonical migration system is
+ * src/lib/db/migrate.ts (`runMigrations`), which generates DDL from the SCHEMA
+ * object in schema.ts and is what /api/v1/migrate and `npm run db:migrate` run.
+ * Declare new tables in schema.ts (single source of truth) instead.
  *
- * Usage:
- *   import { runPendingMigrations, rollback } from "./migrations";
- *   await runPendingMigrations(db);   // apply all pending
- *   await rollback(db, 1);            // undo the last 1 migration(s)
+ * Ordered, versioned migrations with up/down SQL. Tracks applied migrations in
+ * a `_migrations` table. (Retained for rollback reference / history only.)
  */
 
 import type { DatabaseConnection } from "./connection";
@@ -917,6 +921,85 @@ DROP TABLE IF EXISTS program_payouts;
 DROP TABLE IF EXISTS program_submissions;
 DROP TABLE IF EXISTS program_members;
 DROP TABLE IF EXISTS perk_programs;
+`,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 11,
+    name: "add_campaign_submissions_v2",
+    // Backs src/lib/submissions/persist.ts. The table was declared in schema.ts
+    // but NO migration ever created it, so in production every persistSubmission()
+    // INSERT hit a non-existent table and was swallowed by captureError — proof
+    // submissions evaporated on each cold start while tests passed (InMemory
+    // auto-creates tables). Flat, TEXT-keyed, FK-free; mirrors perk_wallet_entries.
+    // Columns/types match the INSERT in submissions/persist.ts and schema.ts.
+    up: `
+CREATE TABLE IF NOT EXISTS campaign_submissions_v2 (
+  id           TEXT PRIMARY KEY,
+  campaign_id  TEXT NOT NULL,
+  user_id      TEXT NOT NULL,
+  action_id    TEXT NOT NULL,
+  proof_url    TEXT NOT NULL,
+  proof_type   TEXT NOT NULL,
+  status       TEXT NOT NULL,
+  submitted_at TIMESTAMPTZ NOT NULL,
+  reviewed_at  TIMESTAMPTZ,
+  reviewed_by  TEXT,
+  review_note  TEXT,
+  perk_awarded BOOLEAN NOT NULL DEFAULT FALSE,
+  metadata     TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_campaign_submissions_v2_user ON campaign_submissions_v2(user_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_submissions_v2_campaign ON campaign_submissions_v2(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_submissions_v2_status ON campaign_submissions_v2(status);
+`,
+    down: `
+DROP TABLE IF EXISTS campaign_submissions_v2;
+`,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    version: 12,
+    name: "add_launched_campaign_state",
+    // Backs src/lib/campaign-state-machine/persist.ts. Declared in schema.ts but
+    // NO migration created it, so persistLifecycle() INSERTs failed silently in
+    // prod and every redeploy wiped all campaigns — the dashboard "amnesia" bug
+    // the #1 audit issue describes, never actually fixed because the table was
+    // missing. Arrays (actions, ftc_disclosures, transitions) are JSON-in-TEXT.
+    // Columns/types match the INSERT in campaign-state-machine/persist.ts.
+    up: `
+CREATE TABLE IF NOT EXISTS launched_campaign_state (
+  id               TEXT PRIMARY KEY,
+  business_id      TEXT NOT NULL,
+  name             TEXT,
+  description      TEXT,
+  guidelines       TEXT,
+  actions          TEXT,
+  state            TEXT NOT NULL,
+  budget_allocated NUMERIC(10,2) NOT NULL DEFAULT 0,
+  budget_spent     NUMERIC(10,2) NOT NULL DEFAULT 0,
+  budget_type      TEXT NOT NULL,
+  discount_value   NUMERIC(10,2),
+  discount_type    TEXT,
+  completions      INTEGER NOT NULL DEFAULT 0,
+  max_completions  INTEGER,
+  ftc_disclosures  TEXT,
+  launched_at      TIMESTAMPTZ NOT NULL,
+  expires_at       TIMESTAMPTZ NOT NULL,
+  transitions      TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_launched_campaign_state_business ON launched_campaign_state(business_id);
+CREATE INDEX IF NOT EXISTS idx_launched_campaign_state_state ON launched_campaign_state(state);
+CREATE INDEX IF NOT EXISTS idx_launched_campaign_state_biz_state ON launched_campaign_state(business_id, state);
+`,
+    down: `
+DROP TABLE IF EXISTS launched_campaign_state;
 `,
   },
 ];

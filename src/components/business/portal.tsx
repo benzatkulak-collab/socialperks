@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api/csrf-fetch";
 import { PortalHome } from "./portal-home";
 import { PortalCreate } from "./portal-create";
 import { PortalAnalytics } from "./portal-analytics";
+import { PortalSubmissions } from "./portal-submissions";
 import { OnboardingWizard } from "./onboarding-wizard";
 import { CampaignEditModal } from "./campaign-edit-modal";
 import { CheckoutBanner } from "./checkout-banner";
@@ -88,8 +89,29 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
     new URLSearchParams(window.location.search).get("tab") === "analytics"
       ? "analytics"
       : "home";
-  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics">(initialPage);
+  const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics" | "submissions">(initialPage);
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
+
+  // Pending-submission count for the nav badge — the "customers are waiting on
+  // you" signal that pulls owners back into the portal (day-2 retention).
+  // Best-effort fetch on mount; PortalSubmissions keeps it fresh via
+  // onPendingCount after each review.
+  const [pendingSubmissions, setPendingSubmissions] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await apiFetch("/api/v1/submissions?status=pending&perPage=1");
+        const json = await res.json();
+        if (!cancelled && json?.success) setPendingSubmissions(json.data?.total ?? 0);
+      } catch {
+        /* badge is best-effort; ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ── Referral data (lazy: only fetched once, used by the home card +
   //    referral modal). Server endpoint /api/v1/referrals/me lazily
@@ -552,17 +574,22 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               <Logo size="sm" />
             </button>
             <nav className="flex items-center gap-1 ml-4">
-              {(["home", "analytics"] as const).map((tab) => (
+              {(["home", "submissions", "analytics"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setPage(tab)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
+                  className={`relative px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40 ${
                     page === tab
                       ? "bg-brand-cyan/10 text-brand-cyan"
                       : "text-brand-dim hover:text-brand-white hover:bg-brand-elevated/50"
                   }`}
                 >
-                  {tab === "home" ? "Dashboard" : "Analytics"}
+                  {tab === "home" ? "Dashboard" : tab === "submissions" ? "Submissions" : "Analytics"}
+                  {tab === "submissions" && pendingSubmissions > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-brand-amber/20 text-brand-amber text-[10px] font-mono px-1.5 py-0.5 align-middle">
+                      {pendingSubmissions}
+                    </span>
+                  )}
                 </button>
               ))}
               {/* Programs lives at a top-level Next route — the /api/v1/programs
@@ -654,6 +681,16 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
             />
           </div>
           )}
+          </SectionErrorBoundary>
+        )}
+
+        {/* ════════════ SUBMISSIONS (customer review queue) ════════════ */}
+        {page === "submissions" && (
+          <SectionErrorBoundary section="Submissions">
+            <PortalSubmissions
+              campaigns={myCampaigns}
+              onPendingCount={setPendingSubmissions}
+            />
           </SectionErrorBoundary>
         )}
 

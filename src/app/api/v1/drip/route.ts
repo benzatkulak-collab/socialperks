@@ -13,6 +13,8 @@ import {
   getDueEmails,
   markSent,
   hasSent,
+  hydrateDripState,
+  persistSent,
   businessSequence,
   influencerSequence,
   type DripUser,
@@ -174,6 +176,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   const users = await fetchDripUsers();
+  // Cold-start: load already-sent steps from Postgres so a fresh serverless
+  // instance doesn't re-blast the whole onboarding sequence (the in-memory
+  // sent-state Map is empty on every cold start).
+  await hydrateDripState();
   const dueEmails = getDueEmails(users);
 
   let sent = 0;
@@ -198,6 +204,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
     if (result.success) {
       markSent(user.id, stepIndex);
+      await persistSent(user.id, stepIndex); // durable: survives cold starts
       sent++;
     } else {
       failed++;

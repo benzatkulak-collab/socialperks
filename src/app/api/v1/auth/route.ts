@@ -290,7 +290,12 @@ export const POST = withTiming(async (req: NextRequest) => {
       if (body.referralCode && typeof body.referralCode === "string") {
         try {
           await hydrateReferrals();
-          const referral = trackReferralSignup(body.referralCode, userId, sanitizedEmail);
+          // Key the referee by the SAME id the checkout webhook later credits
+          // by: a business converts via metadata.businessId ('biz_usr_*'), not
+          // the raw userId ('usr_*'), so indexing by userId here meant
+          // findReferralByReferee(businessId) never matched and the referrer was
+          // never credited. Influencers (no businessId) fall back to userId.
+          const referral = trackReferralSignup(body.referralCode, businessId ?? userId, sanitizedEmail);
           await persistReferral(referral);
         } catch {
           // Non-blocking: don't fail signup if referral tracking fails

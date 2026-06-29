@@ -19,9 +19,28 @@ import {
   _resetStores,
   __resetPayoutCacheForTests,
 } from "../index";
+import { recordEarning } from "../../earnings";
+
+// requestPayout caps payouts at the influencer's earned balance, so seed a
+// generous balance for the ids these durability tests pay out to.
+function seedEarnings(influencerId: string) {
+  return recordEarning({
+    influencerId,
+    campaignId: "camp_seed",
+    businessId: "biz_seed",
+    submissionId: `sub_seed_${influencerId}`,
+    amountCents: 1_000_000,
+    currency: "usd",
+    payoutId: null,
+    payoutAt: null,
+  });
+}
 
 describe("Payouts durability (survives cold start)", () => {
-  beforeEach(() => _resetStores());
+  beforeEach(async () => {
+    _resetStores();
+    for (const id of ["inf_dur", "inf_multi", "inf_once"]) await seedEarnings(id);
+  });
 
   it("rehydrates the account mapping + payout history from the durable store", async () => {
     const created = await createConnectAccount("inf_dur", "d@example.com");

@@ -193,6 +193,17 @@ export function AuthForm({
 
     setLoading(true);
     try {
+      // Referral attribution: read the sp-ref code captured on a ?ref= visit
+      // (ref-capture.tsx persists it to both a cookie and localStorage). Without
+      // forwarding it here the captured code never reached signup, so the auth
+      // route's trackReferralSignup never fired and referrers were never
+      // credited — the referral channel was a no-op end-to-end despite the
+      // tables, capture, and webhook crediting all being built.
+      const refMatch = document.cookie.match(/(?:^|;\s*)sp-ref=([^;]+)/);
+      const referralCode = refMatch
+        ? decodeURIComponent(refMatch[1])
+        : window.localStorage.getItem("sp-ref");
+
       const res = await fetch("/api/v1/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -200,6 +211,7 @@ export function AuthForm({
         body: JSON.stringify({
           action: "signup", email, password, name,
           role: signupRole === "business" ? "business" : "influencer",
+          ...(referralCode ? { referralCode } : {}),
         }),
       });
       const json = await res.json();
