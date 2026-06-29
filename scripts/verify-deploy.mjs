@@ -218,6 +218,29 @@ async function main() {
   await checkSchema("/compare/instagram-vs-tiktok", ["Article", "BreadcrumbList"]);
   await checkSchema("/best/highest-value-marketing-actions", ["ItemList", "ListItem", "Article"]);
 
+  // ─── 10. Money-path readiness (informational) ─────────────────────────
+  // Reports whether the deploy can actually take money. NOT a hard failure:
+  // ready:false is expected until the Stripe/Resend env vars are set on Vercel,
+  // and we don't want that to fail the SEO/discovery deploy verification.
+  console.log("\n─── Money-path readiness (informational)");
+  try {
+    const res = await fetch(`${BASE}/api/v1/health/readiness`);
+    const json = await res.json();
+    const d = json?.data ?? {};
+    const missing = Object.entries(d.checks ?? {})
+      .filter(([, v]) => v && v.status === "missing")
+      .map(([k]) => k);
+    console.log(
+      `  ready: ${d.ready} · ${d.summary?.ok ?? "?"}/${d.summary?.total ?? "?"} ok` +
+        (missing.length ? ` · missing: ${missing.join(", ")}` : ""),
+    );
+    if (!d.ready) {
+      console.log("  ⓘ Not money-ready yet — set the missing env vars (Stripe/Resend) on Vercel, then redeploy.");
+    }
+  } catch (e) {
+    console.log(`  ⚠ readiness probe unreachable: ${e.message}`);
+  }
+
   // ─── Summary ────────────────────────────────────────────────────────
   console.log(`\n${"=".repeat(60)}`);
   console.log(`Results: ${pass} passed · ${fail} failed`);
