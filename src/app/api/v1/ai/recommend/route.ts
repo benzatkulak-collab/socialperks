@@ -77,7 +77,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   // Plan enforcement — recommendations consume the AI generation quota
-  const limited = enforceAiLimit(user);
+  const limited = await enforceAiLimit(user);
   if (limited) return limited;
 
   // Build input

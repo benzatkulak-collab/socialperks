@@ -30,6 +30,7 @@ import { pluginManager } from "@/lib/plugin-system";
 import {
   checkCampaignLimit,
   getBusinessPlan,
+  getPlanLimits,
   buildPlanLimitError,
 } from "@/lib/billing/enforcement";
 import { hydrateSubscriptions } from "@/lib/billing/store";
@@ -240,6 +241,21 @@ export const POST = withTiming(async (req: NextRequest) => {
       campaignCheck.limit,
       campaignCheck.current,
       plan
+    );
+    return NextResponse.json(body403, { status: 403 });
+  }
+
+  // Plan enforcement: per-campaign marketing-action cap. Count DISTINCT actions
+  // so duplicate IDs in the request don't inflate the count and wrongly block.
+  const planLimits = getPlanLimits(plan);
+  const distinctActionCount = new Set(body.actions).size;
+  if (distinctActionCount > planLimits.maxActions) {
+    const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+    const body403 = buildPlanLimitError(
+      `${planLabel} plan allows ${planLimits.maxActions} marketing action${planLimits.maxActions === 1 ? "" : "s"} per campaign. Upgrade to use more.`,
+      planLimits.maxActions,
+      distinctActionCount,
+      plan,
     );
     return NextResponse.json(body403, { status: 403 });
   }

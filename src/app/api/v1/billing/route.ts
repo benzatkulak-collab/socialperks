@@ -78,28 +78,46 @@ export const POST = withTiming(async (req: NextRequest) => {
       return err("MISSING_URLS", "successUrl and cancelUrl are required", 400);
     }
 
-    // SECURITY: Reject open-redirect URLs. Stripe will redirect users to
-    // whatever success/cancel URL is passed, so attacker-supplied values
-    // can be used for phishing (capture session_id post-checkout).
-    // Restrict both URLs to the configured site host.
-    const siteHost = (() => {
-      const u = process.env.NEXT_PUBLIC_SITE_URL;
-      if (!u) return null;
-      try { return new URL(u).host; } catch { return null; }
-    })();
-    if (siteHost) {
-      for (const [name, value] of [["successUrl", successUrl], ["cancelUrl", cancelUrl]] as const) {
-        try {
-          const u = new URL(value);
-          if (u.host !== siteHost) {
-            return err("INVALID_URL", `${name} must point at the configured site host`, 400);
-          }
-        } catch {
-          return err("INVALID_URL", `${name} is not a valid URL`, 400);
-        }
+    // SECURITY: Reject open-redirect URLs. Stripe redirects users to whatever
+    // success/cancel URL we pass, so attacker-supplied hosts enable phishing
+    // (capturing session_id post-checkout). Both URLs must point at THIS site —
+    // but "this site" legitimately includes the apex, www, Vercel preview/alias
+    // hosts, and localhost. Derive the allow-set from the request's own host
+    // plus configured env (www-normalized) so the guard never blocks a real
+    // checkout on www/preview, while still refusing arbitrary external hosts.
+    const stripWww = (h: string) => h.replace(/^www\./i, "");
+    const allowedHosts = new Set<string>();
+    for (const raw of [
+      process.env.NEXT_PUBLIC_SITE_URL,
+      process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : null,
+      req.headers.get("origin"),
+      req.headers.get("host") ? `https://${req.headers.get("host")}` : null,
+    ]) {
+      if (!raw) continue;
+      try {
+        allowedHosts.add(stripWww(new URL(raw).host));
+      } catch {
+        /* ignore unparseable */
+      }
+    }
+    for (const [name, value] of [["successUrl", successUrl], ["cancelUrl", cancelUrl]] as const) {
+      let parsed: URL;
+      try {
+        parsed = new URL(value);
+      } catch {
+        return err("INVALID_URL", `${name} is not a valid URL`, 400);
+      }
+      if (allowedHosts.size > 0 && !allowedHosts.has(stripWww(parsed.host))) {
+        return err("INVALID_URL", `${name} must point at this site`, 400);
       }
     }
 
+    // Warm the subscription cache so the customer-reuse loop below finds an
+    // existing Stripe customer for a returning business (avoids minting a
+    // duplicate Stripe Customer on every cold-start checkout).
+    await hydrateSubscriptions();
     const customerId = getOrCreateCustomerId(businessId);
     const planConfig = PLANS[plan];
     const priceId =
@@ -121,11 +139,23 @@ export const POST = withTiming(async (req: NextRequest) => {
     // Real Stripe when configured
     if (stripe && isStripeConfigured() && priceId) {
       try {
-        // Ensure Stripe customer exists
-        let stripeCustomerId = customerId;
-        if (!customerId.startsWith("cus_")) {
+        // Resolve a REAL Stripe customer. Reuse the one from a prior
+        // (webhook-provisioned) subscription if present; otherwise create one
+        // now. CRITICAL: never pass a locally-fabricated "cus_<uuid>" (what
+        // getOrCreateCustomerId returns for a brand-new business) to Stripe —
+        // it isn't a real Stripe customer, so checkout.sessions.create would
+        // fail with "No such customer", breaking every first-time buyer in the
+        // signup->checkout funnel.
+        let stripeCustomerId: string | undefined;
+        for (const sub of subscriptions.values()) {
+          if (sub.businessId === businessId && sub.customerId.startsWith("cus_")) {
+            stripeCustomerId = sub.customerId;
+            break;
+          }
+        }
+        if (!stripeCustomerId) {
           const customer = await stripe.customers.create({
-            metadata: { businessId, internalId: customerId },
+            metadata: { businessId },
           });
           stripeCustomerId = customer.id;
         }
@@ -281,6 +311,10 @@ export const POST = withTiming(async (req: NextRequest) => {
     const usageAccess = checkResourceAccess(tenant, businessId);
     if (usageAccess) return usageAccess;
 
+    // Warm the subscription cache first (mirrors get_subscription) so a paying
+    // customer's dashboard isn't shown "free" limits on a cold serverless
+    // instance before hydration races in.
+    await hydrateSubscriptions();
     // Lazy import to keep getUsageSummary out of the critical path of
     // create_checkout/create_portal which don't need it.
     const { getUsageSummary, getBusinessPlan, getPlanLimits } = await import(

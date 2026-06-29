@@ -49,7 +49,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   // Plan enforcement — quick-start consumes the AI generation quota
-  const limited = enforceAiLimit(user);
+  const limited = await enforceAiLimit(user);
   if (limited) return limited;
 
   // Build a minimal profile for quick-start

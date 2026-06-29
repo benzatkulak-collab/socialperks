@@ -81,7 +81,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   // Plan enforcement — full marketing plan is a heavy AI op
-  const limited = enforceAiLimit(user);
+  const limited = await enforceAiLimit(user);
   if (limited) return limited;
 
   // Build profile
