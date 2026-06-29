@@ -29,6 +29,8 @@ import {
   scopesToPermissions,
   type Scope,
 } from "@/lib/auth/agent-auth";
+import { getBusinessPlan, checkFeatureAccess } from "@/lib/billing/enforcement";
+import { hydrateSubscriptions } from "@/lib/billing/store";
 import { audit } from "@/lib/audit-log";
 
 interface ApproveBody {
@@ -62,6 +64,20 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
   if (!user.businessId) {
     return err("NO_BUSINESS", "Account is not associated with a business.", 400);
+  }
+
+  // Plan gate: minting an API credential via the agent-OAuth consent flow is the
+  // SAME paid "API access" entitlement enforced on POST /api/v1/api-keys. Without
+  // this, a free-tier owner could bypass that gate entirely by going through
+  // agent-auth/approve -> token. Hydrate first so a paying customer on a cold
+  // serverless instance isn't mis-read as free and wrongly blocked.
+  await hydrateSubscriptions();
+  if (!checkFeatureAccess(getBusinessPlan(user.businessId), "api")) {
+    return err(
+      "PLAN_LIMIT_EXCEEDED",
+      "API access is a Pro feature. Upgrade at /pricing to authorize agents.",
+      403,
+    );
   }
 
   const body = await parseBody<ApproveBody>(req);

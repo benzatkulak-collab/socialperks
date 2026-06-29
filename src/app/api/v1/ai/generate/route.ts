@@ -71,8 +71,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   // ── Plan enforcement: AI generation limit ──────────────────────────────────
+  // Warm the subscription cache so a paying customer on a cold serverless
+  // instance isn't mis-read as "free" and wrongly throttled.
+  await hydrateSubscriptions();
   const businessId = user.businessId ?? user.id;
-  await hydrateSubscriptions(); // cold-start: don't read a paying customer as "free"
   const plan = getBusinessPlan(businessId);
   const aiCheck = checkAiGenerationLimit(businessId, plan);
   if (!aiCheck.allowed) {

@@ -13,6 +13,8 @@ import type { NextRequest } from "next/server";
 import { ok, err, requireAuth,
   requireCsrf, rateLimit, parseBody, withTiming } from "../_shared";
 import { createApiKey, listApiKeysForBusiness } from "@/lib/auth/api-keys";
+import { getBusinessPlan, checkFeatureAccess } from "@/lib/billing/enforcement";
+import { hydrateSubscriptions } from "@/lib/billing/store";
 
 interface CreateBody {
   agentName?: unknown;
@@ -69,6 +71,23 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
   if (!user.businessId) {
     return err("NO_BUSINESS", "Account is not associated with a business.", 400);
+  }
+
+  // Plan gate: programmatic API access (minting API keys) is a paid feature —
+  // hasApiAccess is true only on Pro+ (see PLAN_LIMITS). Previously this was
+  // marketed but unenforced: any free-tier account could mint keys. GET (list)
+  // and DELETE (revoke) are intentionally NOT gated so a downgraded business
+  // never loses the ability to see or revoke credentials it already issued.
+  // Warm the subscription cache so a paying customer on a cold serverless
+  // instance isn't mis-read as "free" and wrongly blocked. Idempotent + cached.
+  await hydrateSubscriptions();
+  const plan = getBusinessPlan(user.businessId);
+  if (!checkFeatureAccess(plan, "api")) {
+    return err(
+      "PLAN_LIMIT_EXCEEDED",
+      "API access is a Pro feature. Upgrade at /pricing to create API keys.",
+      403,
+    );
   }
 
   const body = await parseBody<CreateBody>(req);

@@ -22,6 +22,7 @@ import {
   getBusinessPlan,
   recordAiGeneration,
 } from "@/lib/billing/enforcement";
+import { hydrateSubscriptions } from "@/lib/billing/store";
 
 /**
  * Returns a 403 NextResponse if the caller has hit their AI generation
@@ -31,8 +32,11 @@ import {
  * users without an attached business (rare) still get rate-limited
  * coherently against their own quota.
  */
-export function enforceAiLimit(user: AuthUser): NextResponse | null {
+export async function enforceAiLimit(user: AuthUser): Promise<NextResponse | null> {
   const businessId = user.businessId ?? user.id;
+  // Warm the subscription cache so a paying customer on a cold serverless
+  // instance isn't mis-read as "free" and wrongly throttled to the free AI cap.
+  await hydrateSubscriptions();
   const plan = getBusinessPlan(businessId);
   const check = checkAiGenerationLimit(businessId, plan);
   if (check.allowed) return null;
