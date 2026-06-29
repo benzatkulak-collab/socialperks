@@ -17,9 +17,18 @@ describe("perk-link magic-link tokens", () => {
 
   it("rejects a tampered token", () => {
     const token = signPerkToken("cust_victim");
-    // Flip the last character to break the signature.
-    const tampered =
-      token.slice(0, -1) + (token.slice(-1) === "A" ? "B" : "A");
+    // Corrupt the signature itself. NOTE: flipping the LAST base64url char is
+    // NOT a reliable tamper — it carries only 2 meaningful bits plus padding
+    // that Node's lenient base64url decoder discards, so ~25% of the time the
+    // token decodes identically and still verifies (this test used to flake at
+    // that rate). Decode, mutate the final signature hex char, and re-encode so
+    // a payload byte always changes and the HMAC check always fails.
+    const decoded = Buffer.from(token, "base64url").toString("utf8"); // `${uid}.${ts}.${sig}`
+    const tampered = Buffer.from(
+      decoded.slice(0, -1) + (decoded.slice(-1) === "a" ? "b" : "a"),
+      "utf8",
+    ).toString("base64url");
+    expect(tampered).not.toBe(token);
     expect(verifyPerkToken(tampered)).toBeNull();
   });
 
