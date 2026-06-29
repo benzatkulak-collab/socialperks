@@ -122,6 +122,53 @@ describe("POST /api/v1/billing/webhook — pay → provision", () => {
   });
 });
 
+// ─── Lifecycle: cancellation / payment failure must REVOKE entitlement ───────
+
+describe("POST /api/v1/billing/webhook — lifecycle revokes entitlement", () => {
+  beforeEach(() => subscriptions.clear());
+
+  async function provision(subId: string, bizId: string, plan = "professional") {
+    await POST(
+      webhookReq(checkoutCompleted({ eventId: "evt_seed_" + subId, subscriptionId: subId, businessId: bizId, plan })),
+    );
+  }
+
+  it("customer.subscription.deleted flips the sub to canceled and revokes the plan", async () => {
+    const subId = "sub_cancel";
+    const bizId = "biz_cancel";
+    await provision(subId, bizId);
+    expect(getBusinessPlan(bizId)).toBe("professional");
+
+    const res = await POST(
+      webhookReq({ id: "evt_cancel", type: "customer.subscription.deleted", data: { object: { id: subId } } }),
+    );
+    expect(res.status).toBe(200);
+    expect(subscriptions.get(subId)?.status).toBe("canceled");
+    expect(getBusinessPlan(bizId)).toBe("free"); // entitlement revoked
+  });
+
+  it("invoice.payment_failed marks past_due and revokes the plan", async () => {
+    const subId = "sub_pastdue";
+    const bizId = "biz_pastdue";
+    await provision(subId, bizId);
+
+    const res = await POST(
+      webhookReq({ id: "evt_pastdue", type: "invoice.payment_failed", data: { object: { subscription: subId } } }),
+    );
+    expect(res.status).toBe(200);
+    expect(subscriptions.get(subId)?.status).toBe("past_due");
+    expect(getBusinessPlan(bizId)).toBe("free");
+  });
+
+  it("a lifecycle event for an unknown subscription is acked without crashing (cold-instance safe)", async () => {
+    const res = await POST(
+      webhookReq({ id: "evt_unknown_cancel", type: "customer.subscription.deleted", data: { object: { id: "sub_never_seen" } } }),
+    );
+    expect(res.status).toBe(200);
+    expect(subscriptions.has("sub_never_seen")).toBe(false);
+  });
+});
+
 // ─── Regression guard: never reintroduce static Payment Links ────────────────
 
 describe("Pay → Provision regression guard", () => {

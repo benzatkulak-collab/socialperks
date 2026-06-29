@@ -66,6 +66,32 @@ export async function markEventProcessed(
 }
 
 /**
+ * Undo a markEventProcessed claim so a failed-but-retriable event is reprocessed
+ * when the provider redelivers it. Without this, a processing failure that
+ * returns 5xx is silently de-duplicated on the retry (markEventProcessed already
+ * recorded the id) and the event is never reprocessed — so a paid checkout whose
+ * DB write transiently failed would be lost despite Stripe retrying.
+ */
+export async function unmarkEventProcessed(
+  eventId: string,
+  source: string
+): Promise<void> {
+  _memStore.delete(`${source}:${eventId}`);
+  if (!usingDb) return;
+  try {
+    await db.query(
+      `DELETE FROM webhook_events WHERE event_id = $1 AND source = $2`,
+      [eventId, source]
+    );
+  } catch (e) {
+    console.error(
+      `[webhook-dedup] failed to unmark ${source}:${eventId}:`,
+      e instanceof Error ? e.message : e
+    );
+  }
+}
+
+/**
  * Test helper. Clears the in-memory store. The DB store is not touched
  * (tests should use a separate DB or run with DATABASE_URL unset).
  */

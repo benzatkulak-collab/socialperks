@@ -28,6 +28,7 @@ import {
   getBusinessPlan,
   buildPlanLimitError,
 } from "@/lib/billing/enforcement";
+import { hydrateSubscriptions } from "@/lib/billing/store";
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
     // ── Plan enforcement: completion limit ──────────────────────────────────
     const completionBusinessId = campaign.businessId;
+    await hydrateSubscriptions(); // cold-start: read the real plan, not "free"
     const completionPlan = getBusinessPlan(completionBusinessId);
     const completionCheck = checkCompletionLimit(completionBusinessId, completionPlan);
     if (!completionCheck.allowed) {

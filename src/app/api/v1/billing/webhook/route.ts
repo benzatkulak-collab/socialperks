@@ -13,9 +13,12 @@ import {
   subscriptions,
   generateStripeId,
   persistSubscription,
+  updateSubscriptionStatus,
+  planFromPriceId,
   type Subscription,
 } from "@/lib/billing/store";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { captureError } from "@/lib/monitoring";
 import { businessRepo } from "@/lib/db/repositories";
 import {
   emailProvider,
@@ -23,7 +26,7 @@ import {
   checkoutAbandonedEmail,
 } from "@/lib/email";
 import { creditReferral, findReferralByReferee, hydrateReferrals, persistReferral } from "@/lib/referrals";
-import { markEventProcessed } from "@/lib/webhook-dedup";
+import { markEventProcessed, unmarkEventProcessed } from "@/lib/webhook-dedup";
 import { audit } from "@/lib/audit-log";
 
 // ─── Replay Protection ──────────────────────────────────────────────────────
@@ -179,9 +182,12 @@ export const POST = withTiming(async (req: NextRequest) => {
           await persistSubscription(sub);
           console.warn(`[Billing Webhook] Created subscription ${subscriptionId} for business ${businessId}`);
         } catch (e) {
-          // If subscription creation fails, remove from processed events so Stripe can retry
+          // Provisioning failed durably — un-mark the event (in-memory + the DB
+          // dedup row) so Stripe's retry actually reprocesses instead of being
+          // silently de-duplicated by markEventProcessed, and surface to Sentry.
           processedEvents.delete(eventId);
-          console.error(`[Billing Webhook] Failed to create subscription — event=${eventId}`, e);
+          await unmarkEventProcessed(eventId, "stripe");
+          captureError(e, { source: "billing.webhook.checkout_completed", eventId, businessId });
           return err("PROCESSING_FAILED", "Failed to process checkout event", 500);
         }
 
@@ -202,7 +208,7 @@ export const POST = withTiming(async (req: NextRequest) => {
             });
           }
         } catch (e) {
-          console.error(`[Billing Webhook] Failed to enqueue welcome email — event=${eventId}`, e);
+          captureError(e, { source: "billing.webhook.welcome_email", eventId, businessId });
         }
 
         // ── Referral credit. If this customer was referred, the referrer
@@ -219,7 +225,7 @@ export const POST = withTiming(async (req: NextRequest) => {
             );
           }
         } catch (e) {
-          console.error(`[Billing Webhook] Failed to credit referral — event=${eventId}`, e);
+          captureError(e, { source: "billing.webhook.referral_credit", eventId, businessId });
         }
       }
       break;
@@ -230,16 +236,26 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       if (eventData) {
         const subscriptionId = eventData.id as string;
-        const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
-        if (existing) {
-          const status = eventData.status as Subscription["status"] | undefined;
-          const cancelAtPeriodEnd = eventData.cancel_at_period_end as boolean | undefined;
-          await persistSubscription({
-            ...existing,
+        const status = eventData.status as Subscription["status"] | undefined;
+        const cancelAtPeriodEnd = eventData.cancel_at_period_end as boolean | undefined;
+        // Plan/period change via the Stripe Billing Portal: map the new price
+        // back to a plan slug so an upgrade/downgrade actually changes limits.
+        const items = (eventData.items as { data?: Array<{ price?: { id?: string } }> } | undefined)?.data;
+        const mapped = planFromPriceId(items?.[0]?.price?.id);
+        try {
+          // DB-authoritative: updates Postgres directly by stripe_subscription_id,
+          // so it works on a cold instance with an empty Map.
+          const found = await updateSubscriptionStatus(subscriptionId, {
             ...(status && { status }),
             ...(typeof cancelAtPeriodEnd === "boolean" && { cancelAtPeriodEnd }),
+            ...(mapped && { plan: mapped.plan, billingPeriod: mapped.billingPeriod }),
           });
-          console.warn(`[Billing Webhook] Updated subscription ${subscriptionId}`);
+          console.warn(`[Billing Webhook] ${found ? "Updated" : "Update for unknown"} subscription ${subscriptionId}`);
+        } catch (e) {
+          processedEvents.delete(eventId);
+          await unmarkEventProcessed(eventId, "stripe");
+          captureError(e, { source: "billing.webhook.subscription_updated", eventId });
+          return err("PROCESSING_FAILED", "Failed to process subscription update", 500);
         }
       }
       break;
@@ -250,10 +266,17 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       if (eventData) {
         const subscriptionId = eventData.id as string;
-        const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
-        if (existing) {
-          await persistSubscription({ ...existing, status: "canceled" });
-          console.warn(`[Billing Webhook] Canceled subscription ${subscriptionId}`);
+        try {
+          // DB-authoritative so a cancellation revokes entitlement even on a
+          // cold webhook instance (the old Map-only path left canceled
+          // customers on the paid plan forever).
+          const found = await updateSubscriptionStatus(subscriptionId, { status: "canceled" });
+          console.warn(`[Billing Webhook] ${found ? "Canceled" : "Cancel for unknown"} subscription ${subscriptionId}`);
+        } catch (e) {
+          processedEvents.delete(eventId);
+          await unmarkEventProcessed(eventId, "stripe");
+          captureError(e, { source: "billing.webhook.subscription_deleted", eventId });
+          return err("PROCESSING_FAILED", "Failed to process subscription cancellation", 500);
         }
       }
       break;
@@ -264,10 +287,14 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       if (eventData) {
         const subscriptionId = eventData.subscription as string;
-        const existing = subscriptionId ? subscriptions.get(subscriptionId) : undefined;
-        if (existing) {
-          await persistSubscription({ ...existing, status: "past_due" });
-          console.warn(`[Billing Webhook] Marked subscription ${subscriptionId} as past_due`);
+        try {
+          const found = await updateSubscriptionStatus(subscriptionId, { status: "past_due" });
+          console.warn(`[Billing Webhook] ${found ? "Marked past_due" : "Past_due for unknown"} subscription ${subscriptionId}`);
+        } catch (e) {
+          processedEvents.delete(eventId);
+          await unmarkEventProcessed(eventId, "stripe");
+          captureError(e, { source: "billing.webhook.payment_failed", eventId });
+          return err("PROCESSING_FAILED", "Failed to process payment failure", 500);
         }
       }
       break;

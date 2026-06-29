@@ -110,8 +110,11 @@ const usingDb = !(db instanceof InMemoryConnection);
  * Both writes are best-effort; the in-memory write always succeeds.
  */
 export async function persistSubscription(sub: Subscription): Promise<void> {
-  subscriptions.set(sub.id, sub);
-  if (!usingDb) return;
+  // In-memory mode (dev/test): the Map IS the store.
+  if (!usingDb) {
+    subscriptions.set(sub.id, sub);
+    return;
+  }
   try {
     await db.query(
       `INSERT INTO business_subscriptions
@@ -141,13 +144,95 @@ export async function persistSubscription(sub: Subscription): Promise<void> {
         sub.createdAt,
       ],
     );
+    // Cache only AFTER the durable write succeeds — a failed write must not
+    // leave a Map entry that makes the retry's idempotency check skip it.
+    subscriptions.set(sub.id, sub);
   } catch (e) {
-    // Don't fail the webhook just because DB write failed; log and
-    // continue. Stripe will retry if we 5xx, so successful return here
-    // means we acknowledged the event with at least the in-memory cache
-    // updated.
     captureError(e, { source: "billing.persistSubscription", subscriptionId: sub.id, businessId: sub.businessId });
+    // Re-throw so the webhook returns 5xx and the event is retried (paired with
+    // unmarkEventProcessed in the route). Swallowing here left a paid
+    // subscription only in the volatile in-memory Map, lost on the next cold
+    // start, while Stripe marked the event delivered and never retried.
+    throw e;
   }
+}
+
+// ─── DB-authoritative lifecycle updates ──────────────────────────────────────
+//
+// Stripe lifecycle events (canceled / past_due / plan change) must revoke or
+// change entitlement EVEN ON A COLD SERVERLESS INSTANCE where the in-memory Map
+// is empty. The old handlers read `subscriptions.get(id)` and no-op'd on a cold
+// Map, so a cancellation never reached Postgres and getBusinessPlan kept
+// granting the paid plan forever. These write to Postgres directly by
+// stripe_subscription_id (the durable source of truth) and patch the Map only
+// if it happens to be warm.
+
+export interface SubscriptionPatch {
+  status?: Subscription["status"];
+  cancelAtPeriodEnd?: boolean;
+  plan?: string;
+  billingPeriod?: "monthly" | "annual";
+}
+
+/**
+ * Update a subscription by its Stripe id, authoritative against Postgres.
+ * Returns true if a row was updated (or, in in-memory mode, the Map had it),
+ * false if no such subscription exists. THROWS on a real DB error so the webhook
+ * 5xxs and Stripe retries — a transient DB blip must not silently drop a
+ * cancellation.
+ */
+export async function updateSubscriptionStatus(
+  subscriptionId: string,
+  patch: SubscriptionPatch,
+): Promise<boolean> {
+  const cached = subscriptions.get(subscriptionId);
+  if (cached) {
+    subscriptions.set(subscriptionId, {
+      ...cached,
+      ...(patch.status && { status: patch.status }),
+      ...(typeof patch.cancelAtPeriodEnd === "boolean" && { cancelAtPeriodEnd: patch.cancelAtPeriodEnd }),
+      ...(patch.plan && { plan: patch.plan }),
+      ...(patch.billingPeriod && { billingPeriod: patch.billingPeriod }),
+    });
+  }
+
+  if (!usingDb) return cached !== undefined;
+
+  const sets: string[] = [];
+  const vals: unknown[] = [];
+  let i = 1;
+  if (patch.status !== undefined) { sets.push(`status = $${i++}`); vals.push(patch.status); }
+  if (patch.cancelAtPeriodEnd !== undefined) { sets.push(`cancel_at_period_end = $${i++}`); vals.push(patch.cancelAtPeriodEnd); }
+  if (patch.plan !== undefined) { sets.push(`plan = $${i++}`); vals.push(patch.plan); }
+  if (patch.billingPeriod !== undefined) { sets.push(`billing_period = $${i++}`); vals.push(patch.billingPeriod); }
+  if (sets.length === 0) return cached !== undefined;
+  sets.push(`updated_at = NOW()`);
+  vals.push(subscriptionId);
+
+  try {
+    const res = await db.query<{ stripe_subscription_id: string }>(
+      `UPDATE business_subscriptions SET ${sets.join(", ")}
+        WHERE stripe_subscription_id = $${i}
+        RETURNING stripe_subscription_id`,
+      vals,
+    );
+    return res.rows.length > 0;
+  } catch (e) {
+    captureError(e, { source: "billing.updateSubscriptionStatus", subscriptionId });
+    throw e;
+  }
+}
+
+/** Reverse-lookup a Stripe price id back to a plan slug + billing period. */
+export function planFromPriceId(
+  priceId: string | null | undefined,
+): { plan: string; billingPeriod: "monthly" | "annual" } | null {
+  if (!priceId) return null;
+  for (const [slug, cfg] of Object.entries(PLANS)) {
+    if (cfg.monthlyPriceId && cfg.monthlyPriceId === priceId) return { plan: slug, billingPeriod: "monthly" };
+    if (cfg.annualPriceId && cfg.annualPriceId === priceId) return { plan: slug, billingPeriod: "annual" };
+  }
+  return null;
 }
 
 export function getOrCreateCustomerId(businessId: string): string {

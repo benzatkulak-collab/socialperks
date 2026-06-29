@@ -26,6 +26,7 @@ import {
   getBusinessPlan,
   buildPlanLimitError,
 } from "@/lib/billing/enforcement";
+import { hydrateSubscriptions } from "@/lib/billing/store";
 
 interface GenerateBody {
   businessType?: string;
@@ -71,6 +72,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   // ── Plan enforcement: AI generation limit ──────────────────────────────────
   const businessId = user.businessId ?? user.id;
+  await hydrateSubscriptions(); // cold-start: don't read a paying customer as "free"
   const plan = getBusinessPlan(businessId);
   const aiCheck = checkAiGenerationLimit(businessId, plan);
   if (!aiCheck.allowed) {
