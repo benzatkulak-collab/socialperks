@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   FinancialLedger,
   EscrowManager,
@@ -271,11 +271,18 @@ describe("PaymentProcessor", () => {
   let processor: PaymentProcessor;
 
   beforeEach(() => {
+    // MockStripeClient has a 2% random failure rate. Pin Math.random so
+    // shouldFail() (Math.random() < 0.02) never fires in tests.
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
     ledger = new FinancialLedger();
     processor = new PaymentProcessor(
       { secretKey: "sk_test", webhookSecret: "whsec_test", platformAccountId: "acct_platform" },
       ledger
     );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("creates a connected account for an influencer", async () => {
