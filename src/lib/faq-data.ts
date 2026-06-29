@@ -91,7 +91,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "getting-started",
     question: "How much does Social Perks cost?",
     answer:
-      "There's a free tier with one active campaign, 50 customer completions per month, and basic features. Paid plans start at $29/month (Starter) and $79/month (Pro), with annual billing offering ~17% off (two months free). Enterprise plans are negotiated. The cost of the perks themselves (the discounts and free items) is set by you — Social Perks doesn't take a cut of the customer reward.",
+      "There's a free tier with one active campaign, 50 customer completions per month, and basic features. Paid plans start at $10/month (Starter) and $25/month (Pro), with annual billing offering up to 33% off (2–4 months free). Enterprise plans are negotiated. The cost of the perks themselves (the discounts and free items) is set by you — Social Perks doesn't take a cut of the customer reward.",
   },
   {
     slug: "what-is-a-perk",
@@ -289,7 +289,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "pricing",
     question: "Do I pay Stripe fees on Social Perks subscriptions?",
     answer:
-      "Stripe processing fees are included in the listed plan prices ($29 Starter, $79 Pro). What you see is what you pay. The cost of perks themselves is separate — those are paid by you to your customers via discount/free-item delivery; Social Perks doesn't take a cut of customer rewards.",
+      "Stripe processing fees are included in the listed plan prices ($10 Starter, $25 Pro). What you see is what you pay. The cost of perks themselves is separate — those are paid by you to your customers via discount/free-item delivery; Social Perks doesn't take a cut of customer rewards.",
   },
   {
     slug: "what-happens-if-i-hit-my-plan-limit",

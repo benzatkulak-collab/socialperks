@@ -99,8 +99,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Starter",
     planKey: "starter",
-    price: "$29",
-    annualPrice: 290,
+    price: "$10",
+    annualPrice: 100,
     period: "/month",
     description: "For solo owners ready to grow.",
     features: [
@@ -118,8 +118,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Pro",
     planKey: "professional",
-    price: "$49",
-    annualPrice: 490,
+    price: "$25",
+    annualPrice: 200,
     period: "/month",
     description: "Everything you need to scale.",
     features: [
@@ -170,8 +170,8 @@ const WORKS_WITH = [
 ];
 
 export function PricingSection() {
-  // Default to annual: 20% saving is real revenue uplift per signup; plus
-  // the visible "Save 20%" badge becomes immediate social-proof of value.
+  // Default to annual: a 2–4 month discount is real revenue uplift per
+  // signup; the visible "months free" badge is immediate social proof.
   const [annual, setAnnual] = useState(true);
   const liveStats = useLiveStats();
 
@@ -254,7 +254,7 @@ export function PricingSection() {
             </span>
             {annual && (
               <span className="ml-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-xs font-semibold text-brand-green">
-                2 months free
+                up to 4 months free
               </span>
             )}
           </div>
