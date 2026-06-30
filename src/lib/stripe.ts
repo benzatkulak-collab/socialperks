@@ -34,33 +34,12 @@ export function isStripeConfigured(): boolean {
 }
 
 // ─── Billing Plans ───────────────────────────────────────────────────────────
-
-/**
- * Plans available for billing. Maps to Stripe Price IDs in production.
- */
-export const PLANS = {
-  free: {
-    name: "Free",
-    priceId: process.env.STRIPE_PRICE_FREE ?? null,
-    maxCampaigns: 3,
-    maxActions: 5,
-  },
-  starter: {
-    name: "Starter",
-    priceId: process.env.STRIPE_PRICE_STARTER ?? null,
-    maxCampaigns: 10,
-    maxActions: 20,
-  },
-  pro: {
-    name: "Pro",
-    priceId: process.env.STRIPE_PRICE_PRO ?? null,
-    maxCampaigns: 50,
-    maxActions: 107,
-  },
-  enterprise: {
-    name: "Enterprise",
-    priceId: process.env.STRIPE_PRICE_ENTERPRISE ?? null,
-    maxCampaigns: Infinity,
-    maxActions: 107,
-  },
-} as const;
+//
+// SINGLE SOURCE OF TRUTH: plan slugs, prices, and Stripe Price IDs live in
+// src/lib/billing/store.ts (PLANS); enforced limits live in
+// src/lib/billing/enforcement.ts (PLAN_LIMITS). This file used to export its
+// OWN PLANS map keyed "pro" reading STRIPE_PRICE_PRO — a divergent registry
+// (the live one is keyed "professional" reading STRIPE_PRICE_PROFESSIONAL_*),
+// which is exactly the mismatch that once capped paying customers at free
+// limits. It was orphaned (imported only by its own test), so it's removed to
+// kill the divergence trap. Import plan config from billing/store.ts instead.

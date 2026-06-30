@@ -16,21 +16,7 @@ describe("Stripe integration", () => {
     expect(isStripeConfigured()).toBe(false);
   });
 
-  it("PLANS object has expected plan names", async () => {
-    const { PLANS } = await import("../stripe");
-
-    expect(PLANS.free.name).toBe("Free");
-    expect(PLANS.starter.name).toBe("Starter");
-    expect(PLANS.pro.name).toBe("Pro");
-    expect(PLANS.enterprise.name).toBe("Enterprise");
-  });
-
-  it("PLANS have correct campaign limits", async () => {
-    const { PLANS } = await import("../stripe");
-
-    expect(PLANS.free.maxCampaigns).toBe(3);
-    expect(PLANS.starter.maxCampaigns).toBe(10);
-    expect(PLANS.pro.maxCampaigns).toBe(50);
-    expect(PLANS.enterprise.maxCampaigns).toBe(Infinity);
-  });
+  // Plan config (slugs, prices, limits) is owned by billing/store.ts +
+  // enforcement.ts — the former duplicate PLANS map in lib/stripe.ts was
+  // removed to kill registry divergence, so there are no PLANS assertions here.
 });
