@@ -32,10 +32,10 @@ const STEPS: Step[] = [
   },
   {
     number: "03",
-    title: "We make sure it happened",
+    title: "You approve before any perk goes out",
     description:
-      "No honor system. We verify the post, review, or share actually went live before anyone gets their discount.",
-    example: "Automatic check — did the review actually post?",
+      "No honor system. Every submission lands in your review queue with the proof link and a quick liveness check that flags anything suspicious — you approve or reject in one click before the discount is issued.",
+    example: "Customer submits proof → you approve in one click",
     icon: "✓",
     accent: "border-brand-amber",
   },
