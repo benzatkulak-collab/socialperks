@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@/lib/analytics";
 
 export type PerkType = "pct" | "dol";
 
@@ -54,6 +55,9 @@ export function PerkCard({
       if (!json.success) {
         setError(json.error?.message ?? "Could not redeem this perk.");
       } else {
+        // Activation aha-moment: a real customer redeemed a real perk — the
+        // end of the loop and the strongest signal the product delivered value.
+        track("perk_redeemed");
         setStatus("redeemed");
         setCode(json.data.redemptionCode);
       }

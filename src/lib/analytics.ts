@@ -30,6 +30,13 @@
  *   - signup_completed   { role: "business"|"influencer", planIntent?: string }
  *   - checkout_started   { plan: string, period: "monthly"|"annual" }
  *   - checkout_completed { plan: string }
+ *
+ * Activation funnel (the events after signup that actually predict paid
+ * conversion + retention — previously the funnel went dark at signup):
+ *   - campaign_launched    { actions: number, reward: string }
+ *   - submission_created   { }            // a customer submitted proof
+ *   - submission_reviewed  { decision: "approved"|"rejected" }
+ *   - perk_redeemed        { }            // the aha-moment: real perk redeemed
  */
 
 type KnownEvent =
@@ -37,7 +44,11 @@ type KnownEvent =
   | "signup_started"
   | "signup_completed"
   | "checkout_started"
-  | "checkout_completed";
+  | "checkout_completed"
+  | "campaign_launched"
+  | "submission_created"
+  | "submission_reviewed"
+  | "perk_redeemed";
 
 type EventProps = Record<string, string | number | boolean | null | undefined>;
 
@@ -59,9 +70,34 @@ function ph(): PosthogShim | null {
  * snippet has finished initializing — the captured event will be
  * queued by PostHog's own snippet and dispatched once it's ready.
  */
+let warnedAnalyticsMissing = false;
+
+/**
+ * In production, surface ONCE if PostHog never loaded — otherwise the entire
+ * funnel/activation pipeline silently drops every event and dashboards read
+ * "0 conversions" with no indication the instrumentation is simply unwired
+ * (a missing NEXT_PUBLIC_POSTHOG_KEY). Dev intentionally runs without the
+ * snippet, so we stay quiet there.
+ */
+function warnIfAnalyticsMissing(): void {
+  if (warnedAnalyticsMissing) return;
+  if (typeof window === "undefined") return;
+  if (process.env.NODE_ENV !== "production") return;
+  warnedAnalyticsMissing = true;
+  console.warn(
+    "[analytics] PostHog is not loaded — funnel and activation events are being " +
+      "dropped. Set NEXT_PUBLIC_POSTHOG_KEY (and host) so conversion data is captured.",
+  );
+}
+
 export function track(event: KnownEvent, props?: EventProps): void {
+  const client = ph();
+  if (!client) {
+    warnIfAnalyticsMissing();
+    return;
+  }
   try {
-    ph()?.capture(event, props);
+    client.capture(event, props);
   } catch {
     // Analytics MUST NOT break the page. Swallow all errors.
   }

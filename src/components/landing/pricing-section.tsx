@@ -125,7 +125,7 @@ const PRICING_TIERS: PricingTier[] = [
     features: [
       "50 active campaigns",
       "5,000 completions/month",
-      "Advanced analytics + smart recommendations",
+      "Advanced analytics + campaign recommendations",
       "API access",
       "Priority verification",
       "Priority support",
@@ -506,7 +506,7 @@ const COMPARISON: ComparisonRow[] = [
   { feature: "Campaign suggestions", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
   // Analytics
   { group: "Analytics", feature: "Basic analytics dashboard", free: true, starter: true, pro: true, enterprise: true },
-  { feature: "Advanced analytics + smart recommendations", free: false, starter: false, pro: true, enterprise: true },
+  { feature: "Advanced analytics + campaign recommendations", free: false, starter: false, pro: true, enterprise: true },
   { feature: "CSV export", free: false, starter: true, pro: true, enterprise: true },
   // Features
   { group: "Features", feature: "QR codes for your counter", free: false, starter: true, pro: true, enterprise: true },
@@ -629,7 +629,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What's the difference between Starter and Pro?",
-    a: "Starter (10 campaigns, 500 completions/mo) is for a single solo owner who's launching a few campaigns at a time. Pro (50 campaigns, 5,000 completions/mo) adds smart recommendations, API access, and priority support — the right fit once you're running campaigns continuously or wiring Social Perks into your own tools.",
+    a: "Starter (10 campaigns, 500 completions/mo) is for a single solo owner who's launching a few campaigns at a time. Pro (50 campaigns, 5,000 completions/mo) adds campaign recommendations, API access, and priority support — the right fit once you're running campaigns continuously or wiring Social Perks into your own tools.",
   },
   {
     q: "What if I have multiple locations?",

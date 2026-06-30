@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api/csrf-fetch";
+import { track } from "@/lib/analytics";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,9 @@ export function PortalSubmissions({ campaigns, onPendingCount }: PortalSubmissio
         });
         const json = await res.json();
         if (json?.success) {
+          // Activation event: a business reviewed a real customer submission —
+          // the step that turns proof into a perk and drives toward redemption.
+          track("submission_reviewed", { decision: decision === "approve" ? "approved" : "rejected" });
           const awarded = json.data?.perk?.calculation?.totalValue;
           setToast({
             kind: "ok",

@@ -7,6 +7,7 @@ import { useBusinessDashboard } from "@/lib/hooks/use-business-dashboard";
 import { useRealtime } from "@/lib/hooks/use-realtime";
 import { PLATFORMS, findPlatform, findAction } from "@/lib/platforms";
 import { apiFetch } from "@/lib/api/csrf-fetch";
+import { track } from "@/lib/analytics";
 import { PortalHome } from "./portal-home";
 import { PortalCreate } from "./portal-create";
 import { PortalAnalytics } from "./portal-analytics";
@@ -381,6 +382,10 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
         setLaunching(false);
         return;
       }
+      // Activation event: a campaign was successfully launched. This is the
+      // single most important post-signup signal — without it the funnel was
+      // dark after "signup_completed" and activation couldn't be measured.
+      track("campaign_launched", { actions: 1, reward: rewardType });
       try {
         const body = await res.clone().json();
         const id = body?.data?.campaign?.id;
