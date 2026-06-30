@@ -32,7 +32,7 @@ export default function robots(): MetadataRoute.Robots {
         (userAgent) => ({
           userAgent,
           allow: ["/", ...AGENT_DISCOVERABLE_API_PATHS, "/llms.txt", "/.well-known/ai-plugin.json", "/AGENTS.md"],
-          disallow: ["/dashboard", "/admin", "/c/", "/reset-password", "/confirm-reset"],
+          disallow: ["/dashboard", "/admin", "/reset-password", "/confirm-reset"],
         })
       ),
       // ─── General crawlers (Googlebot, Bingbot, etc.) ────────────────────
@@ -50,11 +50,14 @@ export default function robots(): MetadataRoute.Robots {
         // App + admin surfaces (auth-gated, no public content) and any
         // path that carries a one-time token in the URL — those must
         // never be indexed even if a user accidentally shares the link.
+        // NOTE: /c/ (public campaign claim pages) is deliberately NOT here —
+        // those are public marketing pages carrying the "Powered by Social
+        // Perks" footer, i.e. the B2B2C discovery loop. Per-page metadata
+        // noindexes the not-found / inactive ones (see src/app/c/[campaignId]).
         disallow: [
           "/dashboard",
           "/api/",
           "/admin",
-          "/c/",
           "/reset-password",
           "/confirm-reset",
         ],

@@ -219,7 +219,7 @@ export const GUIDES: Guide[] = [
     description:
       "Use Social Perks' referral codes + revenue-share to turn your existing customers into your acquisition channel. Step-by-step setup and best practices.",
     summary:
-      "A Social Perks referral program automatically credits referrers when their referees convert to a paid plan. The default credit is $10, applied as account credit to the referrer's next invoice. Setup is one toggle plus deciding how to share the code.",
+      "A Social Perks referral program records a $10 credit for the referrer each time a referee converts to a paid plan. The default credit is $10 per paid referral, tracked on your account. Setup is one toggle plus deciding how to share the code.",
     totalTime: "PT10M",
     timeLabel: "10 minutes",
     supplies: [
@@ -241,8 +241,8 @@ export const GUIDES: Guide[] = [
         text: "Every signup with your code is tracked. Status flows: pending (link clicked) → signed_up (account created) → activated (first campaign launched) → credited (paid conversion). You see the funnel live.",
       },
       {
-        name: "Watch for the credit on your next invoice",
-        text: "When a referee converts to a paid plan, your account is credited automatically. Default $10 per credited referral. The credit applies to your next Stripe invoice — no manual step.",
+        name: "Track your earned credits",
+        text: "When a referee converts to a paid plan, a $10 credit (the default) is recorded against your account and the referral is marked credited. Watch your referrals and earned credits from your dashboard.",
       },
     ],
     related: ["choose-perk-amount"],

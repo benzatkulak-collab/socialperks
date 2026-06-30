@@ -83,8 +83,10 @@ export async function generateMetadata({
   const campaign = await getCampaign(campaignId);
 
   if (!campaign) {
+    // Dead/missing campaign URL — never index it.
     return {
       title: "Campaign Not Found - Social Perks",
+      robots: { index: false, follow: true },
     };
   }
 
@@ -95,9 +97,16 @@ export async function generateMetadata({
   const title = `Campaign by ${businessName} - Social Perks`;
   const description = `Complete a marketing action for ${businessName} and earn a reward. Powered by Social Perks.`;
 
+  // Only LIVE campaign pages are index-worthy. Ended/paused/draft pages are
+  // dead-ends for a searcher (nothing to act on) and would be thin content, so
+  // we noindex them while still allowing crawlers to follow the "Powered by
+  // Social Perks" link — keeping the B2B2C discovery loop without SEO bloat.
+  const indexable = campaign.state === "active";
+
   return {
     title,
     description,
+    robots: indexable ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: {
       title,
       description,
