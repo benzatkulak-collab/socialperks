@@ -21,6 +21,16 @@ export async function register(): Promise<void> {
   const { config, validateProductionConfig } = await import("@/lib/config");
   const { captureMessage } = await import("@/lib/monitoring");
 
+  // Schema migrations run on every cold start (idempotent, node-runtime + real
+  // DATABASE_URL only, kill-switch via DISABLE_BOOT_MIGRATIONS). This is the
+  // ONLY thing that guarantees the durable billing / core-loop tables actually
+  // exist in prod — previously they depended on a manual migration nobody was
+  // forced to run, and a missing table failed silently. Best-effort: never
+  // throws, so a transient DB blip can't take the deployment down. Runs in all
+  // environments that have a real DB, not just production.
+  const { runBootMigrations } = await import("@/lib/db/boot-migrate");
+  await runBootMigrations();
+
   if (!config.isProduction) return;
 
   const NON_NEGOTIABLE = ["AUTH_SECRET", "DATABASE_URL"];

@@ -26,7 +26,7 @@ export const PLANS: Record<string, PlanConfig> = {
     annualPriceId: process.env.STRIPE_PRICE_STARTER_ANNUAL ?? null,
     monthlyPrice: 10,
     annualPrice: 100,
-    features: ["5 active campaigns", "Basic analytics", "Email support"],
+    features: ["10 active campaigns", "Basic analytics", "Email support"],
   },
   professional: {
     name: "Professional",
@@ -34,7 +34,7 @@ export const PLANS: Record<string, PlanConfig> = {
     annualPriceId: process.env.STRIPE_PRICE_PROFESSIONAL_ANNUAL ?? null,
     monthlyPrice: 25,
     annualPrice: 200,
-    features: ["25 active campaigns", "Advanced analytics", "Priority support", "API access"],
+    features: ["50 active campaigns", "Advanced analytics", "Priority support", "API access"],
   },
   enterprise: {
     name: "Enterprise",

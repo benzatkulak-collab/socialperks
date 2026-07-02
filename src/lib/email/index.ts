@@ -142,8 +142,31 @@ function wrapHtml(body: string): string {
 <div style="max-width: 600px; margin: 0 auto; background-color: #1A1F36; border-radius: 12px; padding: 32px; border: 1px solid #2D3348;">
 ${body}
 </div>
+${emailFooter()}
 </body>
 </html>`;
+}
+
+/**
+ * CAN-SPAM footer. US law (15 U.S.C. §7704) requires every commercial email to
+ * carry a valid physical postal address and a working opt-out. We render the
+ * address from EMAIL_POSTAL_ADDRESS (the founder supplies the real one — never
+ * fabricate it) and an email-based opt-out, which is a legally sufficient
+ * mechanism and needs no backend route to function.
+ */
+function emailFooter(): string {
+  const postalAddress = process.env.EMAIL_POSTAL_ADDRESS?.trim();
+  const unsubscribe = process.env.EMAIL_UNSUBSCRIBE
+    ? escapeHtml(process.env.EMAIL_UNSUBSCRIBE.trim())
+    : "mailto:unsubscribe@socialperks.app?subject=Unsubscribe";
+  const addressLine = postalAddress
+    ? `<p style="margin: 4px 0 0;">${escapeHtml(postalAddress)}</p>`
+    : "";
+  return `<div style="max-width: 600px; margin: 16px auto 0; text-align: center; font-size: 12px; line-height: 1.6; color: #64748B;">
+<p style="margin: 0;">Social Perks</p>
+${addressLine}
+<p style="margin: 8px 0 0;">You're receiving this because you have a Social Perks account or joined our waitlist. <a href="${unsubscribe}" style="color: #64748B; text-decoration: underline;">Unsubscribe</a>.</p>
+</div>`;
 }
 
 // -- Email Templates ----------------------------------------------------------

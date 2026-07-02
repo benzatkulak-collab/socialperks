@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { track } from "@/lib/analytics";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,9 @@ export function SubmitForm({ campaignId, actions }: SubmitFormProps) {
           throw new Error(msg);
         }
 
+        // Activation event: a real customer submitted proof on the public
+        // claim page — the mid-funnel step between "campaign live" and a perk.
+        track("submission_created");
         setFormState("success");
       } catch (err) {
         setFormState("error");

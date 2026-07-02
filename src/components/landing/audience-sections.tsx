@@ -9,42 +9,46 @@ interface Example {
   result: string;
 }
 
+// HONESTY: `result` describes the marketing ASSET a business receives — not a
+// fabricated performance metric. With zero live customers, invented stats like
+// "45K views, 12% new customers" are deceptive even under an "illustrative"
+// label. Swap in real, attributed outcomes once customers exist and consent.
 const EXAMPLES: Example[] = [
   {
     business: "Coffee Shop",
     offer: "Free pastry",
     action: "Instagram story tag",
-    result: "200+ stories in 3 months",
+    result: "A steady stream of customer Stories",
   },
   {
     business: "Yoga Studio",
     offer: "10% off next month",
     action: "Instagram story with tag",
-    result: "200+ tags per month",
+    result: "Ongoing tagged posts from members",
   },
   {
     business: "Barber Shop",
     offer: "$5 off next cut",
     action: "Before/after photo post",
-    result: "3x more booking inquiries",
+    result: "Before/after social proof",
   },
   {
     business: "Restaurant",
     offer: "Free appetizer",
     action: "TikTok visit video",
-    result: "45K views, 12% new customers",
+    result: "Short-form video from real diners",
   },
   {
     business: "Auto Shop",
     offer: "Free tire rotation",
     action: "Instagram before/after post",
-    result: "+40% more booking calls",
+    result: "Visible before/after results",
   },
   {
     business: "Salon",
     offer: "15% off color service",
     action: "Before/after Instagram post",
-    result: "+180% booking inquiries",
+    result: "A feed of client transformations",
   },
 ];
 
