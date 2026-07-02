@@ -95,7 +95,11 @@ async function suspendUser(userId: string, reason: string): Promise<boolean> {
     const mod = await import("@/lib/auth/user-store");
     const user = mod.getUserById(userId);
     if (!user) return false;
-    mod.updateUser(user.email, {
+    // Await so the auto-suspension is durably persisted before we report
+    // success — a fire-and-forget write is lost if the agent's serverless
+    // invocation freezes after returning. persistUser is best-effort
+    // internally (logs, never throws), so a DB hiccup won't flip this to false.
+    await mod.updateUser(user.email, {
       suspendedAt: new Date().toISOString(),
       suspensionReason: `[auto] ${reason}`,
     });
