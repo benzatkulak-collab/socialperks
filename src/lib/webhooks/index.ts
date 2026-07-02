@@ -9,6 +9,7 @@
 
 import { createHmac } from "crypto";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { isSafeUrl, assertSafeUrl } from "@/lib/security/url";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -159,6 +160,17 @@ class WebhookStore {
     url: string,
     events: string[]
   ): WebhookEndpoint {
+    // SSRF defense — synchronous check before persisting. Rejects
+    // file://, http://, http(s)://10.x, 127.0.0.1, 169.254.169.254
+    // (cloud metadata), IPv6 ULAs, etc. The full DNS-resolve check
+    // also runs at delivery time (assertSafeUrl) so a webhook whose
+    // hostname later resolves to a private IP via DNS rebinding is
+    // also blocked.
+    const shallowError = isSafeUrl(url);
+    if (shallowError) {
+      throw new Error(`Webhook URL rejected: ${shallowError}`);
+    }
+
     const webhook: WebhookEndpoint = {
       id: generateWebhookId(),
       businessId,
@@ -197,7 +209,14 @@ class WebhookStore {
     const webhook = this.webhooks.get(webhookId);
     if (!webhook) return null;
 
-    if (updates.url !== undefined) webhook.url = updates.url;
+    if (updates.url !== undefined) {
+      // Re-validate on update — same SSRF defense as registration.
+      const shallowError = isSafeUrl(updates.url);
+      if (shallowError) {
+        throw new Error(`Webhook URL rejected: ${shallowError}`);
+      }
+      webhook.url = updates.url;
+    }
     if (updates.events !== undefined) webhook.events = [...updates.events];
     if (updates.status !== undefined) {
       webhook.status = updates.status;
@@ -311,6 +330,34 @@ class WebhookStore {
     const signature = signPayload(body, webhook.secret);
 
     try {
+      // Defense in depth: even though registration validates the URL
+      // synchronously via isSafeUrl, hostnames can change resolution
+      // (DNS rebinding, attacker rotates a record after registration).
+      // assertSafeUrl re-validates at delivery time with a real DNS
+      // lookup so the post-registration window is closed.
+      //
+      // Skipped in test env because vitest mocks `fetch` but not DNS,
+      // so an existing test using e.g. "a.com" would intermittently
+      // fail on DNS resolution. The registration-time isSafeUrl check
+      // still runs everywhere and catches the attacker-controlled
+      // shapes (file://, http://, literal private IPs, AWS metadata) —
+      // DNS rebinding requires runtime infra that tests don't have.
+      if (process.env.NODE_ENV !== "test") {
+        const dnsError = await assertSafeUrl(webhook.url);
+        if (dnsError) {
+          delivery.status = "failed";
+          delivery.statusCode = null;
+          delivery.error = `URL safety check failed at delivery: ${dnsError}`;
+          delivery.deliveredAt = null;
+          delivery.nextRetry = null;
+          // Don't retry — this is a permanent rejection, not transient.
+          this.deliveries.set(delivery.id, delivery);
+          webhook.failureCount += 1;
+          webhook.lastFailure = new Date().toISOString();
+          return delivery;
+        }
+      }
+
       const response = await fetch(webhook.url, {
         method: "POST",
         headers: {
