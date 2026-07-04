@@ -96,7 +96,7 @@ Response shape: `{ "success": true, "data": <payload> }` or
 | Endpoint | Auth | Purpose |
 |---|---|---|
 | `GET /api/v1/pricing` | none | Pricing oracle — what does an action cost in $? |
-| `GET /api/v1/actions` | none | List all 107 marketing actions |
+| `GET /api/v1/actions` | none | List all 125 marketing actions |
 | `GET /api/v1/benchmarks` | none | Industry benchmarks (engagement, conversion) |
 | `POST /api/v1/ai/quick-start` | bearer | One-shot: give me a campaign for this business |
 | `POST /api/v1/ai/campaign-agent` | bearer | Full marketing plan with budget, tactics |
