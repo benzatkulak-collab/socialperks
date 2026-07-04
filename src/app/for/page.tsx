@@ -11,7 +11,7 @@ import { safeJsonForScript } from "@/lib/security/json-ld";
 // ---------------------------------------------------------------------------
 
 export const metadata: Metadata = {
-  title: "Social Media Marketing for Small Businesses — Social Perks by Industry",
+  title: "Social Media Marketing for Small Businesses by Industry",
   description:
     "Social Perks works for every industry. Explore ready-made campaign templates for restaurants, salons, gyms, dentists, and 16 more industries.",
   openGraph: {

@@ -12,7 +12,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GUIDES } from "@/lib/guides-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
-import { ogImages } from "@/lib/seo";
+import { ogImages, metaTitle, clampDescription } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -37,8 +37,8 @@ export async function generateMetadata({
   const g = GUIDES.find((x) => x.slug === slug);
   if (!g) return { title: "Guide not found — Social Perks" };
   return {
-    title: `${g.title} | Social Perks`,
-    description: g.description,
+    title: metaTitle(g.title, { sep: " | " }),
+    description: clampDescription(g.description),
     alternates: { canonical: `${SITE_URL}/guides/${slug}` },
     openGraph: {
       images: ogImages(),

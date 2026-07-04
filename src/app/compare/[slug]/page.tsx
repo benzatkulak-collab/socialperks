@@ -12,7 +12,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { COMPARISONS, getPlatform } from "@/lib/comparison-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
-import { ogImages } from "@/lib/seo";
+import { ogImages, clampDescription } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -38,7 +38,7 @@ export async function generateMetadata({
   if (!c) return { title: "Comparison not found — Social Perks" };
   return {
     title: c.title,
-    description: c.description,
+    description: clampDescription(c.description),
     alternates: { canonical: `${SITE_URL}/compare/${slug}` },
     openGraph: {
       images: ogImages(),

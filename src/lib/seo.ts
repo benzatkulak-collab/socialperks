@@ -27,6 +27,34 @@ export function ogImages(url: string = DEFAULT_OG_IMAGE, alt = "Social Perks") {
   return [{ url, width: 1200, height: 630, alt }];
 }
 
+/**
+ * Clamp a string for use as a <meta name="description">. Google truncates
+ * around 160 chars, so we trim at a word boundary to ~158 and add an
+ * ellipsis. META ONLY — pass the full text to the page body separately;
+ * this exists so long data-driven copy doesn't get cut mid-word in SERPs.
+ */
+export function clampDescription(text: string, max = 158): string {
+  if (!text || text.length <= 160) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  const base = lastSpace > 40 ? cut.slice(0, lastSpace) : cut;
+  return base.replace(/[\s.,;:!?—-]+$/, "") + "…";
+}
+
+/**
+ * Build a <title> that stays within Google's ~60-char display limit.
+ * Appends the brand suffix ONLY when the whole thing still fits; otherwise
+ * returns the base alone (never truncates meaningful keyword content — a
+ * long-tail question/listicle title is better served whole than clipped).
+ */
+export function metaTitle(
+  base: string,
+  { sep = " — ", brand = "Social Perks", max = 60 }: { sep?: string; brand?: string; max?: number } = {}
+): string {
+  const branded = `${base}${sep}${brand}`;
+  return branded.length <= max ? branded : base;
+}
+
 export interface BuildMetadataOptions {
   title: string;
   description: string;

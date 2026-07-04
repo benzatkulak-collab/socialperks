@@ -19,9 +19,9 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title: "Supported Platforms — 25 social platforms with marketing actions | Social Perks",
+  title: "25 Social Platforms with Marketing Actions — Social Perks",
   description:
-    "Instagram, TikTok, Google, Facebook, Yelp, and 20 more. Browse all 25 platforms Social Perks supports with their available marketing actions and market-rate pricing.",
+    "Instagram, TikTok, Google, Facebook, Yelp, and 20 more — browse all 25 platforms with their marketing actions and market-rate pricing.",
   alternates: { canonical: `${SITE_URL}/platforms` },
   openGraph: {
     images: ogImages(),

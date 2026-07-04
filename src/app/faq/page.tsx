@@ -21,9 +21,9 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title: "FAQ — Social Perks: incentivized marketing, FTC compliance, AI agent access",
+  title: "FAQ: Incentivized Marketing & FTC Compliance",
   description:
-    "Plain-language answers to questions about incentivized social media marketing, FTC compliance, perk-for-action campaigns, platform-specific rules, and AI agent integration. 22 questions covered.",
+    "Plain-language answers on incentivized social media marketing, FTC compliance, perk-for-action campaigns, platform rules, and AI agent access.",
   alternates: { canonical: `${SITE_URL}/faq` },
   openGraph: {
     images: ogImages(),

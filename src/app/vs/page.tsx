@@ -10,7 +10,7 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title: "Compare Social Perks vs alternatives — head-to-head | Social Perks",
+  title: "Social Perks vs Alternatives: Head-to-Head",
   description:
     "Side-by-side comparisons with Yotpo, influencer-marketing platforms, Meta Ads, Google Ads. Honest verdicts on which one wins for your situation.",
   alternates: { canonical: `${SITE_URL}/vs` },

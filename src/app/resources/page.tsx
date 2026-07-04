@@ -25,10 +25,9 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title:
-    "Resources — every guide, FAQ, glossary entry, comparison, and benchmark | Social Perks",
+  title: "Resources: Guides, FAQ, Glossary & Benchmarks",
   description:
-    "Hub page linking to every citable content surface on Social Perks: action catalog, platform catalog, how-to guides, FAQ, glossary, comparisons, benchmarks, ranked lists, agent docs.",
+    "Every citable content surface on Social Perks: action & platform catalogs, how-to guides, FAQ, glossary, comparisons, benchmarks, and agent docs.",
   alternates: { canonical: `${SITE_URL}/resources` },
 };
 

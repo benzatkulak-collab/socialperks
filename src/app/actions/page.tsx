@@ -24,9 +24,9 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title: "Marketing Action Catalog — 125 ways customers can promote your business | Social Perks",
+  title: "Marketing Action Catalog: 125 Ways to Promote Your Business",
   description:
-    "Browse 125 marketing actions across 25 social platforms. Each action has a market-rate dollar value, an effort level, and instructions for incentivizing it. Free to browse — no signup required.",
+    "Browse 125 marketing actions across 25 platforms — each with a market-rate dollar value, effort level, and how to incentivize it. Free, no signup.",
   alternates: {
     canonical: `${SITE_URL}/actions`,
   },

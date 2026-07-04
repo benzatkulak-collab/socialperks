@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VS_ENTRIES, getVsEntry } from "@/lib/vs-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { clampDescription } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -26,8 +27,8 @@ export async function generateMetadata({
   const entry = getVsEntry(slug);
   if (!entry) return { title: "Not found" };
   return {
-    title: `Social Perks vs ${entry.competitor} — honest comparison | Social Perks`,
-    description: entry.shortDescription,
+    title: `Social Perks vs ${entry.competitor} — honest comparison`,
+    description: clampDescription(entry.shortDescription),
     alternates: { canonical: `${SITE_URL}/vs/${slug}` },
   };
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PLAYBOOKS, getPlaybook } from "@/lib/playbook-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { metaTitle, clampDescription } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -26,8 +27,8 @@ export async function generateMetadata({
   const p = getPlaybook(slug);
   if (!p) return { title: "Not found" };
   return {
-    title: `${p.title} | Social Perks`,
-    description: p.description,
+    title: metaTitle(p.title, { sep: " | " }),
+    description: clampDescription(p.description),
     alternates: { canonical: `${SITE_URL}/playbook/${slug}` },
   };
 }
