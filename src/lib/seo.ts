@@ -34,7 +34,7 @@ export function ogImages(url: string = DEFAULT_OG_IMAGE, alt = "Social Perks") {
  * this exists so long data-driven copy doesn't get cut mid-word in SERPs.
  */
 export function clampDescription(text: string, max = 158): string {
-  if (!text || text.length <= 160) return text;
+  if (!text || text.length <= max) return text;
   const cut = text.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");
   const base = lastSpace > 40 ? cut.slice(0, lastSpace) : cut;
