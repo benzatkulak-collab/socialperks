@@ -376,6 +376,23 @@ export class InMemoryConnection implements DatabaseConnection {
 // ─── Placeholder Postgres Connection ────────────────────────────────────────
 
 /**
+ * Resolve the postgres SSL option. When DATABASE_SSL_CA is set (PEM contents of
+ * the provider's CA certificate — e.g. Supabase's), the server certificate is
+ * verified, preventing man-in-the-middle interception of DB traffic. When it is
+ * not set, the connection is still encrypted but the certificate is NOT
+ * verified (the prior, backward-compatible behaviour). Set DATABASE_SSL_CA in
+ * production for full protection.
+ */
+function resolveDbSsl(
+  sslEnabled: boolean | undefined,
+): false | { rejectUnauthorized: boolean; ca?: string } {
+  if (!sslEnabled) return false;
+  const ca = process.env.DATABASE_SSL_CA?.trim();
+  if (ca) return { ca, rejectUnauthorized: true };
+  return { rejectUnauthorized: false };
+}
+
+/**
  * Placeholder for a real Postgres connection pool (e.g. via `pg` or `postgres`
  * npm package). Swap this in when moving to production.
  */
@@ -396,7 +413,7 @@ export class PostgresConnection implements DatabaseConnection {
       database: config.primary.database,
       username: config.primary.user,
       password: config.primary.password,
-      ssl: config.primary.ssl ? { rejectUnauthorized: false } : false,
+      ssl: resolveDbSsl(config.primary.ssl),
       // Cap connections per instance. Behind a transaction pooler (e.g.
       // Supabase Supavisor) each serverless instance should hold only a few
       // client connections — the pooler fans them in. 10+ per instance

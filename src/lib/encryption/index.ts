@@ -99,6 +99,10 @@ export function decrypt(encrypted: EncryptedField, tenantKey: Buffer): string {
   const tag = Buffer.from(encrypted.tag, "base64");
   const ct = Buffer.from(encrypted.ct, "base64");
 
+  // Reject truncated GCM auth tags — Node accepts 4–16 byte tags, and a short
+  // tag weakens integrity to a brute-forceable size. Tags here are always 16.
+  if (tag.length !== 16) throw new Error("Invalid GCM auth tag length");
+
   const decipher = createDecipheriv(ALGORITHM, tenantKey, iv);
   decipher.setAuthTag(tag);
 
@@ -152,6 +156,11 @@ export function decryptDeterministic(
   const iv = buf.subarray(0, IV_LENGTH);
   const tag = buf.subarray(buf.length - 16); // GCM tag is always 16 bytes
   const ct = buf.subarray(IV_LENGTH, buf.length - 16);
+
+  // Reject malformed input with a truncated auth tag (see decrypt()).
+  if (buf.length < IV_LENGTH + 16 || tag.length !== 16) {
+    throw new Error("Invalid GCM ciphertext or auth tag length");
+  }
 
   const decipher = createDecipheriv(ALGORITHM, tenantKey, iv);
   decipher.setAuthTag(tag);
