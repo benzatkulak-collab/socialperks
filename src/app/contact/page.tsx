@@ -1,16 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ContactForm } from "./contact-form";
+import { buildMetadata, SITE_URL } from "@/lib/seo";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Contact Us — Social Perks",
   description:
     "Get in touch with the Social Perks team. Whether you have a question, need technical support, or want to discuss a partnership, we're here to help.",
-};
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          name: "Contact Social Perks",
+          url: `${SITE_URL}/contact`,
+          mainEntity: {
+            "@type": "Organization",
+            name: "Social Perks",
+            url: SITE_URL,
+            contactPoint: {
+              "@type": "ContactPoint",
+              contactType: "customer support",
+              url: `${SITE_URL}/contact`,
+            },
+          },
+        }) }}
+      />
       {/* Nav */}
       <header className="border-b border-brand-border/50">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">

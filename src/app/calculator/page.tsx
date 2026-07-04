@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { CalculatorClient } from "./client";
+import { safeJsonForScript } from "@/lib/security/json-ld";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "ROI calculator — Social Perks",
@@ -12,6 +14,19 @@ export const metadata: Metadata = {
 export default function CalculatorPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "Social Perks ROI Calculator",
+          url: `${SITE_URL}/calculator`,
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          description: "Compare the cost per customer post on Social Perks vs. paid Instagram ads.",
+        }) }}
+      />
       <Nav />
       <main id="main-content" className="mx-auto max-w-2xl px-4 pt-32 pb-20 sm:px-6 lg:px-8 sm:pt-40 sm:pb-28">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">Calculator</p>

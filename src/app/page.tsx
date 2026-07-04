@@ -9,6 +9,32 @@ import { CtaSection } from "@/components/landing/cta-section";
 import { ClaudeDesktopInstall } from "@/components/agent/claude-desktop-install";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
+import type { Metadata } from "next";
+import { SITE_URL, ogImages, DEFAULT_OG_IMAGE } from "@/lib/seo";
+
+// Self-referencing canonical + bespoke social copy for the homepage. The
+// root layout intentionally omits og:title/description (so other pages fall
+// back to their own), so the homepage declares its punchier card copy here.
+export const metadata: Metadata = {
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    title: "Social Perks — Turn Coffee Shop Regulars Into Marketing",
+    description:
+      "Offer a perk. Customers post on Instagram, TikTok, Facebook. You get real word-of-mouth — not ads.",
+    type: "website",
+    siteName: "Social Perks",
+    url: SITE_URL,
+    locale: "en_US",
+    images: ogImages(),
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@socialperks",
+    title: "Social Perks",
+    description: "Turn customers into your marketing team. Start free.",
+    images: [DEFAULT_OG_IMAGE],
+  },
+};
 
 export default function LandingPage() {
   return (

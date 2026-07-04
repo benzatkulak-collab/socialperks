@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GUIDES } from "@/lib/guides-data";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -9,9 +10,8 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title:
-    "Guides — how-to walkthroughs for incentivized marketing, FTC compliance, and AI agents | Social Perks",
-  description: `${GUIDES.length} step-by-step how-to guides for incentivized marketing campaigns, FTC compliance, perk amount selection, and AI agent integration with Social Perks.`,
+  title: "How-To Guides: Incentivized Marketing & Compliance",
+  description: `${GUIDES.length} step-by-step guides for incentivized marketing, FTC compliance, perk-amount selection, and AI agent integration.`,
   alternates: { canonical: `${SITE_URL}/guides` },
 };
 
@@ -21,6 +21,24 @@ export const revalidate = 86400;
 export default function GuidesPage() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "How-to guides",
+          url: `${SITE_URL}/guides`,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: GUIDES.map((g, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: g.title,
+              url: `${SITE_URL}/guides/${g.slug}`,
+            })),
+          },
+        }) }}
+      />
       <div className="mx-auto max-w-3xl px-6 py-16">
         <header className="mb-10">
           <p className="text-sm text-brand-text-dim mb-2">Guides</p>

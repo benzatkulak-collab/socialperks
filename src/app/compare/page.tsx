@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { COMPARISONS, getPlatform } from "@/lib/comparison-data";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -9,9 +10,9 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title: "Platform comparisons — Instagram vs TikTok, Google vs Yelp, more | Social Perks",
+  title: "Platform Comparisons: Instagram vs TikTok & More",
   description:
-    "Side-by-side comparisons of social media platforms for incentivized marketing campaigns. Action counts, market values, FTC rules, and recommendations for small businesses.",
+    "Side-by-side social platform comparisons for incentivized marketing: action counts, market values, FTC rules, and small-business picks.",
   alternates: { canonical: `${SITE_URL}/compare` },
 };
 
@@ -21,6 +22,24 @@ export const revalidate = 86400;
 export default function ComparePage() {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Platform comparisons",
+          url: `${SITE_URL}/compare`,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: COMPARISONS.map((c, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: c.title,
+              url: `${SITE_URL}/compare/${c.slug}`,
+            })),
+          },
+        }) }}
+      />
       <div className="mx-auto max-w-3xl px-6 py-16">
         <header className="mb-10">
           <p className="text-sm text-brand-text-dim mb-2">Comparisons</p>

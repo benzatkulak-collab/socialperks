@@ -7,6 +7,8 @@ import { WaitlistForm } from "@/components/landing/waitlist-form";
 import { listCities, findCity, businessesInCity } from "@/lib/cities";
 import { INDUSTRY_MAP, INDUSTRY_SLUGS } from "@/lib/industries";
 import { buildBusinessSlug } from "@/lib/slugs";
+import { ogImages, clampDescription } from "@/lib/seo";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 interface PageProps {
   params: Promise<{ city: string; industry: string }>;
@@ -44,13 +46,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!c || !ind) return {};
   const label = cityLabel(c);
   const title = `Social media marketing for ${ind.name.toLowerCase()} in ${label}`;
-  const description = `${ind.name} owners in ${label}: turn customers into Instagram, TikTok, and Facebook posts with a single perk. See local examples and start free.`;
+  const description = clampDescription(`${ind.name} owners in ${label}: turn customers into Instagram, TikTok, and Facebook posts with a single perk. See local examples and start free.`);
   const url = `${SITE_URL}/in/${c.slug}/${ind.slug}`;
   return {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, type: "website", url, siteName: "Social Perks" },
+    openGraph: { images: ogImages(), title, description, type: "website", url, siteName: "Social Perks" },
     twitter: { card: "summary_large_image", title, description },
   };
 }
@@ -73,6 +75,18 @@ export default async function CityIndustryPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-brand-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+            { "@type": "ListItem", position: 2, name: label, item: `${SITE_URL}/in/${c.slug}` },
+            { "@type": "ListItem", position: 3, name: `${ind.name} in ${label}`, item: `${SITE_URL}/in/${c.slug}/${ind.slug}` },
+          ],
+        }) }}
+      />
       <Nav />
 
       <main id="main-content" className="mx-auto max-w-3xl px-4 pt-32 pb-20 sm:px-6 lg:px-8 sm:pt-40 sm:pb-28">

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Privacy Policy — Social Perks",
   description:
     "Privacy Policy for Social Perks. Learn how we collect, use, and protect your personal data.",
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

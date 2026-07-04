@@ -15,6 +15,7 @@ import Link from "next/link";
 import { INDUSTRIES } from "@/lib/industries";
 import { getBenchmarks } from "@/lib/ai-engine";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -23,12 +24,12 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title:
-    "Industry benchmarks — completion rates, ROI, and perk values across 20 industries | Social Perks",
+  title: "Marketing Benchmarks by Industry: ROI & Perk Values",
   description:
-    "Average completion rate, average perk value, top platforms, and average ROI for incentivized social media marketing campaigns across 20 industries. Updated quarterly. Same data as /api/v1/benchmarks but indexable.",
+    "Average completion rate, perk value, top platforms, and ROI for incentivized marketing campaigns across 20 industries. Updated quarterly.",
   alternates: { canonical: `${SITE_URL}/benchmarks` },
   openGraph: {
+    images: ogImages(),
     title: "Social media marketing benchmarks by industry",
     description:
       "Per-industry completion rates, ROI, and perk values for incentivized marketing campaigns.",

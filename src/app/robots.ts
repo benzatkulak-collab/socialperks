@@ -32,7 +32,7 @@ export default function robots(): MetadataRoute.Robots {
         (userAgent) => ({
           userAgent,
           allow: ["/", ...AGENT_DISCOVERABLE_API_PATHS, "/llms.txt", "/.well-known/ai-plugin.json", "/AGENTS.md"],
-          disallow: ["/dashboard", "/admin", "/reset-password", "/confirm-reset"],
+          disallow: ["/dashboard", "/programs", "/campaigns", "/admin", "/reset-password", "/confirm-reset"],
         })
       ),
       // ─── General crawlers (Googlebot, Bingbot, etc.) ────────────────────
@@ -56,6 +56,8 @@ export default function robots(): MetadataRoute.Robots {
         // noindexes the not-found / inactive ones (see src/app/c/[campaignId]).
         disallow: [
           "/dashboard",
+          "/programs",
+          "/campaigns",
           "/api/",
           "/admin",
           "/reset-password",

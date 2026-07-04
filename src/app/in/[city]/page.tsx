@@ -12,6 +12,7 @@ import {
 } from "@/lib/cities";
 import { buildBusinessSlug, buildInfluencerSlug } from "@/lib/slugs";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{ city: string }>;
@@ -43,6 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical: `${SITE_URL}/in/${c.slug}` },
     openGraph: {
+      images: ogImages(),
       title,
       description,
       type: "website",

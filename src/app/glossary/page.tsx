@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GLOSSARY_ENTRIES } from "@/lib/glossary-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -19,11 +20,11 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title:
-    "Glossary — incentivized marketing, social media campaigns, FTC compliance terms | Social Perks",
-  description: `Cite-worthy definitions for ${GLOSSARY_ENTRIES.length} terms used in incentivized social media marketing: action, campaign, perk, completion, FTC disclosure, MCP, OpenAPI, and more. Each definition is self-contained.`,
+  title: "Glossary of Incentivized Marketing Terms",
+  description: `Cite-worthy definitions for ${GLOSSARY_ENTRIES.length} terms in incentivized social media marketing: action, campaign, perk, FTC disclosure, MCP, and more.`,
   alternates: { canonical: `${SITE_URL}/glossary` },
   openGraph: {
+    images: ogImages(),
     title: "Social Perks glossary",
     description: "Definitions for incentivized marketing terms.",
     url: `${SITE_URL}/glossary`,

@@ -41,6 +41,7 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   // because converting curious developers happens here, not on the
   // marketing /agents page.
   { path: "/agent/test",    changeFrequency: "weekly",  priority: 0.85 },
+  { path: "/docs/mcp",      changeFrequency: "monthly", priority: 0.75 },
   { path: "/faq",           changeFrequency: "weekly",  priority: 0.85 },
   { path: "/glossary",      changeFrequency: "weekly",  priority: 0.8 },
   { path: "/benchmarks",    changeFrequency: "weekly",  priority: 0.8 },

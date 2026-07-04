@@ -15,6 +15,7 @@ import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
 import type { Action, ActionType } from "@social-perks/shared/types";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -23,13 +24,14 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title: "Marketing Action Catalog — 125 ways customers can promote your business | Social Perks",
+  title: "Marketing Action Catalog: 125 Ways to Promote Your Business",
   description:
-    "Browse 125 marketing actions across 25 social platforms. Each action has a market-rate dollar value, an effort level, and instructions for incentivizing it. Free to browse — no signup required.",
+    "Browse 125 marketing actions across 25 platforms — each with a market-rate dollar value, effort level, and how to incentivize it. Free, no signup.",
   alternates: {
     canonical: `${SITE_URL}/actions`,
   },
   openGraph: {
+    images: ogImages(),
     title: "Marketing Action Catalog — Social Perks",
     description:
       "125 marketing actions across 25 platforms with market-rate pricing. Used by AI agents and small businesses to plan campaigns.",

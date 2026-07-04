@@ -8,6 +8,7 @@ import { getUserByBusinessId, ensureUsersSeeded } from "@/lib/auth/user-store";
 import { PLATFORMS, findAction, findPlatform } from "@/lib/platforms";
 import { SubmitForm } from "./submit-form";
 import { InviteUnlock } from "@/components/campaign/invite-unlock";
+import { SITE_URL } from "@/lib/seo";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -103,20 +104,25 @@ export async function generateMetadata({
   // Social Perks" link — keeping the B2B2C discovery loop without SEO bloat.
   const indexable = campaign.state === "active";
 
+  const ogImage = `${SITE_URL}/api/og/business?name=${encodeURIComponent(businessName)}&type=${encodeURIComponent(business?.type ?? "")}`;
   return {
     title,
     description,
     robots: indexable ? { index: true, follow: true } : { index: false, follow: true },
+    alternates: { canonical: `${SITE_URL}/c/${campaignId}` },
     openGraph: {
+      images: [{ url: ogImage, width: 1200, height: 630, alt: businessName }],
       title,
       description,
       type: "website",
+      url: `${SITE_URL}/c/${campaignId}`,
       siteName: "Social Perks",
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
+      images: [ogImage],
     },
   };
 }

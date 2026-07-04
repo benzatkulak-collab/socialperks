@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "Terms of Service — Social Perks",
   description:
     "Terms of Service for Social Perks. Read about your rights and obligations when using our platform.",
-};
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (

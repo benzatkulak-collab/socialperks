@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ElementType } from "react";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { track } from "@/lib/analytics";
 
@@ -169,7 +169,12 @@ const WORKS_WITH = [
   { icon: "📌", name: "Pinterest" },
 ];
 
-export function PricingSection() {
+export function PricingSection({
+  // On the standalone /pricing route this section owns the page's <h1>;
+  // on the homepage/app it sits under an existing <h1>, so it stays <h2>.
+  headingLevel = "h2",
+}: { headingLevel?: "h1" | "h2" } = {}) {
+  const Heading: ElementType = headingLevel;
   // Default to annual: a 2–4 month discount is real revenue uplift per
   // signup; the visible "months free" badge is immediate social proof.
   const [annual, setAnnual] = useState(true);
@@ -209,12 +214,12 @@ export function PricingSection() {
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan sm:text-xs">
             Pricing
           </p>
-          <h2
+          <Heading
             id="pricing-heading"
             className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic text-brand-white leading-tight"
           >
             Turn one Instagram ad&apos;s budget into 50 customer posts
-          </h2>
+          </Heading>
           <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
             Start free. Upgrade when you outgrow it. Cancel anytime — no phone calls, no retention scripts.
           </p>

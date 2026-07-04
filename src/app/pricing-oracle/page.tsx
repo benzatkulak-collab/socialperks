@@ -9,10 +9,9 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title:
-    "Pricing oracle — recommended perk amounts by business type and action | Social Perks",
+  title: "Pricing Oracle: Perk Amounts by Business Type",
   description:
-    "Per-business-type pricing recommendations for incentivized marketing campaigns. 20 industries, 125 actions, market-rate values. Same data as /api/v1/pricing — citable HTML version.",
+    "Per-business-type pricing for incentivized marketing: 20 industries, 125 actions, market-rate values. The citable HTML version of our pricing API.",
   alternates: { canonical: `${SITE_URL}/pricing-oracle` },
 };
 

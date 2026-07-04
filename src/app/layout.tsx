@@ -34,16 +34,20 @@ export const metadata: Metadata = {
     "customer perks",
   ],
   openGraph: {
-    title: "Social Perks — Turn Coffee Shop Regulars Into Marketing",
-    description:
-      "Offer a perk. Customers post on Instagram, TikTok, Facebook. You get real word-of-mouth — not ads.",
+    // No title/description here on purpose: a hardcoded og:title would be
+    // inherited by every page that doesn't set its own openGraph, stamping
+    // the homepage's card copy onto /security, /vs, etc. Omitting it lets
+    // Next.js derive og:title/og:description from each page's own metadata.
+    // The homepage sets its own bespoke openGraph in app/page.tsx.
     type: "website",
     siteName: "Social Perks",
     url: SITE_URL,
     locale: "en_US",
     images: [
       {
-        url: "/og-image.svg",
+        // PNG (via next/og). SVG OG images render blank on every major
+        // social/chat scraper, so the default card is a real raster image.
+        url: "/api/og/default",
         width: 1200,
         height: 630,
         alt: "Social Perks — Turn customers into your marketing team",
@@ -51,11 +55,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    // Same rationale as openGraph above — no hardcoded title/description.
     card: "summary_large_image",
     site: "@socialperks",
-    title: "Social Perks",
-    description: "Turn customers into your marketing team. Start free.",
-    images: ["/og-image.svg"],
+    images: ["/api/og/default"],
   },
   robots: {
     index: true,

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { ogImages, SITE_URL } from "@/lib/seo";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 export const metadata: Metadata = {
   title: "MCP Server — Social Perks for AI Agents",
   description:
     "Social Perks exposes a Model Context Protocol (MCP) server so AI agents — Claude, ChatGPT, Cursor — can manage customer-marketing campaigns autonomously.",
+  alternates: { canonical: `${SITE_URL}/docs/mcp` },
   openGraph: {
+    images: ogImages(),
     title: "Social Perks · MCP-native customer marketing",
     description:
       "Plug Claude/ChatGPT/Cursor directly into your customer-marketing platform. 7 tools, streamable HTTP, tenant-scoped.",
@@ -33,6 +37,17 @@ export default function McpDocsPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "TechArticle",
+          headline: "MCP Server for Social Perks",
+          description: "Model Context Protocol server so AI agents (Claude, ChatGPT, Cursor) can manage customer-marketing campaigns.",
+          url: `${SITE_URL}/docs/mcp`,
+          author: { "@type": "Organization", name: "Social Perks", url: SITE_URL },
+        }) }}
+      />
       <div className="mx-auto max-w-3xl px-6 py-16">
         <p className="text-2xs uppercase tracking-wider font-mono text-brand-muted mb-3">
           Developer Docs

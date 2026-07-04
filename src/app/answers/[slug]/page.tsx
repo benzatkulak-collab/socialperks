@@ -13,6 +13,7 @@ import {
 import { INDUSTRY_MAP } from "@/lib/industries";
 import { PLATFORMS } from "@/lib/platforms";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages, metaTitle, clampDescription } from "@/lib/seo";
 
 // ─── Static generation ─────────────────────────────────────────────────
 
@@ -33,13 +34,14 @@ export async function generateMetadata({
   const ans = getAnswerBySlug(slug);
   if (!ans) return {};
 
-  const title = `${ans.question} — Social Perks`;
-  const description = ans.shortAnswer;
+  const title = metaTitle(ans.question);
+  const description = clampDescription(ans.shortAnswer);
 
   return {
     title,
     description,
     openGraph: {
+      images: ogImages(),
       title: ans.question,
       description,
       type: "article",

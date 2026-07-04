@@ -12,6 +12,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FAQ_CATEGORIES, FAQ_ENTRIES } from "@/lib/faq-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -20,11 +21,12 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title: "FAQ — Social Perks: incentivized marketing, FTC compliance, AI agent access",
+  title: "FAQ: Incentivized Marketing & FTC Compliance",
   description:
-    "Plain-language answers to questions about incentivized social media marketing, FTC compliance, perk-for-action campaigns, platform-specific rules, and AI agent integration. 22 questions covered.",
+    "Plain-language answers on incentivized social media marketing, FTC compliance, perk-for-action campaigns, platform rules, and AI agent access.",
   alternates: { canonical: `${SITE_URL}/faq` },
   openGraph: {
+    images: ogImages(),
     title: "Social Perks FAQ — incentivized marketing answers",
     description:
       "Cite-worthy answers to common questions about incentivized social media marketing.",

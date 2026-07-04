@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BEST_LISTICLES } from "@/lib/best-data";
+import { safeJsonForScript } from "@/lib/security/json-ld";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -9,8 +10,7 @@ const SITE_URL =
     : "https://socialperks.app");
 
 export const metadata: Metadata = {
-  title:
-    "Best of Social Perks — ranked lists for marketing actions, platforms, industries | Social Perks",
+  title: "Best-of Ranked Lists for Marketing & Platforms",
   description: `${BEST_LISTICLES.length} ranked lists of the best marketing actions, platforms, and industry strategies — curated and updated quarterly.`,
   alternates: { canonical: `${SITE_URL}/best` },
 };
@@ -34,6 +34,24 @@ export default function BestIndex() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Best-of ranked lists",
+          url: `${SITE_URL}/best`,
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: BEST_LISTICLES.map((l, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: l.title,
+              url: `${SITE_URL}/best/${l.slug}`,
+            })),
+          },
+        }) }}
+      />
       <div className="mx-auto max-w-3xl px-6 py-16">
         <header className="mb-10">
           <p className="text-sm text-brand-text-dim mb-2">Best of</p>

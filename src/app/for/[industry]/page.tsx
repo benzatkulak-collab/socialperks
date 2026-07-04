@@ -9,6 +9,7 @@ import {
   INDUSTRY_SLUGS,
 } from "@/lib/industries";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages, metaTitle, clampDescription } from "@/lib/seo";
 
 // ---------------------------------------------------------------------------
 // Static generation
@@ -33,13 +34,14 @@ export async function generateMetadata({
   const industry = INDUSTRY_MAP.get(slug);
   if (!industry) return {};
 
-  const title = `Social Perks for ${industry.name} — ${industry.headline}`;
-  const description = industry.description;
+  const title = metaTitle(`Social Perks for ${industry.name}`, { sep: " — ", brand: industry.headline });
+  const description = clampDescription(industry.description);
 
   return {
     title,
     description,
     openGraph: {
+      images: ogImages(),
       title,
       description,
       type: "website",

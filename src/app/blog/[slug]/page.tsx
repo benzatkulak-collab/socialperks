@@ -5,6 +5,7 @@ import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { getPost, listPosts } from "@/lib/blog";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages, metaTitle, clampDescription } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -26,10 +27,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!post) return {};
   const url = `${SITE_URL}/blog/${slug}`;
   return {
-    title: `${post.title} — Social Perks`,
-    description: post.description,
+    title: metaTitle(post.title),
+    description: clampDescription(post.description),
     alternates: { canonical: url },
     openGraph: {
+      images: ogImages(),
       title: post.title,
       description: post.description,
       type: "article",

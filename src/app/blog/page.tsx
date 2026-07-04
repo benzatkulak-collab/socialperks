@@ -3,10 +3,13 @@ import Link from "next/link";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { listPosts } from "@/lib/blog";
+import { safeJsonForScript } from "@/lib/security/json-ld";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Blog — Social Perks",
-  description: "Notes on local marketing, FTC compliance, and the platform.",
+  title: "Blog: Local Marketing & FTC Compliance Notes",
+  description:
+    "Practical notes on local small-business marketing, customer-powered social campaigns, FTC compliance, and building Social Perks.",
   alternates: { canonical: "/blog" },
 };
 
@@ -14,6 +17,22 @@ export default function BlogIndex() {
   const posts = listPosts();
   return (
     <div className="min-h-screen bg-brand-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonForScript({
+          "@context": "https://schema.org",
+          "@type": "Blog",
+          name: "Social Perks Blog",
+          url: `${SITE_URL}/blog`,
+          blogPost: posts.map((p) => ({
+            "@type": "BlogPosting",
+            headline: p.title,
+            description: p.description,
+            url: `${SITE_URL}/blog/${p.slug}`,
+            datePublished: p.publishedAt,
+          })),
+        }) }}
+      />
       <Nav />
       <main id="main-content" className="mx-auto max-w-3xl px-4 pt-32 pb-20 sm:px-6 lg:px-8 sm:pt-40 sm:pb-28">
         <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan">Blog</p>

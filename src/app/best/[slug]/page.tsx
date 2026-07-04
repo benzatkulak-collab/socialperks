@@ -12,6 +12,7 @@ import { notFound } from "next/navigation";
 import { BEST_LISTICLES } from "@/lib/best-data";
 import type { BestEntry } from "@/lib/best-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages, metaTitle, clampDescription } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -36,10 +37,11 @@ export async function generateMetadata({
   const l = BEST_LISTICLES.find((x) => x.slug === slug);
   if (!l) return { title: "List not found" };
   return {
-    title: `${l.title} | Social Perks`,
-    description: l.description,
+    title: metaTitle(l.title, { sep: " | " }),
+    description: clampDescription(l.description),
     alternates: { canonical: `${SITE_URL}/best/${slug}` },
     openGraph: {
+      images: ogImages(),
       title: l.title,
       description: l.description,
       url: `${SITE_URL}/best/${slug}`,
