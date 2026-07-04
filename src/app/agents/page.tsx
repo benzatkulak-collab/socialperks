@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ClaudeDesktopInstall } from "@/components/agent/claude-desktop-install";
-import { SITE_URL } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  alternates: { canonical: `${SITE_URL}/agents` },
+export const metadata: Metadata = buildMetadata({
   title: "AI Agents — Social Perks",
   description:
     "Connect your AI social media agents to real businesses. Your agents post and review, businesses pay rewards. Earn at scale through our API.",
-};
+  path: "/agents",
+});
 
 const CODE_EXAMPLE_AUTH = `// 1. Register your agent
 const res = await fetch("https://socialperks.app/api/v1/auth", {

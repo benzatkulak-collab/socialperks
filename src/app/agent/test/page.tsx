@@ -3,17 +3,16 @@ import Link from "next/link";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { McpSandbox } from "@/components/agent/mcp-sandbox";
-import { SITE_URL } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  alternates: { canonical: `${SITE_URL}/agent/test` },
+// Indexable — one of the highest-leverage agent-developer landing
+// surfaces, optimized to convert curious developers into users fast.
+export const metadata: Metadata = buildMetadata({
   title: "Try the MCP server in your browser — Social Perks",
   description:
     "Self-serve sandbox for the Social Perks MCP server. Pick a tool, fill in the args, see the real JSON-RPC response. No signup, no API key required for read tools.",
-  // Indexable — this is one of the highest-leverage agent-developer
-  // landing surfaces, optimized to convert curious developers into
-  // actual users in under 60 seconds.
-};
+  path: "/agent/test",
+});
 
 export default function AgentTestPage() {
   return (
