@@ -48,11 +48,11 @@ export const INDUSTRIES: IndustryPage[] = [
     icon: "🍽️",
     useCases: [
       {
-        title: "Google Review Boost",
+        title: "Facebook Photo Shares",
         description:
-          "Offer 10% off the next visit for a Google review. Most restaurants see 3-5x more reviews within the first month.",
-        platform: "Google",
-        action: "Leave a review",
+          "Offer 10% off the next visit for a Facebook post featuring your restaurant. Diners' posts reach their friends and spread word-of-mouth far beyond your regulars.",
+        platform: "Facebook",
+        action: "Post a photo with your tag",
       },
       {
         title: "Instagram Food Posts",
@@ -79,9 +79,9 @@ export const INDUSTRIES: IndustryPage[] = [
     testimonialAuthor: "Maria S., Owner of Sol Cocina",
     templateSuggestions: [
       {
-        name: "Review & Return",
-        platform: "Google",
-        action: "Leave a 4+ star review",
+        name: "Pin & Return",
+        platform: "Pinterest",
+        action: "Pin a photo of your meal",
         reward: "10% off next visit",
       },
       {
@@ -110,11 +110,11 @@ export const INDUSTRIES: IndustryPage[] = [
     icon: "☕",
     useCases: [
       {
-        title: "Morning Check-In Campaign",
+        title: "Morning Routine Reels",
         description:
-          "A free size upgrade for a Google check-in. Customers broadcast their morning routine to hundreds of local followers.",
-        platform: "Google",
-        action: "Check in at location",
+          "A free size upgrade for a TikTok Reel of your morning coffee run. Customers broadcast their daily ritual to their local followers and put your shop in the feed.",
+        platform: "TikTok",
+        action: "Post a Reel tagging you",
       },
       {
         title: "Latte Art Stories",
@@ -124,11 +124,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share a Story with tag",
       },
       {
-        title: "Yelp Review Drive",
+        title: "Coffee Feature Post",
         description:
-          "10% off for a Yelp review. Yelp reviews directly influence where 82% of consumers choose to eat and drink.",
-        platform: "Yelp",
-        action: "Write a review",
+          "10% off for a Facebook post about your order. Word-of-mouth posts from real regulars carry more weight with their friends than any ad.",
+        platform: "Facebook",
+        action: "Post a photo tagging you",
       },
     ],
     stats: [
@@ -142,8 +142,8 @@ export const INDUSTRIES: IndustryPage[] = [
     templateSuggestions: [
       {
         name: "Morning Buzz",
-        platform: "Google",
-        action: "Check in with a photo",
+        platform: "TikTok",
+        action: "Post a Reel tagging you",
         reward: "Free size upgrade",
       },
       {
@@ -153,9 +153,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free cookie or pastry",
       },
       {
-        name: "Review Roast",
-        platform: "Yelp",
-        action: "Write a detailed review",
+        name: "Coffee Feature",
+        platform: "Facebook",
+        action: "Post a photo tagging you",
         reward: "10% off next order",
       },
     ],
@@ -179,11 +179,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a before & after photo",
       },
       {
-        title: "Google Review Builder",
+        title: "Fresh Look Feature",
         description:
-          "A free deep conditioning treatment for a Google review. Salons with 50+ reviews get 35% more calls from search.",
-        platform: "Google",
-        action: "Leave a review",
+          "A free deep conditioning treatment for a Facebook post showing off the new style. Client photos put your work in front of their whole friends list.",
+        platform: "Facebook",
+        action: "Post a photo tagging the salon",
       },
       {
         title: "Referral Stories",
@@ -210,8 +210,8 @@ export const INDUSTRIES: IndustryPage[] = [
       },
       {
         name: "Star Stylist",
-        platform: "Google",
-        action: "Leave a review mentioning your stylist",
+        platform: "TikTok",
+        action: "Post a Reel tagging your stylist",
         reward: "Free conditioning treatment",
       },
       {
@@ -241,11 +241,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo of your fresh cut",
       },
       {
-        title: "Google Maps Visibility",
+        title: "Fresh Cut Feature",
         description:
-          "Free product sample for a Google review. Shops with strong reviews rank higher in local 'barbershop near me' searches.",
-        platform: "Google",
-        action: "Leave a review with photo",
+          "Free product sample for a Facebook post showing off the finished look. Client posts put your shop in front of their friends and neighbors.",
+        platform: "Facebook",
+        action: "Post a photo tagging the shop",
       },
       {
         title: "TikTok Transformation",
@@ -271,9 +271,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free beard trim next visit",
       },
       {
-        name: "Rate Your Barber",
-        platform: "Google",
-        action: "Write a review with photo",
+        name: "Pin Your Style",
+        platform: "Pinterest",
+        action: "Pin a photo of your cut",
         reward: "Free styling product sample",
       },
     ],
@@ -359,11 +359,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share a Story from class",
       },
       {
-        title: "Mindful Review",
+        title: "Mindful Moment Reel",
         description:
-          "One free class for a Google review. Studios with authentic reviews rank 40% higher for 'yoga near me' searches.",
-        platform: "Google",
-        action: "Write a thoughtful review",
+          "One free class for a Reel from your practice. Authentic student clips spread your studio's vibe to new local followers.",
+        platform: "TikTok",
+        action: "Post a Reel from class",
       },
       {
         title: "Bring a Friend",
@@ -389,9 +389,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free mat rental for a week",
       },
       {
-        name: "Mindful Review",
-        platform: "Google",
-        action: "Write a review about your experience",
+        name: "Mindful Moment Pin",
+        platform: "Pinterest",
+        action: "Pin a photo from your practice",
         reward: "One free drop-in class",
       },
       {
@@ -414,11 +414,11 @@ export const INDUSTRIES: IndustryPage[] = [
     icon: "🦷",
     useCases: [
       {
-        title: "Post-Visit Review",
+        title: "Post-Visit Smile Story",
         description:
-          "Free whitening strips for a Google review. Dental practices with 100+ reviews receive 50% more appointment requests.",
-        platform: "Google",
-        action: "Leave a review after appointment",
+          "Free whitening strips for posting a fresh-smile Story tagging the practice. Real patient posts spread through their followers and build word-of-mouth faster than any ad.",
+        platform: "Instagram",
+        action: "Share a Story tagging the practice",
       },
       {
         title: "Smile Selfie Campaign",
@@ -430,9 +430,9 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Family Referral",
         description:
-          "$25 credit for both parties when a patient refers a family member. Dental patients referred by friends have 3x higher lifetime value.",
-        platform: "Google",
-        action: "Share referral link",
+          "$25 credit for both parties when a patient tags a family member in a post about the practice. Dental patients referred by friends have 3x higher lifetime value.",
+        platform: "TikTok",
+        action: "Tag a family member in a post",
       },
     ],
     stats: [
@@ -445,9 +445,9 @@ export const INDUSTRIES: IndustryPage[] = [
     testimonialAuthor: "Dr. Sarah L., Bright Smile Dental",
     templateSuggestions: [
       {
-        name: "Happy Mouth Review",
-        platform: "Google",
-        action: "Leave a review after your visit",
+        name: "Happy Mouth Post",
+        platform: "Instagram",
+        action: "Post a photo tagging the practice",
         reward: "Free whitening strips",
       },
       {
@@ -458,8 +458,8 @@ export const INDUSTRIES: IndustryPage[] = [
       },
       {
         name: "Family First Referral",
-        platform: "Google",
-        action: "Refer a family member",
+        platform: "Pinterest",
+        action: "Pin a post tagging a family member",
         reward: "$25 credit for both",
       },
     ],
@@ -483,11 +483,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo of your pet at the clinic",
       },
       {
-        title: "Google Review Drive",
+        title: "Pet Reel Feature",
         description:
-          "10% off next visit for a Google review. Vet clinics with strong reviews dominate 'vet near me' search results.",
-        platform: "Google",
-        action: "Write a review",
+          "10% off next visit for a TikTok Reel of your pet's visit tagging the clinic. Short pet videos spread fast and put your clinic in front of local pet parents.",
+        platform: "TikTok",
+        action: "Post a Reel tagging the clinic",
       },
       {
         title: "New Pet Parent Referral",
@@ -513,9 +513,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free dental treat bag",
       },
       {
-        name: "Pet Parent Review",
-        platform: "Google",
-        action: "Write a review about your visit",
+        name: "Pet Parent Pin",
+        platform: "Pinterest",
+        action: "Pin a photo of your pet's visit",
         reward: "10% off next visit",
       },
       {
@@ -538,11 +538,11 @@ export const INDUSTRIES: IndustryPage[] = [
     icon: "🔧",
     useCases: [
       {
-        title: "Trust Review Campaign",
+        title: "Trust Builder Post",
         description:
-          "Free tire rotation for a Google review. In auto repair, reviews are the number one factor in choosing a shop — above price.",
-        platform: "Google",
-        action: "Leave a detailed review",
+          "Free tire rotation for an Instagram photo of the finished job tagging your shop. In auto repair, seeing real work from real customers is what earns a new driver's trust.",
+        platform: "Instagram",
+        action: "Post a photo with your tag",
       },
       {
         title: "Nextdoor Recommendation",
@@ -569,9 +569,9 @@ export const INDUSTRIES: IndustryPage[] = [
     testimonialAuthor: "Tony R., Honest Wrench Auto",
     templateSuggestions: [
       {
-        name: "Honest Review",
-        platform: "Google",
-        action: "Write a review about your service",
+        name: "Show the Work",
+        platform: "Instagram",
+        action: "Post a photo with your tag",
         reward: "Free tire rotation",
       },
       {
@@ -607,11 +607,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a closing day photo with tag",
       },
       {
-        title: "Zillow Review Request",
+        title: "Neighborhood Tour Reel",
         description:
-          "Professional home staging consultation for a Zillow review. Agents with 25+ Zillow reviews get 4x more inquiries.",
-        platform: "Zillow",
-        action: "Write a detailed review",
+          "Professional home staging consultation for a TikTok tour of their new neighborhood, tagging the agent. Local tour content spreads fast through friends who are house-hunting nearby.",
+        platform: "TikTok",
+        action: "Post a neighborhood tour Reel with tag",
       },
       {
         title: "Homeowner Referral",
@@ -637,9 +637,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "$50 gift card",
       },
       {
-        name: "Agent Review",
-        platform: "Zillow",
-        action: "Write a review on Zillow/Realtor.com",
+        name: "Agent Shoutout Story",
+        platform: "Pinterest",
+        action: "Pin their new home tagging the agent",
         reward: "Home staging consultation",
       },
       {
@@ -669,11 +669,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo from the hotel with tag",
       },
       {
-        title: "TripAdvisor Review",
+        title: "Room With a View Reel",
         description:
-          "Complimentary breakfast for a TripAdvisor review. Hotels in the top 10% on TripAdvisor see 22% more direct bookings.",
-        platform: "TripAdvisor",
-        action: "Write a detailed review",
+          "Complimentary breakfast for a TikTok Reel from their stay tagging the hotel. Travel content spreads fast — a guest's clip reaches friends already planning trips.",
+        platform: "TikTok",
+        action: "Post a Reel tagging the hotel",
       },
       {
         title: "Group Booking Share",
@@ -699,9 +699,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free late checkout",
       },
       {
-        name: "Guest Review",
-        platform: "TripAdvisor",
-        action: "Write a review about your stay",
+        name: "Guest Feature",
+        platform: "Pinterest",
+        action: "Pin a photo tagging the hotel",
         reward: "Complimentary breakfast",
       },
     ],
@@ -725,11 +725,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a shopping haul with tag",
       },
       {
-        title: "Google Shopping Review",
+        title: "Facebook Find Share",
         description:
-          "Free gift with next purchase for a Google review. Stores with 4.5+ stars see 28% higher click-through from Maps.",
-        platform: "Google",
-        action: "Leave a review",
+          "Free gift with next purchase for a Facebook post about your find. Shoppers' posts put your store in front of their whole friends list.",
+        platform: "Facebook",
+        action: "Post a photo with your tag",
       },
       {
         title: "Pinterest Product Pin",
@@ -755,9 +755,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "15% off next purchase",
       },
       {
-        name: "Shop Local Review",
-        platform: "Google",
-        action: "Write a review",
+        name: "Shop Local Share",
+        platform: "TikTok",
+        action: "Post a Reel",
         reward: "Free gift with next purchase",
       },
       {
@@ -787,11 +787,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share a Story with location tag",
       },
       {
-        title: "Google Relaxation Review",
+        title: "Relaxation Reel",
         description:
-          "$15 off next visit for a Google review. Spas with 4.8+ stars charge 20% more without losing bookings.",
-        platform: "Google",
-        action: "Write a review",
+          "$15 off next visit for a TikTok Reel from your visit. Wellness and self-care content travels fast, putting your spa in front of new local audiences.",
+        platform: "TikTok",
+        action: "Post a Reel tagging you",
       },
       {
         title: "Couples Referral",
@@ -817,9 +817,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free aromatherapy upgrade",
       },
       {
-        name: "Wellness Review",
-        platform: "Google",
-        action: "Write a review about your experience",
+        name: "Wellness Pin",
+        platform: "Pinterest",
+        action: "Pin a photo tagging you",
         reward: "$15 off next visit",
       },
       {
@@ -849,11 +849,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo of your order with tag",
       },
       {
-        title: "Sweet Review",
+        title: "Sweet Share",
         description:
-          "10% off next order for a Google review. Local bakeries with strong reviews dominate weekend search traffic.",
-        platform: "Google",
-        action: "Leave a review",
+          "10% off next order for a Facebook post. A friend's photo of your treats spreads word-of-mouth to their whole local network.",
+        platform: "Facebook",
+        action: "Post a photo of your order tagging you",
       },
       {
         title: "Birthday Cake Referral",
@@ -879,9 +879,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free cookie",
       },
       {
-        name: "Baker's Review",
-        platform: "Google",
-        action: "Write a review",
+        name: "Baker's Reel",
+        platform: "TikTok",
+        action: "Post a Reel featuring your order",
         reward: "10% off next order",
       },
       {
@@ -904,18 +904,18 @@ export const INDUSTRIES: IndustryPage[] = [
     icon: "🍺",
     useCases: [
       {
-        title: "Taproom Check-In",
+        title: "Taproom Photo Post",
         description:
-          "Free tasting flight for a check-in on Untappd or Instagram. Beer check-ins reach an average of 400 followers per post.",
+          "Free tasting flight for an Instagram photo from the taproom tagging you. A beer lover's post reaches their friends and puts your brewery on the local map.",
         platform: "Instagram",
-        action: "Check in with a photo",
+        action: "Post a photo with your tag",
       },
       {
-        title: "Beer Review",
+        title: "Flight Photo Post",
         description:
-          "Free pint of the brewer's choice for a Google review. Breweries with 200+ reviews attract weekend visitors from 30+ miles away.",
-        platform: "Google",
-        action: "Write a review",
+          "Free pint of the brewer's choice for a TikTok post of your tasting flight. Flight videos spread your taproom to beer lovers across the region through word-of-mouth.",
+        platform: "TikTok",
+        action: "Post a video of your flight tagging us",
       },
       {
         title: "Event Hype Share",
@@ -941,9 +941,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free tasting flight",
       },
       {
-        name: "Pint-Sized Review",
-        platform: "Google",
-        action: "Write a review",
+        name: "Pint-Sized Pin",
+        platform: "Pinterest",
+        action: "Pin a photo of your beer tagging us",
         reward: "Free pint of brewer's choice",
       },
       {
@@ -973,11 +973,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo of your arrangement with tag",
       },
       {
-        title: "Wedding Vendor Review",
+        title: "Wedding Vendor Pin",
         description:
-          "Free boutonniere with next wedding order for a Google review. Florists with strong reviews get 3x more wedding inquiries.",
-        platform: "Google",
-        action: "Write a detailed review",
+          "Free boutonniere with next wedding order for a Pinterest post. Pinned wedding arrangements keep your work in front of couples planning their big day.",
+        platform: "Pinterest",
+        action: "Post a pin of your arrangement tagging you",
       },
       {
         title: "Gift Referral",
@@ -1003,9 +1003,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "$5 off next order",
       },
       {
-        name: "Bloom Review",
-        platform: "Google",
-        action: "Write a review",
+        name: "Bloom Share",
+        platform: "Facebook",
+        action: "Share a photo of your flowers tagging you",
         reward: "Free boutonniere with next wedding order",
       },
     ],
@@ -1029,11 +1029,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share a photo from the session with tag",
       },
       {
-        title: "Google Portfolio Review",
+        title: "Behind-the-Scenes Feature",
         description:
-          "Free mini session for a Google review with a photo. Photographers with 50+ reviews book 45% more sessions per quarter.",
-        platform: "Google",
-        action: "Write a review with a session photo",
+          "Free mini session for a Facebook post featuring a favorite shot from their session and tagging your studio. Client posts put your work in front of local friends who are planning their own shoots.",
+        platform: "Facebook",
+        action: "Post a favorite session photo tagging you",
       },
       {
         title: "Engagement Session Referral",
@@ -1059,9 +1059,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free 8x10 print",
       },
       {
-        name: "Photographer Review",
-        platform: "Google",
-        action: "Write a review with photo",
+        name: "Portfolio Feature",
+        platform: "TikTok",
+        action: "Post a Reel featuring your session photos",
         reward: "Free mini session",
       },
       {
@@ -1091,11 +1091,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo of new tattoo with shop tag",
       },
       {
-        title: "Artist Review",
+        title: "Artist Spotlight Reel",
         description:
-          "Free touch-up for a Google review mentioning the artist. Reviews naming specific artists drive 2x more appointment requests for that artist.",
-        platform: "Google",
-        action: "Write a review mentioning your artist",
+          "Free touch-up for a TikTok Reel showing off the artist's work on your fresh ink. Naming the artist in your post helps build their following and books their calendar out further.",
+        platform: "TikTok",
+        action: "Post a Reel tagging your artist",
       },
       {
         title: "Flash Day Referral",
@@ -1122,8 +1122,8 @@ export const INDUSTRIES: IndustryPage[] = [
       },
       {
         name: "Artist Shoutout",
-        platform: "Google",
-        action: "Write a review mentioning your artist",
+        platform: "Facebook",
+        action: "Share a photo post tagging your artist",
         reward: "Free touch-up session",
       },
     ],
@@ -1147,11 +1147,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a Reel of your pet with a store purchase",
       },
       {
-        title: "Local Pet Store Review",
+        title: "Pet TikTok Feature",
         description:
-          "10% off next purchase for a Google review. Local pet stores with strong reviews take market share from big chains.",
-        platform: "Google",
-        action: "Write a review",
+          "10% off next purchase for a TikTok post featuring your store. Local pet stores earn word-of-mouth reach that pulls pet parents away from big chains.",
+        platform: "TikTok",
+        action: "Post a TikTok tagging the store",
       },
       {
         title: "Dog Park Referral",
@@ -1177,9 +1177,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free treat bag",
       },
       {
-        name: "Local Love Review",
-        platform: "Google",
-        action: "Write a review about your experience",
+        name: "Local Love Pin",
+        platform: "Pinterest",
+        action: "Pin a photo of your pet with a store purchase",
         reward: "10% off next purchase",
       },
       {
@@ -1209,11 +1209,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post an OOTD with boutique tag",
       },
       {
-        title: "Hidden Gem Review",
+        title: "Hidden Gem Reel",
         description:
-          "Free accessory with next purchase for a Google review. Boutiques with 'hidden gem' reviews see a 50% lift in first-time visitors.",
-        platform: "Google",
-        action: "Write a review",
+          "Free accessory with next purchase for a TikTok Reel showing off a boutique find. 'Hidden gem' discovery videos spread by word-of-mouth and pull in first-time visitors.",
+        platform: "TikTok",
+        action: "Post a Reel featuring a boutique find",
       },
       {
         title: "Style Share Referral",
@@ -1239,9 +1239,9 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "15% off next purchase",
       },
       {
-        name: "Boutique Find Review",
-        platform: "Google",
-        action: "Write a review",
+        name: "Boutique Find Feature",
+        platform: "Facebook",
+        action: "Post a photo of a boutique find with your tag",
         reward: "Free accessory with next purchase",
       },
       {
