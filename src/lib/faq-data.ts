@@ -77,7 +77,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "getting-started",
     question: "How do I launch my first campaign?",
     answer:
-      "Sign up at /dashboard, pick a campaign template that matches your goal (most shops start with 10% off for a Google review, or a free side for an Instagram post), print the QR code on a poster, and put it where customers will see it. The first time someone scans, you'll see it appear in your dashboard. Submissions are reviewed automatically and the customer gets their perk via SMS.",
+      "Sign up at /dashboard, pick a campaign template that matches your goal (most shops start with a free drink or side for an Instagram or TikTok post), print the QR code on a poster, and put it where customers will see it. The first time someone scans, you'll see it appear in your dashboard. Submissions are reviewed automatically and the customer gets their perk via SMS.",
   },
   {
     slug: "do-i-need-a-large-following",
@@ -156,7 +156,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "platforms",
     question: "What are the highest-value social media actions?",
     answer:
-      "Generally: detailed Google reviews with photos ($10), Instagram collab posts ($5), TikTok review videos ($4), and Reels across Instagram, TikTok, Facebook ($3-4). Lower-effort actions like likes ($0.10) and follows ($0.30) are valuable in volume but priced low individually. The tradeoff: high-value actions require more effort, so the perk you offer should match.",
+      "Among actions you can actually reward: Instagram collab posts ($5), TikTok review videos ($4), and Reels across Instagram, TikTok, Facebook ($3-4). Detailed Google/Yelp reviews carry even more marketing value, but those platforms ban incentives — so Social Perks can't tie a perk to them; you can only ask for them organically. Lower-effort actions like likes ($0.10) and follows ($0.30) are valuable in volume but priced low individually. The tradeoff: high-value actions require more effort, so the perk you offer should match.",
   },
   // ─── Pricing ────────────────────────────────────────────────────────
   {
@@ -171,7 +171,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "pricing",
     question: "What perk should I offer for [action]?",
     answer:
-      "Use the pricing oracle: GET /api/v1/pricing?actionId=<id>&businessType=<type>. It returns a recommended perk type (percent-off, dollar-off, or free item) and amount. As a rule of thumb: a $2 action like an Instagram story tag pairs well with 10-15% off; a $10 action like a detailed Google review pairs with $5-10 off or a free drink/side; a $0.30 like or follow is best paired with a punch-card style 'every 10 follows = free coffee' rather than per-follow.",
+      "Use the pricing oracle: GET /api/v1/pricing?actionId=<id>&businessType=<type>. It returns a recommended perk type (percent-off, dollar-off, or free item) and amount. As a rule of thumb: a $2 action like an Instagram story tag pairs well with 10-15% off; a $5 action like an Instagram collab post or TikTok video pairs with $5-10 off or a free drink/side; a $0.30 like or follow is best paired with a punch-card style 'every 10 follows = free coffee' rather than per-follow.",
   },
   {
     slug: "can-i-set-my-own-perk-amounts",
