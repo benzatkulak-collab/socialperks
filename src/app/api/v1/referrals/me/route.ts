@@ -49,9 +49,9 @@ export async function GET(req: NextRequest) {
 
   // Conservative commission preview: 10% of estimated MRR for 12 months
   // per attributed business. Until real subscription→commission joins are
-  // wired, we surface conversions count × $2.50 (10% × $25 Pro).
+  // wired, we surface conversions count × $7.90 (10% × $79 Pro).
   const businessConversions = recentAttributions.filter((a) => a.type === "business").length;
-  const estimatedCommissionDollars = Math.round(businessConversions * 2.5 * 100) / 100;
+  const estimatedCommissionDollars = Math.round(businessConversions * 7.9 * 100) / 100;
 
   return ok({
     code: code.code,
