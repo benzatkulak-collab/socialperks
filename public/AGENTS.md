@@ -11,13 +11,30 @@ trial-and-error API exploration.
 
 ---
 
+## ⚡ First call — no auth, ~30 seconds
+
+```bash
+curl https://socialperks.app/api/v1/pricing
+```
+
+Returns market-rate perk pricing as `{ "success": true, "data": { … } }` — no
+key needed. The same works for `/api/v1/actions` (all 125 actions) and
+`/api/v1/benchmarks` (every industry); each returns its full catalog on a bare
+GET. That's your fastest working response — then pick a surface below (MCP for
+chat agents, OpenAPI for codegen, REST for one-offs).
+
+---
+
 ## What Social Perks is, in one paragraph
 
 Social Perks is a marketing platform where small businesses, enterprise
 brands, and influencers exchange **perks** (discounts, free items, cash back)
-for **marketing actions** across 15 social platforms. There are 107
-pre-defined actions ranging from "leave a Google review" (low effort, high
-value) to "post a 60-second TikTok" (higher effort). Businesses launch
+for **marketing actions** across 25 social platforms. There are 125
+pre-defined actions ranging from "post an Instagram Reel" (higher effort,
+high value) to "tag us in a Story" (low effort). Incentivizing third-party
+reviews (Google, Yelp, TripAdvisor) is blocked — those platforms ban it — so
+campaigns center on social posts, where incentives are legal with disclosure.
+Businesses launch
 campaigns; customers and influencers complete actions; the platform verifies
 and rewards them. AI agents can be used either by **businesses** (to plan,
 launch, and optimize campaigns) or by **creators** (to discover relevant
@@ -39,7 +56,7 @@ connect to the Social Perks MCP server:
 {
   "mcpServers": {
     "social-perks": {
-      "url": "https://<host>/api/mcp",
+      "url": "https://socialperks.app/api/mcp",
       "transport": "http"
     }
   }
@@ -67,7 +84,7 @@ Standard JSON REST. Auth via `Authorization: Bearer <token>` or
 `x-api-key: <key>` header. Public endpoints (pricing, actions, benchmarks,
 exchange/opportunities, exchange/market) need no auth.
 
-Base URL: `https://<host>/api/v1/`
+Base URL: `https://socialperks.app/api/v1/`
 
 Response shape: `{ "success": true, "data": <payload> }` or
 `{ "success": false, "error": { "code": "...", "message": "..." } }`.
@@ -100,7 +117,7 @@ Three methods, listed in order of preference for programmatic use:
 3. **Cookies** — only relevant if you're embedded in a browser session
 
 To provision an API key, a human user must sign in and create one in the
-business dashboard at `/dashboard/settings/api-keys`. (Self-service key
+business dashboard at `/dashboard/api-keys`. (Self-service key
 provisioning for agents without a human in the loop is on the roadmap.)
 
 ---
@@ -115,7 +132,7 @@ npm install @social-perks/sdk
 import { SocialPerks } from "@social-perks/sdk";
 
 const sp = new SocialPerks({
-  baseUrl: "https://<host>",
+  baseUrl: "https://socialperks.app",
   apiKey: process.env.SOCIAL_PERKS_API_KEY,
 });
 
@@ -162,7 +179,7 @@ sufficient.
 ## Status & changelog
 
 - **Production status:** see `GET /api/v1/health`
-- **Public changelog:** [`/changelog`](https://<host>/changelog)
+- **Public changelog:** [`/changelog`](https://socialperks.app/changelog)
 - **Current version:** see `package.json`
 
 ---
