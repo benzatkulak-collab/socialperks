@@ -99,8 +99,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Starter",
     planKey: "starter",
-    price: "$10",
-    annualPrice: 100,
+    price: "$29",
+    annualPrice: 290,
     period: "/month",
     description: "For solo owners ready to grow.",
     features: [
@@ -118,8 +118,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Pro",
     planKey: "professional",
-    price: "$25",
-    annualPrice: 200,
+    price: "$79",
+    annualPrice: 790,
     period: "/month",
     description: "Everything you need to scale.",
     features: [
@@ -139,17 +139,19 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Enterprise",
     planKey: "enterprise",
-    price: "Custom",
-    period: "",
-    description: "Multiple locations, custom needs.",
+    price: "$149",
+    annualPrice: 1490,
+    period: "/month",
+    description: "For multiple locations and teams.",
     features: [
       "Unlimited campaigns",
       "Multi-location management",
       "Team permissions & role controls",
-      "Dedicated account manager",
-      "Custom integrations + SLA",
+      "API access + priority verification",
+      "Priority support",
     ],
-    cta: "Talk to Sales →",
+    cta: "Get Started",
+    ctaSubtext: "Need SLA + a dedicated manager? Talk to us",
     popular: false,
     accent: "text-brand-amber",
   },
@@ -432,9 +434,7 @@ export function PricingSection({
                   href={
                     tier.planKey === null
                       ? "/dashboard#signup"
-                      : tier.planKey === "enterprise"
-                        ? "/contact?intent=enterprise"
-                        : `/dashboard#signup?plan=${tier.planKey}&period=${annual ? "annual" : "monthly"}`
+                      : `/dashboard#signup?plan=${tier.planKey}&period=${annual ? "annual" : "monthly"}`
                   }
                   className={`block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                     tier.popular
