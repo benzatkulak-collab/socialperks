@@ -43,7 +43,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/og-image.svg",
+        // PNG (via next/og). SVG OG images render blank on every major
+        // social/chat scraper, so the default card is a real raster image.
+        url: "/api/og/default",
         width: 1200,
         height: 630,
         alt: "Social Perks — Turn customers into your marketing team",
@@ -55,7 +57,7 @@ export const metadata: Metadata = {
     site: "@socialperks",
     title: "Social Perks",
     description: "Turn customers into your marketing team. Start free.",
-    images: ["/og-image.svg"],
+    images: ["/api/og/default"],
   },
   robots: {
     index: true,

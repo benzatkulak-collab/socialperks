@@ -15,6 +15,7 @@ import Link from "next/link";
 import { INDUSTRIES } from "@/lib/industries";
 import { getBenchmarks } from "@/lib/ai-engine";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
     "Average completion rate, average perk value, top platforms, and average ROI for incentivized social media marketing campaigns across 20 industries. Updated quarterly. Same data as /api/v1/benchmarks but indexable.",
   alternates: { canonical: `${SITE_URL}/benchmarks` },
   openGraph: {
+    images: ogImages(),
     title: "Social media marketing benchmarks by industry",
     description:
       "Per-industry completion rates, ROI, and perk values for incentivized marketing campaigns.",

@@ -9,6 +9,14 @@ import { CtaSection } from "@/components/landing/cta-section";
 import { ClaudeDesktopInstall } from "@/components/agent/claude-desktop-install";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/seo";
+
+// Self-referencing canonical for the homepage — the root layout sets none,
+// so utm/ref query-param variants would otherwise fragment into duplicates.
+export const metadata: Metadata = {
+  alternates: { canonical: SITE_URL },
+};
 
 export default function LandingPage() {
   return (

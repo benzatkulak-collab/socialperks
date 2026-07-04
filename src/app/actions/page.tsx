@@ -15,6 +15,7 @@ import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
 import type { Action, ActionType } from "@social-perks/shared/types";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -30,6 +31,7 @@ export const metadata: Metadata = {
     canonical: `${SITE_URL}/actions`,
   },
   openGraph: {
+    images: ogImages(),
     title: "Marketing Action Catalog — Social Perks",
     description:
       "125 marketing actions across 25 platforms with market-rate pricing. Used by AI agents and small businesses to plan campaigns.",

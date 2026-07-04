@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ContactForm } from "./contact-form";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/contact` },
   title: "Contact Us — Social Perks",
   description:
     "Get in touch with the Social Perks team. Whether you have a question, need technical support, or want to discuss a partnership, we're here to help.",

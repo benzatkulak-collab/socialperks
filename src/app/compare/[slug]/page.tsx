@@ -12,6 +12,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { COMPARISONS, getPlatform } from "@/lib/comparison-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -40,6 +41,7 @@ export async function generateMetadata({
     description: c.description,
     alternates: { canonical: `${SITE_URL}/compare/${slug}` },
     openGraph: {
+      images: ogImages(),
       title: c.title,
       description: c.description,
       url: `${SITE_URL}/compare/${slug}`,

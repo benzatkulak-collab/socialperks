@@ -13,6 +13,7 @@ import {
 import { INDUSTRY_MAP } from "@/lib/industries";
 import { PLATFORMS } from "@/lib/platforms";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 // ─── Static generation ─────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ export async function generateMetadata({
     title,
     description,
     openGraph: {
+      images: ogImages(),
       title: ans.question,
       description,
       type: "article",

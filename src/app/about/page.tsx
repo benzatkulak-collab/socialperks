@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/about` },
   title: "About — Social Perks",
   description:
     "Learn about Social Perks, our mission to turn customers into marketing teams, and the people behind the platform.",

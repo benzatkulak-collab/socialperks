@@ -7,6 +7,7 @@ import { WaitlistForm } from "@/components/landing/waitlist-form";
 import { listCities, findCity, businessesInCity } from "@/lib/cities";
 import { INDUSTRY_MAP, INDUSTRY_SLUGS } from "@/lib/industries";
 import { buildBusinessSlug } from "@/lib/slugs";
+import { ogImages } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{ city: string; industry: string }>;
@@ -50,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, type: "website", url, siteName: "Social Perks" },
+    openGraph: { images: ogImages(), title, description, type: "website", url, siteName: "Social Perks" },
     twitter: { card: "summary_large_image", title, description },
   };
 }

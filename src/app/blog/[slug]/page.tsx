@@ -5,6 +5,7 @@ import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
 import { getPost, listPosts } from "@/lib/blog";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -30,6 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: post.description,
     alternates: { canonical: url },
     openGraph: {
+      images: ogImages(),
       title: post.title,
       description: post.description,
       type: "article",

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GUIDES } from "@/lib/guides-data";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -40,6 +41,7 @@ export async function generateMetadata({
     description: g.description,
     alternates: { canonical: `${SITE_URL}/guides/${slug}` },
     openGraph: {
+      images: ogImages(),
       title: g.title,
       description: g.description,
       type: "article",

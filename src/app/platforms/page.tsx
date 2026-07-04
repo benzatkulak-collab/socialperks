@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
     "Instagram, TikTok, Google, Facebook, Yelp, and 20 more. Browse all 25 platforms Social Perks supports with their available marketing actions and market-rate pricing.",
   alternates: { canonical: `${SITE_URL}/platforms` },
   openGraph: {
+    images: ogImages(),
     title: "Supported Platforms — Social Perks",
     description:
       "All 25 platforms supported for marketing campaigns, with action lists and pricing.",

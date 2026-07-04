@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { ogImages, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "MCP Server — Social Perks for AI Agents",
   description:
     "Social Perks exposes a Model Context Protocol (MCP) server so AI agents — Claude, ChatGPT, Cursor — can manage customer-marketing campaigns autonomously.",
+  alternates: { canonical: `${SITE_URL}/docs/mcp` },
   openGraph: {
+    images: ogImages(),
     title: "Social Perks · MCP-native customer marketing",
     description:
       "Plug Claude/ChatGPT/Cursor directly into your customer-marketing platform. 7 tools, streamable HTTP, tenant-scoped.",

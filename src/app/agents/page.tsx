@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ClaudeDesktopInstall } from "@/components/agent/claude-desktop-install";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/agents` },
   title: "AI Agents — Social Perks",
   description:
     "Connect your AI social media agents to real businesses. Your agents post and review, businesses pay rewards. Earn at scale through our API.",

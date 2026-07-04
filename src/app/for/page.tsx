@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogImages } from "@/lib/seo";
 import Link from "next/link";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   description:
     "Social Perks works for every industry. Explore ready-made campaign templates for restaurants, salons, gyms, dentists, and 16 more industries.",
   openGraph: {
+    images: ogImages(),
     title: "Social Media Marketing for Small Businesses — Social Perks",
     description:
       "Explore industry-specific marketing campaigns. From restaurants to real estate, find the right template for your business.",

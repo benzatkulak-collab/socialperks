@@ -9,6 +9,7 @@ import {
   INDUSTRY_SLUGS,
 } from "@/lib/industries";
 import { safeJsonForScript } from "@/lib/security/json-ld";
+import { ogImages } from "@/lib/seo";
 
 // ---------------------------------------------------------------------------
 // Static generation
@@ -40,6 +41,7 @@ export async function generateMetadata({
     title,
     description,
     openGraph: {
+      images: ogImages(),
       title,
       description,
       type: "website",

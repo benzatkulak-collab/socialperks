@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  alternates: { canonical: `${SITE_URL}/privacy` },
   title: "Privacy Policy — Social Perks",
   description:
     "Privacy Policy for Social Perks. Learn how we collect, use, and protect your personal data.",
