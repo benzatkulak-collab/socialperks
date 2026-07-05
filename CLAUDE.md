@@ -14,7 +14,7 @@ Social Perks is a platform where businesses offer perks (discounts/rewards) to c
 - **AI**: Backend-only via `/api/v1/ai/*` routes — frontend NEVER runs AI logic
 - **API**: RESTful `/api/v1/*` routes with typed responses
 - **Security**: Layered security (CSRF tokens, tiered rate limiting, input validation, HTML sanitization)
-- **Monitoring**: 100% request tracing on all 35 API routes with structured JSON logging
+- **Monitoring**: 100% request tracing on every API route with structured JSON logging
 - **CI/CD**: GitHub Actions (lint, typecheck, test, build, deploy, security scanning)
 - **Mobile**: Shared interop layer in `src/lib/shared/mobile-interop.ts`
 
@@ -72,7 +72,7 @@ src/
 │   └── shared/                  # Shared (Nav, Footer, Ticker)
 └── lib/
     ├── types.ts                 # TypeScript type definitions
-    ├── platforms.ts             # 15 platforms, 107 actions, tiers, events
+    ├── platforms.ts             # 25 platforms, 125 actions (re-exports @social-perks/shared)
     ├── ai-engine.ts             # AI campaign generation (imported by API routes only)
     ├── seed.ts                  # Demo data (businesses, influencers, stats)
     ├── ideas.ts                 # 1000 platform ideas
@@ -133,7 +133,7 @@ src/
 - The frontend calls APIs — it never imports `ai-engine.ts` directly
 
 ### Platforms & Actions
-- 15 social media platforms, 107 marketing actions
+- 25 social media platforms, 125 marketing actions
 - Each action: effort (0-5), value ($), type (content/review/engage/share/referral)
 - Data in `src/lib/platforms.ts`
 
@@ -184,7 +184,7 @@ npm run test         # Run test suite
 npm run test:coverage  # Run tests with coverage report
 ```
 
-## API Endpoints (35 routes)
+## API Endpoints (primary routes — ~100 route handlers total; see API.md)
 ```
 # Auth
 GET  /api/v1/auth                    # Validate session (Bearer token)
@@ -225,7 +225,7 @@ POST /api/v1/programs/:id/members    # Enroll member
 
 # Reference Data (public, cached)
 GET  /api/v1/pricing                 # Pricing oracle
-GET  /api/v1/actions                 # Action library (107 actions)
+GET  /api/v1/actions                 # Action library (125 actions)
 GET  /api/v1/benchmarks              # Industry benchmarks
 GET  /api/v1/influencers             # Search influencers
 POST /api/v1/influencers             # Register influencer
@@ -244,6 +244,21 @@ POST /api/v1/seed                    # Dev-only seed data
 
 See `API.md` for full request/response documentation.
 
-## Demo Accounts (PIN: 1234)
+## Demo Accounts (password: 1234)
+Seeded demo accounts only — they authenticate with the shared password `1234`
+(surfaced in the auth UI as "Password for all: 1234"). This is a demo-account
+convenience, not the standalone PIN auth flow, which is deprecated for real users
+(they use email/password → JWT).
 **Business:** yoga@ · sol@ · glow@ · iron@ · baked@ · ink@ · vet@ · bloom@ · smith@ · spark@ demo.com
 **Influencer:** priya@ · marcus@ · style@ · photo@ · wellness@ demo.com
+
+## Gotchas
+- **Monorepo:** `src/lib/platforms.ts` (and siblings) are thin re-exports of
+  `@social-perks/shared`. Edit the real data in `packages/shared/src/`
+  (e.g. `packages/shared/src/platforms.ts`), not `src/lib/` — editing the
+  re-export does nothing.
+- **Review incentives are blocked by design:** Google/Yelp/TripAdvisor review
+  actions are flagged `incentivizable: false` in `packages/shared/src/platforms.ts`
+  and gated by `isCompliantTemplate()` + `LegalComplianceEngine`. Never add
+  perk-for-review examples anywhere (platform data, FAQ, industry pages,
+  AGENTS.md) — Google and the FTC ban incentivized reviews.
