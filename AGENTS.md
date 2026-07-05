@@ -113,7 +113,7 @@ Returns OpenAPI 3.1.0 JSON. Pipe into your code generator of choice.
 
 Standard JSON REST. Auth via `Authorization: Bearer <token>` or
 `x-api-key: <key>` header. Public endpoints (pricing, actions,
-benchmarks, exchange/opportunities, exchange/market) need no auth.
+benchmarks, stats/public) need no auth.
 
 Base URL: `https://socialperks.app/api/v1/`
 
@@ -138,7 +138,6 @@ Response shape: `{ "success": true, "data": <payload> }` or
 | `POST /api/v1/agent-auth/token` | code | Exchange OAuth code for API key |
 | `GET /api/v1/agent-activity` | bearer | Per-agent activity rollup (for dashboard) |
 | `GET /api/v1/usage` | bearer | Current-month usage vs. plan limits |
-| `GET /api/v1/exchange/opportunities` | none | Browse open campaigns |
 
 For the full list, see `API.md` or fetch `/api/v1/openapi`.
 

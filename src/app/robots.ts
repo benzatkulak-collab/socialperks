@@ -15,8 +15,6 @@ const AGENT_DISCOVERABLE_API_PATHS = [
   "/api/v1/pricing",
   "/api/v1/actions",
   "/api/v1/benchmarks",
-  "/api/v1/exchange/opportunities",
-  "/api/v1/exchange/market",
   "/api/v1/health",
   "/api/v1/legal",
 ];

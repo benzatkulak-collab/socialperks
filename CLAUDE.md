@@ -45,12 +45,6 @@ src/
 │       │       ├── submit/route.ts    # Action submission
 │       │       ├── cashback/route.ts  # Cash back management
 │       │       └── members/route.ts   # Member enrollment
-│       ├── exchange/
-│       │   ├── opportunities/route.ts # Market opportunities (public)
-│       │   ├── market/route.ts    # Real-time market data (public)
-│       │   ├── orders/route.ts    # Buy/sell order management
-│       │   ├── trades/route.ts    # Trade lifecycle
-│       │   └── enroll/route.ts    # Agent auto-enrollment
 │       ├── ai/
 │       │   ├── generate/route.ts  # AI campaign generation (BACKEND ONLY)
 │       │   ├── recommend/route.ts # AI recommendations
@@ -228,15 +222,6 @@ GET  /api/v1/programs/:id/cashback   # List payouts
 POST /api/v1/programs/:id/cashback   # Request/manage cashback
 GET  /api/v1/programs/:id/members    # List members
 POST /api/v1/programs/:id/members    # Enroll member
-
-# Exchange
-GET  /api/v1/exchange/opportunities  # Market opportunities (public)
-GET  /api/v1/exchange/market         # Real-time market data (public)
-GET  /api/v1/exchange/orders         # List orders
-POST /api/v1/exchange/orders         # Place buy/sell order
-GET  /api/v1/exchange/trades         # List trades
-POST /api/v1/exchange/trades         # Trade lifecycle actions
-POST /api/v1/exchange/enroll         # Agent auto-enrollment
 
 # Reference Data (public, cached)
 GET  /api/v1/pricing                 # Pricing oracle

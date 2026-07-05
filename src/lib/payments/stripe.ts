@@ -169,9 +169,9 @@ export class PaymentProcessor {
   private payoutResults: Map<string, PayoutResult> = new Map();
   private ledger: FinancialLedger;
 
-  constructor(_config: StripeConfig, ledger: FinancialLedger) {
+  constructor(config: StripeConfig, ledger: FinancialLedger) {
     this.ledger = ledger;
-    this.stripe = new MockStripeClient();
+    this.stripe = new MockStripeClient(config.mock?.failureRate);
   }
 
   /**

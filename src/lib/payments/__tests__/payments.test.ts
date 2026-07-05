@@ -273,7 +273,9 @@ describe("PaymentProcessor", () => {
   beforeEach(() => {
     ledger = new FinancialLedger();
     processor = new PaymentProcessor(
-      { secretKey: "sk_test", webhookSecret: "whsec_test", platformAccountId: "acct_platform" },
+      // failureRate 0: this suite asserts business logic, not retry behavior —
+      // the mock's default 2% random failure made CI flaky.
+      { secretKey: "sk_test", webhookSecret: "whsec_test", platformAccountId: "acct_platform", mock: { failureRate: 0 } },
       ledger
     );
   });
@@ -385,5 +387,30 @@ describe("TaxReporter", () => {
 
     const record = tax.generate1099("inf_small", new Date().getFullYear());
     expect(record.forms.some((f) => f.type === "1099-NEC" && f.generated)).toBe(false);
+  });
+});
+
+// The mock Stripe client used to default to a 2% RANDOM failure rate with no
+// way to turn it off — every CI run gambled across hundreds of mock calls and
+// the suite failed flakily (first observed on PR #139). Determinism must be
+// configurable, and the main suite must run at failureRate 0.
+describe("PaymentProcessor mock determinism", () => {
+  it("honors mock.failureRate = 1 (every Stripe call fails, deterministically)", async () => {
+    const processor = new PaymentProcessor(
+      { secretKey: "sk_test", webhookSecret: "whsec_test", platformAccountId: "acct_platform", mock: { failureRate: 1 } },
+      new FinancialLedger()
+    );
+    await expect(
+      processor.createConnectedAccount({ influencerId: "det1", email: "det1@test.com" })
+    ).rejects.toThrow("Stripe API error");
+  });
+
+  it("honors mock.failureRate = 0 (no random failures, ever)", async () => {
+    const processor = new PaymentProcessor(
+      { secretKey: "sk_test", webhookSecret: "whsec_test", platformAccountId: "acct_platform", mock: { failureRate: 0 } },
+      new FinancialLedger()
+    );
+    const acct = await processor.createConnectedAccount({ influencerId: "det2", email: "det2@test.com" });
+    expect(acct.stripeAccountId).toBeDefined();
   });
 });

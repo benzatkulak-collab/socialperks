@@ -71,6 +71,11 @@ export interface StripeConfig {
   secretKey: string;
   webhookSecret: string;
   platformAccountId: string;
+  /**
+   * Mock-client knobs (this module simulates Stripe). failureRate 0 makes
+   * tests deterministic — the 0.02 default once made CI fail at random.
+   */
+  mock?: { failureRate?: number };
 }
 
 export interface PayoutRequest {
