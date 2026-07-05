@@ -29,8 +29,6 @@ issuance, and a self-serve in-browser sandbox.
 - [Action library](/api/v1/actions): All 125 marketing actions with effort and value.
 - [Industry benchmarks](/api/v1/benchmarks): Engagement and conversion benchmarks.
 - [Platform stats](/api/v1/stats/public): Aggregate platform counts.
-- [Open opportunities](/api/v1/exchange/opportunities): Live campaign marketplace.
-- [Market data](/api/v1/exchange/market): Real-time exchange snapshot.
 
 ## OAuth-style key issuance for agents
 
