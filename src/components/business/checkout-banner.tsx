@@ -19,6 +19,32 @@ import { track } from "@/lib/analytics";
 
 type Status = "success" | "cancelled" | null;
 
+/**
+ * Fire a Purchase conversion on the ad retargeting pixels (Meta / Google) when
+ * a checkout completes. Without this, the pixels only ever see PageView, so ad
+ * platforms can neither optimize delivery toward payers nor report ROAS. No-op
+ * when a pixel isn't loaded (its env var is unset). Value is intentionally
+ * omitted — we don't have a trustworthy amount client-side, and a Purchase
+ * event still lets the platforms count and optimize for the conversion.
+ */
+function firePurchasePixels(): void {
+  if (typeof window === "undefined") return;
+  const w = window as unknown as {
+    fbq?: (action: string, event: string, props?: Record<string, unknown>) => void;
+    gtag?: (command: string, event: string, props?: Record<string, unknown>) => void;
+  };
+  try {
+    w.fbq?.("track", "Purchase", { currency: "USD" });
+  } catch {
+    /* pixel not ready — ignore */
+  }
+  try {
+    w.gtag?.("event", "purchase", { currency: "USD" });
+  } catch {
+    /* pixel not ready — ignore */
+  }
+}
+
 export function CheckoutBanner() {
   const [status, setStatus] = useState<Status>(null);
 
@@ -36,6 +62,7 @@ export function CheckoutBanner() {
         checkout === "success" ? "checkout_completed" : "checkout_started",
         { outcome: checkout }
       );
+      if (checkout === "success") firePurchasePixels();
     }
   }, []);
 

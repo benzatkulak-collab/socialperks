@@ -21,6 +21,7 @@ import { createSeedData } from "@social-perks/shared/seed";
 import { emailProvider, passwordResetEmail, welcomeEmail } from "@/lib/email";
 import { eventPublisher } from "@/lib/realtime/publisher";
 import { trackReferralSignup, hydrateReferrals, persistReferral } from "@/lib/referrals";
+import { findByCode, recordConversion } from "@/lib/referrals/codes";
 import {
   ensureUsersSeeded,
   getUserByEmail,
@@ -295,7 +296,32 @@ export const POST = withTiming(async (req: NextRequest) => {
           // the raw userId ('usr_*'), so indexing by userId here meant
           // findReferralByReferee(businessId) never matched and the referrer was
           // never credited. Influencers (no businessId) fall back to userId.
-          const referral = trackReferralSignup(body.referralCode, businessId ?? userId, sanitizedEmail);
+          const refereeKey = businessId ?? userId;
+          // The dashboard's "Refer & Earn" widget shares codes from
+          // referrals/codes.ts (e.g. "/?ref=ABC234"). Resolve the referrer
+          // through that system — the legacy ledger only knew REF-XXXX-XXXX
+          // codes no UI ever issues, so referrers resolved to "unknown" and
+          // nobody got credited.
+          const shareCode = await findByCode(body.referralCode);
+          if (shareCode) {
+            // Record the conversion against the shared code so the referrer's
+            // dashboard (clicks / conversions / estimated commission) reflects
+            // this signup.
+            await recordConversion({
+              code: body.referralCode,
+              attributedType: userRole === "business" ? "business" : "influencer",
+              attributedId: refereeKey,
+              attributedEmail: sanitizedEmail,
+            });
+          }
+          // Link the ledger to the resolved referrer so the Stripe webhook
+          // credits the correct business on paid conversion.
+          const referral = trackReferralSignup(
+            body.referralCode,
+            refereeKey,
+            sanitizedEmail,
+            shareCode?.ownerId
+          );
           await persistReferral(referral);
         } catch {
           // Non-blocking: don't fail signup if referral tracking fails

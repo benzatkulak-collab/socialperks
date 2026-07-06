@@ -5,6 +5,7 @@ import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { TrackingPixels } from "@/components/shared/tracking-pixels";
 import { PostHogLoader } from "@/components/shared/posthog-loader";
 import { RefCapture } from "@/components/shared/ref-capture";
+import { AttributionCapture } from "@/components/shared/attribution-capture";
 import "./globals.css";
 import { safeJsonForScript } from "@/lib/security/json-ld";
 
@@ -256,6 +257,7 @@ export default function RootLayout({
         </a>
         <SWRegister />
         <RefCapture />
+        <AttributionCapture />
         {/* Wrapper carries the skip-link target so every page gets a
             valid anchor — some pages already set id="main-content" on
             their own <main>, in which case the duplicate id is
