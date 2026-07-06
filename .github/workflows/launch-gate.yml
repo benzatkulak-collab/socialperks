@@ -1,0 +1,130 @@
+# ─────────────────────────────────────────────────────────────
+# Launch Gate — the checks that turn "remember to run it" into
+# "runs on every PR". COMPLEMENTS ci.yml (lint/typecheck/test/build)
+# and security.yml (npm audit/license/dep-review) — no duplication.
+#
+# Gate mapping (see .claude/skills/README.md for the on-demand versions):
+#   static-guards  → /env-audit + /seo-tech (source) + /security (headers)
+#   skills-validate→ keeps the .claude/skills pack loadable
+#   e2e-smoke      → /smoke  (Playwright critical paths)
+#   lighthouse     → /lighthouse + /a11y + /cwv  (perf/a11y/SEO budgets)
+#
+# NOTE: static-guards + skills-validate are verified green. The server-based
+# jobs (e2e-smoke, lighthouse) are real gates but may need a first-run tune of
+# secrets/thresholds for your runner — see README "Tuning the gate".
+# ─────────────────────────────────────────────────────────────
+
+name: Launch Gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: launch-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  # ── Static guards: no server, no browser — fast enough for every PR ──
+  static-guards:
+    name: Static guards (env / seo / headers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Run launch checks
+        run: node scripts/ci/launch-checks.mjs
+
+  # ── Keep the skills pack loadable (malformed frontmatter = silent skip) ──
+  skills-validate:
+    name: Validate .claude/skills pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Validate skills frontmatter
+        run: node scripts/ci/validate-skills.mjs
+
+  # ── Smoke: Playwright critical paths. The suite boots an API server (:4000,
+  #    needs Postgres+Redis) and Next (:3000) via playwright.config.ts. ──
+  e2e-smoke:
+    name: Smoke (Playwright critical paths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: socialperks
+          POSTGRES_PASSWORD: socialperks
+          POSTGRES_DB: socialperks
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U socialperks"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://socialperks:socialperks@localhost:5432/socialperks
+      REDIS_URL: redis://localhost:6379
+      AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000
+      RATE_LIMIT_BYPASS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run database migrations
+        run: npm run db:migrate
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Run smoke tests
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ── Lighthouse budgets (perf/a11y/SEO). Fails on budget regression, not just
+  #    reports — tune thresholds in lighthouserc.json. ──
+  lighthouse:
+    name: Lighthouse (perf / a11y / SEO budgets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000
+      DISABLE_BOOT_MIGRATIONS: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.14.x autorun
