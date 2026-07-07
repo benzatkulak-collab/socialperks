@@ -60,9 +60,18 @@ export async function getOrCreateCode(
       reward_unlocked: boolean;
       created_at: string;
     }>(
+      // ORDER BY created_at makes LIMIT 1 deterministic: business_id has only a
+      // non-unique index, so a check-then-insert race (now reachable from the
+      // public /c/[campaignId] page, which resolves the owner's code) can leave
+      // two rows for one owner. Without a stable order, the dashboard and the
+      // public "Powered by" link could pick different rows and split referral
+      // attribution. Pinning to the earliest row makes every caller converge on
+      // the same code. (A unique constraint on business_id is the deeper fix —
+      // tracked separately, since adding it must first de-dupe existing rows.)
       `SELECT id, code, uses_count, conversions_count, reward_unlocked, created_at
        FROM referral_codes
        WHERE ${colName} = $1
+       ORDER BY created_at ASC
        LIMIT 1`,
       [ownerId],
     );
