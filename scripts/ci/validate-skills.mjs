@@ -59,10 +59,30 @@ for (const dir of dirs) {
     failures.push(`${rel}: invalid model '${fields.model}' (use haiku|sonnet|opus)`);
   }
 
-  // Shell-injection lines look like:  !`some command`
+  // Shell-injection lines look like:  !`some command`. Each MUST be covered by a
+  // Bash(<prefix>:*) allowed-tools matcher whose prefix is an actual prefix of the
+  // command — otherwise it prompts at run time instead of injecting. (Presence of
+  // allowed-tools alone is not enough: a matcher for the wrong command silently
+  // fails, which is the exact bug this check exists to catch.)
   const injects = [...body.matchAll(/^!\`([^`]+)\`/gm)].map((x) => x[1].trim());
-  if (injects.length && !fields["allowed-tools"] && !/allowed-tools:/.test(parsed.fmRaw)) {
-    failures.push(`${rel}: uses shell-injection but declares no allowed-tools`);
+  if (injects.length) {
+    const atRaw = fields["allowed-tools"] ?? "";
+    // e.g. "Bash(npm run build:*)" -> "npm run build"
+    const bashPrefixes = [...atRaw.matchAll(/Bash\(([^)]*?):\*\)/g)].map((m) => m[1].trim());
+    if (bashPrefixes.length === 0) {
+      failures.push(`${rel}: uses shell-injection but declares no Bash(...:*) allowed-tools matcher`);
+    } else {
+      for (const cmd of injects) {
+        // A matcher covers the command PREFIX, not the trailing `| tail`/`2>&1`,
+        // so compare against the head up to the first pipe/redirect.
+        const head = cmd.split(/\s*[|>]/)[0].trim();
+        if (!bashPrefixes.some((p) => head.startsWith(p))) {
+          failures.push(
+            `${rel}: shell-injection command \`${head}\` has no matching Bash(...:*) prefix in allowed-tools (would prompt instead of injecting)`,
+          );
+        }
+      }
+    }
   }
   if (!body.trim()) failures.push(`${rel}: empty body`);
 }

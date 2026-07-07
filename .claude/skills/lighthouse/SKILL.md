@@ -6,7 +6,7 @@ description: >-
   before a launch or when the user mentions Lighthouse, PageSpeed, performance
   scores, web-vitals budgets, or a "perf gate".
 argument-hint: "[url]"
-allowed-tools: Read, Bash(npm run build:*), Bash(npx @lhci/cli:*)
+allowed-tools: Read, Bash(npm run build:*), Bash(npx --yes @lhci/cli:*), Bash(npx @lhci/cli:*)
 model: sonnet
 disable-model-invocation: true
 ---
