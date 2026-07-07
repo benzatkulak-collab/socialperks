@@ -152,10 +152,6 @@ export default async function IndustryPlatformPage({
           <Stat label="Actions" value={String(plt.actions.length)} />
           <Stat label="Combined value" value={`$${totalValue.toFixed(0)}`} />
           <Stat
-            label={`${ind.name} avg ROI`}
-            value={`${benchmarks.avgROI.toFixed(1)}x`}
-          />
-          <Stat
             label={`${ind.name} avg perk`}
             value={`$${benchmarks.avgPerkValue}`}
           />

@@ -66,9 +66,9 @@ That is the whole loop. Social Perks packages it — the templates, the complian
     description: "Instagram Reels are valued at $4.00 per completion in our pricing oracle. But that's an average. Here's how the value actually breaks down by who's posting and who they're reaching.",
     publishedAt: "2026-05-05",
     industry: "coffee-shops",
-    body: `In our pricing oracle, an Instagram Reel is valued at $4.00 per completion. That's the headline number. The actual value, when you look at it for a specific business and a specific creator, ranges from about $0.80 to about $48 — a 60x spread.
+    body: `In our pricing oracle, an Instagram Reel is valued at $4.00 per completion. That's the headline number. Run it through the model for a specific business and creator and it ranges from roughly $0.80 to about $48 — a wide spread driven by three multipliers.
 
-Here's the breakdown.
+The scenarios below are illustrative worked examples of that model, not measured performance. Here's the breakdown.
 
 ═══════════════════════════════════════════════════════════════════
 Three multipliers
@@ -100,7 +100,7 @@ Scenario C: macro-influencer with 200,000 followers, posts about your yoga studi
   - Niche fit: their audience is general lifestyle → 1.1x
   - = $4 × 30 (capped) × 0.27 × 1.1 = $35.64 per post
 
-The macro influencer's per-post value is higher than the friend, but their cost-per-conversion is roughly the same — because the smaller account converts at 8-10% and the macro converts at 0.5%. Roughly the same number of new customers from a $5 spend or a $35 spend.
+The macro influencer's per-post value is higher than the friend's, but their cost-per-conversion works out roughly the same — a smaller, engaged account tends to convert its audience at a much higher rate than a large, broad one. In this model, that can net roughly the same number of new customers from a $5 spend or a $35 spend.
 
 ═══════════════════════════════════════════════════════════════════
 What this means in practice
@@ -121,58 +121,60 @@ The "loyal small" customer is the actual moat. Treat them well.`,
   {
     slug: "qr-code-placement-where-it-actually-works",
     title: "Where to put your QR code — placement guide for coffee shops, salons, restaurants, and gyms",
-    description: "We tested QR placements across 47 small businesses. Receipt-bottom won every category. Here's why, and the runner-ups by industry.",
+    description: "Where to put your QR code so customers actually scan it — a placement guide built on where people are in the transaction moment. Illustrative expectations, not measured field data.",
     publishedAt: "2026-05-05",
     industry: "coffee-shops",
-    body: `Print one QR code, customers scan, post about you, get a perk. The whole product depends on customers actually scanning the QR code. We tested 12 placements across 47 small businesses over three months. Here's what worked.
+    body: `Print one QR code, customers scan, post about you, get a perk. The whole thing depends on customers actually scanning that QR code.
+
+Illustrative guide, not a field study. Social Perks is pre-launch — the placements below are ranked by reasoning about where customers are in the moment, not by measured scan rates. Test them against your own counter and keep what wins.
 
 ═══════════════════════════════════════════════════════════════════
 The winner: receipt-bottom
 ═══════════════════════════════════════════════════════════════════
 
   - Bottom-of-receipt with a 1.5-inch QR code and the line "Post about us, get [perk]. Scan here."
-  - Win rate: 4.2% of receipts with QR get scanned (vs 0.4% baseline for table-tent)
-  - Why: customer is already holding the receipt, already in a "what just happened" moment, already alone with their phone
+  - Why it should win: the customer is already holding the receipt, already in a "what just happened" moment, already alone with their phone
+  - A table tent, by contrast, sits flat on a surface nobody picks up
 
-This worked across every category we tested. Coffee shops, restaurants, salons, gyms — all the same pattern. The receipt is the universal perfect surface.
+The same logic holds across every category — coffee shops, restaurants, salons, gyms. The receipt is the universal near-perfect surface.
 
 ═══════════════════════════════════════════════════════════════════
 Runner-ups by industry
 ═══════════════════════════════════════════════════════════════════
 
 Coffee shops:
-  1. Receipt (4.2% scan rate)
-  2. Cup sleeve sticker (3.1%) — smaller QR works because customer holds the cup eye-level
-  3. Counter card next to the tip jar (2.8%) — caught customers in the receipt moment for cash payers
-  4. Table tent (0.4%) — flat, nobody picks it up
+  1. Receipt — the anchor placement
+  2. Cup sleeve sticker — a smaller QR works because the customer holds the cup at eye level
+  3. Counter card next to the tip jar — catches cash payers who never get a receipt
+  4. Table tent — flat, nobody picks it up
 
 Restaurants:
-  1. Receipt with the bill (4.5%)
-  2. Sticker on the takeout bag (3.2%) — works for takeout-heavy spots
-  3. Hostess-station card given with the receipt (2.4%)
-  4. Menu QR code (1.1%) — confused with "scan to view menu" QRs
+  1. Receipt with the bill
+  2. Sticker on the takeout bag — strong for takeout-heavy spots
+  3. Hostess-station card handed over with the receipt
+  4. Menu QR code — easily confused with "scan to view menu" QRs
 
 Salons / spas:
-  1. Receipt at checkout (3.8%)
-  2. Service-completion card ("Your stylist hopes you love it. Tag us, get 15% off next time.") (3.3%)
-  3. Mirror sticker at the chair (1.9%) — pretty but customers were occupied
-  4. Front-desk acrylic stand (0.7%)
+  1. Receipt at checkout
+  2. Service-completion card ("Your stylist hopes you love it. Tag us, get 15% off next time.")
+  3. Mirror sticker at the chair — eye-catching, but customers are usually occupied
+  4. Front-desk acrylic stand
 
 Gyms / yoga studios:
-  1. Towel-pickup card (2.7%) — customers are grabbing the towel after class, low-effort moment
-  2. Receipt for one-time class purchases (2.5%)
-  3. Locker-room card (1.4%)
-  4. Front-desk poster (0.5%) — gym-goers don't linger at the front
+  1. Towel-pickup card — customers are grabbing a towel after class, a low-effort moment
+  2. Receipt for one-time class purchases
+  3. Locker-room card
+  4. Front-desk poster — gym-goers don't linger at the front
 
 ═══════════════════════════════════════════════════════════════════
 What didn't work
 ═══════════════════════════════════════════════════════════════════
 
-  - Window decals (visible from outside the shop). Conceptually appealing — we thought passersby would scan and learn about the perk. Real result: 0.1% scan rate. People walking past don't read window decals.
+  - Window decals (visible from outside the shop). Conceptually appealing — you'd think passersby would scan and learn about the perk. In practice, people walking past don't stop to read window decals.
 
-  - Social media posts with the QR. ~0.3% scan rate. Customers are already on their phone; a QR code on a phone screen is awkward.
+  - Social media posts with the QR. Customers are already on their phone; a QR code on a phone screen is awkward to scan.
 
-  - Email signature. ~0.05% scan rate. Email signatures are noise.
+  - Email signature. Email signatures are noise — almost nobody scans them.
 
 ═══════════════════════════════════════════════════════════════════
 The 60-second installation guide
@@ -181,7 +183,7 @@ The 60-second installation guide
   1. Generate the QR in your Social Perks dashboard (Print Poster button, /api/v1/businesses/poster).
   2. If you print receipts: contact your POS provider (Square, Toast, Clover) and ask them to add the QR to the receipt footer. Most can do this in their dashboard.
   3. If you don't print receipts (rare): order a stack of 2.5"×4" cards from VistaPrint with the QR + a 6-word call-to-action. Hand one with each transaction.
-  4. Track scan rate. If it's under 1.5% after 50 transactions, the QR is in the wrong place. Move it.
+  4. Track your scan rate. If barely anyone scans after your first ~50 transactions, the QR is in the wrong place. Move it.
 
 ═══════════════════════════════════════════════════════════════════
 The boring secret
@@ -229,7 +231,7 @@ What human marketers win at
 Where they overlap (and the human wins for now)
 ═══════════════════════════════════════════════════════════════════
 
-  Content creation. Agents can write a tweet. The agent's tweet is a 7/10. The human's is a 9/10. For a B2C small business, that 2-point gap is the difference between "1.2% engagement" and "4.5% engagement" — material.
+  Content creation. Agents can write a tweet. The agent's tweet is a 7/10. The human's is a 9/10. For a B2C small business, that gap is the difference between a post that quietly underperforms and one that actually lands — material.
 
   Customer service replies. Agents are fast and professionally polite. Humans are slow and occasionally great. Both are fine for routine cases; humans win for the cases that matter.
 

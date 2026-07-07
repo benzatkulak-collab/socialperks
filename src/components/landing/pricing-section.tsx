@@ -218,7 +218,7 @@ export function PricingSection({
             id="pricing-heading"
             className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic text-brand-white leading-tight"
           >
-            Turn one Instagram ad&apos;s budget into 50 customer posts
+            Turn your ad budget into customer posts
           </Heading>
           <p className="mx-auto mt-4 max-w-xl text-base text-brand-dim leading-relaxed sm:text-lg">
             Start free. Upgrade when you outgrow it. Cancel anytime — no phone calls, no retention scripts.
@@ -467,7 +467,7 @@ export function PricingSection({
 
         {/* Bottom note */}
         <p className="mt-12 text-center text-sm text-brand-muted">
-          All plans include FTC-compliant disclosures, SSL encryption, and 99.9% uptime.
+          All plans include FTC-compliant disclosures and SSL encryption.
         </p>
 
         {/* Talk-to-founder track for high-intent prospects who want a real

@@ -24,7 +24,6 @@ export interface CampaignTemplate {
   maxCompletions: number;
   tags: string[];
   difficulty: "easy" | "medium" | "hard";
-  estimatedRoi: string;
   icon: string;
 }
 
@@ -50,7 +49,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 200,
     tags: ["reviews", "seo", "local"],
     difficulty: "easy",
-    estimatedRoi: "8x",
     icon: "⭐",
   },
   {
@@ -69,7 +67,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 500,
     tags: ["social", "awareness", "visual"],
     difficulty: "easy",
-    estimatedRoi: "5x",
     icon: "📸",
   },
   {
@@ -88,7 +85,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 100,
     tags: ["viral", "video", "food"],
     difficulty: "medium",
-    estimatedRoi: "10x",
     icon: "🎬",
   },
   {
@@ -107,7 +103,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 1000,
     tags: ["local", "awareness", "easy"],
     difficulty: "easy",
-    estimatedRoi: "4x",
     icon: "👍",
   },
 
@@ -129,7 +124,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 300,
     tags: ["visual", "social", "coffee"],
     difficulty: "easy",
-    estimatedRoi: "6x",
     icon: "📸",
   },
   {
@@ -148,7 +142,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 200,
     tags: ["reviews", "seo", "local"],
     difficulty: "easy",
-    estimatedRoi: "8x",
     icon: "⭐",
   },
   {
@@ -167,7 +160,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 75,
     tags: ["viral", "video", "bts"],
     difficulty: "medium",
-    estimatedRoi: "10x",
     icon: "🎬",
   },
 
@@ -189,7 +181,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 150,
     tags: ["transformation", "visual", "social"],
     difficulty: "medium",
-    estimatedRoi: "8x",
     icon: "📸",
   },
   {
@@ -208,7 +199,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 100,
     tags: ["reviews", "seo", "photos"],
     difficulty: "easy",
-    estimatedRoi: "10x",
     icon: "⭐",
   },
   {
@@ -227,7 +217,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 50,
     tags: ["viral", "transformation", "video"],
     difficulty: "hard",
-    estimatedRoi: "15x",
     icon: "🎬",
   },
 
@@ -249,7 +238,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 500,
     tags: ["social", "fitness", "awareness"],
     difficulty: "easy",
-    estimatedRoi: "5x",
     icon: "📸",
   },
   {
@@ -268,7 +256,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 75,
     tags: ["viral", "fitness", "video"],
     difficulty: "medium",
-    estimatedRoi: "10x",
     icon: "🎬",
   },
   {
@@ -287,7 +274,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 200,
     tags: ["reviews", "seo", "local"],
     difficulty: "easy",
-    estimatedRoi: "8x",
     icon: "⭐",
   },
 
@@ -309,7 +295,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 300,
     tags: ["wellness", "social", "awareness"],
     difficulty: "easy",
-    estimatedRoi: "5x",
     icon: "📸",
   },
   {
@@ -328,7 +313,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 150,
     tags: ["reviews", "seo", "wellness"],
     difficulty: "easy",
-    estimatedRoi: "8x",
     icon: "⭐",
   },
   {
@@ -347,7 +331,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 100,
     tags: ["social", "storytelling", "community"],
     difficulty: "medium",
-    estimatedRoi: "6x",
     icon: "👍",
   },
 
@@ -369,7 +352,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 150,
     tags: ["reviews", "seo", "healthcare"],
     difficulty: "easy",
-    estimatedRoi: "12x",
     icon: "⭐",
   },
   {
@@ -388,7 +370,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 100,
     tags: ["reviews", "trust", "referral"],
     difficulty: "easy",
-    estimatedRoi: "10x",
     icon: "👍",
   },
 
@@ -410,7 +391,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 150,
     tags: ["reviews", "seo", "pets"],
     difficulty: "easy",
-    estimatedRoi: "10x",
     icon: "⭐",
   },
   {
@@ -429,7 +409,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 200,
     tags: ["visual", "social", "pets"],
     difficulty: "easy",
-    estimatedRoi: "6x",
     icon: "📸",
   },
 
@@ -451,7 +430,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 100,
     tags: ["reviews", "seo", "auto"],
     difficulty: "easy",
-    estimatedRoi: "10x",
     icon: "⭐",
   },
   {
@@ -470,7 +448,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 75,
     tags: ["reviews", "local", "auto"],
     difficulty: "easy",
-    estimatedRoi: "10x",
     icon: "🔴",
   },
   {
@@ -489,7 +466,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 100,
     tags: ["reviews", "trust", "referral"],
     difficulty: "easy",
-    estimatedRoi: "8x",
     icon: "👍",
   },
 
@@ -511,7 +487,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 200,
     tags: ["visual", "social", "shopping"],
     difficulty: "easy",
-    estimatedRoi: "6x",
     icon: "📸",
   },
   {
@@ -530,7 +505,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 50,
     tags: ["viral", "video", "haul"],
     difficulty: "medium",
-    estimatedRoi: "12x",
     icon: "🎬",
   },
   {
@@ -549,7 +523,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 150,
     tags: ["visual", "discovery", "evergreen"],
     difficulty: "medium",
-    estimatedRoi: "7x",
     icon: "📌",
   },
 
@@ -571,7 +544,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 200,
     tags: ["reviews", "travel", "trust"],
     difficulty: "easy",
-    estimatedRoi: "12x",
     icon: "🦉",
   },
   {
@@ -590,7 +562,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 300,
     tags: ["social", "travel", "visual"],
     difficulty: "easy",
-    estimatedRoi: "5x",
     icon: "📸",
   },
   {
@@ -609,7 +580,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 150,
     tags: ["reviews", "seo", "photos"],
     difficulty: "easy",
-    estimatedRoi: "10x",
     icon: "⭐",
   },
 
@@ -631,7 +601,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 300,
     tags: ["visual", "food", "social"],
     difficulty: "easy",
-    estimatedRoi: "6x",
     icon: "📸",
   },
   {
@@ -650,7 +619,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 50,
     tags: ["viral", "video", "food"],
     difficulty: "medium",
-    estimatedRoi: "10x",
     icon: "🎬",
   },
   {
@@ -669,7 +637,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 200,
     tags: ["reviews", "seo", "local"],
     difficulty: "easy",
-    estimatedRoi: "8x",
     icon: "⭐",
   },
 
@@ -691,7 +658,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 400,
     tags: ["social", "awareness", "local"],
     difficulty: "easy",
-    estimatedRoi: "5x",
     icon: "📸",
   },
   {
@@ -710,7 +676,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 100,
     tags: ["reviews", "local", "craft"],
     difficulty: "easy",
-    estimatedRoi: "8x",
     icon: "🔴",
   },
   {
@@ -729,7 +694,6 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     maxCompletions: 800,
     tags: ["local", "awareness", "easy"],
     difficulty: "easy",
-    estimatedRoi: "4x",
     icon: "👍",
   },
 ];

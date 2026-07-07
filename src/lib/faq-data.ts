@@ -237,21 +237,21 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "getting-started",
     question: "Do I need a website to use Social Perks?",
     answer:
-      "No. Social Perks works for businesses without a website — the campaign claim flow lives on Social Perks' own domain, and the perk delivery happens via SMS or in-store QR redemption. Most coffee shops, salons, and restaurants run successful Social Perks campaigns with only a Google Business Profile and no website at all.",
+      "No. Social Perks works without a website — the campaign claim flow lives on our domain and perks are delivered by SMS or in-store QR, so a Google Business Profile is all you need to run a campaign.",
   },
   {
     slug: "how-fast-can-i-launch-a-campaign",
     category: "getting-started",
     question: "How fast can I launch my first campaign?",
     answer:
-      "From signup to printable QR code: about 5 minutes if you pick a template, about 15 minutes if you build from scratch. The longest part is deciding what perk to offer; the platform handles everything else. Most coffee shops report their first customer scan within 24-48 hours of putting the QR code up.",
+      "From signup to printable QR code: about 5 minutes if you pick a template, about 15 minutes if you build from scratch. The longest part is deciding what perk to offer; the platform handles everything else. A QR code placed where customers already look — the receipt, takeout bag, or counter — tends to get scanned quickly. If it doesn't, it's almost always a placement problem.",
   },
   {
     slug: "what-if-no-one-scans-my-qr-code",
     category: "getting-started",
     question: "What if no one scans my QR code?",
     answer:
-      "First scans usually happen within 1-3 days when the QR is placed at a high-visibility post-purchase touchpoint (receipt, takeout bag, on-table card, by the register). If a week passes with zero scans, it's a placement problem — move the QR somewhere customers actually look. The dashboard tracks scan-to-submission conversion so you can iterate.",
+      "Place the QR at a high-visibility post-purchase touchpoint (receipt, takeout bag, on-table card, by the register). If a week passes with zero scans, it's a placement problem — move it somewhere customers actually look. The dashboard tracks scan-to-submission conversion so you can iterate.",
   },
   // ─── Additional compliance ───────────────────────────────────────────
   {

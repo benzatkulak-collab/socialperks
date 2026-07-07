@@ -133,7 +133,7 @@ export const VS_ENTRIES: VsEntry[] = [
     slug: "google-ads",
     competitor: "Google Ads",
     description: "Pay Google for impressions vs pay your customers for posts — the math is different than you'd think.",
-    shortDescription: "Google Ads buys you placement; Social Perks buys you advocacy. For most small businesses with a strong existing customer base, redirecting ad spend to customer perks delivers higher ROI.",
+    shortDescription: "Google Ads buys you placement; Social Perks buys you advocacy. For a business with a strong existing customer base, shifting some marketing budget toward customer perks is worth testing.",
     strengths: [
       "Mature ad platform with billions of daily searches",
       "Sophisticated targeting (intent + audience + retargeting)",
@@ -143,7 +143,7 @@ export const VS_ENTRIES: VsEntry[] = [
     ourAngle: [
       "Social Perks isn't a substitute for ALL ad spend — it competes well for the share of marketing budget you'd spend on Google ads aimed at your existing customers' look-alikes",
       "Same dollars, different recipient: instead of paying Google, you pay customers (who post about you, which has compounding effects ads don't)",
-      "Customer trust signal beats ad placement — a friend's post converts ~3x better than a Google ad in the same context",
+      "Customer trust signal beats ad placement — a recommendation from someone a person actually follows carries more trust than a paid ad slot.",
       "Compounds: posts persist; ads expire when the budget runs out",
     ],
     rows: [
@@ -151,7 +151,7 @@ export const VS_ENTRIES: VsEntry[] = [
       { feature: "Compounding effect", socialPerks: "Posts persist + accumulate", competitor: "Ad ends, traffic ends", winner: "us" },
       { feature: "Targeting precision", socialPerks: "Local-customer-only", competitor: "Global, sophisticated targeting", winner: "them" },
       { feature: "Trust signal of placement", socialPerks: "Friend recommendation (high)", competitor: "Paid ad (medium)", winner: "us" },
-      { feature: "Marginal cost per conversion", socialPerks: "$8-15 (typical local biz)", competitor: "$30-80 (typical local biz)", winner: "us" },
+      { feature: "Cost model", socialPerks: "Per-perk awarded (you set the amount)", competitor: "Per-click, auction-priced", winner: "tie" },
       { feature: "Spend predictability", socialPerks: "Variable (depends on customer activity)", competitor: "Strict cap controls", winner: "them" },
       { feature: "FTC compliance", socialPerks: "Auto-injected", competitor: "N/A (you're not the endorser)", winner: "tie" },
     ],
@@ -173,7 +173,7 @@ export const VS_ENTRIES: VsEntry[] = [
   {
     slug: "meta-ads",
     competitor: "Meta (Instagram + Facebook) Ads",
-    description: "Meta sells you placements; Social Perks turns your customers into placements. Per-conversion costs typically 50-70% lower.",
+    description: "Meta sells you placements; Social Perks turns your customers into placements.",
     shortDescription: "Meta Ads put your message on a creator-style ad in customer feeds. Social Perks puts your message in actual customer posts. Same surface, different sender, very different conversion economics.",
     strengths: [
       "Massive Instagram + Facebook + Threads + WhatsApp audience reach",
@@ -183,14 +183,14 @@ export const VS_ENTRIES: VsEntry[] = [
     ],
     ourAngle: [
       "Same audience, different sender: Social Perks posts come from real customers (with FTC disclosure), Meta ads come from your business account",
-      "Per-conversion math: customer Reel at $4 (Social Perks) vs equivalent Meta Reel ad at ~$25-40 conversion. 4-10x cost advantage at scale.",
+      "Different sender, not just different placement: a Social Perks post comes from a real customer with an FTC disclosure, while a Meta ad comes from your business account — so you are paying for advocacy rather than a paid impression.",
       "Compounding distribution: customer posts stay on their feed and Reels continue to surface for weeks",
       "FTC handled by Social Perks; Meta delegates to creators",
     ],
     rows: [
       { feature: "Audience reach", socialPerks: "Customer's network", competitor: "Audience-targeted by Meta", winner: "tie" },
       { feature: "Trust signal", socialPerks: "Friend post (high)", competitor: "Sponsored content (medium)", winner: "us" },
-      { feature: "Per-conversion cost (small biz)", socialPerks: "$8-15", competitor: "$25-40", winner: "us" },
+      { feature: "Cost model", socialPerks: "Pay a per-action perk you set", competitor: "Pay Meta per impression/click", winner: "tie" },
       { feature: "Targeting precision", socialPerks: "None (relies on customer's network)", competitor: "Sophisticated targeting", winner: "them" },
       { feature: "Compounding effect", socialPerks: "High (posts persist)", competitor: "Low (ads end)", winner: "us" },
       { feature: "Setup complexity", socialPerks: "QR + perk", competitor: "Pixel + audience + creative", winner: "us" },
@@ -217,7 +217,7 @@ export const VS_ENTRIES: VsEntry[] = [
     description:
       "Loyalty / punch-card platform with deep POS integration vs incentivized social posts.",
     shortDescription:
-      "FiveStars is a mature loyalty engine — punch cards, customer profiles, POS integration. Social Perks pays customers a small perk to post about a business on Instagram / TikTok / Google reviews. Different jobs, sometimes complementary.",
+      "FiveStars is a mature loyalty engine — punch cards, customer profiles, POS integration. Social Perks pays customers a small perk to post about a business on Instagram, TikTok, and Facebook. Different jobs, sometimes complementary.",
     strengths: [
       "Polished Clover and Square POS integrations",
       "Mature loyalty mechanics (points, tiers, punch cards)",
@@ -270,7 +270,7 @@ export const VS_ENTRIES: VsEntry[] = [
     ],
     ourAngle: [
       "Loyverse is a POS that happens to have loyalty; Social Perks is a marketing platform that drives public social posts",
-      "Loyverse loyalty is a closed-loop punch card; Social Perks pushes content to Instagram, TikTok, Google reviews where new customers actually look",
+      "Loyverse loyalty is a closed-loop punch card; Social Perks pushes content to Instagram, TikTok, and Facebook where new customers actually look",
       "MCP server + 10 autonomous agents — Loyverse has none of that surface",
       "Cross-platform reach (15 social platforms) vs a single in-store loyalty motion",
     ],
@@ -305,7 +305,7 @@ export const VS_ENTRIES: VsEntry[] = [
     competitor: "Yelp Connect (Yelp Ads)",
     description: "Pay-per-click on Yelp's own surface vs incentivized customer posts across 15 platforms.",
     shortDescription:
-      "Yelp Connect runs paid ads + review prompts inside Yelp's walled garden. Social Perks pays customers a small perk to post about a business across Instagram, TikTok, Google reviews, Facebook — wherever the customer already is.",
+      "Yelp Connect runs paid ads + review prompts inside Yelp's walled garden. Social Perks pays customers a small perk to post about a business across Instagram, TikTok, and Facebook — wherever the customer already is.",
     strengths: [
       "Massive built-in audience on Yelp itself",
       "Reviews surface exactly where local-search users are looking",
@@ -314,17 +314,17 @@ export const VS_ENTRIES: VsEntry[] = [
     ],
     ourAngle: [
       "Yelp Ads are pay-to-play in a walled garden — Yelp decides who sees you and how much it costs",
-      "Yelp Connect can't reach Instagram, TikTok, or Google reviews; Social Perks reaches 15 platforms",
+      "Yelp Connect can't reach Instagram, TikTok, or Facebook; Social Perks reaches 15 platforms",
       "Social Perks pays real customers a small perk — earned reputation, not bought attention",
       "MCP server + autonomous agents — Yelp Connect has no agent surface",
     ],
     rows: [
       { feature: "Primary use case", socialPerks: "Customers post about you on social", competitor: "Paid ads + reviews on Yelp", winner: "tie" },
       { feature: "Audience", socialPerks: "Wherever your customers already are", competitor: "Yelp users only", winner: "us" },
-      { feature: "Drives Google reviews", socialPerks: "Yes (direct action)", competitor: "No — Yelp reviews only", winner: "us" },
+      { feature: "Incentivized reviews", socialPerks: "Never — banned by design (FTC + platform rules)", competitor: "No", winner: "tie" },
       { feature: "Drives Instagram / TikTok posts", socialPerks: "Yes", competitor: "No", winner: "us" },
       { feature: "Cost model", socialPerks: "Per-perk awarded", competitor: "Per-click", winner: "tie" },
-      { feature: "Reach in local search results", socialPerks: "Indirect (via Google/Maps reviews)", competitor: "Direct (Yelp listing)", winner: "them" },
+      { feature: "Reach in local search results", socialPerks: "Indirect (via social posts + word-of-mouth)", competitor: "Direct (Yelp listing)", winner: "them" },
       { feature: "Trust signal for restaurants", socialPerks: "Cross-platform reviews", competitor: "Yelp stars on Yelp", winner: "them" },
       { feature: "MCP / agent integration", socialPerks: "Yes", competitor: "No", winner: "us" },
     ],

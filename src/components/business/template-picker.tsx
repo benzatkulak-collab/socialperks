@@ -309,9 +309,6 @@ export function TemplatePicker({
                     <span className="text-3xs text-brand-dim">
                       {tpl.discountType === "pct" ? `${tpl.discountValue}% off` : `$${tpl.discountValue} off`}
                     </span>
-                    <span className="text-3xs text-brand-green font-semibold font-mono">
-                      ~{tpl.estimatedRoi} ROI
-                    </span>
                   </div>
                   <button
                     type="button"

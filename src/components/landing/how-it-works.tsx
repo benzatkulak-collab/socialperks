@@ -44,7 +44,7 @@ const STEPS: Step[] = [
     title: "They get their discount. You get the exposure.",
     description:
       "Customer redeems their reward. Their post stays up forever — bringing you new customers long after.",
-    example: "One $2 pastry → a review seen by 500 people",
+    example: "One $2 pastry → a post that keeps reaching new local customers",
     icon: "🤝",
     accent: "border-brand-pink",
   },

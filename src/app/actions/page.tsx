@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     images: ogImages(),
     title: "Marketing Action Catalog — Social Perks",
     description:
-      "125 marketing actions across 25 platforms with market-rate pricing. Used by AI agents and small businesses to plan campaigns.",
+      "125 marketing actions across 25 platforms with market-rate pricing. Built for AI agents and small businesses to plan campaigns.",
     url: `${SITE_URL}/actions`,
   },
 };

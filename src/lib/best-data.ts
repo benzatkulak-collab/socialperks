@@ -121,7 +121,7 @@ export const BEST_LISTICLES: BestListicle[] = [
     description:
       "The 10 highest market-rate marketing actions across all 25 platforms. Ranked by dollar value per completion. Most are content-focused; a few are platform-native review patterns.",
     intro:
-      "Across 125 marketing actions on Social Perks, the top 10 by market value cluster around content (Reels, collab posts, review videos) and platform-native review formats (Google reviews with photos, Yelp detailed reviews). They're more effort to complete but compensate at influencer-equivalent rates.",
+      "Across 125 marketing actions on Social Perks, the top ones by market value cluster around richer content (Reels, collab posts, long-form video). They take more effort to create but carry influencer-equivalent value.",
     entries: rankByValue,
   },
   {
@@ -289,7 +289,7 @@ export const BEST_LISTICLES: BestListicle[] = [
         rank: 1,
         name: "Instagram",
         reason:
-          "Before-and-after carousel posts and Reels are the highest-converting format for hair, nails, lashes, brows, and skincare. Stories at $1.50 each work well for daily client content.",
+          "Before-and-after carousel posts and Reels are a strong format for hair, nails, lashes, brows, and skincare — the transformation is the whole pitch. Stories at $1.50 each work well for daily client content.",
         url: "/platforms/ig",
       },
       {
@@ -362,7 +362,7 @@ export const BEST_LISTICLES: BestListicle[] = [
       { rank: 1, name: "Effort 0-1 + 5-10% off perk", reason: "Likes, follows, story tags. Sub-minute effort. The discount is more about ritual than economics — keep it small.", url: "/actions" },
       { rank: 2, name: "Effort 2 + 10-15% off perk", reason: "Carousels, photos, comments. A few minutes of effort. 10-15% off is generous enough to motivate but doesn't kill margin.", url: "/actions" },
       { rank: 3, name: "Effort 3 + free side or 15-20% off", reason: "Reels, review videos, longer posts. A free menu item or substantial discount feels proportional to the time invested.", url: "/actions" },
-      { rank: 4, name: "Effort 4-5 + free meal or upgraded service", reason: "Long-form video reviews, detailed Google reviews with photos. The customer is doing real work for you. Match it.", url: "/actions" },
+      { rank: 4, name: "Effort 4-5 + free meal or upgraded service", reason: "Long-form video content and detailed photo posts. The customer is doing real work for you — match it with a meaningful perk.", url: "/actions" },
       { rank: 5, name: "Referral actions + escalating perk", reason: "Referrals justify higher perks because conversion is direct. $5-10 referrer credit + similar referee perk works well.", url: "/actions" },
     ],
   },
