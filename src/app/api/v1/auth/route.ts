@@ -315,12 +315,21 @@ export const POST = withTiming(async (req: NextRequest) => {
             });
           }
           // Link the ledger to the resolved referrer so the Stripe webhook
-          // credits the correct business on paid conversion.
+          // credits the correct business on paid conversion. The ledger, the
+          // legacy /api/v1/referrals dashboard, and the webhook all key
+          // referrers by businessId (biz_<userId>), but codes.ts stores the
+          // owner as the raw user.id — so convert a business owner's id to the
+          // biz_ form here to keep ONE canonical referrer id across all three.
+          const resolvedReferrerId = shareCode
+            ? shareCode.ownerType === "business"
+              ? `biz_${shareCode.ownerId}`
+              : shareCode.ownerId
+            : undefined;
           const referral = trackReferralSignup(
             body.referralCode,
             refereeKey,
             sanitizedEmail,
-            shareCode?.ownerId
+            resolvedReferrerId
           );
           await persistReferral(referral);
         } catch {

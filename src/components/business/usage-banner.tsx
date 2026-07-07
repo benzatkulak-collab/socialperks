@@ -88,6 +88,7 @@ function nextPlan(currentPlan: string): { key: string; label: string; price: str
 
 export function UsageBanner({ businessId, plan: planProp }: UsageBannerProps) {
   const [data, setData] = useState<UsageData | null>(null);
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     if (!businessId) return;
@@ -115,7 +116,53 @@ export function UsageBanner({ businessId, plan: planProp }: UsageBannerProps) {
 
   const upsell = nextPlan(planProp ?? data.plan);
   const trigger = findTriggeringSlot(data);
-  const upgradeHref = `/pricing#${upsell.key}`;
+  const isFree = (planProp ?? data.plan) === "free";
+
+  async function handleUpgrade() {
+    track("pricing_cta_click", {
+      plan: upsell.key,
+      period: "monthly",
+      source: `usage_banner_${variant}`,
+    });
+    if (!isFree) {
+      // Paid users change plans through the Stripe billing portal (the
+      // /dashboard/billing "Manage subscription" button). Starting a fresh
+      // checkout for a customer who already has a subscription would create a
+      // SECOND subscription and double-charge — so never do that here.
+      window.location.href = "/dashboard/billing";
+      return;
+    }
+    // Free users have no subscription, so start checkout directly. Previously
+    // this linked to /pricing, which routes an already-authenticated business
+    // into the SIGNUP flow and dead-ends — an activated free business literally
+    // had no working path to pay. This is that path.
+    setStarting(true);
+    try {
+      const origin = window.location.origin;
+      const res = await apiFetch("/api/v1/billing", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "create_checkout",
+          plan: upsell.key,
+          billingPeriod: "monthly",
+          businessId,
+          successUrl: `${origin}/dashboard?welcome=1&checkout=success`,
+          cancelUrl: `${origin}/dashboard?checkout=cancelled`,
+        }),
+      });
+      const body = res.ok ? await res.json() : null;
+      if (body?.success && body.data?.url) {
+        window.location.href = body.data.url;
+        return;
+      }
+    } catch {
+      // fall through to the pricing fallback
+    }
+    setStarting(false);
+    // Fallback: if checkout can't start (Stripe unconfigured / network), send
+    // them to pricing rather than leaving a dead button.
+    window.location.href = "/pricing";
+  }
 
   const tone =
     variant === "blocking"
@@ -187,16 +234,11 @@ export function UsageBanner({ businessId, plan: planProp }: UsageBannerProps) {
           )}
         </div>
 
-        <a
-          href={upgradeHref}
-          onClick={() => {
-            track("pricing_cta_click", {
-              plan: upsell.key,
-              period: "monthly",
-              source: `usage_banner_${variant}`,
-            });
-          }}
-          className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-semibold text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
+        <button
+          type="button"
+          onClick={handleUpgrade}
+          disabled={starting}
+          className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-semibold text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg disabled:opacity-60 ${
             variant === "blocking"
               ? "bg-brand-red text-brand-bg hover:bg-brand-red/90 focus-visible:ring-brand-red/50"
               : variant === "warning"
@@ -206,8 +248,12 @@ export function UsageBanner({ businessId, plan: planProp }: UsageBannerProps) {
           data-plan={upsell.key}
           data-period="monthly"
         >
-          {variant === "blocking" ? `Upgrade to ${upsell.label}` : `See ${upsell.label}`}
-        </a>
+          {starting
+            ? "Starting…"
+            : variant === "blocking"
+              ? `Upgrade to ${upsell.label}`
+              : `See ${upsell.label}`}
+        </button>
       </div>
     </div>
   );
