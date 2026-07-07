@@ -95,7 +95,7 @@ export function buildMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      site: "@socialperks",
+      site: "@socialperksapp",
       title,
       description,
       images: [img],

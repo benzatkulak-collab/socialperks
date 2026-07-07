@@ -63,9 +63,11 @@ connect to the Social Perks MCP server:
 }
 ```
 
-The MCP server exposes typed tools: `getPricing`, `listActions`,
-`getBenchmarks`, `listCampaigns`, `searchInfluencers`. See the spec at
-`GET /api/mcp` (manifest endpoint) for the full schema.
+The MCP server exposes 10 typed tools. Read-only (no auth): `getPricing`,
+`listActions`, `getBenchmarks`, `searchInfluencers`. Auth required — reads:
+`listCampaigns`, `listSubmissions`, `getCampaignStats`; writes:
+`createCampaign`, `submitProof`, `reviewSubmission`. Fetch the manifest at
+`GET /api/mcp` for each tool's full, live JSON Schema.
 
 ### 2. OpenAPI 3.1 spec (recommended for code-gen agents)
 
@@ -81,8 +83,7 @@ Returns OpenAPI 3.1.0 JSON. Pipe into your code generator of choice.
 ### 3. Direct REST (recommended for one-off queries)
 
 Standard JSON REST. Auth via `Authorization: Bearer <token>` or
-`x-api-key: <key>` header. Public endpoints (pricing, actions, benchmarks,
-exchange/opportunities, exchange/market) need no auth.
+`x-api-key: <key>` header. Public endpoints (pricing, actions, benchmarks) need no auth.
 
 Base URL: `https://socialperks.app/api/v1/`
 
@@ -101,7 +102,6 @@ Response shape: `{ "success": true, "data": <payload> }` or
 | `POST /api/v1/ai/quick-start` | bearer | One-shot: give me a campaign for this business |
 | `POST /api/v1/ai/campaign-agent` | bearer | Full marketing plan with budget, tactics |
 | `POST /api/v1/campaigns` | bearer | Create / launch a campaign |
-| `GET /api/v1/exchange/opportunities` | none | Browse open campaigns to participate in |
 | `POST /api/v1/programs/:id/submit` | bearer | Submit proof of completed action |
 
 For the full list, see `API.md` or fetch `/api/v1/openapi`.
@@ -116,9 +116,17 @@ Three methods, listed in order of preference for programmatic use:
 2. **Bearer tokens** (`Authorization: Bearer <jwt>`) — for user-scoped flows
 3. **Cookies** — only relevant if you're embedded in a browser session
 
-To provision an API key, a human user must sign in and create one in the
-business dashboard at `/dashboard/api-keys`. (Self-service key
-provisioning for agents without a human in the loop is on the roadmap.)
+Two ways to provision an API key:
+
+1. **Agent OAuth consent flow (live).** Send the business owner to the consent
+   screen at `/agent/authorize`; on approval you get a single-use code, which
+   you exchange for a scoped key at `POST /api/v1/agent-auth/token` (an
+   RFC 6749-style token response). This is the recommended path for an agent
+   acting on a business's behalf.
+2. **Manual.** A human signs in and mints a key at `/dashboard/api-keys`.
+
+Both require a one-time human approval by design: an agent must never
+self-authorize writes or spend on a business's behalf without consent.
 
 ---
 

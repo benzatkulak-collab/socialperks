@@ -176,13 +176,6 @@ export class SocialPerks {
       this.http.request<unknown>("POST", "/submissions", { body: input }),
   };
 
-  /** Public exchange/marketplace data. */
-  readonly exchange = {
-    opportunities: (): Promise<unknown> =>
-      this.http.request<unknown>("GET", "/exchange/opportunities"),
-    market: (): Promise<unknown> => this.http.request<unknown>("GET", "/exchange/market"),
-  };
-
   /** AI endpoints. Requires auth. */
   readonly ai = {
     quickStart: (input: {

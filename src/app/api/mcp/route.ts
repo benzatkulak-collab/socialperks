@@ -25,6 +25,12 @@
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { PLATFORMS } from "@/lib/platforms";
+
+// Derived from the platform catalog so the tool description can never drift
+// from the real action count. (Was hardcoded "107" while every other agent
+// surface — OpenAPI, AGENTS.md, ai-plugin.json — said 125.)
+const ACTION_COUNT = PLATFORMS.reduce((n, p) => n + p.actions.length, 0);
 
 const PROTOCOL_VERSION = "2025-03-26";
 const SERVER_NAME = "social-perks";
@@ -254,7 +260,7 @@ const TOOLS: Tool[] = [
   {
     name: "listActions",
     description:
-      "List the 107 marketing actions available on Social Perks. Filterable by platform, type, and effort.",
+      `List the ${ACTION_COUNT} marketing actions available on Social Perks. Filterable by platform, type, and effort.`,
     requiresAuth: false,
     cost: { type: "free" },
     inputSchema: {
@@ -278,18 +284,23 @@ const TOOLS: Tool[] = [
   },
   {
     name: "getBenchmarks",
-    description: "Get industry benchmarks (engagement rate, conversion rate, etc.).",
+    description: "Get industry benchmarks (engagement rate, conversion rate, etc.) for a business type.",
     requiresAuth: false,
     cost: { type: "free" },
     inputSchema: {
       type: "object",
       properties: {
-        industry: { type: "string" },
+        businessType: {
+          type: "string",
+          description: "Industry name or slug (e.g. 'restaurants', 'coffee-shops'). Omit for the full catalog.",
+        },
       },
     },
     invoke: async (args, ctx) => {
       const params = new URLSearchParams();
-      if (args.industry) params.set("industry", String(args.industry));
+      // The /api/v1/benchmarks route reads `businessType`; sending `industry`
+      // (the old param name) silently dropped the filter and returned everything.
+      if (args.businessType) params.set("businessType", String(args.businessType));
       const qs = params.toString();
       return callRestApi(ctx.baseUrl, `/api/v1/benchmarks${qs ? `?${qs}` : ""}`, {}, ctx);
     },
