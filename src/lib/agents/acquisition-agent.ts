@@ -97,8 +97,10 @@ async function markContacted(email: string): Promise<void> {
  *   +0.10      — gave a business name (higher intent / complete profile)
  *   +0.05      — gave a city (lets us localize the pitch)
  *   -0.15      — sat past the cold cutoff (interest has likely cooled)
+ *
+ * Exported for unit testing.
  */
-function scoreLead(
+export function scoreLead(
   lead: WaitlistLead,
   nowMs: number,
   maxAgeDays: number,
