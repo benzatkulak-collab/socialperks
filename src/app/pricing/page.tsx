@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PricingSection } from "@/components/landing/pricing-section";
+import { CostComparisonSection } from "@/components/landing/cost-comparison-section";
 import { CtaSection } from "@/components/landing/cta-section";
 import { Nav } from "@/components/shared/nav";
 import { Footer } from "@/components/shared/footer";
@@ -71,6 +72,7 @@ export default function PricingPage() {
       <div className="pt-16">
         <PricingSection headingLevel="h1" />
       </div>
+      <CostComparisonSection />
       <CtaSection />
       <Footer />
     </div>
