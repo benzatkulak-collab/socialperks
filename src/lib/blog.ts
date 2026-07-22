@@ -18,86 +18,47 @@ export interface BlogPost {
 export const POSTS: BlogPost[] = [
   {
     slug: "from-meta-ads-to-customer-perks",
-    title: "We replaced our $1,200/month Meta ad budget with customer perks. Here's what happened.",
-    description: "Six months ago we paused our Meta and Google ads and redirected the same budget to paying customers directly for posts. Real numbers, real lessons, real caveats.",
+    title: "Paying your customers instead of Meta: the case, the math, and where it breaks",
+    description: "The argument for redirecting ad spend to incentivized customer posts — the economics, the FTC lines you cannot cross, and where the model breaks.",
     publishedAt: "2026-05-06",
     industry: "coffee-shops",
-    body: `Six months ago we ran the experiment most small businesses talk about but never actually do: we paused our Meta and Google ads (combined ~$1,200/month) and redirected the same budget to paying customers directly for incentivized social media posts.
+    body: `Every small business eventually notices the same thing: Meta and Google ads cost more each year and convert less. ROAS that started near 4x drifts toward 2x. The platform is squeezing, and there is no version where a coffee shop out-bids the agencies and AI-run campaigns fighting for the same inventory.
 
-Here's what we measured.
+So here is the argument for spending that budget somewhere else entirely: your own customers.
 
-═══════════════════════════════════════════════════════════════════
-The before
-═══════════════════════════════════════════════════════════════════
+Instead of paying Meta to show a stranger your ad, pay an existing customer — a discount, a free item — to post about you, with proper FTC disclosure. The logic is straightforward:
 
-Three Brooklyn coffee shops, all small (one location, ≤8 staff each), running on roughly $400/mo of paid social each. Average attribution:
+  - A customer's post reaches their real network, which trusts them more than it trusts an ad placement.
+  - The customer feels thanked, not marketed at — so the relationship strengthens instead of eroding.
+  - The money stays in your community instead of going to an ad platform.
 
-  - Meta + Google combined: $1,200/mo total
-  - Average conversions: ~28/mo (we counted both review-claim and reservation-style "I came in because I saw your ad")
-  - Per-conversion cost: ~$43
-  - ROAS: ~2.1x (every dollar of ad spend brought in $2.10 of margin contribution)
+The economics, in principle
 
-The 2.1x ROAS was already 40% lower than where it started a year before. Meta was clearly squeezing.
+The model only works if the perk costs less than the marketing value of the post. A rough way to think about it: a local ad impression has a price, and a genuine post from a real customer to a local audience is worth at least that — usually more, because of the trust premium. If your perk (say, a free item with a few dollars of marginal cost) costs less than the equivalent reach would cost in ads, the math favors the perk.
 
-═══════════════════════════════════════════════════════════════════
-The during
-═══════════════════════════════════════════════════════════════════
+The band is narrower than it looks. Pay too little and nobody participates; pay too much and your margin evaporates. A trivial discount tends to get ignored. A real one — a genuine free item, or a double-digit discount — is what moves people. Test the amount. It is the single biggest lever.
 
-We paused (not deleted — paused — so the audiences could thaw if we needed to come back) all Meta and Google paid surface. Replaced with:
+Three lines you cannot cross
 
-  Coffee shop A: 10% off any drink for an Instagram Story tag
-  Coffee shop B: free pastry for a Reel
-  Coffee shop C: $5 off next order for a referral that converts
+  1. Google and Yelp reviews cannot be incentivized. Ever. That is a hard rule in their terms, and since the FTC's 2024 rule on fake and incentivized reviews, a legal exposure with civil penalties per violation. Incentivize social posts — Instagram, TikTok, Facebook — not reviews.
+  2. Disclosure is mandatory and must be clear: #ad, #sponsored, or the platform's paid-partnership label, visible without hunting for it. Telling the customer to disclose is not a defense — the brand is accountable.
+  3. You cannot require the post to be positive. You are paying for the post, not for praise.
 
-Single QR code on the receipt, pointing to a one-tap claim flow that captured contact, sent the customer a text, and routed them to the platform-specific posting template with the FTC disclosure pre-filled.
+Where it does not work
 
-Total perk value distributed in 6 months: $24,000 (averaging ~$1,300/mo across the three shops, slightly above the old ad budget on paper but with no platform fees taken out).
+Posts compound; ads convert immediately. Expect the first few weeks to feel slower than paid ads did — volume builds as more customers participate. If you cannot absorb a short dip, run the perks alongside your ads for a month before cutting anything, so you measure honestly instead of guessing.
 
-═══════════════════════════════════════════════════════════════════
-The after
-═══════════════════════════════════════════════════════════════════
+It also has to be effortless for the customer. If claiming the perk takes more than a tap or two, participation collapses. A QR code at the point of sale routing to a pre-filled posting template is roughly the floor of what works.
 
-Combined, the three shops:
+What you need to try it
 
-  - 254 customer posts in 6 months (~85/month, almost 3x the old ad-conversion rate by raw count)
-  - 156 unique new customers attributed via post-link click + first-purchase
-  - Per-conversion cost: ~$15 (cost of perk + platform subscription)
-  - ROAS: ~4.1x
+You do not need any particular software. You need three things:
 
-But the more interesting numbers:
+  - A way to give a customer a discount on the spot.
+  - A QR code that routes to a posting template with the FTC disclosure already filled in.
+  - A way to confirm the post happened before you honor the perk.
 
-  - Customer LTV up ~22% — the customer who got the discount felt thanked, not advertised at, and came back more
-  - Negative reviews unchanged (we worried that paying for reviews would attract reviewers who otherwise wouldn't have shown up)
-  - Staff reported not a single awkward conversation about it (we worried about that too)
-
-═══════════════════════════════════════════════════════════════════
-Three caveats
-═══════════════════════════════════════════════════════════════════
-
-1. Google reviews CANNOT be incentivized. Yelp same. We paid for Instagram and TikTok posts only. Google review activity tracked organically and stayed flat — confirming that the "incentivized review" scenario was never the win.
-
-2. The first month was slower than the ads. Posts compound; ads convert immediately. By month 2 the post volume started catching up; by month 4 it had passed the ad volume. If you can't survive a 30-day dip, stage the cutover instead of going cold-turkey.
-
-3. The discount has to be meaningful. The first version of the perk we tried was 5% off. Conversion was abysmal. 10% off (a real discount) tripled it. Free pastry (~$3 marginal cost on a $25 ticket) was the clear winner.
-
-═══════════════════════════════════════════════════════════════════
-What we'd do differently
-═══════════════════════════════════════════════════════════════════
-
-  - Run the perk and the Meta ads side-by-side for a month before pausing the ads. We could have measured cannibalization properly.
-  - Pick one platform (Instagram) instead of letting customers post wherever. The cross-platform attribution complicated things and didn't add reach.
-  - Set up the QR poster on Day 1 instead of Week 3. Every day without it = lost compounding.
-
-═══════════════════════════════════════════════════════════════════
-Want to try this
-═══════════════════════════════════════════════════════════════════
-
-You don't need Social Perks to do this. You need:
-  - A way to give customers a discount on the spot
-  - A QR code routing to a posting template with FTC disclosure
-  - A way to verify the post happened before honoring the discount
-
-Or sign up for Social Perks and skip building those.`,
+That is the whole loop. Social Perks packages it — the templates, the compliance, the verification — so you do not have to build it. But the idea stands on its own: your customers are a cheaper, more trusted marketing channel than the ad auction, if you make it easy and keep it compliant.`,
   },
   {
     slug: "what-an-instagram-reel-is-actually-worth",

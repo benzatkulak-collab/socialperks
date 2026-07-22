@@ -281,6 +281,7 @@ export default async function IndustryPage({ params }: PageProps) {
       {/* ═══════════════════════════════════════════════════════════════════
           STATS
           ═══════════════════════════════════════════════════════════════════ */}
+      {industry.stats.length > 0 && (
       <section
         className="relative bg-brand-bg py-20 sm:py-28"
         aria-labelledby="stats-heading"
@@ -320,6 +321,7 @@ export default async function IndustryPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           TEMPLATES
@@ -397,6 +399,7 @@ export default async function IndustryPage({ params }: PageProps) {
       {/* ═══════════════════════════════════════════════════════════════════
           TESTIMONIAL
           ═══════════════════════════════════════════════════════════════════ */}
+      {industry.testimonialQuote && (
       <section
         className="relative bg-brand-bg py-20 sm:py-28"
         aria-label="Testimonial"
@@ -429,6 +432,7 @@ export default async function IndustryPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           FINAL CTA

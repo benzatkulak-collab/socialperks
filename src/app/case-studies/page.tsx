@@ -7,7 +7,7 @@ import { WaitlistForm } from "@/components/landing/waitlist-form";
 export const metadata: Metadata = {
   title: "Case Studies — Social Perks",
   description:
-    "Real results from coffee shops using Social Perks to turn customers into marketing.",
+    "We do not fake case studies. Real results from our first customers will be published here as they come in.",
   alternates: { canonical: "/case-studies" },
 };
 
