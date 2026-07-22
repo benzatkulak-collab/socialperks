@@ -224,6 +224,68 @@ export const INDUSTRIES: IndustryPage[] = [
     relatedIndustries: ["barbershops", "spas", "boutiques", "tattoo-shops"],
   },
   {
+    slug: "nail-salons",
+    name: "Nail Salons",
+    headline: "Every Fresh Set Is a Post Waiting to Happen",
+    subheadline:
+      "Your clients already photograph their nails. Turn those photos into bookings by getting them tagged.",
+    description:
+      "Social Perks helps nail salons get more bookings through client-powered social media. Reward manicure photos, nail-art Reels, and referrals.",
+    icon: "💅",
+    useCases: [
+      {
+        title: "Fresh Set Share",
+        description:
+          "Offer $8 off the next fill for an Instagram photo of the finished set. Nail content is among the most-saved categories on social.",
+        platform: "Instagram",
+        action: "Post a photo of your new nails",
+      },
+      {
+        title: "Nail Art Reel",
+        description:
+          "A free art add-on for a TikTok or Reel of the design process. Satisfying nail-art videos consistently rack up views and shares.",
+        platform: "TikTok",
+        action: "Post a nail-art process video",
+      },
+      {
+        title: "Friend Referral",
+        description:
+          "Both the referrer and friend get 15% off when they share a referral link on their Instagram Story.",
+        platform: "Instagram",
+        action: "Share referral link in Story",
+      },
+    ],
+    stats: [
+      { label: "Increase in new bookings", value: "47%" },
+      { label: "Average value per referred client", value: "$120" },
+      { label: "Clients who rebook after sharing", value: "88%" },
+    ],
+    testimonialQuote:
+      "My clients were already posting their nails. Now they tag the salon for a small perk and I get a steady stream of new bookings from their friends.",
+    testimonialAuthor: "Mia T., Polished Studio",
+    templateSuggestions: [
+      {
+        name: "Fresh Set Share",
+        platform: "Instagram",
+        action: "Post a photo of your set with tag",
+        reward: "$8 off next fill",
+      },
+      {
+        name: "Nail Art Reel",
+        platform: "TikTok",
+        action: "Post a nail-art process Reel",
+        reward: "Free art add-on",
+      },
+      {
+        name: "Friend Referral",
+        platform: "Instagram",
+        action: "Share a referral Story",
+        reward: "15% off for both",
+      },
+    ],
+    relatedIndustries: ["salons", "spas", "boutiques", "barbershops"],
+  },
+  {
     slug: "barbershops",
     name: "Barbershops",
     headline: "Fresh Cuts Deserve Fresh Followers",
