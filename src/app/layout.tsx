@@ -71,6 +71,14 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  // Google Search Console ownership verification. Server-rendered into
+  // <head> on every page so GSC's plain-HTML fetch sees it — the GA4 /
+  // PostHog / Meta tags are injected client-side (next/script) and are NOT
+  // present in the initial HTML the GSC verifier crawls, which is why the
+  // "Google Analytics" verification method fails for this app.
+  verification: {
+    google: "jBYCxC6SVQlD4VrWvTAd33tOU3NBm3mklhka-UFtNLg",
+  },
   manifest: "/manifest.json",
   icons: {
     icon: [
