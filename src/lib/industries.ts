@@ -221,7 +221,7 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "15% off for both",
       },
     ],
-    relatedIndustries: ["barbershops", "spas", "boutiques", "tattoo-shops"],
+    relatedIndustries: ["nail-salons", "barbershops", "spas", "boutiques", "tattoo-shops"],
   },
   {
     slug: "nail-salons",
@@ -891,7 +891,7 @@ export const INDUSTRIES: IndustryPage[] = [
         reward: "Free add-on service for both",
       },
     ],
-    relatedIndustries: ["salons", "yoga-studios", "hotels", "gyms"],
+    relatedIndustries: ["nail-salons", "salons", "yoga-studios", "hotels", "gyms"],
   },
   {
     slug: "bakeries",
