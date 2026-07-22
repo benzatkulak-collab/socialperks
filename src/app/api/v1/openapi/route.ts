@@ -522,7 +522,7 @@ function buildSpec() {
 
 export async function GET(): Promise<Response> {
   return NextResponse.json(
-    { success: true, data: buildSpec() },
+    buildSpec(),
     {
       status: 200,
       headers: {
