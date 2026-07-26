@@ -47,9 +47,12 @@ export async function GET(req: NextRequest) {
     } catch { /* ignore */ }
   }
 
-  // Conservative commission preview: 10% of estimated MRR for 12 months
-  // per attributed business. Until real subscription→commission joins are
-  // wired, we surface conversions count × $2.50 (10% × $25 Pro).
+  // Conservative commission preview. Until real subscription→commission joins
+  // are wired, we surface conversions count × a flat $2.50 placeholder.
+  // NOTE: $2.50 was originally 10% of the old $25 Pro price. Pro is now
+  // $99/mo, so this figure no longer tracks the plan. It is deliberately left
+  // low rather than raised to $9.90 — raising a number shown to referrers as
+  // expected earnings is a product decision, not a repricing side effect.
   const businessConversions = recentAttributions.filter((a) => a.type === "business").length;
   const estimatedCommissionDollars = Math.round(businessConversions * 2.5 * 100) / 100;
 

@@ -53,7 +53,7 @@ businesses. The MCP server exposes:
 
 **Read tools (no auth):**
 - `getPricing` — market-rate pricing for marketing actions
-- `listActions` — 107 marketing actions across 25 platforms
+- `listActions` — 125 marketing actions across 25 platforms
 - `getBenchmarks` — industry benchmarks
 - `searchInfluencers` — influencer search by platform / follower count
 

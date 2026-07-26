@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Social Perks — Marketing for Every Industry",
     description:
-      "Explore ready-made social media marketing campaigns for 20 industries.",
+      "Explore ready-made social media marketing campaigns for 21 industries.",
   },
   alternates: {
     canonical: "https://socialperks.app/for",
@@ -52,7 +52,7 @@ export default function IndustriesIndexPage() {
             "@type": "CollectionPage",
             name: "Social Perks — Industries",
             description:
-              "Explore social media marketing campaigns tailored for 20 different industries.",
+              "Explore social media marketing campaigns tailored for 21 different industries.",
             url: "https://socialperks.app/for",
             mainEntity: {
               "@type": "ItemList",

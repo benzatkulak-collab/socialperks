@@ -5,7 +5,7 @@
 **How to use (from `gtm/demand-test-playbook.md`):** send the personalized DM (or email), one 48h follow-up, then move on. Honest pitch only — no fabricated metrics, no "AI," no "automatic verification." Track each in your pilot sheet against the PostHog activation events. Goal: **5 cards on file in 14 days.**
 
 **Shared DM body** (paste after the personalized first line):
-> — I built **Social Perks**: it turns the customers already tagging you into a repeatable stream. They post about you, you approve it in one click, they get a small perk (free drip, 10% off) — with the #ad disclosure built in so you stay FTC-compliant. I'm personally setting up the first 10 shops (free setup, $10/mo after, cancel anytime). Want me to build your first campaign so you can see it live? Takes ~10 min. — socialperks.app
+> — I built **Social Perks**: it turns the customers already tagging you into a repeatable stream. They post about you, you approve it in one click, they get a small perk (free drip, 10% off) — with the #ad disclosure built in so you stay FTC-compliant. I'm personally setting up the first 10 shops (free setup, $49/mo after, cancel anytime). Want me to build your first campaign so you can see it live? Takes ~10 min. — socialperks.app
 
 ---
 

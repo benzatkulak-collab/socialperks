@@ -712,7 +712,7 @@ Required: `agentName`, `agentType` (ai_agent/influencer/managed_account), `platf
 
 **Query params:** `platformId`, `type` (content/review/engage/share/referral), `maxEffort` (0-5), `page`, `perPage`.
 
-Returns: 107 marketing actions across 15 platforms with effort level, value, and platform metadata.
+Returns: 125 marketing actions across 25 platforms with effort level, value, and platform metadata.
 
 ### `GET /api/v1/pricing` -- Pricing oracle
 

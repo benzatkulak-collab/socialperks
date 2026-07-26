@@ -235,7 +235,7 @@ export const VS_ENTRIES: VsEntry[] = [
       { feature: "Starting price", socialPerks: "$0 (free tier)", competitor: "$129/mo + setup", winner: "us" },
       { feature: "Signup", socialPerks: "Self-serve, 5 min", competitor: "Sales call required", winner: "us" },
       { feature: "POS integration", socialPerks: "Manual / API", competitor: "Native (Clover, Square)", winner: "them" },
-      { feature: "Drives Instagram / TikTok posts", socialPerks: "Yes — 107 actions across 15 platforms", competitor: "No", winner: "us" },
+      { feature: "Drives Instagram / TikTok posts", socialPerks: "Yes — 125 actions across 25 platforms", competitor: "No", winner: "us" },
       { feature: "Customer profile + spend history", socialPerks: "Per-program members", competitor: "Full CRM", winner: "them" },
       { feature: "Public OpenAPI / MCP", socialPerks: "Yes", competitor: "No", winner: "us" },
       { feature: "FTC compliance auto-injected", socialPerks: "Yes, every campaign", competitor: "N/A (no social ask)", winner: "us" },
@@ -272,13 +272,13 @@ export const VS_ENTRIES: VsEntry[] = [
       "Loyverse is a POS that happens to have loyalty; Social Perks is a marketing platform that drives public social posts",
       "Loyverse loyalty is a closed-loop punch card; Social Perks pushes content to Instagram, TikTok, Google reviews where new customers actually look",
       "MCP server + 10 autonomous agents — Loyverse has none of that surface",
-      "Cross-platform reach (15 social platforms) vs a single in-store loyalty motion",
+      "Cross-platform reach (25 social platforms) vs a single in-store loyalty motion",
     ],
     rows: [
       { feature: "Primary use case", socialPerks: "Customers post about you on social", competitor: "Point-of-sale + in-store loyalty", winner: "tie" },
       { feature: "Starting price", socialPerks: "$0 (free tier)", competitor: "$0 POS + paid add-ons", winner: "tie" },
       { feature: "POS / inventory / multi-store", socialPerks: "No", competitor: "Yes (core product)", winner: "them" },
-      { feature: "Drives social posts", socialPerks: "Yes — 107 actions across 15 platforms", competitor: "No", winner: "us" },
+      { feature: "Drives social posts", socialPerks: "Yes — 125 actions across 25 platforms", competitor: "No", winner: "us" },
       { feature: "Influencer matching", socialPerks: "Yes", competitor: "No", winner: "us" },
       { feature: "Autonomous agents (10)", socialPerks: "Yes", competitor: "No", winner: "us" },
       { feature: "MCP server (AI agent integration)", socialPerks: "Yes", competitor: "No", winner: "us" },
@@ -303,7 +303,7 @@ export const VS_ENTRIES: VsEntry[] = [
   {
     slug: "yelp-connect",
     competitor: "Yelp Connect (Yelp Ads)",
-    description: "Pay-per-click on Yelp's own surface vs incentivized customer posts across 15 platforms.",
+    description: "Pay-per-click on Yelp's own surface vs incentivized customer posts across 25 platforms.",
     shortDescription:
       "Yelp Connect runs paid ads + review prompts inside Yelp's walled garden. Social Perks pays customers a small perk to post about a business across Instagram, TikTok, Google reviews, Facebook — wherever the customer already is.",
     strengths: [
@@ -314,7 +314,7 @@ export const VS_ENTRIES: VsEntry[] = [
     ],
     ourAngle: [
       "Yelp Ads are pay-to-play in a walled garden — Yelp decides who sees you and how much it costs",
-      "Yelp Connect can't reach Instagram, TikTok, or Google reviews; Social Perks reaches 15 platforms",
+      "Yelp Connect can't reach Instagram, TikTok, or Google reviews; Social Perks reaches 25 platforms",
       "Social Perks pays real customers a small perk — earned reputation, not bought attention",
       "MCP server + autonomous agents — Yelp Connect has no agent surface",
     ],

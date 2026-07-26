@@ -85,7 +85,7 @@ curl -X POST https://socialperks.app/api/mcp \
 | Name | Auth | What it does |
 |---|---|---|
 | `getPricing` | No | Market-rate pricing for a marketing action (USD value + recommended perk) |
-| `listActions` | No | Catalog of 107 marketing actions across 15 platforms |
+| `listActions` | No | Catalog of 125 marketing actions across 25 platforms |
 | `getBenchmarks` | No | Industry benchmarks (engagement, conversion) by industry |
 | `searchInfluencers` | No | Search influencers by platform / follower count |
 | `listCampaigns` | **Yes** | List campaigns owned by the API key's business |

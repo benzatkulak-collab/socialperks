@@ -11,6 +11,7 @@ import {
   PLAN_LIMITS,
   _resetUsage,
 } from "../enforcement";
+import { PLATFORMS } from "@/lib/platforms";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import type { LaunchConfig } from "@/lib/campaign-state-machine";
 
@@ -59,12 +60,15 @@ describe("getPlanLimits", () => {
   it("free plan has strictest limits", () => {
     const free = getPlanLimits("free");
     expect(free.maxCampaigns).toBe(1);
-    expect(free.maxCompletionsPerMonth).toBe(50);
+    expect(free.maxCompletionsPerMonth).toBe(10);
     expect(free.maxActions).toBe(5);
     expect(free.aiGenerations).toBe(3);
-    expect(free.hasAnalytics).toBe(false);
+    // Free gets the core loop (QR codes) and basic analytics on purpose —
+    // those are what make the tier a real trial and what carry the
+    // "Powered by Social Perks" attribution. API access stays paid-only.
+    expect(free.hasAnalytics).toBe(true);
     expect(free.hasApiAccess).toBe(false);
-    expect(free.hasQrCodes).toBe(false);
+    expect(free.hasQrCodes).toBe(true);
   });
 
   it("enterprise plan has unlimited campaigns and completions", () => {
@@ -170,18 +174,18 @@ describe("checkCompletionLimit", () => {
     const result = checkCompletionLimit(bizId, "free");
     expect(result.allowed).toBe(true);
     expect(result.current).toBe(0);
-    expect(result.limit).toBe(50);
+    expect(result.limit).toBe(10);
   });
 
   it("blocks completions at limit", () => {
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 10; i++) {
       recordCompletion(bizId);
     }
 
     const result = checkCompletionLimit(bizId, "free");
     expect(result.allowed).toBe(false);
-    expect(result.current).toBe(50);
-    expect(result.limit).toBe(50);
+    expect(result.current).toBe(10);
+    expect(result.limit).toBe(10);
   });
 
   it("starter plan has 500 completion limit", () => {
@@ -244,10 +248,10 @@ describe("checkAiGenerationLimit", () => {
 // ═══════════════ checkFeatureAccess ═══════════════
 
 describe("checkFeatureAccess", () => {
-  it("free plan has no feature access", () => {
-    expect(checkFeatureAccess("free", "analytics")).toBe(false);
+  it("free plan gets QR codes and basic analytics, but not API", () => {
+    expect(checkFeatureAccess("free", "analytics")).toBe(true);
+    expect(checkFeatureAccess("free", "qrCodes")).toBe(true);
     expect(checkFeatureAccess("free", "api")).toBe(false);
-    expect(checkFeatureAccess("free", "qrCodes")).toBe(false);
   });
 
   it("starter plan has analytics and QR codes but no API", () => {
@@ -268,10 +272,11 @@ describe("checkFeatureAccess", () => {
     expect(checkFeatureAccess("enterprise", "qrCodes")).toBe(true);
   });
 
-  it("unknown plan defaults to free (no features)", () => {
-    expect(checkFeatureAccess("nonexistent", "analytics")).toBe(false);
+  it("unknown plan defaults to free feature access", () => {
+    expect(checkFeatureAccess("nonexistent", "analytics")).toBe(true);
+    expect(checkFeatureAccess("nonexistent", "qrCodes")).toBe(true);
+    // API access is the one that must never fall open on an unknown plan.
     expect(checkFeatureAccess("nonexistent", "api")).toBe(false);
-    expect(checkFeatureAccess("nonexistent", "qrCodes")).toBe(false);
   });
 });
 
@@ -291,5 +296,42 @@ describe("buildPlanLimitError", () => {
         upgradeUrl: "/pricing",
       },
     });
+  });
+});
+
+// ═══════════════ Action caps vs the live catalog ═══════════════
+//
+// Regression guard for a real drift bug: PLAN_LIMITS hardcoded
+// `maxActions: 107` on every paid tier — the catalog size at the time it was
+// written. PLATFORMS later grew to 125 actions, so the paid plans silently
+// capped below the catalog they advertise, and /api/v1/billing reported the
+// stale number to agents. These assertions fail the build the next time the
+// catalog grows past a hardcoded cap.
+
+describe("maxActions vs the PLATFORMS catalog", () => {
+  const catalogActionCount = PLATFORMS.reduce(
+    (total, platform) => total + platform.actions.length,
+    0
+  );
+
+  it("has a non-empty action catalog to compare against", () => {
+    expect(catalogActionCount).toBeGreaterThan(0);
+  });
+
+  it("never caps a paid tier below the full action catalog", () => {
+    for (const plan of ["starter", "professional", "pro", "enterprise"]) {
+      const limits = getPlanLimits(plan);
+      if (plan === "starter") {
+        // Starter is a deliberate, sold-as-such subset — it just must not
+        // exceed the catalog.
+        expect(limits.maxActions).toBeLessThanOrEqual(catalogActionCount);
+      } else {
+        expect(limits.maxActions).toBeGreaterThanOrEqual(catalogActionCount);
+      }
+    }
+  });
+
+  it("keeps the free tier's sample below the full catalog", () => {
+    expect(getPlanLimits("free").maxActions).toBeLessThan(catalogActionCount);
   });
 });

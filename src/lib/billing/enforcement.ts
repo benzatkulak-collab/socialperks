@@ -24,14 +24,25 @@ export interface PlanLimits {
 }
 
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
+  // NOTE ON THE FREE TIER: it exists to prove the loop works, not to be a
+  // permanent home. Two deliberate choices:
+  //   1. QR codes are ON. They are the core mechanic ("print a code, customers
+  //      scan, customers post") and the poster carries "POWERED BY SOCIAL
+  //      PERKS" (see api/v1/businesses/poster). Gating them withheld the thing
+  //      a buyer needs to experience AND switched off the acquisition loop.
+  //   2. The completion cap is deliberately low. 50/month covered a whole
+  //      small shop indefinitely, so nobody ever reached a reason to upgrade.
   free: {
     maxCampaigns: 1,
-    maxCompletionsPerMonth: 50,
+    maxCompletionsPerMonth: 10,
     maxActions: 5,
     aiGenerations: 3,
-    hasAnalytics: false,
+    // Basic analytics is advertised to Free on /pricing and was never gated
+    // server-side; this flag said otherwise and only drove the "Analytics
+    // dashboard" row on the billing page to render as disabled.
+    hasAnalytics: true,
     hasApiAccess: false,
-    hasQrCodes: false,
+    hasQrCodes: true,
   },
   starter: {
     maxCampaigns: 10,
@@ -49,7 +60,14 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
   professional: {
     maxCampaigns: 50,
     maxCompletionsPerMonth: 5000,
-    maxActions: 107,
+    // "All actions" is what every paid tier sells (see the /pricing comparison
+    // table). This was a hardcoded 107 — the catalog size when the tier was
+    // written — so once PLATFORMS grew to 125 actions the paid plans silently
+    // capped below the catalog they advertise. Infinity means "no cap", which
+    // is what the tier actually is, and cannot drift when actions are added.
+    // /api/v1/billing serialises Infinity to null and clients render it as
+    // "unlimited" (see safe() in api/v1/billing/route.ts).
+    maxActions: Infinity,
     aiGenerations: 500,
     hasAnalytics: true,
     hasApiAccess: true,
@@ -60,7 +78,8 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
   pro: {
     maxCampaigns: 50,
     maxCompletionsPerMonth: 5000,
-    maxActions: 107,
+    // Same paid tier as `professional` above — uncapped for the same reason.
+    maxActions: Infinity,
     aiGenerations: 500,
     hasAnalytics: true,
     hasApiAccess: true,
@@ -69,7 +88,8 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
   enterprise: {
     maxCampaigns: Infinity,
     maxCompletionsPerMonth: Infinity,
-    maxActions: 107,
+    // Every other limit on this tier is already Infinity; this one was not.
+    maxActions: Infinity,
     aiGenerations: Infinity,
     hasAnalytics: true,
     hasApiAccess: true,

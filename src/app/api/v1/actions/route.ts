@@ -1,7 +1,7 @@
 /**
  * GET /api/v1/actions
  *
- * Public action library endpoint. Returns all 107+ actions from the
+ * Public action library endpoint. Returns all 125 actions from the
  * PLATFORMS data, filterable by platform, type, and effort level.
  * Cached for 1 hour.
  *

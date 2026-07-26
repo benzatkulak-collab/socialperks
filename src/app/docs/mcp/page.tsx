@@ -20,7 +20,7 @@ const TOOLS: Array<{ name: string; auth: "no" | "yes"; description: string }> = 
   // is src/app/api/mcp/route.ts — keep this table in sync when adding
   // or renaming a tool there.
   { name: "getPricing",         auth: "no",  description: "Market-rate pricing for a marketing action (USD value + recommended perk)" },
-  { name: "listActions",        auth: "no",  description: "107 marketing actions across 15 platforms" },
+  { name: "listActions",        auth: "no",  description: "125 marketing actions across 25 platforms" },
   { name: "getBenchmarks",      auth: "no",  description: "Industry benchmarks (engagement, conversion) by industry" },
   { name: "listCampaigns",      auth: "yes", description: "List campaigns owned by the API key's business" },
   { name: "searchInfluencers",  auth: "no",  description: "Search influencers by platform / follower count" },

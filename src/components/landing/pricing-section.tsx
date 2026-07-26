@@ -87,7 +87,8 @@ const PRICING_TIERS: PricingTier[] = [
     description: "Run your first campaign and see results.",
     features: [
       "1 active campaign",
-      "Up to 50 completions/month",
+      "Up to 10 completions/month",
+      "QR codes for your counter",
       "Basic analytics",
       "Email support",
     ],
@@ -99,8 +100,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Starter",
     planKey: "starter",
-    price: "$10",
-    annualPrice: 100,
+    price: "$49",
+    annualPrice: 490,
     period: "/month",
     description: "For solo owners ready to grow.",
     features: [
@@ -118,8 +119,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Pro",
     planKey: "professional",
-    price: "$25",
-    annualPrice: 200,
+    price: "$99",
+    annualPrice: 990,
     period: "/month",
     description: "Everything you need to scale.",
     features: [
@@ -139,8 +140,9 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Enterprise",
     planKey: "enterprise",
-    price: "Custom",
-    period: "",
+    price: "$249",
+    annualPrice: 2490,
+    period: "/month",
     description: "Multiple locations, custom needs.",
     features: [
       "Unlimited campaigns",
@@ -175,8 +177,11 @@ export function PricingSection({
   headingLevel = "h2",
 }: { headingLevel?: "h1" | "h2" } = {}) {
   const Heading: ElementType = headingLevel;
-  // Default to annual: a 2–4 month discount is real revenue uplift per
-  // signup; the visible "months free" badge is immediate social proof.
+  // Default to annual: every paid tier is 12 months for the price of 10, so
+  // the annual default is real revenue uplift per signup and the visible
+  // "2 months free" badge is immediate social proof. Keep the badge and the
+  // annualPrice values in lockstep — if a tier ever stops being exactly 10x
+  // its monthly price, the badge becomes a false claim.
   const [annual, setAnnual] = useState(true);
   const liveStats = useLiveStats();
 
@@ -259,7 +264,7 @@ export function PricingSection({
             </span>
             {annual && (
               <span className="ml-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-xs font-semibold text-brand-green">
-                up to 4 months free
+                2 months free
               </span>
             )}
           </div>
@@ -506,15 +511,20 @@ interface ComparisonRow {
 const COMPARISON: ComparisonRow[] = [
   // Campaigns & usage
   { group: "Campaigns & usage", feature: "Active campaigns", free: "1", starter: "10", pro: "50", enterprise: "Unlimited" },
-  { feature: "Completions per month", free: "50", starter: "500", pro: "5,000", enterprise: "Unlimited" },
-  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 107", enterprise: "All 107" },
+  { feature: "Completions per month", free: "10", starter: "500", pro: "5,000", enterprise: "Unlimited" },
+  // Catalog size, not a cap: paid tiers are uncapped (PLAN_LIMITS.maxActions
+  // is Infinity). Source of truth is PLATFORMS in packages/shared/src/platforms.ts
+  // — this table is a plain string because importing the catalog into a client
+  // component would ship it to every homepage visitor. src/lib/billing/__tests__/
+  // enforcement.test.ts fails the build if a paid cap ever falls below the catalog.
+  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 125", enterprise: "All 125" },
   { feature: "Campaign suggestions", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
   // Analytics
   { group: "Analytics", feature: "Basic analytics dashboard", free: true, starter: true, pro: true, enterprise: true },
   { feature: "Advanced analytics + campaign recommendations", free: false, starter: false, pro: true, enterprise: true },
   { feature: "CSV export", free: false, starter: true, pro: true, enterprise: true },
   // Features
-  { group: "Features", feature: "QR codes for your counter", free: false, starter: true, pro: true, enterprise: true },
+  { group: "Features", feature: "QR codes for your counter", free: true, starter: true, pro: true, enterprise: true },
   { feature: "API access", free: false, starter: false, pro: true, enterprise: true },
   { feature: "Multi-location management", free: false, starter: false, pro: false, enterprise: true },
   { feature: "Team permissions & role controls", free: false, starter: false, pro: false, enterprise: true },
@@ -614,7 +624,7 @@ function ComparisonTable({ annual }: { annual: boolean }) {
 const FAQ: { q: string; a: string }[] = [
   {
     q: "Is there really a free tier?",
-    a: "Yes. Run one campaign with up to 50 completions per month, forever. No credit card. We only charge when you outgrow it.",
+    a: "Yes. Run one campaign with up to 10 completions per month, forever — QR codes included, so you get the whole loop, not a demo. No credit card. We only charge when you outgrow it.",
   },
   {
     q: "What if I cancel?",

@@ -49,7 +49,7 @@ export async function GET(): Promise<Response> {
       totalPlatforms: PLATFORMS.length,
       topPlatforms: PLATFORMS.slice(0, 5).map((p) => p.name),
       pricingModelSummary:
-        "Free tier: 1 active campaign, 50 completions/month. Starter $10/mo ($100/yr): 10 campaigns, 500 completions. Pro $25/mo ($200/yr): 50 campaigns, 5000 completions. Enterprise: custom. Annual billing saves 2 months on Starter and 4 months on Pro.",
+        "Free tier: 1 active campaign, 10 completions/month, QR codes included. Starter $49/mo ($490/yr): 10 campaigns, 500 completions. Pro $99/mo ($990/yr): 50 campaigns, 5000 completions, API access. Enterprise $249/mo ($2,490/yr): unlimited campaigns, multi-location. Annual billing is 12 months for the price of 10 on every paid tier.",
       ftcCompliance:
         "Auto-injected per platform. Cannot be disabled. Disclosure tags (#ad, #sponsored) or platform-native paid-partnership labels are added to every campaign template.",
       reviewPlatformsNote:
@@ -122,7 +122,7 @@ export async function GET(): Promise<Response> {
       {
         question: "How much does Social Perks cost?",
         answer:
-          "Free tier with limits, $10/mo Starter, $25/mo Pro, custom Enterprise. Annual saves up to 33%. See /pricing.",
+          "Free tier with limits, $49/mo Starter, $99/mo Pro, $249/mo Enterprise. Annual billing is 12 months for the price of 10 (about 17% off). See /pricing.",
       },
       {
         question: "How do I connect my AI agent?",
