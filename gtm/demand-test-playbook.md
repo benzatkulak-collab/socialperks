@@ -22,7 +22,8 @@ If coffee shops give a hard no after ~80 quality touches, the fallback verticals
 
 ### 3.2 The offer (designed to produce a real willingness-to-pay signal)
 - **"Founder pilot" — first 10 coffee shops only.** I personally set up your first campaign and QR poster, and you run it for 90 days.
-- **Real card, real price:** Starter **$10/mo** (or Pro $25/mo if they want API/recommendations). The card on file is the point — a free pilot proves nothing about willingness to pay.
+- **Real card, real price:** Starter **$49/mo** (or Pro $99/mo if they want API/recommendations). The card on file is the point — a free pilot proves nothing about willingness to pay.
+  - *Repricing note (2026-07):* this was $10/$25 when the playbook was written. At $49 the acceptance rate on a cold touch will be lower, but the target is 21 paying customers rather than 80 — see `socialperks-PROFITABILITY-PLAN.md`. Do not discount the founder pilot below list; a founder-rate cohort makes the willingness-to-pay signal unreadable, which is the only thing this test is for.
 - **De-risked:** 30-day money-back guarantee (already in product copy), cancel anytime in two clicks.
 - **The hook (honest):** "Turn the customers already posting about you into a steady stream of tagged posts — with the #ad disclosure baked in so you stay FTC-compliant. You approve each post in one click before any discount goes out."
 - **What you are NOT promising:** specific ROI numbers, automatic AI verification, or results from other customers (you have none yet — saying so is fine and even builds trust).
@@ -45,7 +46,7 @@ Tooling: do it manually for the first 100 (you'll learn the ICP). Don't build sc
 > Hi [name],
 > I noticed [shop] gets tagged a lot on Instagram — that's free marketing most shops never systematize.
 > Social Perks turns it into a repeatable loop: a QR poster at your counter → customer posts with the right #ad disclosure → you approve it in one click → they get a small perk → their post brings the next customer.
-> I'm personally onboarding the first 10 coffee shops. I'll build your first campaign and QR poster for you — you'd just need ~10 minutes. $10/mo, 30-day money-back, cancel anytime.
+> I'm personally onboarding the first 10 coffee shops. I'll build your first campaign and QR poster for you — you'd just need ~10 minutes. $49/mo, 30-day money-back, cancel anytime.
 > Worth a quick look? I can have your campaign live today.
 > — [you], founder, Social Perks (socialperks.app)
 
@@ -74,7 +75,7 @@ Founder-onboarding script (target: campaign live same day, first customer claim 
 6. **Set the 7-day goal:** "Let's get your first real customer claim this week." Check in day 3 and day 7.
 
 ### 4.2 Objection handling (honest answers only)
-- *"Do you have other coffee shops using it?"* → "You'd be one of my first 10 — that's why I'm setting it up personally and the price is $10. I'm being upfront: no case studies yet, which is exactly why I want you in early."
+- *"Do you have other coffee shops using it?"* → "You'd be one of my first 10 — that's why I'm setting it up personally rather than pointing you at a signup page. I'm being upfront: no case studies yet, which is exactly why I want you in early." (Do **not** answer this by discounting. The founder pilot is $49 like everyone else; the concession is your time, not the price.)
 - *"Can I just pay for Google reviews?"* → "No — Google/Yelp ban incentivized reviews and can suspend you. We do Instagram/TikTok/Facebook posts with the #ad disclosure, which is allowed. That's the whole compliance angle."
 - *"Is the verification automatic?"* → "We check the link is live and on the right platform and flag anything odd, then you approve in one click. Not a black box — you're always in control." (Matches shipped reality.)
 - *"What if it doesn't work?"* → "30-day money-back. If your customers aren't posting in the first month, email me and I refund it."
@@ -93,12 +94,14 @@ Read the numbers, not your feelings. Two metrics decide everything:
 - **Activation:** # reaching `perk_redeemed` (or at least `submission_reviewed`) within 7 days.
 
 ### Decision gate
-- **≥5 paid AND ≥3 activated → POUR FUEL.** Demand is real. Next: turn on the free loops (referral reward + claim-page indexing, roadmap #6), wire the weekly results digest (#7), and scale the single channel that produced the most paid logos. Then — and only then — test the higher price anchor (#8, ~$39/$99) against the now-live funnel.
+- **≥5 paid AND ≥3 activated → POUR FUEL.** Demand is real. Next: turn on the free loops (referral reward + claim-page indexing, roadmap #6), wire the weekly results digest (#7), and scale the single channel that produced the most paid logos. Then — and only then — test an anchor *above* the current $49/$99 list (#8) against the now-live funnel. (This used to read "~$39/$99"; that was written when list was $10/$25, and $39 is now *below* Starter — it is no longer a higher anchor.)
 - **2–4 paid → SIGNAL, NOT PROOF.** Something resonates but the offer/channel/vertical is off. Interview every yes AND every no, change the ONE weakest variable (usually channel or vertical), re-run a 14-day sprint. Do not build features.
 - **0–1 paid → PIVOT THE WEDGE.** The vertical or the core value prop is wrong. Interview the no's for the real objection. Switch vertical (§3.1 fallback order) or reposition before re-running. Still do not build features.
 
 ### What this test explicitly forbids
 While the demand test runs, do **not**: build staff-confirmed redemption, real Graph-API verification, the network-effect/cross-business feature, the influencer or enterprise surfaces, or reprice. All of that is fuel for an engine you haven't yet proven runs. The audit's #1 constraint is unvalidated demand — this test is the only thing that removes it.
+
+*On "or reprice":* the $49/$99/$249 list is set **before** the test starts and does not move **during** it. Changing price mid-test destroys the only signal the test exists to produce — you would not know whether a no was the product or the number. Hold the list for all 21 days regardless of how the first week goes.
 
 ---
 

@@ -23,11 +23,17 @@ the **non-negotiable** vars (`AUTH_SECRET`, `DATABASE_URL`) are missing/invalid.
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → add endpoint `…/api/v1/billing/webhook` → `whsec_…` | payments |
 | `STRIPE_PRICE_STARTER_MONTHLY` / `_ANNUAL` | Stripe → Products → price IDs | payments |
 | `STRIPE_PRICE_PROFESSIONAL_MONTHLY` / `_ANNUAL` | Stripe → Products → price IDs | payments |
+| `STRIPE_PRICE_ENTERPRISE_MONTHLY` / `_ANNUAL` | Stripe → Products → price IDs | payments |
 | `RESEND_API_KEY` | Resend → API keys (`re_…`) | email |
 | `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` | Sentry → project → DSN | observability |
 | `NEXT_PUBLIC_POSTHOG_KEY` / GA / META_PIXEL | PostHog/GA/Meta | analytics |
 
-Helpers: `scripts/setup-vercel-env.sh`, `scripts/setup-stripe.sh`.
+Helpers: `scripts/setup-vercel-env.sh`, `scripts/setup-stripe-billing.sh` (creates the
+Stripe products/prices and prints the six `STRIPE_PRICE_*` values; `--set-vercel` pushes
+them). Its amounts are pinned to `PLANS` in `src/lib/billing/store.ts` — change both in
+the same commit or the site will advertise one price and charge another.
+`scripts/setup-stripe.sh` is **deprecated and refuses to run**; it created $29/$79 prices
+that matched neither the code nor the pricing page.
 Set them with `vercel env add <NAME> production` (or the dashboard), then redeploy.
 
 ---

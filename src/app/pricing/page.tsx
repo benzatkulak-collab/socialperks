@@ -8,7 +8,7 @@ import { SITE_URL, ogImages } from "@/lib/seo";
 export const metadata: Metadata = {
   title: "Pricing — Social Perks",
   description:
-    "Start free. Most businesses stay on Free or Pro. No contracts, cancel anytime. Plans from $0 to custom enterprise.",
+    "Start free. Most businesses stay on Free or Pro. No contracts, cancel anytime. Free, $49 Starter, $99 Pro, $249 Enterprise — annual is 12 months for the price of 10.",
   alternates: { canonical: `${SITE_URL}/pricing` },
   openGraph: {
     images: ogImages(),

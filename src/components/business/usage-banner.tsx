@@ -10,7 +10,7 @@
  *   - "hidden"     — Pro/Enterprise with comfortable headroom; we don't
  *                    pester paying customers about upgrades.
  *   - "informational" — Free plan, low usage. Subtle "On Free — Starter
- *                    starts at $10" callout. Establishes that there's a
+ *                    starts at $49" callout. Establishes that there's a
  *                    next step without being pushy.
  *   - "warning"    — Any plan, 80–99% of any limit. Amber elevation.
  *   - "blocking"   — Any plan, ≥100% of any limit. Red elevation with a
@@ -80,10 +80,12 @@ function findTriggeringSlot(data: UsageData): {
 }
 
 function nextPlan(currentPlan: string): { key: string; label: string; price: string } {
-  if (currentPlan === "free") return { key: "starter", label: "Starter", price: "$10/mo" };
-  if (currentPlan === "starter") return { key: "professional", label: "Pro", price: "$25/mo" };
-  // Pro hitting limits → Enterprise (talk-to-sales). Same for any unknown plan.
-  return { key: "enterprise", label: "Enterprise", price: "Custom" };
+  if (currentPlan === "free") return { key: "starter", label: "Starter", price: "$49/mo" };
+  if (currentPlan === "starter") return { key: "professional", label: "Pro", price: "$99/mo" };
+  // Pro hitting limits → Enterprise. Same for any unknown plan. Enterprise now
+  // carries a published price on /pricing, so "Custom" here would contradict
+  // the page this banner links to.
+  return { key: "enterprise", label: "Enterprise", price: "$249/mo" };
 }
 
 export function UsageBanner({ businessId, plan: planProp }: UsageBannerProps) {

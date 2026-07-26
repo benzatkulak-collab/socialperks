@@ -24,14 +24,25 @@ export interface PlanLimits {
 }
 
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
+  // NOTE ON THE FREE TIER: it exists to prove the loop works, not to be a
+  // permanent home. Two deliberate choices:
+  //   1. QR codes are ON. They are the core mechanic ("print a code, customers
+  //      scan, customers post") and the poster carries "POWERED BY SOCIAL
+  //      PERKS" (see api/v1/businesses/poster). Gating them withheld the thing
+  //      a buyer needs to experience AND switched off the acquisition loop.
+  //   2. The completion cap is deliberately low. 50/month covered a whole
+  //      small shop indefinitely, so nobody ever reached a reason to upgrade.
   free: {
     maxCampaigns: 1,
-    maxCompletionsPerMonth: 50,
+    maxCompletionsPerMonth: 10,
     maxActions: 5,
     aiGenerations: 3,
-    hasAnalytics: false,
+    // Basic analytics is advertised to Free on /pricing and was never gated
+    // server-side; this flag said otherwise and only drove the "Analytics
+    // dashboard" row on the billing page to render as disabled.
+    hasAnalytics: true,
     hasApiAccess: false,
-    hasQrCodes: false,
+    hasQrCodes: true,
   },
   starter: {
     maxCampaigns: 10,
