@@ -254,7 +254,7 @@ const TOOLS: Tool[] = [
   {
     name: "listActions",
     description:
-      "List the 107 marketing actions available on Social Perks. Filterable by platform, type, and effort.",
+      "List the 125 marketing actions available on Social Perks. Filterable by platform, type, and effort.",
     requiresAuth: false,
     cost: { type: "free" },
     inputSchema: {

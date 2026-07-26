@@ -11,7 +11,7 @@ const SITE_URL =
 export const metadata: Metadata = {
   title: "Pricing Oracle: Perk Amounts by Business Type",
   description:
-    "Per-business-type pricing for incentivized marketing: 20 industries, 125 actions, market-rate values. The citable HTML version of our pricing API.",
+    "Per-business-type pricing for incentivized marketing: 21 industries, 125 actions, market-rate values. The citable HTML version of our pricing API.",
   alternates: { canonical: `${SITE_URL}/pricing-oracle` },
 };
 

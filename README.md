@@ -2,7 +2,7 @@
 
 **The Marketing Value Protocol** — AI-powered marketing infrastructure for every business.
 
-107 marketing actions across 15 platforms. Pricing oracle for AI agents. Campaign execution layer.
+125 marketing actions across 25 platforms. Pricing oracle for AI agents. Campaign execution layer.
 
 ## Quick Start
 

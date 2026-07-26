@@ -11,6 +11,7 @@ import {
   PLAN_LIMITS,
   _resetUsage,
 } from "../enforcement";
+import { PLATFORMS } from "@/lib/platforms";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import type { LaunchConfig } from "@/lib/campaign-state-machine";
 
@@ -291,5 +292,42 @@ describe("buildPlanLimitError", () => {
         upgradeUrl: "/pricing",
       },
     });
+  });
+});
+
+// ═══════════════ Action caps vs the live catalog ═══════════════
+//
+// Regression guard for a real drift bug: PLAN_LIMITS hardcoded
+// `maxActions: 107` on every paid tier — the catalog size at the time it was
+// written. PLATFORMS later grew to 125 actions, so the paid plans silently
+// capped below the catalog they advertise, and /api/v1/billing reported the
+// stale number to agents. These assertions fail the build the next time the
+// catalog grows past a hardcoded cap.
+
+describe("maxActions vs the PLATFORMS catalog", () => {
+  const catalogActionCount = PLATFORMS.reduce(
+    (total, platform) => total + platform.actions.length,
+    0
+  );
+
+  it("has a non-empty action catalog to compare against", () => {
+    expect(catalogActionCount).toBeGreaterThan(0);
+  });
+
+  it("never caps a paid tier below the full action catalog", () => {
+    for (const plan of ["starter", "professional", "pro", "enterprise"]) {
+      const limits = getPlanLimits(plan);
+      if (plan === "starter") {
+        // Starter is a deliberate, sold-as-such subset — it just must not
+        // exceed the catalog.
+        expect(limits.maxActions).toBeLessThanOrEqual(catalogActionCount);
+      } else {
+        expect(limits.maxActions).toBeGreaterThanOrEqual(catalogActionCount);
+      }
+    }
+  });
+
+  it("keeps the free tier's sample below the full catalog", () => {
+    expect(getPlanLimits("free").maxActions).toBeLessThan(catalogActionCount);
   });
 });

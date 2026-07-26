@@ -507,7 +507,12 @@ const COMPARISON: ComparisonRow[] = [
   // Campaigns & usage
   { group: "Campaigns & usage", feature: "Active campaigns", free: "1", starter: "10", pro: "50", enterprise: "Unlimited" },
   { feature: "Completions per month", free: "50", starter: "500", pro: "5,000", enterprise: "Unlimited" },
-  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 107", enterprise: "All 107" },
+  // Catalog size, not a cap: paid tiers are uncapped (PLAN_LIMITS.maxActions
+  // is Infinity). Source of truth is PLATFORMS in packages/shared/src/platforms.ts
+  // — this table is a plain string because importing the catalog into a client
+  // component would ship it to every homepage visitor. src/lib/billing/__tests__/
+  // enforcement.test.ts fails the build if a paid cap ever falls below the catalog.
+  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 125", enterprise: "All 125" },
   { feature: "Campaign suggestions", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
   // Analytics
   { group: "Analytics", feature: "Basic analytics dashboard", free: true, starter: true, pro: true, enterprise: true },

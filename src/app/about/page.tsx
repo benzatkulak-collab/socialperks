@@ -62,7 +62,7 @@ export default function AboutPage() {
               scale. Social Perks levels the playing field. Whether you run a
               neighborhood yoga studio or a national franchise, our platform
               makes it simple to create campaigns that reward customers for
-              posts, reviews, shares, and referrals across 15 social platforms.
+              posts, reviews, shares, and referrals across 25 social platforms.
             </p>
             <p className="mt-4 text-sm leading-relaxed text-brand-dim">
               We handle the complexity — FTC compliance, fraud detection,
@@ -126,8 +126,8 @@ export default function AboutPage() {
           </h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { stat: "15", label: "Social Platforms" },
-              { stat: "107", label: "Marketing Actions" },
+              { stat: "25", label: "Social Platforms" },
+              { stat: "125", label: "Marketing Actions" },
               { stat: "5", label: "Campaign Tiers" },
               { stat: "14", label: "Backend Engines" },
             ].map((item) => (

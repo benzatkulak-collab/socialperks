@@ -26,7 +26,7 @@ const SITE_URL =
 export const metadata: Metadata = {
   title: "Marketing Benchmarks by Industry: ROI & Perk Values",
   description:
-    "Average completion rate, perk value, top platforms, and ROI for incentivized marketing campaigns across 20 industries. Updated quarterly.",
+    "Average completion rate, perk value, top platforms, and ROI for incentivized marketing campaigns across 21 industries. Updated quarterly.",
   alternates: { canonical: `${SITE_URL}/benchmarks` },
   openGraph: {
     images: ogImages(),
@@ -60,7 +60,7 @@ export default function BenchmarksPage() {
     "@type": "Dataset",
     name: "Social Perks industry benchmarks",
     description:
-      "Per-industry benchmarks for incentivized social media marketing campaigns: average completion rate, average perk value, top platforms, top campaign types, and average ROI. Covers 20 small-business industries.",
+      "Per-industry benchmarks for incentivized social media marketing campaigns: average completion rate, average perk value, top platforms, top campaign types, and average ROI. Covers 21 small-business industries.",
     url: `${SITE_URL}/benchmarks`,
     creator: {
       "@type": "Organization",
