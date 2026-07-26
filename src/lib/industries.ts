@@ -69,14 +69,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a video review",
       },
     ],
-    stats: [
-      { label: "Average increase in Google reviews", value: "340%" },
-      { label: "Cost per new customer acquired", value: "$2.40" },
-      { label: "Customers who share when rewarded", value: "73%" },
-    ],
-    testimonialQuote:
-      "We went from 12 reviews to over 200 in three months. Our weekend wait time doubled — in a good way.",
-    testimonialAuthor: "Maria S., Owner of Sol Cocina",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Pin & Return",
@@ -131,14 +126,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo tagging you",
       },
     ],
-    stats: [
-      { label: "Average ROI on perk campaigns", value: "847%" },
-      { label: "New customers per month from social", value: "45+" },
-      { label: "Average cost per social impression", value: "$0.03" },
-    ],
-    testimonialQuote:
-      "Our Instagram went from 400 followers to 3,200 in six months. All from customers who wanted a free pastry.",
-    testimonialAuthor: "James K., Bloom Coffee Co.",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Morning Buzz",
@@ -193,14 +183,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share referral link in Story",
       },
     ],
-    stats: [
-      { label: "Increase in new bookings", value: "52%" },
-      { label: "Average value per referred client", value: "$180" },
-      { label: "Clients who rebook after sharing", value: "89%" },
-    ],
-    testimonialQuote:
-      "My clients were already taking selfies after their appointments. Now they tag me and I get 5-10 new bookings a week from it.",
-    testimonialAuthor: "Ashley R., Glow Studio",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Glow Up Share",
@@ -317,14 +302,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a transformation video",
       },
     ],
-    stats: [
-      { label: "New clients from social shares", value: "38/mo" },
-      { label: "Average review score increase", value: "0.6 stars" },
-      { label: "Client retention with perks", value: "94%" },
-    ],
-    testimonialQuote:
-      "Used to rely on walk-ins. Now I am booked two weeks out because clients keep posting their cuts and tagging the shop.",
-    testimonialAuthor: "DeShawn M., Iron Cuts",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Clean Cut Share",
@@ -373,14 +353,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share referral link",
       },
     ],
-    stats: [
-      { label: "Increase in trial sign-ups", value: "67%" },
-      { label: "Cost per new member acquired", value: "$4.80" },
-      { label: "Referred members retained 6+ months", value: "81%" },
-    ],
-    testimonialQuote:
-      "We cut our Facebook ad budget by 60% and got more sign-ups. Turns out people trust their gym buddy more than a targeted ad.",
-    testimonialAuthor: "Carlos V., Summit Fitness",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Sweat & Share",
@@ -435,14 +410,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share event or referral link",
       },
     ],
-    stats: [
-      { label: "New students per month from referrals", value: "28+" },
-      { label: "Class fill rate improvement", value: "41%" },
-      { label: "Student retention with perks", value: "86%" },
-    ],
-    testimonialQuote:
-      "Our 6am classes used to be half empty. After launching a check-in campaign, they are consistently full. Students love the free class passes.",
-    testimonialAuthor: "Priya N., Solstice Yoga",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Namaste & Share",
@@ -497,14 +467,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Tag a family member in a post",
       },
     ],
-    stats: [
-      { label: "Increase in new patient inquiries", value: "58%" },
-      { label: "Average cost per new patient", value: "$8.50" },
-      { label: "Patients who refer when incentivized", value: "44%" },
-    ],
-    testimonialQuote:
-      "We stopped buying ads on Google and started rewarding patients for reviews. Our new patient calls went up, not down.",
-    testimonialAuthor: "Dr. Sarah L., Bright Smile Dental",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Happy Mouth Post",
@@ -559,14 +524,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share a referral post",
       },
     ],
-    stats: [
-      { label: "Social reach from pet posts", value: "12x avg" },
-      { label: "New clients per month from social", value: "32+" },
-      { label: "Client retention with perks program", value: "91%" },
-    ],
-    testimonialQuote:
-      "Turns out people will do literally anything for their pets. Posting a photo for free treats? Our Google reviews tripled in two months.",
-    testimonialAuthor: "Dr. Mike T., Paws & Claws Veterinary",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Healthy Paws Post",
@@ -621,14 +581,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share referral post to local groups",
       },
     ],
-    stats: [
-      { label: "Increase in Google review volume", value: "280%" },
-      { label: "Revenue from referred customers", value: "+$4,200/mo" },
-      { label: "Customer lifetime value increase", value: "63%" },
-    ],
-    testimonialQuote:
-      "People used to be skeptical about mechanics. Now I have 400+ reviews and people drive 30 minutes to come here instead of the shop next door.",
-    testimonialAuthor: "Tony R., Honest Wrench Auto",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Show the Work",
@@ -683,14 +638,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share referral link or tag in post",
       },
     ],
-    stats: [
-      { label: "Referral close rate vs cold leads", value: "4.5x" },
-      { label: "Average commission from referral deals", value: "$8,400" },
-      { label: "Past clients who refer when asked", value: "29%" },
-    ],
-    testimonialQuote:
-      "I closed 8 deals last quarter from past client referrals alone. The perk program paid for itself with one transaction.",
-    testimonialAuthor: "Rachel K., The Keys Group Realty",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Closing Day Share",
@@ -745,14 +695,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share event booking page",
       },
     ],
-    stats: [
-      { label: "Increase in direct bookings", value: "34%" },
-      { label: "Social media reach per guest post", value: "800+" },
-      { label: "Savings vs OTA commission fees", value: "$12K/yr" },
-    ],
-    testimonialQuote:
-      "Our guests already loved taking photos. Adding a perk turned those photos into bookings. We reduced our Booking.com dependency by 25%.",
-    testimonialAuthor: "Elena P., Harbor View Inn",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Check-In & Share",
@@ -801,14 +746,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Pin a product from the store",
       },
     ],
-    stats: [
-      { label: "Increase in foot traffic", value: "43%" },
-      { label: "Average order value from referred customers", value: "+22%" },
-      { label: "Customer acquisition cost vs ads", value: "75% less" },
-    ],
-    testimonialQuote:
-      "Our customers started creating content better than anything we could produce. And they did it for 15% off their next visit.",
-    testimonialAuthor: "Lisa M., Thread & Needle Boutique",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Shopping Haul",
@@ -863,14 +803,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share referral post or tag a friend",
       },
     ],
-    stats: [
-      { label: "New client bookings from social", value: "36/mo" },
-      { label: "Average client spend increase", value: "+27%" },
-      { label: "Referral conversion rate", value: "74%" },
-    ],
-    testimonialQuote:
-      "We used to rely on Groupon. Now our own clients fill our calendar through social shares and it costs us a fraction.",
-    testimonialAuthor: "Jade W., Serenity Spa & Wellness",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Spa Day Share",
@@ -925,14 +860,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Tag a friend in a post or Story",
       },
     ],
-    stats: [
-      { label: "Increase in weekend foot traffic", value: "55%" },
-      { label: "Custom order inquiries from social", value: "+340%" },
-      { label: "Average perk cost per new customer", value: "$1.80" },
-    ],
-    testimonialQuote:
-      "Our croissant photo went semi-viral after a customer posted it for a free cookie. We had a line out the door that Saturday.",
-    testimonialAuthor: "Sophie B., Baked & Wired",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Sweet Shot",
@@ -987,14 +917,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share an event post",
       },
     ],
-    stats: [
-      { label: "Increase in weekend visitors", value: "48%" },
-      { label: "Event attendance from social shares", value: "+62%" },
-      { label: "Average spend per referred visitor", value: "$38" },
-    ],
-    testimonialQuote:
-      "We launched a check-in campaign before our anniversary party. Sold out for the first time ever. Free tasting flights were the best marketing investment we made.",
-    testimonialAuthor: "Ryan D., Forge Brewing Co.",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Tap & Tag",
@@ -1049,14 +974,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Tag the sender and the florist in a post",
       },
     ],
-    stats: [
-      { label: "Wedding inquiry increase", value: "3.2x" },
-      { label: "Social media reach per flower post", value: "1,200+" },
-      { label: "Gift-to-customer conversion rate", value: "18%" },
-    ],
-    testimonialQuote:
-      "Every bride who posts her bouquet brings me two more consultations. The cost of a $5 discount per arrangement is nothing compared to a wedding booking.",
-    testimonialAuthor: "Nina C., Bloom & Vine Florals",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Petal Post",
@@ -1105,14 +1025,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Tag a friend in a Story or post",
       },
     ],
-    stats: [
-      { label: "Bookings from client referrals", value: "62%" },
-      { label: "Average booking value from referrals", value: "+35%" },
-      { label: "Clients who share when incentivized", value: "78%" },
-    ],
-    testimonialQuote:
-      "I used to chase leads on The Knot. Now my couples tag me and their engaged friends DM me directly. I booked 12 weddings from referrals last year.",
-    testimonialAuthor: "Marcus W., Marcus Webb Photography",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Gallery Share",
@@ -1167,14 +1082,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Tag a friend in a flash event post",
       },
     ],
-    stats: [
-      { label: "New client bookings from social", value: "44/mo" },
-      { label: "Artist waitlist growth", value: "+180%" },
-      { label: "Average client lifetime value increase", value: "52%" },
-    ],
-    testimonialQuote:
-      "My clients were already posting their tattoos on Instagram. Adding a $15 perk just made them tag us. My books are full three months out now.",
-    testimonialAuthor: "Alex J., Ink & Iron Studio",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Fresh Ink Reveal",
@@ -1223,14 +1133,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share a referral post in pet parent groups",
       },
     ],
-    stats: [
-      { label: "Increase in repeat customers", value: "47%" },
-      { label: "Social reach from pet content", value: "2,400+" },
-      { label: "Market share gained vs chains", value: "+15%" },
-    ],
-    testimonialQuote:
-      "We compete with PetSmart down the street. But our customers post about us constantly and people drive past the chain to come here.",
-    testimonialAuthor: "Jenny P., The Puppy Pantry",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Happy Pet Post",
@@ -1285,14 +1190,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Send a referral link via DM or Story",
       },
     ],
-    stats: [
-      { label: "First-time visitor increase", value: "58%" },
-      { label: "Average order value from social", value: "+31%" },
-      { label: "Customer-created content per month", value: "120+" },
-    ],
-    testimonialQuote:
-      "My customers create better content than any influencer I could hire. A 15% discount costs me less than one sponsored post and brings in way more traffic.",
-    testimonialAuthor: "Mia T., Wildflower Boutique",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Style Share",
