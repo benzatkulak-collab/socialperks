@@ -240,14 +240,9 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share referral link in Story",
       },
     ],
-    stats: [
-      { label: "Increase in new bookings", value: "47%" },
-      { label: "Average value per referred client", value: "$120" },
-      { label: "Clients who rebook after sharing", value: "88%" },
-    ],
-    testimonialQuote:
-      "My clients were already posting their nails. Now they tag the salon for a small perk and I get a steady stream of new bookings from their friends.",
-    testimonialAuthor: "Mia T., Polished Studio",
+    stats: [],
+    testimonialQuote: "",
+    testimonialAuthor: "",
     templateSuggestions: [
       {
         name: "Fresh Set Share",
