@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.benzatkulak-collab/socialperks",
+  "description": "Run compliant local-business customer marketing: look up perk pricing, browse 125 marketing actions across 25 platforms, create campaigns, and submit/review social-post proofs. FTC disclosures are auto-injected and incentivized Google/Yelp/TripAdvisor reviews are blocked by policy.",
+  "repository": {
+    "url": "https://github.com/benzatkulak-collab/socialperks",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "websiteUrl": "https://socialperks.app",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://socialperks.app/api/mcp"
+    }
+  ]
+}

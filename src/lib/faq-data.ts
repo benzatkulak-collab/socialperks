@@ -186,7 +186,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     category: "agents",
     question: "Does Social Perks have an API?",
     answer:
-      "Yes. The full API is documented at /api/v1/openapi (OpenAPI 3.1 spec, public). Public endpoints (pricing, actions, benchmarks, exchange/opportunities, exchange/market) require no authentication. Authenticated endpoints (campaigns, submissions, AI generation) accept either an x-api-key header or an Authorization: Bearer JWT.",
+      "Yes. The full API is documented at /api/v1/openapi (OpenAPI 3.1 spec, public). Public endpoints (pricing, actions, benchmarks) require no authentication. Authenticated endpoints (campaigns, submissions, AI generation) accept either an x-api-key header or an Authorization: Bearer JWT.",
   },
   {
     slug: "can-i-use-social-perks-with-an-ai-agent",

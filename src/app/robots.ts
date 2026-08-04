@@ -17,6 +17,9 @@ const AGENT_DISCOVERABLE_API_PATHS = [
   "/api/v1/benchmarks",
   "/api/v1/health",
   "/api/v1/legal",
+  "/api/v1/stats/public",
+  "/api/llm-context",
+  "/api/feed.json",
 ];
 
 export default function robots(): MetadataRoute.Robots {

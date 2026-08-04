@@ -31,7 +31,7 @@ Add to your `claude_desktop_config.json`:
     "social-perks": {
       "url": "https://socialperks.app/api/mcp",
       "headers": {
-        "Authorization": "Bearer sk_live_your_key_here"
+        "Authorization": "Bearer sp_live_your_key_here"
       }
     }
   }
@@ -49,7 +49,7 @@ Point the connector URL at `https://socialperks.app/api/mcp`. Set the auth type 
 {
   "social-perks": {
     "url": "https://socialperks.app/api/mcp",
-    "auth": { "type": "bearer", "token": "sk_live_..." }
+    "auth": { "type": "bearer", "token": "sp_live_..." }
   }
 }
 ```
@@ -59,7 +59,7 @@ Point the connector URL at `https://socialperks.app/api/mcp`. Set the auth type 
 ```bash
 curl -X POST https://socialperks.app/api/mcp \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk_live_..." \
+  -H "Authorization: Bearer sp_live_..." \
   -d '{
     "jsonrpc": "2.0",
     "id": 1,
@@ -85,7 +85,7 @@ curl -X POST https://socialperks.app/api/mcp \
 | Name | Auth | What it does |
 |---|---|---|
 | `getPricing` | No | Market-rate pricing for a marketing action (USD value + recommended perk) |
-| `listActions` | No | Catalog of 107 marketing actions across 15 platforms |
+| `listActions` | No | Catalog of 125 marketing actions across 25 platforms |
 | `getBenchmarks` | No | Industry benchmarks (engagement, conversion) by industry |
 | `searchInfluencers` | No | Search influencers by platform / follower count |
 | `listCampaigns` | **Yes** | List campaigns owned by the API key's business |
@@ -94,7 +94,6 @@ curl -X POST https://socialperks.app/api/mcp \
 | `reviewSubmission` | **Yes** | Approve or reject a pending submission |
 | `listSubmissions` | **Yes** | List submissions (filterable by status, campaign) |
 | `getCampaignStats` | **Yes** | Aggregate stats for a campaign — completions, conversion, spend |
-| `get_pricing` | No | Get Social Perks plan tiers + pricing |
 
 Every tool defines its input schema as JSON Schema (auto-generated from Zod). Use `tools/list` to fetch the live schemas.
 

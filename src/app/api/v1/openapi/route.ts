@@ -30,7 +30,7 @@ function buildSpec() {
       version: "1.0.0",
       summary: "Marketing actions in exchange for perks",
       description:
-        "Social Perks is a marketing platform where businesses offer perks (discounts, free items, cash back) to customers and influencers in exchange for marketing actions across 25 social platforms (125 actions total). This API exposes pricing, action discovery, campaign management, submission tracking, an exchange marketplace, and the OAuth-style agent key-issuance flow described at https://socialperks.app/AGENTS.md.",
+        "Social Perks is a marketing platform where businesses offer perks (discounts, free items, cash back) to customers and influencers in exchange for marketing actions across 25 social platforms (125 actions total). This API exposes pricing, action discovery, campaign management, submission tracking, and the OAuth-style agent key-issuance flow described at https://socialperks.app/AGENTS.md.",
       contact: {
         name: "Social Perks",
         url: SITE_URL,
@@ -45,7 +45,6 @@ function buildSpec() {
       { name: "Campaigns", description: "Create, launch, and manage campaigns" },
       { name: "Submissions", description: "Submit and review proof of completed actions" },
       { name: "AI", description: "AI-powered campaign generation and recommendations" },
-      { name: "Exchange", description: "Marketplace for open campaign opportunities" },
       { name: "Programs", description: "Multi-action perk programs" },
       { name: "Auth", description: "Authentication and session management" },
       { name: "Infrastructure", description: "Health, status, OpenAPI" },
@@ -307,21 +306,6 @@ function buildSpec() {
           summary: "Full AI marketing plan",
           security: [{ BearerAuth: [] }, { ApiKey: [] }],
           responses: { "200": { description: "Multi-step marketing plan" } },
-        },
-      },
-      "/exchange/opportunities": {
-        get: {
-          tags: ["Exchange"],
-          summary: "Browse open campaign opportunities",
-          description: "Public marketplace of campaigns accepting submissions.",
-          responses: { "200": { description: "Opportunity list" } },
-        },
-      },
-      "/exchange/market": {
-        get: {
-          tags: ["Exchange"],
-          summary: "Real-time market data",
-          responses: { "200": { description: "Market snapshot" } },
         },
       },
       "/influencers": {
