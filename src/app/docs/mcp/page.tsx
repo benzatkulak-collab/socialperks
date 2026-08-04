@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     images: ogImages(),
     title: "Social Perks · MCP-native customer marketing",
     description:
-      "Plug Claude/ChatGPT/Cursor directly into your customer-marketing platform. 7 tools, streamable HTTP, tenant-scoped.",
+      "Plug Claude/ChatGPT/Cursor directly into your customer-marketing platform. 10 tools, streamable HTTP, tenant-scoped.",
   },
 };
 
@@ -20,7 +20,7 @@ const TOOLS: Array<{ name: string; auth: "no" | "yes"; description: string }> = 
   // is src/app/api/mcp/route.ts — keep this table in sync when adding
   // or renaming a tool there.
   { name: "getPricing",         auth: "no",  description: "Market-rate pricing for a marketing action (USD value + recommended perk)" },
-  { name: "listActions",        auth: "no",  description: "107 marketing actions across 15 platforms" },
+  { name: "listActions",        auth: "no",  description: "125 marketing actions across 25 platforms" },
   { name: "getBenchmarks",      auth: "no",  description: "Industry benchmarks (engagement, conversion) by industry" },
   { name: "listCampaigns",      auth: "yes", description: "List campaigns owned by the API key's business" },
   { name: "searchInfluencers",  auth: "no",  description: "Search influencers by platform / follower count" },
@@ -79,14 +79,14 @@ export default function McpDocsPage() {
     "social-perks": {
       "url": "${endpoint}/api/mcp",
       "headers": {
-        "Authorization": "Bearer sk_live_your_key_here"
+        "Authorization": "Bearer sp_live_your_key_here"
       }
     }
   }
 }`}</Code>
         <p className="text-sm text-brand-dim mt-3">
           Drop this in <code className="font-mono text-brand-cyan">~/Library/Application
-          Support/Claude/claude_desktop_config.json</code>, restart Claude, and the 7 tools below
+          Support/Claude/claude_desktop_config.json</code>, restart Claude, and the 10 tools below
           appear in any chat.
         </p>
 
@@ -141,7 +141,7 @@ export default function McpDocsPage() {
           clicking buttons.
         </p>
         <p className="text-brand-dim mb-3">
-          Every admin workflow on Social Perks is reachable through these 7 tools. The same audit
+          Every admin workflow on Social Perks is reachable through these 10 tools. The same audit
           log records both human and agent actions. The same tenant boundaries apply.
         </p>
 

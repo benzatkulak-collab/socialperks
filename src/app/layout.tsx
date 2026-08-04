@@ -185,10 +185,11 @@ export default function RootLayout({
               logo: `${SITE_URL}/icon.png`,
               foundingDate: "2026",
               // Entity-resolution links. Add live profiles here as they go
-              // live (LinkedIn, Crunchbase, a Wikidata item) — only add URLs
-              // that actually resolve; a 404 in sameAs hurts more than an
-              // absent one. The X handle mirrors the twitter:site meta.
-              sameAs: ["https://x.com/socialperksapp"],
+              // live (X, LinkedIn, Crunchbase, a Wikidata item) — only add
+              // URLs that actually resolve; a 404 in sameAs hurts more than
+              // an absent one. Deliberately EMPTY for now:
+              // docs/mcp-registry-publish.md still lists creating these
+              // profiles as outstanding work, so nothing here resolves yet.
               description:
                 "Marketing platform where small businesses, enterprise brands, and influencers exchange perks (discounts, free items, cash back) for marketing actions across 25 social platforms (125 actions total).",
               knowsAbout: [

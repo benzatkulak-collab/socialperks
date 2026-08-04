@@ -64,7 +64,7 @@ try {
 
 ## What's covered
 
-- **Public reference**: `pricing`, `actions`, `benchmarks`, `exchange`
+- **Public reference**: `pricing`, `actions`, `benchmarks`
 - **Auth required**: `campaigns`, `submissions`, `ai.*`
 - **Infrastructure**: `health()`
 

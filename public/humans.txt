@@ -27,6 +27,6 @@
     Applebot-Extended, CCBot, cohere-ai, ChatGPT-User, anthropic-ai,
     Bytespider, DuckAssistBot, and Claude-Web.
 
-    Public reference data (pricing, actions, benchmarks, exchange) is
+    Public reference data (pricing, actions, benchmarks) is
     available without authentication. To take action on behalf of a
     business, mint an API key from /dashboard/api-keys.
