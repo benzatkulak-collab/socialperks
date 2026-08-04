@@ -17,8 +17,7 @@ import {
  * FAQPage schema is emitted by PricingSection — Google allows only one
  * FAQPage per URL, and both sections live on /pricing.
  *
- * Pure server component: no client state, no analytics — just content
- * and structured data, which is what search crawlers reward.
+ * Pure server component: no client state, no analytics — just content.
  */
 
 function CostRow({
