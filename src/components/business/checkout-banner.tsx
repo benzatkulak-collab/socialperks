@@ -54,15 +54,42 @@ export function CheckoutBanner() {
     const checkout = params.get("checkout");
     if (checkout === "success" || checkout === "cancelled") {
       setStatus(checkout);
-      // Funnel: fire the terminal funnel event when Stripe redirects
-      // back. checkout_completed closes the loop opened by
-      // checkout_started in auth-form. Cancelled redirects are also
-      // valuable signal — they tell us where checkout is leaking.
-      track(
-        checkout === "success" ? "checkout_completed" : "checkout_started",
-        { outcome: checkout }
-      );
-      if (checkout === "success") firePurchasePixels();
+
+      // Conversion events must fire AT MOST ONCE per checkout. Gating on the
+      // query param alone re-fired the Purchase pixel (and the funnel event)
+      // on every reload, back-navigation or client-side re-mount of this URL,
+      // inflating reported revenue and ad-platform conversion counts.
+      // Two guards: a per-session flag, and stripping the param from the URL
+      // immediately so a reload has nothing to re-trigger on. The banner
+      // itself stays visible because its state lives in React, not the URL.
+      let alreadyFired = false;
+      try {
+        const key = `sp:checkout-reported:${checkout}`;
+        alreadyFired = window.sessionStorage.getItem(key) === "1";
+        window.sessionStorage.setItem(key, "1");
+      } catch {
+        /* storage blocked — fall back to the URL-strip guard below */
+      }
+
+      if (!alreadyFired) {
+        // Funnel: fire the terminal funnel event when Stripe redirects
+        // back. checkout_completed closes the loop opened by
+        // checkout_started in auth-form. Cancelled redirects are also
+        // valuable signal — they tell us where checkout is leaking.
+        track(
+          checkout === "success" ? "checkout_completed" : "checkout_started",
+          { outcome: checkout }
+        );
+        if (checkout === "success") firePurchasePixels();
+      }
+
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("checkout");
+        window.history.replaceState({}, "", url.toString());
+      } catch {
+        /* history unavailable — the sessionStorage guard still holds */
+      }
     }
   }, []);
 

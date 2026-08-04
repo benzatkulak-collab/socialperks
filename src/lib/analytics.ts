@@ -140,11 +140,31 @@ export function initAttribution(): void {
   captureFirstTouch();
   const attribution = getAttribution();
   if (Object.keys(attribution).length === 0) return;
-  try {
-    ph()?.register?.(attribution);
-  } catch {
-    // see track() rationale
-  }
+
+  // register() must actually land, unlike capture() there is no snippet-level
+  // queue for super-properties: if the PostHog script has not finished loading
+  // when this runs (it is called from a layout effect, which routinely wins
+  // that race), ph() is null and the channel tags would be dropped for the
+  // whole session — leaving autocaptured events untagged, which is the entire
+  // point of this function. Retry on a short bounded poll instead.
+  let attempts = 0;
+  const MAX_ATTEMPTS = 40; // ~10s at 250ms — well past a normal snippet load
+  const apply = () => {
+    try {
+      const client = ph();
+      if (client?.register) {
+        client.register(attribution);
+        return;
+      }
+    } catch {
+      // see track() rationale
+      return;
+    }
+    if (++attempts < MAX_ATTEMPTS) {
+      setTimeout(apply, 250);
+    }
+  };
+  apply();
 }
 
 /**

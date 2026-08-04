@@ -12,6 +12,7 @@ import type { NextRequest } from "next/server";
 import { ok, requireAuth, rateLimit } from "../../_shared";
 import { getOrCreateCode, buildShareUrl } from "@/lib/referrals/codes";
 import { db, InMemoryConnection } from "@/lib/db/connection";
+import { PLANS } from "@/lib/billing/store";
 
 const usingDb = !(db instanceof InMemoryConnection);
 
@@ -36,10 +37,10 @@ export async function GET(req: NextRequest) {
              WHEN attributed_influencer_id IS NOT NULL THEN 'influencer'
              ELSE 'visitor'
            END AS type,
-           attributed_at
+           created_at AS attributed_at
          FROM referral_attributions
          WHERE code = $1
-         ORDER BY attributed_at DESC
+         ORDER BY created_at DESC
          LIMIT 25`,
         [code.code],
       );
@@ -49,9 +50,13 @@ export async function GET(req: NextRequest) {
 
   // Conservative commission preview: 10% of estimated MRR for 12 months
   // per attributed business. Until real subscription→commission joins are
-  // wired, we surface conversions count × $7.90 (10% × $79 Pro).
+  // wired, we surface conversions count × 10% of the Pro monthly price.
+  // Derived from PLANS rather than hardcoded so a repricing cannot silently
+  // leave the referrer dashboard quoting a stale commission.
+  const COMMISSION_RATE = 0.1;
   const businessConversions = recentAttributions.filter((a) => a.type === "business").length;
-  const estimatedCommissionDollars = Math.round(businessConversions * 7.9 * 100) / 100;
+  const estimatedCommissionDollars =
+    Math.round(businessConversions * PLANS.professional.monthlyPrice * COMMISSION_RATE * 100) / 100;
 
   return ok({
     code: code.code,

@@ -42,6 +42,60 @@ const ATTRIBUTION_KEYS = [
 type AttributionKey = (typeof ATTRIBUTION_KEYS)[number];
 export type Attribution = Partial<Record<AttributionKey, string>>;
 
+/**
+ * Route families whose next path segment is a credential, not an id.
+ * `/perk/<token>` carries the signed perk magic-link bearer token and
+ * `/ref/<code>` carries a referral code — neither may ever be persisted
+ * to a JS-readable cookie or shipped to a third-party analytics vendor.
+ */
+const SECRET_PATH_PREFIXES = new Set([
+  "perk",
+  "ref",
+  "r",
+  "invite",
+  "verify",
+  "reset",
+  "magic",
+]);
+
+/**
+ * Heuristic: does this path segment look like a secret rather than a slug?
+ * Catches long hex / base64url / uuid-ish blobs so a NEW token-bearing route
+ * added later is redacted by default instead of silently leaking. Real
+ * marketing slugs ("coffee-shops", "best-ugc-tools") stay intact — they are
+ * short, lowercase, and hyphen-separated.
+ */
+function looksLikeSecret(segment: string): boolean {
+  if (segment.length < 20) return false;
+  return /^[A-Za-z0-9_-]+$/.test(segment) && /[0-9]/.test(segment) && /[A-Za-z]/.test(segment);
+}
+
+/**
+ * Reduce a landing URL path to something safe to persist and send to
+ * analytics. Keeps the route family (the part with attribution value —
+ * "they landed on a perk claim link") and replaces credential segments
+ * with a constant placeholder.
+ */
+export function sanitizeLandingPath(pathname: string): string {
+  const segments = pathname.split("/");
+  const out: string[] = [];
+  let redactRest = false;
+  for (const seg of segments) {
+    if (!seg) {
+      out.push(seg);
+      continue;
+    }
+    if (redactRest || looksLikeSecret(seg)) {
+      out.push(":redacted");
+      redactRest = false;
+      continue;
+    }
+    out.push(seg);
+    if (SECRET_PATH_PREFIXES.has(seg.toLowerCase())) redactRest = true;
+  }
+  return out.join("/").slice(0, 200);
+}
+
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(
@@ -84,7 +138,10 @@ export function captureFirstTouch(): void {
   } catch {
     /* malformed referrer — ignore */
   }
-  data.landing_path = window.location.pathname.slice(0, 200);
+  // NEVER persist the raw path: /perk/<token> carries a signed bearer token
+  // and this cookie is JS-readable, 90-day, and mirrored into PostHog as both
+  // an event property and a person property.
+  data.landing_path = sanitizeLandingPath(window.location.pathname);
 
   try {
     const value = encodeURIComponent(JSON.stringify(data));
