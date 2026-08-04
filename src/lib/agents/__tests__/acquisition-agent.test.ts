@@ -212,11 +212,21 @@ describe("scoreLead — clamping", () => {
 // ── threshold gate sanity ─────────────────────────────────────────────────────
 
 describe("threshold gate", () => {
-  it("a lead at exactly the threshold is considered actionable in live mode", () => {
-    // Construct a score that lands close to exactly 0.55:
-    // base 0.30 + city 0.05 + named 0.10 + ??? — can't hit 0.55 with current weights without referrer/ICP.
-    // Use referrer (0.60) and verify it's >= 0.55.
+  it("a lead scoring exactly at the threshold (ICP + city = 0.55) is considered actionable", () => {
+    // base 0.30 + ICP 0.20 + city 0.05 = 0.55 — the minimum score that clears the gate.
+    // The gate condition is `confidence >= threshold`, so equality must pass.
+    const { confidence } = scoreLead(
+      lead({ vertical: "coffee_shops", city: "Austin" }),
+      NOW_MS,
+      DEFAULT_MAX_AGE,
+    );
+    expect(confidence).toBeCloseTo(0.55);
+    expect(confidence).toBeGreaterThanOrEqual(DEFAULT_THRESHOLD);
+  });
+
+  it("a referred lead (0.60) also clears the threshold — above, not just at", () => {
     const { confidence } = scoreLead(lead({ referrer: "ref" }), NOW_MS, DEFAULT_MAX_AGE);
+    expect(confidence).toBeCloseTo(0.6);
     expect(confidence).toBeGreaterThanOrEqual(DEFAULT_THRESHOLD);
   });
 
