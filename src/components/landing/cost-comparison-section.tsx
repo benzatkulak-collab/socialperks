@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { safeJsonForScript } from "@/lib/security/json-ld";
 import {
   SOCIAL_PERKS_COST,
   COMPETING_CHANNELS,
@@ -14,8 +13,9 @@ import {
  * Anchors a buyer's economics: what a completed customer action costs on
  * Social Perks vs a conversion on the paid-ad channels they're already
  * weighing. Numbers come from `src/lib/cost-comparison.ts` (same figures
- * as the /vs pages) and are rendered visually AND as FAQPage structured
- * data — the on-page content and the JSON-LD must always match.
+ * as the /vs pages). The FAQ below is rendered visually here, but its
+ * FAQPage schema is emitted by PricingSection — Google allows only one
+ * FAQPage per URL, and both sections live on /pricing.
  *
  * Pure server component: no client state, no analytics — just content
  * and structured data, which is what search crawlers reward.
@@ -74,26 +74,11 @@ function CostRow({
 }
 
 export function CostComparisonSection() {
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: COST_FAQ.map((f) => ({
-      "@type": "Question",
-      name: f.question,
-      acceptedAnswer: { "@type": "Answer", text: f.answer },
-    })),
-  };
-
   return (
     <section
       className="relative bg-brand-bg py-16 sm:py-20"
       aria-label="Cost comparison"
     >
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonForScript(faqLd) }}
-      />
-
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <header className="text-center">
           <h2 className="font-heading text-[clamp(1.5rem,3.5vw,2.5rem)] italic text-brand-white leading-[1.15]">

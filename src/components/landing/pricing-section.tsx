@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState, type ElementType } from "react";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { track } from "@/lib/analytics";
+import { COST_FAQ } from "@/lib/cost-comparison";
 
 // ─── Live stats hook ────────────────────────────────────────────────────────
 // Fetches the aggregate platform stats from /api/v1/stats/public on mount
@@ -675,7 +676,12 @@ function PricingFaq() {
         ))}
       </dl>
 
-      {/* FAQPage JSON-LD — eligible for Google rich result */}
+      {/* FAQPage JSON-LD — eligible for Google rich result.
+          Google allows ONE FAQPage per URL, so this carries BOTH this
+          section's FAQ and the cost-comparison FAQ rendered further down
+          the same page (CostComparisonSection renders those visually and
+          deliberately emits no schema of its own). Every question here is
+          visible on the page, which Google requires. */}
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
@@ -683,7 +689,10 @@ function PricingFaq() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            mainEntity: FAQ.map((item) => ({
+            mainEntity: [
+              ...FAQ.map((item) => ({ q: item.q, a: item.a })),
+              ...COST_FAQ.map((item) => ({ q: item.question, a: item.answer })),
+            ].map((item) => ({
               "@type": "Question",
               name: item.q,
               acceptedAnswer: {
