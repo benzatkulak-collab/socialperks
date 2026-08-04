@@ -112,9 +112,28 @@ jobs:
     name: Lighthouse (perf / a11y / SEO budgets)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # LHCI serves the app with `npm run start`, i.e. NODE_ENV=production, so
+    # instrumentation.register() enforces the non-negotiable secrets gate and
+    # THROWS on a missing DATABASE_URL — the server never became ready and this
+    # job could not pass. Give it a real database rather than a fake URL, which
+    # would only move the failure to the first query.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: socialperks
+          POSTGRES_PASSWORD: socialperks
+          POSTGRES_DB: socialperks
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U socialperks"
+          --health-interval 10s --health-timeout 5s --health-retries 5
     env:
+      DATABASE_URL: postgresql://socialperks:socialperks@localhost:5432/socialperks
       AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000
-      DISABLE_BOOT_MIGRATIONS: "1"
+      # Kill-switch is compared against the string "true" in
+      # src/lib/db/boot-migrate.ts — "1" silently did nothing.
+      DISABLE_BOOT_MIGRATIONS: "true"
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -124,7 +143,16 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Run database migrations
+        run: npm run db:migrate
       - name: Build
         run: npm run build
       - name: Run Lighthouse CI
         run: npx --yes @lhci/cli@0.14.x autorun
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 7

@@ -56,6 +56,5 @@ overwrite the very baseline that's supposed to catch the regression.
 
 ## Output
 Report: which pages are now baselined, the snapshot directory path, any dynamic
-regions you masked, and the two commands (check vs. update). Once baselines
-exist this is a [gate] — note it is enforced in CI via
-`.github/workflows/launch-gate.yml`. Flag if masking is incomplete (flaky diffs).
+regions you masked, and the two commands (check vs. update). Run this on demand — there is no
+CI job for it. Flag if masking is incomplete (flaky diffs).

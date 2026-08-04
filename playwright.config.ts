@@ -13,13 +13,12 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { browserName: "chromium" } },
   ],
+  // Next only. There used to be a second entry booting a Hono API on :4000
+  // from `api/src/index.ts`, but no `api/` directory exists in this repo —
+  // so `npm run test:e2e` failed at webServer startup before a single test
+  // ran. Nothing in e2e/ targets :4000 either; every spec goes through
+  // baseURL (:3000) to the Next route handlers under /api/v1/*.
   webServer: [
-    {
-      command: "npx tsx --tsconfig api/tsconfig.json api/src/index.ts",
-      port: 4000,
-      reuseExistingServer: true,
-      env: { DATABASE_URL: "postgresql://socialperks:socialperks@localhost:5432/socialperks", REDIS_URL: "redis://localhost:6379" },
-    },
     {
       command: "npx next dev",
       port: 3000,

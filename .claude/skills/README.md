@@ -34,7 +34,7 @@ without dumbing down the audits that actually need to reason.
 | Skill | Tags | Model | What it checks |
 |---|---|---|---|
 | `/smoke` | gate·inject·manual | sonnet | Playwright critical paths (auth, CRUD, flows); fail on 4xx/5xx, console errors, hydration mismatches |
-| `/rls-audit` | gate | opus | RLS as defense-in-depth (Supabase advisors) + no client key leak; notes JWT is the real boundary |
+| `/rls-audit` | cmd | opus | RLS as defense-in-depth (Supabase advisors) + no client key leak; notes JWT is the real boundary |
 | `/api-contract` | cmd | opus | Every `/api/v1` route: validation, status codes, error envelope, **auth enforced** |
 | `/env-audit` | gate | sonnet | Required env vars present; nothing sensitive behind `NEXT_PUBLIC_` |
 | `/typecheck` | gate·inject | haiku | `tsc --noEmit` + escape-hatch count (`any`/`@ts-ignore`/`as`) |
@@ -45,7 +45,7 @@ without dumbing down the audits that actually need to reason.
 ### B — Speed + Core Web Vitals
 | Skill | Tags | Model | What it checks |
 |---|---|---|---|
-| `/lighthouse` | gate·inject·manual | sonnet | Lighthouse CI mobile+desktop, budget-gated |
+| `/lighthouse` | gate·inject·manual | sonnet | Lighthouse CI (desktop preset), budget-gated |
 | `/cwv` | cmd | opus | LCP<2.5s, INP<200ms, CLS<0.1; names the LCP element + worst shifts |
 | `/bundle` | cmd·inject·manual | opus | Oversized chunks, dup deps, `"use client"` leakage, tree-shaking |
 | `/images` | cmd | haiku | `next/image` usage, AVIF/WebP, explicit dims, lazy-load |
@@ -59,7 +59,7 @@ without dumbing down the audits that actually need to reason.
 | `/contrast` | cmd | haiku | WCAG AA contrast on tokens + components (dark theme) |
 | `/loading-ux` | cmd | haiku | Skeletons on async surfaces, no layout jump/empty-flash |
 | `/empty-states` | cmd | haiku | Every list/dashboard has empty/error/first-run states |
-| `/visual-regression` | gate·manual | sonnet | Playwright screenshot baseline so diffs can't silently break visuals |
+| `/visual-regression` | cmd·manual | sonnet | Playwright screenshot baseline so diffs can't silently break visuals |
 | `/copy-pass` | once | haiku | Proofread microcopy/CTAs, kill placeholder/lorem |
 
 ### D — Draw traffic naturally (SEO + measurement)
@@ -69,7 +69,7 @@ without dumbing down the audits that actually need to reason.
 | `/meta` | cmd | haiku | Unique title/description, OG+Twitter cards w/ images, favicon |
 | `/schema` | cmd | opus | JSON-LD (Organization/SoftwareApplication/Breadcrumb/FAQ) validated |
 | `/internal-links` | cmd | opus | Orphan pages, ≤3-click depth, descriptive anchors, hub/spoke |
-| `/analytics` | gate | opus | PostHog/Vercel/pixels fire once, first-touch attribution, zero PII |
+| `/analytics` | cmd | opus | PostHog/Vercel/pixels fire once, first-touch attribution, zero PII |
 
 ### E — Security + honorable mentions
 | Skill | Tags | Model | What it checks |

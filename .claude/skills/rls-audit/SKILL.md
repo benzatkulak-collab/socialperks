@@ -44,4 +44,5 @@ Two tables. (1) RLS coverage: Table | RLS enabled? | Has policy? | Remediation U
 service_role/anon hit (expected: none). Then a one-line boundary verdict from the
 requireAuth spot-check, pointing to `/api-contract` for the full sweep. State
 plainly that RLS gaps here are hardening, and the true boundary is JWT auth.
-Also enforced in CI via `.github/workflows/launch-gate.yml`.
+Run this on demand — there is no CI job for it. The Launch Gate covers
+static-guards, skills-validate, e2e-smoke and lighthouse only.

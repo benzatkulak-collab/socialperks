@@ -64,7 +64,10 @@ for (const dir of dirs) {
   // command — otherwise it prompts at run time instead of injecting. (Presence of
   // allowed-tools alone is not enough: a matcher for the wrong command silently
   // fails, which is the exact bug this check exists to catch.)
-  const injects = [...body.matchAll(/^!\`([^`]+)\`/gm)].map((x) => x[1].trim());
+  // NOTE: leading whitespace is allowed — the pattern used to be anchored hard
+  // to column 0, so any indented injection (inside a list item or nested block)
+  // silently skipped this entire check, which is what it exists to prevent.
+  const injects = [...body.matchAll(/^[ \t]*!\`([^`]+)\`/gm)].map((x) => x[1].trim());
   if (injects.length) {
     const atRaw = fields["allowed-tools"] ?? "";
     // e.g. "Bash(npm run build:*)" -> "npm run build"

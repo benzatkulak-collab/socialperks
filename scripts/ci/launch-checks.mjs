@@ -31,7 +31,21 @@ function walk(dir, out = []) {
   return out;
 }
 
-const srcFiles = walk(join(ROOT, "src")).filter((f) => /\.(ts|tsx|js|jsx|mjs)$/.test(f));
+// Scan every code root, not just src/ — this is a workspaces monorepo, and a
+// secret committed under packages/ or scripts/ passed the gate unnoticed.
+const SCAN_ROOTS = ["src", "packages", "scripts", "e2e"];
+// The detector files necessarily contain the very literals they search for
+// (e.g. the "service_role" marker below), so scanning them reports the guard
+// itself. Exclude only these two, by exact path — not a broad glob that could
+// hide a real secret.
+const SCANNER_SELF = new Set([
+  join(ROOT, "scripts", "ci", "launch-checks.mjs"),
+  join(ROOT, "scripts", "ci", "validate-skills.mjs"),
+]);
+const srcFiles = SCAN_ROOTS.flatMap((r) => {
+  const dir = join(ROOT, r);
+  return existsSync(dir) ? walk(dir) : [];
+}).filter((f) => /\.(ts|tsx|js|jsx|mjs)$/.test(f) && !SCANNER_SELF.has(f));
 
 // ── Guard 1: no live secret literals committed in source ─────────────────────
 // Real secrets belong in env vars, never in the bundle or repo. Test/publishable

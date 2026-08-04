@@ -18,7 +18,8 @@ model: opus
 Why this matters: if measurement is wrong you're flying blind on the ONLY thing
 that matters pre-launch — validated demand. A double-fired event or a dark
 PostHog key silently corrupts every conversion number you'd bet the roadmap on.
-Also enforced in CI via `.github/workflows/launch-gate.yml`.
+Run this on demand — there is no CI job for it. The Launch Gate covers
+static-guards, skills-validate, e2e-smoke and lighthouse only.
 
 ## Where measurement lives
 - `src/lib/analytics.ts` — typed funnel events; `track()` merges attribution,
