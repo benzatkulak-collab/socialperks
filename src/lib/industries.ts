@@ -12,6 +12,13 @@ export interface IndustryUseCase {
 export interface IndustryStat {
   label: string;
   value: string;
+  /**
+   * Attribution for third-party consumer-behavior figures (e.g. Nielsen,
+   * BrightLocal). Rendered as a visible "Source:" line. Omit for
+   * product-true statements — facts about how Social Perks works, which
+   * are verifiable by using the product and need no external citation.
+   */
+  source?: string;
 }
 
 export interface IndustryTemplate {
@@ -30,11 +37,27 @@ export interface IndustryPage {
   icon: string;
   useCases: IndustryUseCase[];
   stats: IndustryStat[];
-  testimonialQuote: string;
-  testimonialAuthor: string;
   templateSuggestions: IndustryTemplate[];
   relatedIndustries: string[];
 }
+
+// Well-established, conservatively-stated third-party consumer-behavior
+// figures. These are qualitative/floor values chosen to stay defensible
+// across every published version of their source survey — we never
+// overstate. Reused across industry pages so the "why word-of-mouth works"
+// claim always carries a real citation rather than an invented outcome.
+const NIELSEN_TRUST: IndustryStat = {
+  value: "#1",
+  label:
+    "Recommendations from people you know are the most-trusted form of advertising",
+  source: "Nielsen, Global Trust in Advertising",
+};
+
+const BRIGHTLOCAL_REVIEWS: IndustryStat = {
+  value: "9 in 10",
+  label: "consumers read online reviews before choosing a local business",
+  source: "BrightLocal, Local Consumer Review Survey",
+};
 
 export const INDUSTRIES: IndustryPage[] = [
   {
@@ -57,21 +80,23 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Instagram Food Posts",
         description:
-          "A free appetizer for tagging your restaurant in an Instagram post. Food content gets 120% more engagement than other categories.",
+          "A free appetizer for tagging your restaurant in an Instagram post. A tagged food photo puts your restaurant in front of the diner's friends — the people most likely to visit next.",
         platform: "Instagram",
         action: "Post a photo with tag",
       },
       {
         title: "TikTok Video Reviews",
         description:
-          "Offer a complimentary dessert for a TikTok video. Short-form video reviews drive 2x more foot traffic than static posts.",
+          "Offer a complimentary dessert for a TikTok video. A short video review shows your food in motion and reaches followers who haven't found you yet.",
         platform: "TikTok",
         action: "Post a video review",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to reach your diners' friends", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Pin & Return",
@@ -114,7 +139,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Latte Art Stories",
         description:
-          "Free cookie with any Instagram Story featuring your latte art. Visual content from real customers outperforms branded ads 4:1.",
+          "Free cookie with any Instagram Story featuring your latte art. A real customer's Story reaches their friends with a recommendation that lands harder than any ad.",
         platform: "Instagram",
         action: "Share a Story with tag",
       },
@@ -126,9 +151,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Post a photo tagging you",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad budget needed to grow by word of mouth", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Morning Buzz",
@@ -164,7 +191,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Before & After Posts",
         description:
-          "Offer $10 off the next appointment for an Instagram before-and-after post. Transformation content gets 5x more saves than average.",
+          "Offer $10 off the next appointment for an Instagram before-and-after post. Before-and-after photos are eye-catching, shareable content that shows off your work to the client's whole network.",
         platform: "Instagram",
         action: "Post a before & after photo",
       },
@@ -183,9 +210,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share referral link in Story",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to reach your clients' friends", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Glow Up Share",
@@ -241,13 +270,10 @@ export const INDUSTRIES: IndustryPage[] = [
       },
     ],
     stats: [
-      { label: "Increase in new bookings", value: "47%" },
-      { label: "Average value per referred client", value: "$120" },
-      { label: "Clients who rebook after sharing", value: "88%" },
+      { label: "Paid-ad spend to reach your clients' friends", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
     ],
-    testimonialQuote:
-      "My clients were already posting their nails. Now they tag the salon for a small perk and I get a steady stream of new bookings from their friends.",
-    testimonialAuthor: "Mia T., Polished Studio",
     templateSuggestions: [
       {
         name: "Fresh Set Share",
@@ -283,7 +309,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Fresh Fade Photo",
         description:
-          "A free beard trim for an Instagram post showing off the cut. Barbershop content is one of the most-shared categories on social.",
+          "A free beard trim for an Instagram post showing off the cut. A fresh-cut photo is an easy, natural post — and it puts your shop in front of the client's friends.",
         platform: "Instagram",
         action: "Post a photo of your fresh cut",
       },
@@ -297,14 +323,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "TikTok Transformation",
         description:
-          "$5 off the next cut for a TikTok before-and-after video. Barbershop transformations consistently go viral.",
+          "$5 off the next cut for a TikTok before-and-after video. Before-and-after cut videos are naturally shareable and reach people beyond your regulars.",
         platform: "TikTok",
         action: "Post a transformation video",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad spend to turn a fresh cut into new clients", value: "$0" },
+      { label: "Rewards pay out only after a verified post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Clean Cut Share",
@@ -341,21 +369,23 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Transformation Stories",
         description:
-          "One free month for sharing a transformation story on Instagram. Real results from real members convert 7x better than stock photos.",
+          "One free month for sharing a transformation story on Instagram. A real member's story is far more convincing to their friends than any stock-photo ad.",
         platform: "Instagram",
         action: "Post a transformation story",
       },
       {
         title: "Buddy Referral",
         description:
-          "Both friends get two weeks free when someone shares a referral link. People who work out with friends retain 3x longer.",
+          "Both friends get two weeks free when someone shares a referral link. People are more likely to stick with a gym when a friend joins them.",
         platform: "Instagram",
         action: "Share referral link",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to reach your members' networks", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Sweat & Share",
@@ -405,14 +435,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Bring a Friend",
         description:
-          "Free class for both when a student shares a referral link. Yoga students who come with a friend attend 2x more often.",
+          "Free class for both when a student shares a referral link. Students who bring a friend tend to show up more consistently — and bring the studio new faces.",
         platform: "Facebook",
         action: "Share event or referral link",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad budget to fill classes by word of mouth", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Namaste & Share",
@@ -462,14 +494,19 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Family Referral",
         description:
-          "$25 credit for both parties when a patient tags a family member in a post about the practice. Dental patients referred by friends have 3x higher lifetime value.",
+          "$25 credit for both parties when a patient tags a family member in a post about the practice. Patients referred by family and friends tend to be loyal, long-term patients.",
         platform: "TikTok",
         action: "Tag a family member in a post",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to earn patient referrals", value: "$0" },
+      {
+        label: "Incentivized reviews — blocked by design (Google & the FTC ban them)",
+        value: "0",
+      },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Happy Mouth Post",
@@ -505,7 +542,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Healthy Pet Post",
         description:
-          "Free dental treat bag for an Instagram post with your clinic tagged. Pet photos are shared 3x more than any other content type.",
+          "Free dental treat bag for an Instagram post with your clinic tagged. Pet photos are some of the most-shared content online — an easy, natural post for pet parents.",
         platform: "Instagram",
         action: "Post a photo of your pet at the clinic",
       },
@@ -519,14 +556,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "New Pet Parent Referral",
         description:
-          "$20 off for both when a client refers a new pet parent. Referrals account for 60% of new vet clients.",
+          "$20 off for both when a client refers a new pet parent. Word-of-mouth from other pet parents is one of the strongest ways new clients find a clinic.",
         platform: "Facebook",
         action: "Share a referral post",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad spend to reach fellow pet parents", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Healthy Paws Post",
@@ -569,21 +608,26 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Nextdoor Recommendation",
         description:
-          "$10 off next service for a Nextdoor recommendation. Hyperlocal platforms drive the highest conversion for auto shops.",
+          "$10 off next service for a Nextdoor recommendation. Hyperlocal recommendations reach nearby drivers deciding where to take their car.",
         platform: "Nextdoor",
         action: "Write a recommendation",
       },
       {
         title: "Neighbor Referral",
         description:
-          "Free oil change for both when a customer refers a neighbor. Word-of-mouth referrals have a 92% trust rating.",
+          "Free oil change for both when a customer refers a neighbor. A neighbor's recommendation is the kind of word-of-mouth people trust most.",
         platform: "Facebook",
         action: "Share referral post to local groups",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to earn new drivers' trust", value: "$0" },
+      {
+        label: "Incentivized reviews — blocked by design (Google & the FTC ban them)",
+        value: "0",
+      },
+      BRIGHTLOCAL_REVIEWS,
+    ],
     templateSuggestions: [
       {
         name: "Show the Work",
@@ -619,7 +663,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Closing Day Post",
         description:
-          "$50 gift card for a 'Just sold' Instagram post tagging the agent. Closing day content gets massive engagement from friends who are house-hunting.",
+          "$50 gift card for a 'Just sold' Instagram post tagging the agent. Closing-day posts reach friends who are house-hunting themselves.",
         platform: "Instagram",
         action: "Post a closing day photo with tag",
       },
@@ -633,14 +677,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Homeowner Referral",
         description:
-          "$200 referral bonus when a past client sends a buyer who closes. Real estate referrals have the highest close rate of any lead source.",
+          "$200 referral bonus when a past client sends a buyer who closes. Referrals from past clients are among an agent's warmest, highest-intent leads.",
         platform: "Facebook",
         action: "Share referral link or tag in post",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad spend to turn closings into referrals", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Closing Day Share",
@@ -676,7 +722,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Room With a View Post",
         description:
-          "Free late checkout for an Instagram post with the hotel tagged. Travel content reaches an average of 800 people per post.",
+          "Free late checkout for an Instagram post with the hotel tagged. Travel photos reach the guest's friends — many of them planning trips of their own.",
         platform: "Instagram",
         action: "Post a photo from the hotel with tag",
       },
@@ -690,14 +736,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Group Booking Share",
         description:
-          "10% off group rates when guests share an event booking link. Wedding and event referrals average $3,200 per booking.",
+          "10% off group rates when guests share an event booking link. Event and group referrals can turn one booking into many.",
         platform: "Facebook",
         action: "Share event booking page",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to reach your guests' networks", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      BRIGHTLOCAL_REVIEWS,
+    ],
     templateSuggestions: [
       {
         name: "Check-In & Share",
@@ -727,7 +775,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Haul Post Campaign",
         description:
-          "15% off next purchase for an Instagram haul post. Shopping haul content drives 3x more store visits than display ads.",
+          "15% off next purchase for an Instagram haul post. Haul posts show real products on real people and reach the shopper's friends.",
         platform: "Instagram",
         action: "Post a shopping haul with tag",
       },
@@ -741,14 +789,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Pinterest Product Pin",
         description:
-          "$5 store credit for pinning a product to Pinterest. Pinterest shoppers spend 2x more per order than other social platforms.",
+          "$5 store credit for pinning a product to Pinterest. Pinterest is a discovery platform where shoppers actively look for products to buy.",
         platform: "Pinterest",
         action: "Pin a product from the store",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad spend to reach your shoppers' friends", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Shopping Haul",
@@ -784,7 +834,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Post-Treatment Glow",
         description:
-          "Free aromatherapy upgrade for an Instagram Story from the spa. Wellness content generates the highest engagement rates on Instagram.",
+          "Free aromatherapy upgrade for an Instagram Story from the spa. Wellness and self-care posts are popular, shareable content that reaches new local audiences.",
         platform: "Instagram",
         action: "Share a Story with location tag",
       },
@@ -798,14 +848,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Couples Referral",
         description:
-          "Free add-on service for both when a client refers a friend. Spa referrals have a 74% conversion rate.",
+          "Free add-on service for both when a client refers a friend. A friend's recommendation is one of the most reliable ways new clients book.",
         platform: "Facebook",
         action: "Share referral post or tag a friend",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to reach your clients' networks", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Spa Day Share",
@@ -841,7 +893,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Pretty Pastry Post",
         description:
-          "Free cookie with next purchase for an Instagram post. Bakery content is the most-saved food category on Instagram.",
+          "Free cookie with next purchase for an Instagram post. Beautiful baked goods are naturally photogenic — an easy, shareable post for customers.",
         platform: "Instagram",
         action: "Post a photo of your order with tag",
       },
@@ -855,14 +907,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Birthday Cake Referral",
         description:
-          "Free cupcakes for both when a customer refers someone for a custom cake order. Custom orders average $120+.",
+          "Free cupcakes for both when a customer refers someone for a custom cake order. Custom cake orders are high-value — worth rewarding a referral for.",
         platform: "Instagram",
         action: "Tag a friend in a post or Story",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad budget to grow by word of mouth", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Sweet Shot",
@@ -912,14 +966,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Event Hype Share",
         description:
-          "Free first beer at the event for sharing an event post. Social shares drive 60% of brewery event attendance.",
+          "Free first beer at the event for sharing an event post. Event shares from regulars fill your taproom by reaching their friends directly.",
         platform: "Facebook",
         action: "Share an event post",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to fill your taproom", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Tap & Tag",
@@ -955,7 +1011,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Bouquet Photo Share",
         description:
-          "$5 off next order for an Instagram post. Flower photos are shared and saved 4x more than average content.",
+          "$5 off next order for an Instagram post. Flowers are some of the most-photographed gifts — a natural, beautiful post to share.",
         platform: "Instagram",
         action: "Post a photo of your arrangement with tag",
       },
@@ -969,14 +1025,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Gift Referral",
         description:
-          "Free delivery for both when a recipient refers the sender. Gift recipients are 5x more likely to become customers.",
+          "Free delivery for both when a recipient refers the sender. A flower recipient is a warm new customer — reward the introduction.",
         platform: "Instagram",
         action: "Tag the sender and the florist in a post",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad spend to reach your customers' friends", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Petal Post",
@@ -1020,14 +1078,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Engagement Session Referral",
         description:
-          "$50 print credit for both when a client refers someone who books. Referred photography clients spend 35% more on average.",
+          "$50 print credit for both when a client refers someone who books. Referred clients arrive already trusting your work — reward the introduction.",
         platform: "Instagram",
         action: "Tag a friend in a Story or post",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to turn galleries into bookings", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Gallery Share",
@@ -1063,7 +1123,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Fresh Ink Post",
         description:
-          "$15 off next session for an Instagram post showing their new tattoo. Tattoo reveals are one of the highest-engagement content types on social media.",
+          "$15 off next session for an Instagram post showing their new tattoo. A fresh-ink reveal is naturally eye-catching content that reaches the client's followers.",
         platform: "Instagram",
         action: "Post a photo of new tattoo with shop tag",
       },
@@ -1077,14 +1137,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Flash Day Referral",
         description:
-          "Priority booking for both on flash days when a client refers a friend. Flash events with social promotion sell out 3x faster.",
+          "Priority booking for both on flash days when a client refers a friend. Social promotion helps flash events fill up by reaching people beyond your regulars.",
         platform: "Instagram",
         action: "Tag a friend in a flash event post",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad spend to turn fresh ink into bookings", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Fresh Ink Reveal",
@@ -1114,7 +1176,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "New Toy Unboxing",
         description:
-          "Free treat bag for an Instagram Reel of their pet with a new toy. Pet unboxing content averages 2x the engagement of standard posts.",
+          "Free treat bag for an Instagram Reel of their pet with a new toy. Pet photos and unboxings are fun, shareable content that reaches other pet parents.",
         platform: "Instagram",
         action: "Post a Reel of your pet with a store purchase",
       },
@@ -1133,9 +1195,11 @@ export const INDUSTRIES: IndustryPage[] = [
         action: "Share a referral post in pet parent groups",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Paid-ad spend to compete with the big chains", value: "$0" },
+      { label: "FTC disclosure added to every post", value: "Automatic" },
+      BRIGHTLOCAL_REVIEWS,
+    ],
     templateSuggestions: [
       {
         name: "Happy Pet Post",
@@ -1171,7 +1235,7 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "OOTD Post Campaign",
         description:
-          "15% off next purchase for an outfit-of-the-day Instagram post. Fashion try-on content drives 4x more saves and shares than brand posts.",
+          "15% off next purchase for an outfit-of-the-day Instagram post. Outfit posts show your pieces on real people and reach the shopper's friends.",
         platform: "Instagram",
         action: "Post an OOTD with boutique tag",
       },
@@ -1185,14 +1249,16 @@ export const INDUSTRIES: IndustryPage[] = [
       {
         title: "Style Share Referral",
         description:
-          "$10 credit for both when a customer refers a friend. Fashion referrals convert at 3x the rate of paid social ads.",
+          "$10 credit for both when a customer refers a friend. A friend's style recommendation converts far better than a cold ad.",
         platform: "Instagram",
         action: "Send a referral link via DM or Story",
       },
     ],
-    stats: [],
-    testimonialQuote: "",
-    testimonialAuthor: "",
+    stats: [
+      { label: "Ad spend to reach your customers' friends", value: "$0" },
+      { label: "Every reward pays out only after a real post", value: "Verified" },
+      NIELSEN_TRUST,
+    ],
     templateSuggestions: [
       {
         name: "Style Share",

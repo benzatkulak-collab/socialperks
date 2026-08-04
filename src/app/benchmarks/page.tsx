@@ -26,7 +26,7 @@ const SITE_URL =
 export const metadata: Metadata = {
   title: "Marketing Benchmarks by Industry: ROI & Perk Values",
   description:
-    "Average completion rate, perk value, top platforms, and ROI for incentivized marketing campaigns across 20 industries. Updated quarterly.",
+    "Modeled per-industry planning estimates (completion rate, perk value, top platforms, ROI) for incentivized campaigns across 20 industries.",
   alternates: { canonical: `${SITE_URL}/benchmarks` },
   openGraph: {
     images: ogImages(),
@@ -52,6 +52,10 @@ export default function BenchmarksPage() {
   const avgPerk = rows.reduce((s, r) => s + r.benchmarks.avgPerkValue, 0) / rows.length;
   const avgROI = rows.reduce((s, r) => s + r.benchmarks.avgROI, 0) / rows.length;
 
+  // Modeling disclaimer surfaced verbatim from getBenchmarks() so the
+  // page never presents these figures as observed results.
+  const disclaimer = rows[0]?.benchmarks.disclaimer ?? "";
+
   // Schema.org Dataset — search engines and LLMs index datasets as
   // citable references for statistics. Each row gets implicit dataset
   // membership via the page-level Dataset definition.
@@ -60,7 +64,7 @@ export default function BenchmarksPage() {
     "@type": "Dataset",
     name: "Social Perks industry benchmarks",
     description:
-      "Per-industry benchmarks for incentivized social media marketing campaigns: average completion rate, average perk value, top platforms, top campaign types, and average ROI. Covers 20 small-business industries.",
+      "Modeled per-industry planning estimates (not measured from live campaigns): average completion rate, average perk value, top platforms, top campaign types, and average ROI. Covers 20 small-business industries.",
     url: `${SITE_URL}/benchmarks`,
     creator: {
       "@type": "Organization",
@@ -75,7 +79,7 @@ export default function BenchmarksPage() {
       "perk value benchmarks",
     ],
     measurementTechnique:
-      "Aggregated across active campaigns on the Social Perks platform with cross-platform influencer rate-card comparison.",
+      "Modeled category estimates derived from configured action base values and effort ratings, not aggregated from live campaigns.",
     variableMeasured: [
       "Average completion rate",
       "Average perk value (USD)",
@@ -114,11 +118,20 @@ export default function BenchmarksPage() {
 
           {/* Topline averages */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Stat label="Avg completion rate" value={`${avgCompletion.toFixed(0)}%`} />
+            <Stat
+              label="Modeled completion estimate (illustrative, pre-launch)"
+              value={`${avgCompletion.toFixed(0)}%`}
+            />
             <Stat label="Avg perk value" value={`$${avgPerk.toFixed(0)}`} />
-            <Stat label="Avg ROI" value={`${avgROI.toFixed(1)}x`} />
+            <Stat
+              label="Modeled avg ROI (illustrative, pre-launch)"
+              value={`${avgROI.toFixed(1)}x`}
+            />
             <Stat label="Industries covered" value={String(rows.length)} />
           </div>
+          {disclaimer && (
+            <p className="mt-3 text-xs text-brand-text-dim">{disclaimer}</p>
+          )}
         </header>
 
         {/* Programmatic access notice */}
@@ -167,16 +180,19 @@ export default function BenchmarksPage() {
               </header>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                 <MiniStat
-                  label="Completion"
+                  label="Modeled estimate"
                   value={`${benchmarks.avgCompletionRate}%`}
                 />
                 <MiniStat
                   label="Avg perk"
                   value={`$${benchmarks.avgPerkValue}`}
                 />
-                <MiniStat label="ROI" value={`${benchmarks.avgROI.toFixed(1)}x`} />
                 <MiniStat
-                  label="Monthly actions"
+                  label="Modeled ROI estimate"
+                  value={`${benchmarks.avgROI.toFixed(1)}x`}
+                />
+                <MiniStat
+                  label="Modeled monthly actions"
                   value={String(benchmarks.monthlyActions)}
                 />
               </div>
@@ -208,11 +224,12 @@ export default function BenchmarksPage() {
 
         <footer className="mt-16 pt-8 border-t border-brand-border text-sm text-brand-text-dim">
           <p>
-            Methodology: aggregated from active campaigns on the Social
-            Perks platform with cross-platform influencer rate-card
-            comparison. Updated quarterly. ROI is calculated as
-            (estimated marketing-equivalent value) / (perk cost +
-            platform fee).
+            Methodology: these are modeled planning estimates derived from
+            configured per-action values and effort ratings — not measured
+            from live campaigns. They are pre-launch defaults and will be
+            replaced with real cohort data once available. ROI is
+            calculated as (estimated marketing-equivalent value) / (perk
+            cost + platform fee).
           </p>
           <p className="mt-3">
             See also:{" "}

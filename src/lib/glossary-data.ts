@@ -41,7 +41,7 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
   ),
   entry(
     "Activation",
-    "The first time a customer completes a campaign action and earns a perk. Activation is the conversion event Social Perks optimizes for — the dashboard's first-launch tour, welcome emails, and template recommendations are designed to minimize time-to-activation. Industry benchmark: 55% of new restaurant signups activate within 14 days.",
+    "The first time a customer completes a campaign action and earns a perk. Activation is the conversion event Social Perks optimizes for — the dashboard's first-launch tour, welcome emails, and template recommendations are designed to minimize time-to-activation.",
     { category: "marketing", related: ["completion", "campaign"] }
   ),
   entry(
@@ -71,7 +71,7 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
   ),
   entry(
     "Effort",
-    "The time and skill required to complete an action, expressed as 0-5: 0 (trivial — under a minute, e.g., a like), 1 (low — a minute or two, e.g., a story tag), 2 (moderate — a few minutes), 3 (meaningful — five to ten minutes, e.g., a Reel), 4 (significant — fifteen plus minutes, e.g., a 60-second video review), 5 (high — half an hour or more). Effort and market value are correlated but not identical; some platforms reward certain low-effort actions (e.g., Google reviews) at higher-than-effort prices.",
+    "The time and skill required to complete an action, expressed as 0-5: 0 (trivial — under a minute, e.g., a like), 1 (low — a minute or two, e.g., a story tag), 2 (moderate — a few minutes), 3 (meaningful — five to ten minutes, e.g., a Reel), 4 (significant — fifteen plus minutes, e.g., a 60-second video review), 5 (high — half an hour or more). Effort and market value are correlated but not identical; some low-effort actions carry a higher market value than their effort alone would suggest.",
     { category: "marketing" }
   ),
   entry(
@@ -111,7 +111,7 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
   ),
   entry(
     "Pricing oracle",
-    "A public Social Perks endpoint (GET /api/v1/pricing) that returns the market-rate USD value of any action, plus a recommended perk type and amount for a given business type. The recommendations are tuned so the perk cost roughly matches the action's marketing-equivalent value, leaving the business break-even on first-action customer acquisition. Updated quarterly.",
+    "A public Social Perks endpoint (GET /api/v1/pricing) that returns the market-rate USD value of any action, plus a recommended perk type and amount for a given business type. The recommendations are tuned so the perk cost roughly matches the action's marketing-equivalent value, leaving the business break-even on first-action customer acquisition.",
     { category: "perks", related: ["action", "benchmarks"] }
   ),
   entry(
@@ -168,7 +168,7 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
   // ─── Additional marketing terms ──────────────────────────────────────
   entry(
     "Conversion rate",
-    "The percentage of campaign starts that turn into approved completions. Social Perks measures conversion at three points: scan-to-submission (the customer scanned the QR and submitted proof) and submission-to-approval (the proof passed verification). Industry benchmark: 45-55% scan-to-approval rate for restaurants and coffee shops.",
+    "The percentage of campaign starts that turn into approved completions. Social Perks measures conversion at three points: scan-to-submission (the customer scanned the QR and submitted proof) and submission-to-approval (the proof passed verification).",
     { category: "marketing", related: ["completion", "submission"] }
   ),
   entry(
@@ -183,7 +183,7 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
   ),
   entry(
     "ROI multiplier",
-    "The marketing-equivalent value of a campaign divided by its total cost. A 3x ROI means $3 of marketing value for every $1 spent. Calculated as (sum of action market values) / (total perk cost + Social Perks subscription). Industry benchmark: 3-6x for incentivized campaigns vs 1.5-3x for paid social ads.",
+    "The marketing-equivalent value of a campaign divided by its total cost. A 3x ROI means $3 of marketing value for every $1 spent. Calculated as (sum of action market values) / (total perk cost + Social Perks subscription).",
     { category: "marketing", related: ["benchmark"], slug: "roi-multiplier" }
   ),
   entry(

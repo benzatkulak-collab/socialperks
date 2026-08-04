@@ -6,7 +6,7 @@ import type { InfluencerProfile, RateCard } from "./profile-editor";
 
 const RATE_LABELS: Record<keyof RateCard, { label: string; description: string }> = {
   content: { label: "Content Creation", description: "Photos, videos, reels, stories" },
-  review: { label: "Reviews", description: "Google, Yelp, TripAdvisor reviews" },
+  review: { label: "Reviews", description: "Recommendations, channel & product reviews" },
   engage: { label: "Engagement", description: "Likes, follows, comments, saves" },
   share: { label: "Sharing", description: "Reposts, DM shares, story shares" },
   referral: { label: "Referrals", description: "Friend referrals, group chats" },

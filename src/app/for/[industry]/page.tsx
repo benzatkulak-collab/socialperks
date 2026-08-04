@@ -294,21 +294,26 @@ export default async function IndustryPage({ params }: PageProps) {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="mb-14 text-center sm:mb-16">
             <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.15em] text-brand-cyan sm:text-xs">
-              Results
+              The economics
             </p>
             <h2
               id="stats-heading"
               className="font-heading text-[clamp(1.75rem,3vw,3rem)] italic leading-tight text-brand-white"
             >
-              The numbers speak for themselves
+              The math behind customer-powered marketing
             </h2>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-brand-dim sm:text-base">
+              No inflated case-study numbers here — Social Perks is new. These are
+              facts about how the product works, plus independent consumer-behavior
+              research.
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3 sm:gap-5 lg:gap-6">
             {industry.stats.map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-xl border border-brand-border/40 bg-brand-surface/30 p-6 text-center backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-border/70 hover:bg-brand-surface/50 sm:p-8"
+                className="flex flex-col rounded-xl border border-brand-border/40 bg-brand-surface/30 p-6 text-center backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-border/70 hover:bg-brand-surface/50 sm:p-8"
               >
                 <p className="font-mono text-3xl font-semibold text-brand-cyan sm:text-4xl">
                   {stat.value}
@@ -316,6 +321,11 @@ export default async function IndustryPage({ params }: PageProps) {
                 <p className="mt-3 text-sm leading-relaxed text-brand-dim">
                   {stat.label}
                 </p>
+                {stat.source && (
+                  <p className="mt-auto pt-3 text-[11px] leading-relaxed text-brand-muted">
+                    Source: {stat.source}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -397,12 +407,14 @@ export default async function IndustryPage({ params }: PageProps) {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          TESTIMONIAL
+          HONEST CUSTOMER-STORY NOTE
+          We are pre-launch with no real customers, so we show no invented
+          testimonials. This block states that plainly and points to the
+          (already honest) /case-studies page.
           ═══════════════════════════════════════════════════════════════════ */}
-      {industry.testimonialQuote && (
       <section
         className="relative bg-brand-bg py-20 sm:py-28"
-        aria-label="Testimonial"
+        aria-label="Our approach to customer stories"
       >
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-border to-transparent"
@@ -424,15 +436,23 @@ export default async function IndustryPage({ params }: PageProps) {
               <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
             </svg>
             <blockquote className="font-heading text-xl italic leading-relaxed text-brand-white sm:text-2xl">
-              {industry.testimonialQuote}
+              We don&apos;t run fake testimonials.
             </blockquote>
-            <p className="mt-6 text-sm text-brand-muted">
-              {industry.testimonialAuthor}
+            <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-brand-dim sm:text-base">
+              Social Perks is new, and we&apos;re onboarding our first{" "}
+              {industry.name.toLowerCase()} now. When we have real results —
+              real names, real numbers — they&apos;ll go here. Until then, we&apos;d
+              rather show you nothing than make something up.
             </p>
+            <Link
+              href="/case-studies"
+              className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-brand-cyan transition-colors hover:text-brand-cyan/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/40"
+            >
+              See our honest approach to case studies &rarr;
+            </Link>
           </div>
         </div>
       </section>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           FINAL CTA
@@ -464,8 +484,8 @@ export default async function IndustryPage({ params }: PageProps) {
           </h2>
 
           <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-brand-dim sm:mt-8 sm:text-lg">
-            Join thousands of {industry.name.toLowerCase()} already using Social
-            Perks to turn customers into their marketing team.
+            Turn your happy {industry.name.toLowerCase()} customers into your
+            marketing team — no ad budget required, FTC-compliant by default.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:mt-12 sm:flex-row">

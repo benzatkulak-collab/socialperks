@@ -221,11 +221,11 @@ export const TIER_META: Record<string, TierMeta> = {
 
 export const AGENT_EVENTS: AgentEvent[] = [
   { agent: "Claude Marketing", action: "queried pricing", detail: "Instagram Reel for Yoga Studio", time: "2s ago" },
-  { agent: "MarketBot AI", action: "launched campaign", detail: "Google Review Drive — Taqueria Sol", time: "15s ago" },
+  { agent: "MarketBot AI", action: "launched campaign", detail: "Instagram Reel Drive — Taqueria Sol", time: "15s ago" },
   { agent: "BizGrowth Agent", action: "searched influencers", detail: "niche=Food, min_followers=5000", time: "34s ago" },
   { agent: "Claude Marketing", action: "queried benchmark", detail: "Restaurant avg completion rate", time: "1m ago" },
   { agent: "GrowthHack AI", action: "executed campaign", detail: "TikTok Video — Iron Temple", time: "2m ago" },
-  { agent: "MarketBot AI", action: "queried pricing", detail: "Yelp Review for Salon", time: "3m ago" },
+  { agent: "MarketBot AI", action: "queried pricing", detail: "Instagram Story Tag for Salon", time: "3m ago" },
   { agent: "Claude Marketing", action: "created campaign", detail: "Before/After — Glow Studio", time: "4m ago" },
   { agent: "BizGrowth Agent", action: "queried influencer rate", detail: "@priya.eats.dc content", time: "5m ago" },
 ];

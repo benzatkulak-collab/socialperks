@@ -129,11 +129,23 @@ export default async function PricingOraclePage({
         </header>
 
         {/* Industry benchmarks summary */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
-          <Stat label="Avg completion" value={`${benchmarks.avgCompletionRate}%`} />
-          <Stat label="Avg perk" value={`$${benchmarks.avgPerkValue}`} />
-          <Stat label="Avg ROI" value={`${benchmarks.avgROI.toFixed(1)}x`} />
-          <Stat label="Top platforms" value={benchmarks.topPlatforms.slice(0, 2).join(", ")} />
+        <section className="mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Stat
+              label="Modeled completion (est.)"
+              value={`${benchmarks.avgCompletionRate}%`}
+            />
+            <Stat label="Avg perk" value={`$${benchmarks.avgPerkValue}`} />
+            <Stat
+              label="Modeled ROI (est.)"
+              value={`${benchmarks.avgROI.toFixed(1)}x`}
+            />
+            <Stat label="Top platforms" value={benchmarks.topPlatforms.slice(0, 2).join(", ")} />
+          </div>
+          <p className="text-xs text-brand-text-dim mt-3">
+            Completion and ROI are modeled pre-launch estimates, not measured
+            results. {benchmarks.disclaimer}
+          </p>
         </section>
 
         {/* Recommendations table */}

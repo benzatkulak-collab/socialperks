@@ -94,15 +94,14 @@ export default function ResourcesPage() {
           <Link href="/benchmarks" className={cardCls}>
             <p className={titleCls}>Industry benchmarks</p>
             <p className={descCls}>
-              Per-industry completion rate, ROI, top platforms, top campaign
-              types. Updated quarterly.
+              Per-industry perk values, top platforms, and top campaign
+              types.
             </p>
           </Link>
           <Link href="/pricing-oracle" className={cardCls}>
             <p className={titleCls}>Pricing oracle</p>
             <p className={descCls}>
-              Recommended perk amounts for each industry, derived from real
-              market data.
+              Recommended starting perk amounts for each industry.
             </p>
           </Link>
         </Section>

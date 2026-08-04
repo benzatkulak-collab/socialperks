@@ -9,7 +9,7 @@ import { safeJsonForScript } from "@/lib/security/json-ld";
 export const metadata: Metadata = {
   title: "Leaderboard — Social Perks",
   description:
-    "Top creators and businesses on Social Perks this month. Real-time ranking by verified posts and customer reach.",
+    "See how the Social Perks creator and business leaderboard works — an example of how reach and verified posts rank participants.",
   alternates: { canonical: "/leaderboard" },
 };
 
@@ -24,13 +24,6 @@ function tierFromFollowers(f: number): "Mega" | "Macro" | "Mid" | "Micro" {
   if (f >= 100_000) return "Macro";
   if (f >= 10_000) return "Mid";
   return "Micro";
-}
-
-function estimateEarnings(f: number): number {
-  if (f >= 100_000) return 4_800;
-  if (f >= 25_000) return 1_400;
-  if (f >= 5_000) return 480;
-  return 120;
 }
 
 export default function LeaderboardPage() {
@@ -72,11 +65,12 @@ export default function LeaderboardPage() {
           Leaderboard
         </p>
         <h1 className="font-heading text-4xl italic text-brand-white sm:text-5xl">
-          Who&apos;s shipping right now
+          How the leaderboard works
         </h1>
         <p className="mt-4 text-base text-brand-dim sm:text-lg">
-          Updated weekly. Creators are ranked by reach and verified posts.
-          Businesses by campaigns shipped and customers reached.
+          <span className="font-semibold text-brand-white">Example board.</span>{" "}
+          When live, creators rank by reach and verified posts and businesses by
+          campaign activity.
         </p>
 
         {/* Creators */}
@@ -94,7 +88,6 @@ export default function LeaderboardPage() {
             {topCreators.map((i, idx) => {
               const slug = buildInfluencerSlug(i);
               const tier = tierFromFollowers(i.followerCount);
-              const earnings = estimateEarnings(i.followerCount);
               const rankBadge = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
               return (
                 <li key={i.id}>
@@ -118,10 +111,9 @@ export default function LeaderboardPage() {
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="font-mono text-sm text-brand-green">
-                        ~${earnings.toLocaleString()}
+                      <p className="text-xs text-brand-green">
+                        Earns from local campaigns
                       </p>
-                      <p className="text-[10px] text-brand-muted">last 90d</p>
                     </div>
                   </Link>
                 </li>

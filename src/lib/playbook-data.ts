@@ -42,20 +42,20 @@ export const PLAYBOOKS: Playbook[] = [
     industrySlug: "coffee-shops",
     title: "Instagram playbook for coffee shops — Reels, Stories, perks",
     description:
-      "Tested Instagram strategies for independent coffee shops. Reel + Story Tag perk combinations that actually move foot traffic, with exact perk amounts and timing.",
+      "Practical Instagram strategies for independent coffee shops. Reel + Story Tag perk combinations designed to turn regulars into repeat visits, with exact perk amounts and timing.",
     quickStart: [
       "Print a QR code linking to a Story Tag campaign — 10% off the next drink.",
       "Pair it with a Reel campaign at $4 per completion (effort 3) for any customer who posts a 15-second video of their drink.",
-      "Track scan-to-post conversion daily. Below 4% means the QR is in the wrong spot — move to receipt-bottom.",
+      "Track scan-to-post conversion daily. If very few scanners go on to post, the QR is probably in the wrong spot — try moving it to the bottom of the receipt.",
     ],
     sections: [
       {
         heading: "Why Instagram works for coffee shops",
         body: `Coffee is photogenic. Latte art, drink design, ambiance — every cup is content. Customers under 35 already document their food and drinks; you're not asking them to do something new, you're rewarding behavior that's already happening.
 
-The math: a regular customer with 800 followers posts a Story tag. Their network is local (it's a small coffee shop), engagement is high (smaller accounts run 5-8% engagement), and the Story stays for 24 hours but can be saved as a Highlight forever.
+The math: a regular customer with 800 followers posts a Story tag. Their network is local (it's a small coffee shop), engagement is high (smaller accounts tend to see stronger engagement than large ones), and the Story stays for 24 hours but can be saved as a Highlight forever.
 
-The conversion rate from "Story tag visible to friend" → "friend visits the shop" runs 0.5-1.5%. So each Story tag translates to roughly 4-12 impressions and 1-2 actual visits over its lifetime. At a $1.50 perk cost (10% off a $5 drink) you're at ~$0.75 per attributed visit.`,
+A regular with a local following posts a Story tag; it reaches their friends, and the perk cost is fixed at $1.50 (10% off a $5 drink). How many of those views turn into visits depends on your shop and offer — track it in your dashboard rather than assuming a rate.`,
       },
       {
         heading: "The two-tier campaign structure",
@@ -67,7 +67,7 @@ The conversion rate from "Story tag visible to friend" → "friend visits the sh
   Tier 2 — High-leverage: Reel for free pastry + drink upgrade
     Effort 3, value $4. The customer commits more, the post lasts longer, and you get a piece of content you can repost.
 
-The 80/20 split: 80% of completions come from Tier 1, 80% of marketing value comes from Tier 2. Both matter.`,
+Expect most completions to come from the low-effort tier and most of your reusable marketing value to come from the high-effort tier — both matter.`,
       },
       {
         heading: "Timing and frequency",
@@ -107,7 +107,7 @@ You don't need to manually do anything — it's wired into the campaign template
     industrySlug: "restaurants",
     title: "Instagram playbook for restaurants — food photography that converts",
     description:
-      "Restaurant Instagram strategies that drive bookings, not just likes. Reel + carousel combinations, perk amounts, and the specific dish presentations that get reshared.",
+      "Restaurant Instagram strategies aimed at turning engagement into bookings, not just likes. Reel + carousel combinations, perk amounts, and the specific dish presentations that get reshared.",
     quickStart: [
       "Train staff to mention the perk when they bring out the dish — 'tag us in a story for 15% off your next visit'.",
       "Pair a Reel campaign at $5 (your highest-value action, effort 3) with a carousel campaign at $3 for plate-by-plate posts.",
@@ -118,7 +118,7 @@ You don't need to manually do anything — it's wired into the campaign template
         heading: "The dish that gets reshared",
         body: `Restaurant Instagram converts on visual signal. The dishes that get reshared share three traits:
 
-  - Color contrast: a purple dish on a white plate is reshared 3x more than the same dish on a brown plate.
+  - Color contrast: a high-contrast dish — e.g. a purple dish on a white plate — tends to get reshared more than a low-contrast one on a dark plate.
   - Vertical food: anything stacked, layered, or tall photographs better than flat plates.
   - The bite shot: a photo with a fork mid-cut into the dish (showing the inside) outperforms intact-plate photos.
 
@@ -163,7 +163,7 @@ Don't run a Reel campaign without also running a carousel campaign. They serve d
     industrySlug: "restaurants",
     title: "TikTok playbook for restaurants — what gets viral, what gets ignored",
     description:
-      "Tested TikTok strategies for independent restaurants. Trend-driven content, perk structures, and the exact format of videos that drive customers through the door.",
+      "Practical TikTok strategies for independent restaurants. Trend-driven content, perk structures, and the video formats designed to turn viewers into in-person visits.",
     quickStart: [
       "Identify one signature dish that's visually unique. That's the only dish you should try to make TikTok-famous.",
       "Run a Stitch campaign at $3 (effort 2) — customers reply to your trend-format videos with their reaction.",
@@ -172,7 +172,7 @@ Don't run a Reel campaign without also running a carousel campaign. They serve d
     sections: [
       {
         heading: "How TikTok food content actually goes viral",
-        body: `TikTok virality for food is non-linear. 95% of attempts get under 1,000 views. The 5% that hit cross 100K views and 1-2% of those cross 1M.
+        body: `TikTok virality for food is highly non-linear — the large majority of posts get little reach, while a small fraction break out to very large view counts.
 
 The pattern of the 5% that breaks through:
 
@@ -198,9 +198,9 @@ The Stitch is the lowest-effort highest-leverage TikTok action for a small resta
         heading: "The 'made me hungry' comment",
         body: `TikTok comments tell you which posts will convert. The single most predictive comment for "this video will drive in-person visits" is some variation of "made me hungry" or "now I want this".
 
-Posts that get this comment in the first 100 comments convert at 4-8% of unique viewers to in-person visits within 14 days. Posts that don't get this comment convert at 0.2-0.5%.
+Posts that attract made-me-hungry-style comments early tend to be the ones that actually drive in-person visits; posts without them rarely do. Track the comment text in your dashboard and treat it as a leading indicator.
 
-Track the comment text in your dashboard. If a campaign's posts aren't getting "made me hungry"-style comments, the visual hook needs work.`,
+If a campaign's posts aren't getting "made me hungry"-style comments, the visual hook needs work.`,
       },
       {
         heading: "Compliance: TikTok branded content toggle",
@@ -243,10 +243,10 @@ Social Perks's compliance plugin will refuse to launch a campaign that pays for 
         body: `Three legal paths to drive Google reviews without paying for them:
 
   1. Ask for an organic review at the right moment.
-     Customers are most likely to leave a positive review 5-15 minutes after a great experience. A QR code on the receipt that says "Loved it? Tell Google" — with no perk attached — converts at 2-4%, vs. 0.3-0.7% for cold ask later.
+     Customers are most likely to leave a positive review 5-15 minutes after a great experience. A QR code on the receipt that says "Loved it? Tell Google" — with no perk attached — captures far more reviews when asked right after a great experience than a cold ask days later.
 
   2. Make the path frictionless.
-     The QR should deep-link to https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID. One tap, no menu navigation. Conversion rate doubles.
+     The QR should deep-link to https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID. One tap, no menu navigation — removing that friction meaningfully lifts how many people finish leaving a review.
 
   3. Respond to every existing review.
      Google's algorithm weighs review-response density. Responding to old reviews (positive and negative) within 30 days of getting them increases the rate at which new reviews show up in search.
@@ -311,7 +311,7 @@ What you CAN do: optimize the profile, respond to reviews, claim category accura
       },
       {
         heading: "Yelp's 'elite' reviewer dynamic",
-        body: `Yelp Elite reviewers have outsized influence. One Elite review can drive 30-50 page views vs 5-10 for a typical user.
+        body: `Yelp Elite reviewers have outsized influence. A review from a Yelp Elite reviewer typically reaches far more people than one from a typical user.
 
 The "right" way to attract Elite reviewers:
   - Be findable: complete profile, accurate hours, clear category

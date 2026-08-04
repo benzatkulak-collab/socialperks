@@ -128,7 +128,7 @@ export const GUIDES: Guide[] = [
     steps: [
       {
         name: "Look up the action's market-rate value",
-        text: "Every action on Social Perks has a market-rate dollar value based on cross-platform influencer rate cards. A Story Tag is $1.50, a Reel is $4, a detailed Google review with photos is $10. See /actions or GET /api/v1/pricing.",
+        text: "Every action on Social Perks has a market-rate dollar value based on cross-platform influencer rate cards. A Story Tag is $1.50 and a Reel is $4, for example. See /actions or GET /api/v1/pricing.",
         url: "/actions",
       },
       {
@@ -251,9 +251,9 @@ export const GUIDES: Guide[] = [
     slug: "switch-from-paid-ads-to-incentivized-marketing",
     title: "How to migrate from paid social ads to incentivized marketing",
     description:
-      "Step-by-step migration from a $1,000/month paid-ads budget to an incentivized-marketing campaign that delivers better ROI by paying customers, not Meta or Google.",
+      "Step-by-step guide to shifting a paid-ads budget toward incentivized marketing, where your budget goes to customers as perks instead of to Meta or Google.",
     summary:
-      "A typical $1,000/month paid social budget delivers maybe 50 conversions if you're optimized. Reallocating that same $1,000 to incentivized marketing — paying customers $20 each for a Reel + a Google review — often delivers 50+ posts and ~25 reviews while keeping the dollars circulating to your customers, not the ad platforms.",
+      "Instead of paying Meta or Google per click, you set a fixed perk (say $20) that goes to a customer who posts about you. The same budget funds customer-made content and keeps the dollars circulating to your customers, not the ad platforms. Actual volume depends on your customer base and offer.",
     totalTime: "PT30M",
     timeLabel: "30 minutes setup, 2 weeks to first results",
     supplies: [
@@ -272,7 +272,7 @@ export const GUIDES: Guide[] = [
       },
       {
         name: "Pick the action that matches your conversion",
-        text: "If your conversions are reviews: switch to a Google review ask + 10% off. If conversions are followers: a Story Tag campaign at $1.50 each scales 10x more units. If conversions are sales: a referral program with a $5 referrer credit + $5 referee discount.",
+        text: "If your goal is reviews: ask organically at the moment of delight — reviews can't be incentivized, so never attach a perk to one. If conversions are followers: a Story Tag campaign at $1.50 each lets you fund many low-effort actions per dollar. If conversions are sales: a referral program with a $5 referrer credit + $5 referee discount.",
       },
       {
         name: "Set the perk equal to your old per-conversion cost",
@@ -280,7 +280,7 @@ export const GUIDES: Guide[] = [
       },
       {
         name: "Run for 30 days, compare ROI",
-        text: "After 30 days, compare: total cost (perks delivered + Social Perks subscription) vs total conversion value. Most businesses see 2-4x better ROI than ads because the marketing surface (customer-made content) compounds.",
+        text: "After 30 days, compare your total cost (perks delivered + Social Perks subscription) against the conversion value you can attribute. Because the content customers create keeps working after you stop paying — unlike an ad that stops the moment the budget ends — many businesses find the comparison favorable, but run your own numbers before deciding.",
       },
     ],
     related: ["choose-perk-amount", "set-up-referral-program"],

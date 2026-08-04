@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { Tabs } from "@/components/ui/tabs";
-import { AgentTicker } from "@/components/shared/agent-ticker";
 import { SectionErrorBoundary } from "@/components/ui/section-error-boundary";
 import { useEnterpriseData } from "@/lib/hooks/use-enterprise-data";
 
@@ -169,8 +168,6 @@ export function EnterprisePortal({
           <Tabs tabs={portalTabs} activeTab={page} onChange={setPage} />
         </div>
       </nav>
-
-      <AgentTicker />
 
       {/* Error banner (non-blocking -- data still shows with fallback) */}
       {error && <ErrorBanner message={error} onRetry={refresh} />}

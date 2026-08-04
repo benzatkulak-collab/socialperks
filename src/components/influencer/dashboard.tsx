@@ -130,10 +130,10 @@ const DEMO_CAMPAIGNS: AvailableCampaign[] = [
 ];
 
 const DEMO_EARNINGS: EarningEntry[] = [
-  { id: "e1", campaignName: "Google Review Drive", businessName: "Baked & Wired", amount: 15, status: "paid", date: "2026-03-17" },
+  { id: "e1", campaignName: "Instagram Story Tag", businessName: "Baked & Wired", amount: 15, status: "paid", date: "2026-03-17" },
   { id: "e2", campaignName: "Instagram Reel", businessName: "Taqueria Sol", amount: 45, status: "pending", date: "2026-03-18" },
   { id: "e3", campaignName: "TikTok Video", businessName: "Iron Temple", amount: 38, status: "processing", date: "2026-03-19" },
-  { id: "e4", campaignName: "Yelp Builder", businessName: "Glow Studio", amount: 12, status: "paid", date: "2026-03-15" },
+  { id: "e4", campaignName: "Facebook Photo Post", businessName: "Glow Studio", amount: 12, status: "paid", date: "2026-03-15" },
 ];
 
 // ═══════════════ Component ═══════════════
