@@ -28,7 +28,7 @@
 
 import type { Agent, AgentDecision } from "./types";
 
-interface WaitlistLead {
+export interface WaitlistLead {
   email: string;
   businessName?: string;
   city?: string;
@@ -91,6 +91,7 @@ async function markContacted(email: string): Promise<void> {
 
 /**
  * Score a lead's conversion potential in [0,1].
+ * Exported for unit testing — the function is pure and has no side effects.
  *   base 0.30  — they raised their hand by joining the list
  *   +0.30      — arrived via a referrer (warm intro / partner channel)
  *   +0.20      — in our ICP vertical (onboarded first)
@@ -98,7 +99,7 @@ async function markContacted(email: string): Promise<void> {
  *   +0.05      — gave a city (lets us localize the pitch)
  *   -0.15      — sat past the cold cutoff (interest has likely cooled)
  */
-function scoreLead(
+export function scoreLead(
   lead: WaitlistLead,
   nowMs: number,
   maxAgeDays: number,
@@ -143,14 +144,14 @@ function inviteEmail(lead: WaitlistLead): { subject: string; html: string; text:
 
 ${cityClause}, and a spot just opened for you.
 
-You can set up your first perk in about 60 seconds: pick a reward (say 15% off), choose the action customers take (a story, a tag, a review), and we handle the rest — including verifying the post actually happened.
+You can set up your first perk in about 60 seconds: pick a reward (say 15% off), choose the action customers take (a story, a tag, a post), and we handle the rest — including verifying the post actually happened.
 
 Claim your slot: https://socialperks.app
 
 — The Social Perks team`;
   const html = `<p>Hi ${name},</p>
 <p>${cityClause}, and a spot just opened for you.</p>
-<p>You can set up your first perk in about 60 seconds: pick a reward (say <strong>15% off</strong>), choose the action customers take (a story, a tag, a review), and we handle the rest — including verifying the post actually happened.</p>
+<p>You can set up your first perk in about 60 seconds: pick a reward (say <strong>15% off</strong>), choose the action customers take (a story, a tag, a post), and we handle the rest — including verifying the post actually happened.</p>
 <p><a href="https://socialperks.app" style="display:inline-block;padding:12px 24px;background-color:#22D3EE;color:#0C0F1A;border-radius:8px;text-decoration:none;font-weight:600;">Claim your slot</a></p>
 <p>— The Social Perks team</p>`;
   return { subject, html, text };
@@ -181,8 +182,10 @@ export const acquisitionAgent: Agent = {
     const nowMs = new Date(ctx.now).getTime();
 
     // Over-fetch relative to the action cap so scoring can prioritize the
-    // best candidates out of the backlog; the registry slices to
-    // maxActionsPerRun after we sort by confidence.
+    // best candidates out of the backlog. Over-fetching is safe because the
+    // send loop below caps executions at maxActionsPerRun itself — it does
+    // NOT rely on the registry's post-hoc slice, which only trims the
+    // returned decision list.
     const fetchLimit = Math.min(ctx.config.maxActionsPerRun * 4, 500);
     const leads = await fetchUncontactedLeads(fetchLimit);
 
@@ -191,11 +194,28 @@ export const acquisitionAgent: Agent = {
 
     const decisions: AgentDecision[] = [];
 
-    for (const lead of leads) {
-      const { confidence, reasons } = scoreLead(lead, nowMs, maxAgeDays);
+    // Score and rank BEFORE sending. The loop used to send to every lead
+    // above threshold in fetch order — up to fetchLimit, i.e. 4x
+    // maxActionsPerRun — and only sort afterwards, while registry.ts slices
+    // to maxActionsPerRun only after run() returns. That slice therefore
+    // truncated the audit list, NOT the outbound email: at the default cap
+    // of 25 a live run could send 100 invites while the admin UI showed 25.
+    // Ranking first, then capping sends inside the loop, makes the cap real
+    // and still spends it on the highest-confidence leads.
+    const scored = leads
+      .map((lead) => ({ lead, ...scoreLead(lead, nowMs, maxAgeDays) }))
+      .sort((a, b) => b.confidence - a.confidence);
 
+    let sent = 0;
+
+    for (const { lead, confidence, reasons } of scored) {
       let executed = false;
-      if (ctx.live && jobsMod && confidence >= ctx.config.threshold) {
+      if (
+        ctx.live &&
+        jobsMod &&
+        confidence >= ctx.config.threshold &&
+        sent < ctx.config.maxActionsPerRun
+      ) {
         try {
           const tmpl = inviteEmail(lead);
           jobsMod.emailQueue.add({
@@ -207,6 +227,7 @@ export const acquisitionAgent: Agent = {
           });
           await markContacted(lead.email);
           executed = true;
+          sent += 1;
         } catch {
           // Queue/DB hiccup shouldn't kill the run — leave unexecuted so
           // the lead is retried on the next tick.
@@ -229,9 +250,8 @@ export const acquisitionAgent: Agent = {
       });
     }
 
-    // Highest-confidence opportunities first so they survive the
-    // maxActionsPerRun slice and lead the /admin/agents decision list.
-    decisions.sort((a, b) => b.confidence - a.confidence);
+    // Already highest-confidence first (we ranked before sending), so the
+    // registry's defensive slice keeps the same leads we actually emailed.
     return decisions;
   },
 };
