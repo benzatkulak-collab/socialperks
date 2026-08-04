@@ -149,7 +149,11 @@ Ordered by leverage. Tiers are the sequence; items within a tier are roughly ran
 4. List all 10 MCP tools in `AGENTS.md` + `/api/llm-context` (drop "5 tools").
 5. Fix MCP `getBenchmarks` to send `businessType` (or accept `industry` server-side).
 6. Fix `docs/mcp.md` key prefix `sk_live_`→`sp_live_` (3×).
-7. Delete the "self-service key provisioning on the roadmap" line (it's live).
+7. Build self-service key provisioning for agents, THEN delete the "on the
+   roadmap" line in `public/AGENTS.md`. It is genuinely still on the roadmap —
+   `/api/v1/api-keys` calls `requireAuth`, so a human must sign in to mint a
+   key. Deleting the disclaimer first would put a false claim on the surface
+   agents read to decide whether they can onboard themselves.
 8. Set `SoftwareApplication` price from the real price constant, not `"0"`.
 9. Single-source pricing (`PLANS` constant) across schema, `llm-context`, `llms.txt`, UI.
 10. Remove phantom `sp.exchange.*` methods from the SDK.
@@ -227,7 +231,10 @@ Ordered by leverage. Tiers are the sequence; items within a tier are roughly ran
 ### Tier G — GEO / answer-engine citation (the parallel channel)
 71. `Product`/`AggregateOffer` on `/pricing` (real tiers/prices/currency).
 72. `sameAs` + `@id` on `Organization`; create the **Wikidata** item.
-73. Fix NAP/entity consistency (`@socialperks` vs real `@socialperksapp` in `seo.ts`).
+73. Fix NAP/entity consistency. `seo.ts` uses `@socialperks` throughout — pick
+    the handle that is actually registered, register it if it is not, and only
+    then add it to `sameAs`/`twitter:site`. A `sameAs` URL that 404s hurts
+    entity resolution more than omitting it.
 74. Front-load a 2–4 sentence definitive answer under every programmatic H1.
 75. `FAQPage` schema + Q&A block on `/for`, `/best`, `/vs`, `/compare`, `/guides`, `/platforms`.
 76. Reach the **3–4 complementary schema types** threshold on money pages (`Article`/`Service`/`HowTo`+`Breadcrumb`).
