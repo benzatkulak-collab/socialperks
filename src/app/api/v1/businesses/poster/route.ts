@@ -53,7 +53,13 @@ export async function GET(req: NextRequest) {
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
       : "https://socialperks.app");
-  const claimUrl = `${baseUrl}/c/${campaignId}`;
+  // Optional per-business referral code: when present, the QR encodes a
+  // ref-bearing claim URL so a customer who scans, discovers Social Perks, and
+  // signs up their own business credits the referring business. Sanitize to the
+  // referral alphabet ([A-HJ-NP-Z2-9]) + uppercase to match findByCode.
+  const ref = (params.get("ref") ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 32);
+  const displayUrl = `${baseUrl}/c/${campaignId}`;
+  const claimUrl = ref ? `${displayUrl}?ref=${ref}` : displayUrl;
 
   const grid = qrMatrix(claimUrl);
   const qrSize = grid.length;
@@ -97,7 +103,7 @@ export async function GET(req: NextRequest) {
 
   <text x="${W / 2}" y="${qrY + qrPx + 100}" font-family="ui-monospace, monospace" font-size="14" fill="#64748B" text-anchor="middle">or visit</text>
 
-  <text x="${W / 2}" y="${qrY + qrPx + 125}" font-family="ui-monospace, monospace" font-size="16" font-weight="600" fill="#0EA5E9" text-anchor="middle">${escape(claimUrl, 80)}</text>
+  <text x="${W / 2}" y="${qrY + qrPx + 125}" font-family="ui-monospace, monospace" font-size="16" font-weight="600" fill="#0EA5E9" text-anchor="middle">${escape(displayUrl, 80)}</text>
 
   <!-- How it works -->
   <text x="80" y="${H - 200}" font-family="-apple-system, 'DM Sans', sans-serif" font-size="14" font-weight="600" fill="#0C0F1A" letter-spacing="1">HOW IT WORKS</text>

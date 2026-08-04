@@ -37,7 +37,17 @@
  *   - submission_created   { }            // a customer submitted proof
  *   - submission_reviewed  { decision: "approved"|"rejected" }
  *   - perk_redeemed        { }            // the aha-moment: real perk redeemed
+ *
+ * Channel attribution
+ * -------------------
+ * Every event is automatically stamped with the visitor's first-touch
+ * marketing context (utm_source/medium/campaign, gclid/fbclid, referrer_host,
+ * landing_path) via `getAttribution()`. That is what makes it possible to
+ * break conversion rate down BY CHANNEL — the question you need to answer to
+ * decide where acquisition spend actually pays off.
  */
+
+import { captureFirstTouch, getAttribution } from "@/lib/attribution";
 
 type KnownEvent =
   | "pricing_cta_click"
@@ -55,6 +65,7 @@ type EventProps = Record<string, string | number | boolean | null | undefined>;
 interface PosthogShim {
   capture: (event: string, props?: EventProps) => void;
   identify?: (id: string, props?: EventProps) => void;
+  register?: (props: EventProps) => void;
   reset?: () => void;
 }
 
@@ -97,7 +108,9 @@ export function track(event: KnownEvent, props?: EventProps): void {
     return;
   }
   try {
-    client.capture(event, props);
+    // Stamp every event with first-touch channel attribution so conversion
+    // rate can be sliced by acquisition source. Explicit props win on collision.
+    client.capture(event, { ...getAttribution(), ...props });
   } catch {
     // Analytics MUST NOT break the page. Swallow all errors.
   }
@@ -106,13 +119,52 @@ export function track(event: KnownEvent, props?: EventProps): void {
 /**
  * Associate the current visitor with a stable userId.
  * Only call this with a real account id post-signup. Don't pass emails.
+ * First-touch attribution is attached as person properties so the acquisition
+ * channel travels with the identified person across sessions.
  */
 export function identify(userId: string, props?: EventProps): void {
   try {
-    ph()?.identify?.(userId, props);
+    ph()?.identify?.(userId, { ...getAttribution(), ...props });
   } catch {
     // see track() rationale
   }
+}
+
+/**
+ * Capture first-touch attribution and register it as PostHog super-properties
+ * so autocaptured events (pageviews, clicks) are also channel-tagged. Called
+ * once from the layout-level AttributionCapture component. Safe pre-load: the
+ * cookie is always written; register() is best-effort if the snippet is ready.
+ */
+export function initAttribution(): void {
+  captureFirstTouch();
+  const attribution = getAttribution();
+  if (Object.keys(attribution).length === 0) return;
+
+  // register() must actually land, unlike capture() there is no snippet-level
+  // queue for super-properties: if the PostHog script has not finished loading
+  // when this runs (it is called from a layout effect, which routinely wins
+  // that race), ph() is null and the channel tags would be dropped for the
+  // whole session — leaving autocaptured events untagged, which is the entire
+  // point of this function. Retry on a short bounded poll instead.
+  let attempts = 0;
+  const MAX_ATTEMPTS = 40; // ~10s at 250ms — well past a normal snippet load
+  const apply = () => {
+    try {
+      const client = ph();
+      if (client?.register) {
+        client.register(attribution);
+        return;
+      }
+    } catch {
+      // see track() rationale
+      return;
+    }
+    if (++attempts < MAX_ATTEMPTS) {
+      setTimeout(apply, 250);
+    }
+  };
+  apply();
 }
 
 /**

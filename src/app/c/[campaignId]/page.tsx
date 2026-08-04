@@ -9,6 +9,7 @@ import { PLATFORMS, findAction, findPlatform } from "@/lib/platforms";
 import { SubmitForm } from "./submit-form";
 import { InviteUnlock } from "@/components/campaign/invite-unlock";
 import { SITE_URL } from "@/lib/seo";
+import { getOrCreateCode } from "@/lib/referrals/codes";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,29 @@ async function getBusinessInfo(businessId: string): Promise<BusinessInfo | null>
     // fall through to null — page degrades to a generic header
   }
   return null;
+}
+
+/**
+ * Resolve the per-business referral code for a campaign's owner so the
+ * customer-facing "Powered by" link and QR poster credit the RIGHT business.
+ *
+ * Keyed on the owner's `user.id` to match the dashboard share widget
+ * (getOrCreateCode(ownerType, user.id) in /api/v1/referrals/me) — for real
+ * signups user.id differs from businessId, so keying off businessId would mint
+ * a different code and split attribution. Seeded demo businesses (not in
+ * auth_users) fall back to businessId, where user.id === businessId anyway.
+ * Best-effort: returns null on any failure so the public page never breaks.
+ */
+async function getOwnerRefCode(businessId: string): Promise<string | null> {
+  try {
+    await ensureUsersSeeded();
+    const owner = getUserByBusinessId(businessId);
+    const ownerId = owner?.id ?? businessId;
+    const code = await getOrCreateCode("business", ownerId);
+    return code.code;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -144,11 +168,16 @@ export default async function CampaignPage({ params }: PageProps) {
 
   // Attribution for the B2B2C "Powered by" links. A customer who discovers
   // Social Perks via a business's claim page and clicks through is a
-  // referral-channel visit; without utm params that traffic was invisible to
-  // analytics. (Per-business ?ref credit additionally requires reconciling the
-  // two referral-code systems — tracked separately — but channel attribution
-  // works regardless.)
-  const poweredByHref = `/?utm_source=campaign_page&utm_medium=powered_by&utm_campaign=${encodeURIComponent(campaignId)}`;
+  // referral-channel visit. We now also append the owner's ?ref code so that
+  // if that customer signs up their OWN business, the referring business gets
+  // credited — the two referral-code systems are reconciled (codes.ts issues
+  // the shared "/?ref=CODE" and signup records the conversion against it via
+  // findByCode + recordConversion). Channel utm params are preserved.
+  const ownerRefCode = await getOwnerRefCode(campaign.businessId);
+  const powrdUtm = `utm_source=campaign_page&utm_medium=powered_by&utm_campaign=${encodeURIComponent(campaignId)}`;
+  const poweredByHref = ownerRefCode
+    ? `/?${powrdUtm}&ref=${encodeURIComponent(ownerRefCode)}`
+    : `/?${powrdUtm}`;
 
   // Format the reward
   const budgetLabel =

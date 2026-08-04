@@ -811,7 +811,10 @@ export const SCHEMA = {
         references: { table: "influencers", column: "id", onDelete: "CASCADE" },
       },
       attributed_email: { type: "varchar(255)", nullable: true },
-      attributed_at: { type: "timestamptz", nullable: false, default: "now()" },
+      // NOTE: the shipped DDL in migrations.ts names this `created_at`. Do not
+      // rename it here without a migration — a query written against the wrong
+      // name throws into a silent catch and zeroes the referrer's commission.
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
     },
     indexes: [
       { columns: ["id"], unique: true, name: "referral_attributions_pkey" },

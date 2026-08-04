@@ -171,19 +171,30 @@ export function createReferral(
  * Track when a referred user signs up.
  * Transitions referral status from "pending" to "signed_up".
  * If no existing referral record exists for this code, creates one.
+ *
+ * `resolvedReferrerId` lets the caller supply the referrer directly. This is
+ * how the signup route bridges the two referral-code systems: the code the
+ * dashboard actually shares comes from referrals/codes.ts (e.g. "ABC234"),
+ * which the legacy `businessCodeIndex` (REF-XXXX-XXXX only) can't resolve — so
+ * without it every real referrer fell through to "unknown" and was never
+ * credited. When supplied, it wins over the code scan.
  */
 export function trackReferralSignup(
   code: string,
   refereeId: string,
-  refereeEmail: string
+  refereeEmail: string,
+  resolvedReferrerId?: string
 ): Referral {
-  // Find the referrer's business ID from the code
-  let referrerId: string | null = null;
+  // Find the referrer's business ID from the code, unless the caller already
+  // resolved it (e.g. via referrals/codes.ts findByCode).
+  let referrerId: string | null = resolvedReferrerId ?? null;
   let referrerEmail = "";
-  for (const [bizId, bizCode] of businessCodeIndex.entries()) {
-    if (bizCode === code) {
-      referrerId = bizId;
-      break;
+  if (!referrerId) {
+    for (const [bizId, bizCode] of businessCodeIndex.entries()) {
+      if (bizCode === code) {
+        referrerId = bizId;
+        break;
+      }
     }
   }
 

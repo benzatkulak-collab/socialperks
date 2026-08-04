@@ -111,6 +111,24 @@ describe("Referral System", () => {
       const referrals = getReferralsByReferrer("biz_abc");
       expect(referrals).toHaveLength(1);
     });
+
+    it("uses a caller-resolved referrer when the code is not in the legacy index", () => {
+      // Simulates the signup route bridging referrals/codes.ts: the shared
+      // dashboard code ("ABC234") is unknown to businessCodeIndex, so without
+      // the resolved id the referrer would fall through to "unknown".
+      const ref = trackReferralSignup("ABC234", "biz_referee_1", "referee@shop.com", "biz_referrer_1");
+
+      expect(ref.referrerId).toBe("biz_referrer_1");
+      const referrals = getReferralsByReferrer("biz_referrer_1");
+      expect(referrals).toHaveLength(1);
+      expect(referrals[0].refereeId).toBe("biz_referee_1");
+    });
+
+    it("falls back to 'unknown' when no referrer can be resolved", () => {
+      // No generateReferralCode call and no resolved id → genuinely unknown.
+      const ref = trackReferralSignup("ZZZ999", "biz_referee_2", "orphan@shop.com");
+      expect(ref.referrerId).toBe("unknown");
+    });
   });
 
   // ─── Credit Referral ────────────────────────────────────────────────────
