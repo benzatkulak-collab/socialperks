@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PLANS } from "@/lib/billing/store";
 import { Analytics } from "@vercel/analytics/next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
@@ -144,12 +145,18 @@ export default function RootLayout({
               applicationCategory: "BusinessApplication",
               description: "Turn customers into your marketing team. Offer perks in exchange for social media posts, reviews, and shares.",
               operatingSystem: "Web",
+              // Derived from PLANS so a repricing cannot leave this
+              // advertising a tier that no longer exists — it sat at a
+              // hardcoded "249" on every page after Enterprise moved to $149.
+              // offerCount is the paid plans plus Free.
               offers: {
                 "@type": "AggregateOffer",
                 priceCurrency: "USD",
                 lowPrice: "0",
-                highPrice: "249",
-                offerCount: 4,
+                highPrice: String(
+                  Math.max(...Object.values(PLANS).map((p) => p.monthlyPrice)),
+                ),
+                offerCount: Object.keys(PLANS).length + 1,
               },
             }),
           }}
