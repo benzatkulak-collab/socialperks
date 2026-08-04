@@ -22,7 +22,7 @@ If coffee shops give a hard no after ~80 quality touches, the fallback verticals
 
 ### 3.2 The offer (designed to produce a real willingness-to-pay signal)
 - **"Founder pilot" — first 10 coffee shops only.** I personally set up your first campaign and QR poster, and you run it for 90 days.
-- **Real card, real price:** Starter **$10/mo** (or Pro $25/mo if they want API/recommendations). The card on file is the point — a free pilot proves nothing about willingness to pay.
+- **Real card, real price:** Starter **$29/mo** (or Pro $79/mo if they want API/recommendations). The card on file is the point — a free pilot proves nothing about willingness to pay.
 - **De-risked:** 30-day money-back guarantee (already in product copy), cancel anytime in two clicks.
 - **The hook (honest):** "Turn the customers already posting about you into a steady stream of tagged posts — with the #ad disclosure baked in so you stay FTC-compliant. You approve each post in one click before any discount goes out."
 - **What you are NOT promising:** specific ROI numbers, automatic AI verification, or results from other customers (you have none yet — saying so is fine and even builds trust).
@@ -45,7 +45,7 @@ Tooling: do it manually for the first 100 (you'll learn the ICP). Don't build sc
 > Hi [name],
 > I noticed [shop] gets tagged a lot on Instagram — that's free marketing most shops never systematize.
 > Social Perks turns it into a repeatable loop: a QR poster at your counter → customer posts with the right #ad disclosure → you approve it in one click → they get a small perk → their post brings the next customer.
-> I'm personally onboarding the first 10 coffee shops. I'll build your first campaign and QR poster for you — you'd just need ~10 minutes. $10/mo, 30-day money-back, cancel anytime.
+> I'm personally onboarding the first 10 coffee shops. I'll build your first campaign and QR poster for you — you'd just need ~10 minutes. $29/mo, 14-day free trial, cancel anytime.
 > Worth a quick look? I can have your campaign live today.
 > — [you], founder, Social Perks (socialperks.app)
 
@@ -74,7 +74,7 @@ Founder-onboarding script (target: campaign live same day, first customer claim 
 6. **Set the 7-day goal:** "Let's get your first real customer claim this week." Check in day 3 and day 7.
 
 ### 4.2 Objection handling (honest answers only)
-- *"Do you have other coffee shops using it?"* → "You'd be one of my first 10 — that's why I'm setting it up personally and the price is $10. I'm being upfront: no case studies yet, which is exactly why I want you in early."
+- *"Do you have other coffee shops using it?"* → "You'd be one of my first 10 — that's why I'm setting it up personally and the price is $29. I'm being upfront: no case studies yet, which is exactly why I want you in early."
 - *"Can I just pay for Google reviews?"* → "No — Google/Yelp ban incentivized reviews and can suspend you. We do Instagram/TikTok/Facebook posts with the #ad disclosure, which is allowed. That's the whole compliance angle."
 - *"Is the verification automatic?"* → "We check the link is live and on the right platform and flag anything odd, then you approve in one click. Not a black box — you're always in control." (Matches shipped reality.)
 - *"What if it doesn't work?"* → "30-day money-back. If your customers aren't posting in the first month, email me and I refund it."

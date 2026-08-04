@@ -261,7 +261,7 @@ export function PricingSection({
             </span>
             {annual && (
               <span className="ml-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-xs font-semibold text-brand-green">
-                up to 4 months free
+                2 months free
               </span>
             )}
           </div>
@@ -507,7 +507,7 @@ const COMPARISON: ComparisonRow[] = [
   // Campaigns & usage
   { group: "Campaigns & usage", feature: "Active campaigns", free: "1", starter: "10", pro: "50", enterprise: "Unlimited" },
   { feature: "Completions per month", free: "50", starter: "500", pro: "5,000", enterprise: "Unlimited" },
-  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 107", enterprise: "All 107" },
+  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 125", enterprise: "All 125" },
   { feature: "Campaign suggestions", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
   // Analytics
   { group: "Analytics", feature: "Basic analytics dashboard", free: true, starter: true, pro: true, enterprise: true },
@@ -522,8 +522,10 @@ const COMPARISON: ComparisonRow[] = [
   // Support
   { group: "Support", feature: "Email support", free: true, starter: true, pro: true, enterprise: true },
   { feature: "Priority support", free: false, starter: false, pro: true, enterprise: true },
-  { feature: "Dedicated account manager", free: false, starter: false, pro: false, enterprise: true },
-  { feature: "SLA guarantee", free: false, starter: false, pro: false, enterprise: true },
+  // Not bundled into the self-serve $149 tier — the Enterprise card routes
+  // these to sales ("Need SLA + a dedicated manager? Talk to us").
+  { feature: "Dedicated account manager", free: false, starter: false, pro: false, enterprise: "Add-on" },
+  { feature: "SLA guarantee", free: false, starter: false, pro: false, enterprise: "Add-on" },
 ];
 
 function Cell({ value }: { value: string | boolean }) {
@@ -638,7 +640,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What if I have multiple locations?",
-    a: "That's the Enterprise tier. Multi-location dashboard, team permissions and role controls, brand-compliance review across stores, and a dedicated account manager. Reach out via Contact.",
+    a: "That's the Enterprise tier at $149/mo — multi-location dashboard, team permissions and role controls, and brand-compliance review across stores. An SLA and a dedicated account manager are available as add-ons; reach out via Contact for those.",
   },
 ];
 

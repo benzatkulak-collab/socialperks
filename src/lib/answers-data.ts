@@ -927,7 +927,7 @@ export const ANSWERS: AnswerPage[] = [
     keyPoints: [
       "Yotpo = e-commerce reviews + loyalty ($79+/mo, enterprise plans available)",
       "Birdeye = multi-location review monitoring + requests ($300-1500/mo/location)",
-      "Social Perks = incentivized Instagram/TikTok posts for independent local businesses ($0-25/mo)",
+      "Social Perks = incentivized Instagram/TikTok posts for independent local businesses ($0-149/mo)",
       "Different tools for different jobs; you can run Birdeye + Social Perks together",
       "Choose Yotpo for online stores, Birdeye for chains, Social Perks for independents",
     ],

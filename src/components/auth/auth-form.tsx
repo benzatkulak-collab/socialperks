@@ -13,6 +13,18 @@ import { track, identify } from "@/lib/analytics";
 
 const DEFAULT_BUSINESS_AVATAR = "\uD83C\uDFEA";
 const DEFAULT_INFLUENCER_AVATAR = "\uD83C\uDFA4";
+
+/**
+ * Dollars saved per year by paying annually, per plan \u2014 (monthly \u00D7 12) \u2212 annual.
+ * Mirrors PLANS in src/lib/billing/store.ts, which this client component cannot
+ * import (it pulls in crypto/db). Update both together when prices change; the
+ * pricing page derives the same figure as `monthlyPrice * 12 - annualPrice`.
+ */
+const ANNUAL_SAVINGS: Record<string, number> = {
+  starter: 58, // 29 \u00D7 12 \u2212 290
+  professional: 158, // 79 \u00D7 12 \u2212 790
+  enterprise: 298, // 149 \u00D7 12 \u2212 1490
+};
 export interface AuthFormProps {
   data: SeedData;
   save: (d: SeedData) => void;
@@ -229,11 +241,15 @@ export function AuthForm({
         // The user picked a paid plan on the pricing page before signing
         // up. Hand them off directly to Stripe checkout instead of dropping
         // them on the dashboard — the funnel was previously broken here
-        // and we'd lose the conversion. Free and enterprise tiers skip
-        // checkout (free needs no payment; enterprise routes via /contact).
+        // and we'd lose the conversion. Only the free tier skips checkout
+        // (it needs no payment); every plan in billing/store.ts PLANS is
+        // self-serve. Keep this list in sync with PLANS — it can't import
+        // that module directly (it pulls in crypto/db, server-only).
         if (
           planIntent &&
-          (planIntent.plan === "starter" || planIntent.plan === "professional")
+          (planIntent.plan === "starter" ||
+            planIntent.plan === "professional" ||
+            planIntent.plan === "enterprise")
         ) {
           try {
             const origin = window.location.origin;
@@ -562,12 +578,12 @@ export function AuthForm({
                   <strong>{planIntent.period === "annual" ? "annually" : "monthly"}</strong>
                   .
                 </p>
-                {planIntent.period === "monthly" && planIntent.plan !== "enterprise" && (
+                {planIntent.period === "monthly" && ANNUAL_SAVINGS[planIntent.plan] && (
                   <div className="mt-3 pt-3 border-t border-brand-cyan/20 flex items-start justify-between gap-3">
                     <p className="text-xs text-brand-text-dim">
                       <strong className="text-brand-text">Save ~17%</strong> on annual billing —
-                      that&apos;s {planIntent.plan === "professional" ? "$98" : "$58"} off per
-                      year (two months free).
+                      that&apos;s ${ANNUAL_SAVINGS[planIntent.plan]} off per year (two months
+                      free).
                     </p>
                     <button
                       type="button"

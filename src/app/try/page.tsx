@@ -1,5 +1,13 @@
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
+import { PLANS, TRIAL_PERIOD_DAYS } from "@/lib/billing/store";
+
+// Price and trial length are read from the billing config rather than
+// hardcoded, so this page can never advertise an offer Stripe does not
+// actually honor (it previously promised a 14-day trial that checkout
+// never created, charging the customer on day 0).
+const PRICE = PLANS.professional.monthlyPrice;
+const TRIAL = `${TRIAL_PERIOD_DAYS}-day free trial`;
 
 // Demand-test landing page. NOINDEXED on purpose — this is a paid/community
 // traffic test to measure willingness-to-pay (click-to-trial), not an organic
@@ -7,13 +15,12 @@ import { buildMetadata } from "@/lib/seo";
 // cannibalize the real marketing pages or muddy analytics.
 export const metadata = buildMetadata({
   title: "Get customers posting about your shop — Social Perks",
-  description:
-    "Offer a perk, your customers post on Instagram & TikTok — with the FTC disclosure added automatically. $79/mo, 14-day free trial.",
+  description: `Offer a perk, your customers post on Instagram & TikTok — with the FTC disclosure added automatically. $${PRICE}/mo, ${TRIAL}.`,
   path: "/try",
   noindex: true,
 });
 
-// Single self-serve CTA target: the $79 flagship (Pro), 14-day trial via the
+// Single self-serve CTA target: the flagship (Pro), trial via the
 // normal signup → plan-intent → checkout path (so the webhook gets businessId
 // and actually provisions). Matches pricing-section.tsx.
 const TRIAL_HREF = "/dashboard#signup?plan=professional&period=monthly";
@@ -75,10 +82,10 @@ export default function TryPage() {
         {/* Offer + primary CTA */}
         <div className="mt-10 rounded-2xl border border-brand-cyan/30 bg-brand-cyan/[0.04] p-6 sm:p-8">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="font-heading text-4xl text-brand-white sm:text-5xl">$79</span>
+            <span className="font-heading text-4xl text-brand-white sm:text-5xl">${PRICE}</span>
             <span className="text-brand-muted">/month</span>
             <span className="ml-1 rounded-full bg-brand-green/10 px-3 py-1 text-xs font-semibold text-brand-green">
-              14-day free trial
+              {TRIAL}
             </span>
           </div>
           <p className="mt-2 text-sm text-brand-dim">
@@ -139,7 +146,7 @@ export default function TryPage() {
             data-plan="professional"
             className="mt-6 inline-block rounded-xl bg-brand-cyan px-10 py-4 text-base font-semibold text-brand-bg transition-all hover:bg-brand-cyan/90 hover:shadow-md hover:shadow-brand-cyan/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/50"
           >
-            Start your 14-day free trial →
+            Start your {TRIAL} →
           </Link>
           <p className="mt-3 text-xs text-brand-muted">No long-term contract · Cancel anytime</p>
         </div>

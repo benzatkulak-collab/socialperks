@@ -19,6 +19,16 @@ export interface PlanConfig {
   features: string[];
 }
 
+/**
+ * Length of the card-required free trial applied to every self-serve
+ * checkout, in days. Single source of truth: the /try landing page and the
+ * paid ad copy render this number, and billing/route.ts passes it to Stripe
+ * as `subscription_data.trial_period_days`. Changing it here changes both,
+ * so the advertised offer can never drift from what Stripe actually does.
+ * Set to 0 to sell without a trial (the checkout call omits the field).
+ */
+export const TRIAL_PERIOD_DAYS = 14;
+
 export const PLANS: Record<string, PlanConfig> = {
   starter: {
     name: "Starter",
@@ -42,12 +52,15 @@ export const PLANS: Record<string, PlanConfig> = {
     annualPriceId: process.env.STRIPE_PRICE_ENTERPRISE_ANNUAL ?? null,
     monthlyPrice: 149,
     annualPrice: 1490,
+    // SLA and a dedicated account manager are sales-negotiated add-ons, not
+    // part of the self-serve $149 tier — keep this list in step with the
+    // Enterprise card and comparison table in landing/pricing-section.tsx.
     features: [
       "Unlimited campaigns",
+      "Multi-location management",
+      "Team permissions & role controls",
       "White-label",
-      "Dedicated account manager",
       "Custom integrations",
-      "SLA guarantee",
     ],
   },
 };

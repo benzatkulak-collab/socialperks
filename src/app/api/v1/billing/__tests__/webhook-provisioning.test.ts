@@ -74,8 +74,41 @@ describe("POST /api/v1/billing/webhook — pay → provision", () => {
     // Entitlement actually granted, durably (write-through cache populated).
     expect(subscriptions.has(subId)).toBe(true);
     expect(subscriptions.get(subId)?.businessId).toBe(bizId);
-    expect(subscriptions.get(subId)?.status).toBe("active");
+    // Checkout creates the subscription with a card-required trial, so it
+    // lands in "trialing" — not "active" — until Stripe converts it.
+    expect(subscriptions.get(subId)?.status).toBe("trialing");
+    // THE invariant that pays the bills: a trialing customer must get the
+    // plan they entered a card for. Gating entitlement on "active" alone
+    // would cap them at free limits for the whole trial.
     expect(getBusinessPlan(bizId)).toBe("professional");
+  });
+
+  it("keeps entitlement when the trial converts to active", async () => {
+    const subId = "sub_trial_converts";
+    const bizId = "biz_trial_converts";
+
+    await POST(
+      webhookReq(
+        checkoutCompleted({
+          eventId: "evt_trial_converts",
+          subscriptionId: subId,
+          businessId: bizId,
+          plan: "professional",
+          billingPeriod: "monthly",
+        }),
+      ),
+    );
+    expect(getBusinessPlan(bizId)).toBe("professional");
+
+    // Stripe flips the subscription to active at the end of the trial.
+    const sub = subscriptions.get(subId);
+    expect(sub).toBeDefined();
+    subscriptions.set(subId, { ...sub!, status: "active" });
+    expect(getBusinessPlan(bizId)).toBe("professional");
+
+    // ...and a cancellation must drop them back to free.
+    subscriptions.set(subId, { ...sub!, status: "canceled" });
+    expect(getBusinessPlan(bizId)).toBe("free");
   });
 
   it("does NOT grant entitlement when businessId is absent (took-money-gave-nothing guard)", async () => {

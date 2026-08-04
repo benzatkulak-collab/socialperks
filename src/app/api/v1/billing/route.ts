@@ -19,6 +19,7 @@ import {
 import { withTenant, checkResourceAccess } from "../_tenant";
 import {
   PLANS,
+  TRIAL_PERIOD_DAYS,
   subscriptions,
   generateStripeId,
   getOrCreateCustomerId,
@@ -167,6 +168,15 @@ export const POST = withTiming(async (req: NextRequest) => {
           success_url: successUrl,
           cancel_url: cancelUrl,
           metadata: { businessId, plan, billingPeriod },
+          // Card-required free trial. The /try landing page and the paid ad
+          // copy both promise "14-day free trial", so the subscription MUST
+          // be created with one — without this the customer is charged on
+          // day 0 and the advertised offer is false. Entitlements during the
+          // trial come from ENTITLED_STATUSES in billing/enforcement.ts,
+          // which counts "trialing".
+          ...(TRIAL_PERIOD_DAYS > 0 && {
+            subscription_data: { trial_period_days: TRIAL_PERIOD_DAYS },
+          }),
         });
 
         // mode is derived from the secret key prefix so the frontend can

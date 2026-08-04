@@ -159,10 +159,10 @@ PRO=$(stripe products create -d name="Social Perks Pro" -d description="25 activ
 stripe prices create -d product="$PRO" -d unit_amount=7900 -d currency=usd -d "recurring[interval]=month" -d nickname="Pro Monthly" --format json
 stripe prices create -d product="$PRO" -d unit_amount=79000 -d currency=usd -d "recurring[interval]=year" -d nickname="Pro Annual" --format json
 
-# Enterprise plan ($249/mo, $2490/yr)
+# Enterprise plan ($149/mo, $1490/yr)
 ENT=$(stripe products create -d name="Social Perks Enterprise" -d description="Unlimited + multi-location + dedicated CSM" --format json | jq -r .id)
-stripe prices create -d product="$ENT" -d unit_amount=24900 -d currency=usd -d "recurring[interval]=month" -d nickname="Enterprise Monthly" --format json
-stripe prices create -d product="$ENT" -d unit_amount=249000 -d currency=usd -d "recurring[interval]=year" -d nickname="Enterprise Annual" --format json
+stripe prices create -d product="$ENT" -d unit_amount=14900 -d currency=usd -d "recurring[interval]=month" -d nickname="Enterprise Monthly" --format json
+stripe prices create -d product="$ENT" -d unit_amount=149000 -d currency=usd -d "recurring[interval]=year" -d nickname="Enterprise Annual" --format json
 ```
 
 Copy each `price_xxx` ID and set on Vercel:
