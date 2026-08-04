@@ -184,7 +184,7 @@ export function PortalHome({
               <WelcomeStep
                 num={1}
                 title="Pick a campaign template below"
-                detail="Or build from scratch — most shops start with a 10% off review or a free side for an Instagram post."
+                detail="Or build from scratch — most shops start with 10% off for an Instagram Story tag, or a free side for a feed post."
               />
               <WelcomeStep
                 num={2}

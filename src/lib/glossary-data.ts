@@ -111,7 +111,7 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
   ),
   entry(
     "Pricing oracle",
-    "A public Social Perks endpoint (GET /api/v1/pricing) that returns the market-rate USD value of any action, plus a recommended perk type and amount for a given business type. The recommendations are tuned so the perk cost roughly matches the action's marketing-equivalent value, leaving the business break-even on first-action customer acquisition. Updated quarterly.",
+    "A public Social Perks endpoint (GET /api/v1/pricing) that returns the market-rate USD value of any action, plus a recommended perk type and amount for a given business type. The recommendations are tuned so the perk cost roughly matches the action's marketing-equivalent value, leaving the business break-even on first-action customer acquisition.",
     { category: "perks", related: ["action", "benchmarks"] }
   ),
   entry(

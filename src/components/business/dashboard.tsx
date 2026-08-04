@@ -32,15 +32,15 @@ interface DashboardProps {
 
 const TIPS: Record<string, string> = {
   "Yoga Studio":
-    "Start with a Google Review campaign — yoga students love sharing their experience, and reviews build trust with newcomers.",
+    "Start with an Instagram Story campaign — yoga students love sharing their practice, and a post from a regular reaches exactly the people considering a class.",
   Restaurant:
-    "Start with a Google Review campaign — it's the highest-ROI action for restaurants. Most diners will leave a review for a small perk.",
+    "Start with an Instagram photo campaign — the food is the content. A free appetizer for a tagged post is the easiest first campaign to run.",
   Salon:
     "Instagram before/after campaigns work incredibly well for salons. Customers love showing off their new look.",
   Gym:
     "Transformation content is your superpower. Before/after campaigns drive the most sign-ups for fitness businesses.",
   "Coffee Shop":
-    "Start simple — a Google Review campaign paired with an Instagram Story tag gets the flywheel spinning fast.",
+    "Start simple — an Instagram Story tag for a free size upgrade gets the flywheel spinning fast.",
   "Tattoo Parlor":
     "Your customers are already showing off their ink. Give them a perk for tagging you in their posts.",
   Veterinarian:
@@ -48,15 +48,15 @@ const TIPS: Record<string, string> = {
   Florist:
     "Visual platforms like Instagram and Pinterest are your best bet. Flower arrangements are inherently shareable.",
   "Law Firm":
-    "Google Reviews and LinkedIn posts build professional credibility. Focus on reviews from satisfied clients.",
+    "LinkedIn posts build professional credibility. A client sharing that they got the outcome they needed reaches other people with the same problem.",
   "Auto Mechanic":
-    "Nextdoor recommendations and Google Reviews are gold for local service businesses. Start there.",
+    "Nextdoor recommendations are gold for local service businesses — a neighbour vouching for you is worth more than any ad. Start there.",
 };
 
 function getTip(businessType: string): string {
   return (
     TIPS[businessType] ??
-    "Start with a Google Review campaign — it's the highest-ROI action for local businesses. Most customers will happily leave a review for a small perk."
+    "Start with an Instagram Story campaign — it's the easiest first action for local businesses, and a post from a regular reaches their whole local network."
   );
 }
 

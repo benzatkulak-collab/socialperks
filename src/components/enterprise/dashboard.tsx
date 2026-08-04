@@ -135,7 +135,7 @@ export default function EnterpriseDashboard({ enterprise, onNavigate }: Enterpri
           <StatCard
             label="Total Reviews"
             value={formatNumber(enterprise.totalReviews)}
-            subtext="Google, Yelp, TripAdvisor"
+            subtext="Across connected platforms"
             borderColor="border-l-brand-amber"
             textColor="text-brand-amber"
           />
