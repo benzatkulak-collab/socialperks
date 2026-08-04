@@ -11,6 +11,7 @@ import type { NextRequest } from "next/server";
 import { ok, err, withTiming } from "../../_shared";
 import {
   subscriptions,
+  TRIAL_PERIOD_DAYS,
   generateStripeId,
   persistSubscription,
   updateSubscriptionStatus,
@@ -164,8 +165,20 @@ export const POST = withTiming(async (req: NextRequest) => {
 
         try {
           const now = new Date();
+          // Checkout creates the subscription with a card-required trial
+          // (see TRIAL_PERIOD_DAYS), so it starts in "trialing", not
+          // "active", and its first period ends when the trial does.
+          // Hardcoding "active" here would misreport the state until the
+          // first customer.subscription.updated arrived, and would put a
+          // wrong renewal date in front of the customer. Entitlements are
+          // unaffected either way — enforcement counts "trialing".
+          const trialing = TRIAL_PERIOD_DAYS > 0;
           const periodEnd = new Date(now);
-          periodEnd.setMonth(periodEnd.getMonth() + (billingPeriod === "annual" ? 12 : 1));
+          if (trialing) {
+            periodEnd.setDate(periodEnd.getDate() + TRIAL_PERIOD_DAYS);
+          } else {
+            periodEnd.setMonth(periodEnd.getMonth() + (billingPeriod === "annual" ? 12 : 1));
+          }
 
           const sub: Subscription = {
             id: subscriptionId,
@@ -173,7 +186,7 @@ export const POST = withTiming(async (req: NextRequest) => {
             customerId: customerId ?? generateStripeId("cus"),
             plan,
             billingPeriod,
-            status: "active",
+            status: trialing ? "trialing" : "active",
             currentPeriodStart: now.toISOString(),
             currentPeriodEnd: periodEnd.toISOString(),
             cancelAtPeriodEnd: false,

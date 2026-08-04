@@ -99,8 +99,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Starter",
     planKey: "starter",
-    price: "$10",
-    annualPrice: 100,
+    price: "$29",
+    annualPrice: 290,
     period: "/month",
     description: "For solo owners ready to grow.",
     features: [
@@ -118,8 +118,8 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Pro",
     planKey: "professional",
-    price: "$25",
-    annualPrice: 200,
+    price: "$79",
+    annualPrice: 790,
     period: "/month",
     description: "Everything you need to scale.",
     features: [
@@ -139,17 +139,19 @@ const PRICING_TIERS: PricingTier[] = [
   {
     name: "Enterprise",
     planKey: "enterprise",
-    price: "Custom",
-    period: "",
-    description: "Multiple locations, custom needs.",
+    price: "$149",
+    annualPrice: 1490,
+    period: "/month",
+    description: "For multiple locations and teams.",
     features: [
       "Unlimited campaigns",
       "Multi-location management",
       "Team permissions & role controls",
-      "Dedicated account manager",
-      "Custom integrations + SLA",
+      "API access + priority verification",
+      "Priority support",
     ],
-    cta: "Talk to Sales →",
+    cta: "Get Started",
+    ctaSubtext: "Need SLA + a dedicated manager? Talk to us",
     popular: false,
     accent: "text-brand-amber",
   },
@@ -259,7 +261,7 @@ export function PricingSection({
             </span>
             {annual && (
               <span className="ml-1 rounded-full bg-brand-green/10 px-2.5 py-0.5 text-xs font-semibold text-brand-green">
-                up to 4 months free
+                2 months free
               </span>
             )}
           </div>
@@ -432,9 +434,7 @@ export function PricingSection({
                   href={
                     tier.planKey === null
                       ? "/dashboard#signup"
-                      : tier.planKey === "enterprise"
-                        ? "/contact?intent=enterprise"
-                        : `/dashboard#signup?plan=${tier.planKey}&period=${annual ? "annual" : "monthly"}`
+                      : `/dashboard#signup?plan=${tier.planKey}&period=${annual ? "annual" : "monthly"}`
                   }
                   className={`block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
                     tier.popular
@@ -507,7 +507,7 @@ const COMPARISON: ComparisonRow[] = [
   // Campaigns & usage
   { group: "Campaigns & usage", feature: "Active campaigns", free: "1", starter: "10", pro: "50", enterprise: "Unlimited" },
   { feature: "Completions per month", free: "50", starter: "500", pro: "5,000", enterprise: "Unlimited" },
-  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 107", enterprise: "All 107" },
+  { feature: "Marketing actions available", free: "5", starter: "20", pro: "All 125", enterprise: "All 125" },
   { feature: "Campaign suggestions", free: "3/mo", starter: "50/mo", pro: "500/mo", enterprise: "Unlimited" },
   // Analytics
   { group: "Analytics", feature: "Basic analytics dashboard", free: true, starter: true, pro: true, enterprise: true },
@@ -522,8 +522,10 @@ const COMPARISON: ComparisonRow[] = [
   // Support
   { group: "Support", feature: "Email support", free: true, starter: true, pro: true, enterprise: true },
   { feature: "Priority support", free: false, starter: false, pro: true, enterprise: true },
-  { feature: "Dedicated account manager", free: false, starter: false, pro: false, enterprise: true },
-  { feature: "SLA guarantee", free: false, starter: false, pro: false, enterprise: true },
+  // Not bundled into the self-serve $149 tier — the Enterprise card routes
+  // these to sales ("Need SLA + a dedicated manager? Talk to us").
+  { feature: "Dedicated account manager", free: false, starter: false, pro: false, enterprise: "Add-on" },
+  { feature: "SLA guarantee", free: false, starter: false, pro: false, enterprise: "Add-on" },
 ];
 
 function Cell({ value }: { value: string | boolean }) {
@@ -638,7 +640,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What if I have multiple locations?",
-    a: "That's the Enterprise tier. Multi-location dashboard, team permissions and role controls, brand-compliance review across stores, and a dedicated account manager. Reach out via Contact.",
+    a: "That's the Enterprise tier at $149/mo — multi-location dashboard, team permissions and role controls, and brand-compliance review across stores. An SLA and a dedicated account manager are available as add-ons; reach out via Contact for those.",
   },
 ];
 

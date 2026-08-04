@@ -6,7 +6,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { campaignManager } from "@/lib/campaign-state-machine";
-import { subscriptions } from "@/lib/billing/store";
+import { subscriptions, type Subscription } from "@/lib/billing/store";
 import { db, InMemoryConnection } from "@/lib/db/connection";
 
 const usingDb = !(db instanceof InMemoryConnection);
@@ -110,12 +110,30 @@ function getUsage(businessId: string): MonthlyUsage {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /**
+ * Subscription statuses that grant the paid plan's entitlements.
+ *
+ * "trialing" MUST be included: the /try funnel is a card-required 14-day
+ * trial, so a converting customer sits in `trialing` for two weeks before
+ * Stripe flips them to `active`. Gating on "active" alone would cap a
+ * paying trial customer at free limits for the whole trial — the same
+ * class of mismatch that once capped paying customers at free limits (see
+ * the divergent-registry note in src/lib/stripe.ts). This set is
+ * deliberately narrower than the loader query in billing/store.ts, which
+ * also hydrates "past_due" so the dunning UI can see those rows without
+ * granting them entitlements.
+ */
+const ENTITLED_STATUSES: ReadonlySet<Subscription["status"]> = new Set([
+  "active",
+  "trialing",
+]);
+
+/**
  * Resolve the plan slug for a business. Falls back to "free" if no
- * active subscription is found or the plan is unknown.
+ * entitled subscription is found or the plan is unknown.
  */
 export function getBusinessPlan(businessId: string): string {
   for (const sub of subscriptions.values()) {
-    if (sub.businessId === businessId && sub.status === "active") {
+    if (sub.businessId === businessId && ENTITLED_STATUSES.has(sub.status)) {
       return sub.plan;
     }
   }
