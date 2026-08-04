@@ -101,7 +101,22 @@ describe("scoreLead — age penalty (−0.15)", () => {
     expect(reasons.some((r) => r.startsWith("aged"))).toBe(true);
   });
 
-  it("does NOT apply the penalty when lead is exactly at the cutoff boundary (29 days)", () => {
+  it("does NOT apply the penalty at EXACTLY maxAgeDays — the branch pivots on `>`", () => {
+    // 30, not 29: the condition is `ageDays > maxAgeDays`, so day 30 is the
+    // only value that distinguishes `>` from `>=`. A 29-day fixture passes
+    // under either operator, leaving the real off-by-one uncovered — and
+    // flipping to `>=` would start penalizing day-30 leads, dropping
+    // borderline ones under the 0.55 send threshold.
+    const { confidence, reasons } = scoreLead(
+      lead({ createdAt: daysAgo(30) }),
+      NOW_MS,
+      DEFAULT_MAX_AGE,
+    );
+    expect(confidence).toBeCloseTo(0.3);
+    expect(reasons.some((r) => r.startsWith("aged"))).toBe(false);
+  });
+
+  it("does NOT apply the penalty comfortably inside the window (29 days)", () => {
     const { confidence } = scoreLead(lead({ createdAt: daysAgo(29) }), NOW_MS, DEFAULT_MAX_AGE);
     expect(confidence).toBeCloseTo(0.3);
   });
@@ -244,7 +259,7 @@ describe("acquisitionAgent.run() — dry-run, no database", () => {
     expect(decisions).toHaveLength(0);
   });
 
-  it("never sets executed:true in dry-run regardless of fetch result", async () => {
+  it("returns no decisions to iterate when the DB is absent", async () => {
     const decisions = await acquisitionAgent.run({
       live: false,
       config: {
@@ -254,10 +269,10 @@ describe("acquisitionAgent.run() — dry-run, no database", () => {
       },
       now: new Date(NOW_MS).toISOString(),
     });
-    // With no DB, decisions is [] — but the contract holds for any run in dry-run:
-    // no decision should ever be executed.
-    for (const d of decisions) {
-      expect(d.executed).toBe(false);
-    }
+    // NOTE: this asserts the no-DB posture ONLY. It cannot verify the
+    // dry-run gate — with no leads the decision list is empty, so a loop
+    // over it vacuously "passes" even if the gate is broken. The real
+    // gate coverage lives in the suite below, which injects leads.
+    expect(decisions).toEqual([]);
   });
 });
