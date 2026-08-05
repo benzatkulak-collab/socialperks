@@ -182,3 +182,45 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML escaping in invite email", () => {
+  it("escapes HTML characters in businessName before inserting into the HTML body", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: '<script>alert("xss")</script>',
+        city: null,
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as Record<string, string>).html;
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("escapes HTML characters in city before inserting into the HTML body", async () => {
+    LEADS = [
+      {
+        email: "xss2@example.com",
+        business_name: "Safe Shop",
+        city: '<img src=x onerror="alert(1)">',
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as Record<string, string>).html;
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
+  });
+});
