@@ -149,6 +149,35 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("ranking is load-bearing when multiple above-threshold leads compete for a single cap slot", async () => {
+    // Two medium leads (0.60, above the 0.55 threshold) arrive first in DB
+    // order, followed by one hot lead (0.95). Cap = 1.
+    //
+    // Without ranking, fetch-order iteration would email medium0 and leave
+    // hot99 behind. With ranking (sort descending by confidence before the
+    // send loop), hot99 must win the single available slot.
+    //
+    // This is the fixture the sibling test above cannot provide: cold leads
+    // (0.30) are below threshold and are skipped regardless of sort order, so
+    // removing the .sort() still passes. Here every lead is above threshold —
+    // only the sort decides which one consumes the cap.
+    const medium = (i: number) => ({
+      email: `medium${i}@example.com`,
+      business_name: null,
+      city: null,
+      vertical: "restaurants",
+      referrer: "blog.com",     // +0.30 referral → 0.60 total, clears threshold
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    });
+
+    LEADS = [medium(0), medium(1), hotLead(99)];
+
+    await run(true, 1);
+
+    expect(QUEUED).toHaveLength(1);
+    expect(QUEUED[0].to).toBe("lead99@example.com");
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
