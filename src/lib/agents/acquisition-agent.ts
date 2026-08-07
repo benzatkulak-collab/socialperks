@@ -27,6 +27,7 @@
  */
 
 import type { Agent, AgentDecision } from "./types";
+import { escapeHtml } from "@/lib/security/sanitize";
 
 export interface WaitlistLead {
   email: string;
@@ -135,9 +136,9 @@ export function scoreLead(
 
 /** Personalized early-access invite. Enqueued as a generic "drip" email. */
 function inviteEmail(lead: WaitlistLead): { subject: string; html: string; text: string } {
-  const name = lead.businessName ?? "there";
+  const name = escapeHtml(lead.businessName ?? "there");
   const cityClause = lead.city
-    ? `We're onboarding shops in ${lead.city} right now`
+    ? `We're onboarding shops in ${escapeHtml(lead.city)} right now`
     : "We're opening up early-access slots right now";
   const subject = "Your Social Perks early-access slot is ready";
   const text = `Hi ${name},
