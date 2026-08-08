@@ -182,3 +182,33 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML injection prevention", () => {
+  it("escapes businessName and city in the HTML email body", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: '<script>alert("xss")</script>Legit',
+        city: "<b>Austin</b>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const sent = QUEUED[0] as { html: string; text: string };
+
+    // Raw tags must not survive into the HTML part.
+    expect(sent.html).not.toContain("<script>");
+    expect(sent.html).not.toContain("</script>");
+    expect(sent.html).not.toContain("<b>");
+    expect(sent.html).toContain("&lt;script&gt;");
+    expect(sent.html).toContain("&lt;b&gt;");
+
+    // Plain-text part keeps raw values so the email reads naturally.
+    expect(sent.text).toContain("<b>Austin</b>");
+  });
+});
