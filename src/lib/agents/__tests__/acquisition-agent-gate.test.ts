@@ -166,6 +166,54 @@ describe("acquisition agent — per-run send cap", () => {
   });
 });
 
+describe("acquisition agent — threshold boundary in live mode", () => {
+  it("executes a lead scoring exactly at the threshold (0.55) in live mode", async () => {
+    // base 0.30 + ICP 0.20 + city 0.05 = 0.55 — the minimum score that clears the gate.
+    // scoreLead's unit tests verify the arithmetic; this test proves the send
+    // branch in run() uses >= (not >) so equality is accepted, end-to-end.
+    LEADS = [
+      {
+        email: "borderline@example.com",
+        business_name: null,
+        city: "Austin",
+        vertical: "coffee_shops",
+        referrer: null,
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    const decisions = await run(true, 25);
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].confidence).toBeCloseTo(0.55);
+    expect(decisions[0].executed).toBe(true);
+    expect(QUEUED).toHaveLength(1);
+    expect(CONTACTED).toHaveLength(1);
+  });
+
+  it("does NOT execute a lead scoring just below the threshold (0.50) in live mode", async () => {
+    // base 0.30 + ICP 0.20 = 0.50 — one bonus short of the gate.
+    LEADS = [
+      {
+        email: "just-below@example.com",
+        business_name: null,
+        city: null,
+        vertical: "coffee_shops",
+        referrer: null,
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    const decisions = await run(true, 25);
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].confidence).toBeCloseTo(0.5);
+    expect(decisions[0].executed).toBe(false);
+    expect(QUEUED).toHaveLength(0);
+    expect(CONTACTED).toHaveLength(0);
+  });
+});
+
 describe("acquisition agent — outbound copy compliance", () => {
   it("never offers a perk for a review (Google/Yelp/TripAdvisor reviews are banned)", async () => {
     LEADS = [hotLead(0)];
