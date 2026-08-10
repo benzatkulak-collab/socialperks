@@ -182,3 +182,69 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML escaping in invite email", () => {
+  it("escapes HTML metacharacters in businessName so the email is not broken", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: "<script>alert('xss')</script>",
+        city: null,
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as { html: string }).html;
+    // Raw tag must not appear in the HTML body
+    expect(html).not.toContain("<script>");
+    // The text content should survive as escaped entities
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("escapes HTML metacharacters in city", async () => {
+    LEADS = [
+      {
+        email: "city@example.com",
+        business_name: "Good Shop",
+        city: "Austin & <TX>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as { html: string }).html;
+    expect(html).not.toContain("<TX>");
+    expect(html).toContain("Austin &amp; &lt;TX&gt;");
+  });
+
+  it("plain-text body is unescaped (HTML entities must not appear in text)", async () => {
+    LEADS = [
+      {
+        email: "plain@example.com",
+        business_name: "Joe's & Jane's",
+        city: null,
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const text: string = (QUEUED[0] as { text: string }).text;
+    // Plain text should have the literal apostrophe, not &apos; / &#x27;
+    expect(text).toContain("Joe's & Jane's");
+    expect(text).not.toContain("&#x27;");
+    expect(text).not.toContain("&amp;");
+  });
+});
