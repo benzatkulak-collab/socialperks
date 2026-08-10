@@ -28,8 +28,19 @@ export async function register(): Promise<void> {
   // forced to run, and a missing table failed silently. Best-effort: never
   // throws, so a transient DB blip can't take the deployment down. Runs in all
   // environments that have a real DB, not just production.
-  const { runBootMigrations } = await import("@/lib/db/boot-migrate");
-  await runBootMigrations();
+  //
+  // The NEXT_RUNTIME guard is load-bearing and must stay OUTSIDE the import.
+  // register() is compiled for the edge runtime as well as node, and the
+  // postgres driver imports node:net / node:tls. Importing boot-migrate
+  // unconditionally pulls that driver into the EDGE bundle, where those
+  // modules don't exist — compilation of /instrumentation then fails with
+  // "Module not found: Can't resolve 'net'" and EVERY request 500s in dev.
+  // The equivalent runtime check inside runBootMigrations() cannot help:
+  // bundling happens before any of this code runs.
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { runBootMigrations } = await import("@/lib/db/boot-migrate");
+    await runBootMigrations();
+  }
 
   if (!config.isProduction) return;
 

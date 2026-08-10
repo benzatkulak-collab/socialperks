@@ -52,10 +52,11 @@ test.describe("Landing Page", () => {
     const pricingSection = page.locator("#pricing");
     await pricingSection.scrollIntoViewIfNeeded();
     await expect(pricingSection).toBeVisible();
-    // Pricing heading
-    await expect(
-      page.getByText("Costs less than one Instagram ad")
-    ).toBeVisible();
+    // Pricing heading. Assert via the labelling id rather than a copy string
+    // so a marketing reword doesn't fail the smoke gate — the previous
+    // literal ("Costs less than one Instagram ad") had been gone since #78
+    // and only went unnoticed because the whole suite was failing earlier.
+    await expect(page.locator("#pricing-heading")).toBeVisible();
     // Tier names
     await expect(page.getByText("Free").first()).toBeVisible();
     await expect(page.getByText("Pro").first()).toBeVisible();

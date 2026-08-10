@@ -56,34 +56,29 @@ jobs:
       - name: Validate skills frontmatter
         run: node scripts/ci/validate-skills.mjs
 
-  # ── Smoke: Playwright critical paths. The suite boots an API server (:4000,
-  #    needs Postgres+Redis) and Next (:3000) via playwright.config.ts. ──
+  # ── Smoke: Playwright critical paths against the Next dev server.
+  #
+  #    Deliberately runs WITHOUT DATABASE_URL, on the in-memory store.
+  #    The suite logs in as the seeded demo accounts (yoga@demo.com,
+  #    priya@demo.com) and asserts on seed ids like "b1" — those exist only
+  #    in the in-memory seed. Pointed at a real, freshly-migrated Postgres
+  #    the accounts simply don't exist, every login fails, and Postgres logs
+  #    fill with `invalid input syntax for type uuid: "b1"` because the seed
+  #    ids aren't UUIDs like the schema expects. Migrating without seeding
+  #    made this job unpassable.
+  #
+  #    Smoke covers critical UI/API paths, not durability — the durable
+  #    layer is covered by the unit suite in ci.yml. If this job ever needs
+  #    a real database, it needs a seeding step and UUID-shaped fixtures
+  #    first. ──
   e2e-smoke:
     name: Smoke (Playwright critical paths)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: socialperks
-          POSTGRES_PASSWORD: socialperks
-          POSTGRES_DB: socialperks
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U socialperks"
-          --health-interval 10s --health-timeout 5s --health-retries 5
-      redis:
-        image: redis:7
-        ports: ["6379:6379"]
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgresql://socialperks:socialperks@localhost:5432/socialperks
-      REDIS_URL: redis://localhost:6379
       AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000
       RATE_LIMIT_BYPASS: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -92,8 +87,6 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Run database migrations
-        run: npm run db:migrate
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Run smoke tests

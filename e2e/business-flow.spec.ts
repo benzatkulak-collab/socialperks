@@ -21,7 +21,9 @@ async function loginAsBusiness(page: Page) {
   // Dismiss the onboarding wizard if it pops up — it covers portal interaction
   const wizard = page.getByRole("dialog", { name: /Onboarding wizard/i });
   if (await wizard.isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: /Skip for now/i }).click();
+    // aria-label overrides the visible "Skip for now ✕" text when
+    // computing the accessible name getByRole matches on.
+    await page.getByRole("button", { name: /Skip onboarding/i }).click();
     await expect(wizard).not.toBeVisible();
   }
 }
@@ -48,10 +50,15 @@ test.describe("Business Portal Flow", () => {
         page.getByText(/Quick-start templates/i).first()
       ).toBeVisible({ timeout: 10000 });
 
-      // At least one template should be present
+      // At least one template should be present. It must NOT be a Google/Yelp
+      // review template: those actions are incentivizable:false and every
+      // consumer surface filters them out (getPopularTemplates is all
+      // Instagram/TikTok). Asserting a "Google Review Campaign" here was
+      // asserting the exact behaviour the compliance gate exists to prevent.
       await expect(
-        page.getByText(/Google Review Campaign/i).first()
+        page.getByText(/Story|Photo|Reel|TikTok|Before/i).first()
       ).toBeVisible();
+      await expect(page.getByText(/Google Review/i)).toHaveCount(0);
     });
 
     test("create new campaign button is visible", async ({ page }) => {

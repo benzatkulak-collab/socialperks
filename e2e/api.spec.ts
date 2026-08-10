@@ -8,10 +8,17 @@ test.describe("API Endpoints", () => {
       const body = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.status).toBe("ok");
-      expect(body.data.uptime).toBeGreaterThan(0);
-      expect(body.data.node).toBeDefined();
-      expect(body.data.memory).toBeDefined();
-      expect(body.data.memory.heapUsedMB).toBeGreaterThan(0);
+      expect(body.data.timestamp).toBeDefined();
+      expect(body.data.database).toBeDefined();
+      expect(typeof body.data.database.connected).toBe("boolean");
+
+      // The payload is deliberately minimal: uptime, Node version and memory
+      // readings were REMOVED as a hardening measure (they hand an attacker
+      // version and load fingerprinting). Assert they stay gone — re-adding
+      // them should fail this test, not silently pass it.
+      expect(body.data.uptime).toBeUndefined();
+      expect(body.data.node).toBeUndefined();
+      expect(body.data.memory).toBeUndefined();
     });
   });
 
@@ -169,13 +176,27 @@ test.describe("API Endpoints", () => {
       const loginBody = await loginRes.json();
       const token = loginBody.data.accessToken;
 
-      const res = await request.post("/api/v1/campaigns", {
+      // Mutations require a CSRF token bound to the caller's session, so fetch
+      // one WITH the Authorization header (an anonymous token is bound to a
+      // different session id and will not validate). API-key callers are
+      // exempt; a JWT bearer is not.
+      const csrfRes = await request.get("/api/v1/csrf", {
         headers: { Authorization: `Bearer ${token}` },
+      });
+      const csrf = (await csrfRes.json()).data.csrfToken;
+
+      const res = await request.post("/api/v1/campaigns", {
+        headers: { Authorization: `Bearer ${token}`, "X-CSRF-Token": csrf },
         data: {
           businessId: loginBody.data.user.businessId ?? loginBody.data.user.id,
           name: "E2E Test Campaign",
           description: "Created by E2E test",
-          actions: ["ggl_rv"],
+          // ig_st (Instagram Story Tag) is incentivizable:true. This used to
+          // send "ggl_rv", which is not a real action id AND was reaching for
+          // a Google review — the launch route correctly refuses incentivized
+          // review campaigns, so the test was asserting 201 on something the
+          // platform is designed to reject.
+          actions: ["ig_st"],
           discountValue: 10,
           discountType: "pct",
           expiresInDays: 30,
@@ -186,6 +207,37 @@ test.describe("API Endpoints", () => {
       expect(body.success).toBe(true);
       expect(body.data.campaign).toBeDefined();
       expect(body.data.campaign.name).toBe("E2E Test Campaign");
+    });
+
+    test("POST /api/v1/campaigns REFUSES an incentivized Google review", async ({ request }) => {
+      const loginRes = await request.post("/api/v1/auth", {
+        data: { action: "login", email: "yoga@demo.com", pin: "1234" },
+      });
+      const loginBody = await loginRes.json();
+      const token = loginBody.data.accessToken;
+      const csrfRes = await request.get("/api/v1/csrf", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const csrf = (await csrfRes.json()).data.csrfToken;
+
+      const res = await request.post("/api/v1/campaigns", {
+        headers: { Authorization: `Bearer ${token}`, "X-CSRF-Token": csrf },
+        data: {
+          businessId: loginBody.data.user.businessId ?? loginBody.data.user.id,
+          name: "E2E Banned Review Campaign",
+          description: "Must be rejected",
+          // go_rv is incentivizable:false — Google and the FTC ban paying for
+          // reviews, and this gate is the product's core compliance promise.
+          actions: ["go_rv"],
+          discountValue: 10,
+          discountType: "pct",
+          expiresInDays: 30,
+        },
+      });
+      expect(res.status()).toBeGreaterThanOrEqual(400);
+      expect(res.status()).toBeLessThan(500);
+      const body = await res.json();
+      expect(body.success).toBe(false);
     });
 
     test("GET /api/v1/campaigns supports state filter", async ({ request }) => {
