@@ -226,7 +226,11 @@ test.describe("Authentication", () => {
       // Dismiss the onboarding wizard if it's blocking interaction
       const wizard = page.getByRole("dialog", { name: /Onboarding wizard/i });
       if (await wizard.isVisible().catch(() => false)) {
-        await page.getByRole("button", { name: /Skip for now/i }).click();
+        // Match the aria-label, not the visible text: the button renders
+        // "Skip for now ✕" but carries aria-label="Skip onboarding and go to
+        // dashboard", and an aria-label OVERRIDES text content when computing
+        // the accessible name that getByRole matches against.
+        await page.getByRole("button", { name: /Skip onboarding/i }).click();
         await expect(wizard).not.toBeVisible();
       }
 

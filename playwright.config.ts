@@ -20,7 +20,12 @@ export default defineConfig({
   // baseURL (:3000) to the Next route handlers under /api/v1/*.
   webServer: [
     {
-      command: "npx next dev",
+      // `npm run dev`, not `npx next dev`: npx will silently FETCH a newer
+      // Next from the registry when local resolution hiccups (observed it
+      // pull next@16 against this Next 15 app, which 500s every route and
+      // fails the whole gate for reasons that look like app bugs). The npm
+      // script always uses node_modules/.bin/next — the pinned version.
+      command: "npm run dev",
       port: 3000,
       reuseExistingServer: true,
       // Disable rate limiting for e2e tests so the auth suite (which makes
