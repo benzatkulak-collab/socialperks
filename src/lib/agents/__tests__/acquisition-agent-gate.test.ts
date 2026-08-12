@@ -181,4 +181,26 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("uses 'there' fallback when business_name is an empty string in the DB", async () => {
+    // The DB can return business_name = "" (empty string). The ?? operator
+    // in the old mapping kept it as "", causing "Hi ," in the salutation.
+    // The || operator normalizes empty → undefined → "there" fallback.
+    LEADS = [{
+      email: "empty-name@example.com",
+      business_name: "",
+      city: "Portland",
+      vertical: "coffee_shops",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const body = JSON.stringify(QUEUED[0]);
+    // Should say "Hi there" (or similar), NOT "Hi ,"
+    expect(body).toMatch(/Hi there/i);
+    expect(body).not.toMatch(/Hi ,/);
+  });
 });
