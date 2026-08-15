@@ -27,6 +27,7 @@
  */
 
 import type { Agent, AgentDecision } from "./types";
+import { escapeHtml } from "@/lib/security/sanitize";
 
 export interface WaitlistLead {
   email: string;
@@ -139,6 +140,10 @@ function inviteEmail(lead: WaitlistLead): { subject: string; html: string; text:
   const cityClause = lead.city
     ? `We're onboarding shops in ${lead.city} right now`
     : "We're opening up early-access slots right now";
+  const safeName = escapeHtml(name);
+  const safeCityClause = lead.city
+    ? `We're onboarding shops in ${escapeHtml(lead.city)} right now`
+    : "We're opening up early-access slots right now";
   const subject = "Your Social Perks early-access slot is ready";
   const text = `Hi ${name},
 
@@ -149,8 +154,8 @@ You can set up your first perk in about 60 seconds: pick a reward (say 15% off),
 Claim your slot: https://socialperks.app
 
 — The Social Perks team`;
-  const html = `<p>Hi ${name},</p>
-<p>${cityClause}, and a spot just opened for you.</p>
+  const html = `<p>Hi ${safeName},</p>
+<p>${safeCityClause}, and a spot just opened for you.</p>
 <p>You can set up your first perk in about 60 seconds: pick a reward (say <strong>15% off</strong>), choose the action customers take (a story, a tag, a post), and we handle the rest — including verifying the post actually happened.</p>
 <p><a href="https://socialperks.app" style="display:inline-block;padding:12px 24px;background-color:#22D3EE;color:#0C0F1A;border-radius:8px;text-decoration:none;font-weight:600;">Claim your slot</a></p>
 <p>— The Social Perks team</p>`;
