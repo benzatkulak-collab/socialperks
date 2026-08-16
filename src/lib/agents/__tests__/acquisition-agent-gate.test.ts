@@ -166,6 +166,37 @@ describe("acquisition agent — per-run send cap", () => {
   });
 });
 
+describe("acquisition agent — decision shape", () => {
+  it("populates targetId, action, reason, and meta for every returned decision", async () => {
+    // Use a single hot lead so we can assert exact field values without
+    // ambiguity. Dry-run so we don't accidentally exercise the send path.
+    LEADS = [hotLead(0)];
+    const decisions = await run(false, 25);
+
+    // The test must not be vacuous: decisions must exist to inspect.
+    expect(decisions).toHaveLength(1);
+    const d = decisions[0];
+
+    expect(d.targetId).toBe("lead0@example.com");
+    expect(d.action).toBe("send-early-access-invite");
+    expect(d.executed).toBe(false);
+    expect(typeof d.reason).toBe("string");
+    expect(d.reason.length).toBeGreaterThan(0);
+    // hotLead has a referrer, so "referred" must appear in the reasons string.
+    expect(d.reason).toContain("referred");
+
+    // meta carries the fields the admin UI surfaces per-decision; if any of
+    // these keys are renamed or dropped, the dashboard goes blind silently.
+    expect(d.meta).toMatchObject({
+      businessName: "Shop 0",
+      city: "Portland",
+      vertical: "coffee_shops",
+      referred: true,
+      ageDays: 5,
+    });
+  });
+});
+
 describe("acquisition agent — outbound copy compliance", () => {
   it("never offers a perk for a review (Google/Yelp/TripAdvisor reviews are banned)", async () => {
     LEADS = [hotLead(0)];
