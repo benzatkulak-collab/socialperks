@@ -182,3 +182,40 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML escaping in outbound email", () => {
+  it("escapes HTML-special characters in businessName within the html template", async () => {
+    LEADS = [{
+      ...hotLead(0),
+      email: "xss@example.com",
+      business_name: "<script>Drip & Co</script>",
+    }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const job = QUEUED[0] as Record<string, string>;
+    // Raw < from the business name must not appear in the HTML body.
+    expect(job.html).not.toContain("<script>");
+    expect(job.html).toContain("&lt;script&gt;");
+    // Plain-text body is unescaped — it's not HTML.
+    expect(job.text).toContain("<script>Drip & Co</script>");
+  });
+
+  it("escapes HTML-special characters in city within the html template", async () => {
+    LEADS = [{
+      ...hotLead(0),
+      email: "xss2@example.com",
+      city: `O'<b>Brien</b>`,
+    }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const job = QUEUED[0] as Record<string, string>;
+    expect(job.html).not.toContain("<b>");
+    expect(job.html).toContain("&lt;b&gt;");
+    // The city still appears literally in plain text.
+    expect(job.text).toContain(`O'<b>Brien</b>`);
+  });
+});
