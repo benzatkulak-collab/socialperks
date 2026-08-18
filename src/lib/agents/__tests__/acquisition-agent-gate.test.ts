@@ -149,6 +149,43 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("when cap is binding, selects highest-confidence leads rather than fetch order", async () => {
+    // 3 warm leads (0.80: base + referred + ICP, no name/city) are placed
+    // FIRST because the DB returns oldest-first. 3 hot leads (0.95) arrive
+    // LAST. All 6 clear the 0.55 threshold; only 3 can be sent. Without the
+    // pre-send sort the cap would be spent on whichever leads arrived first
+    // in fetch order (the warm ones). With it the 3 highest-confidence
+    // (hot) leads fill the cap instead.
+    //
+    // Score breakdown:
+    //   warm: 0.30 base + 0.30 referred + 0.20 ICP = 0.80
+    //   hot:  0.30 base + 0.30 referred + 0.20 ICP + 0.10 named + 0.05 city = 0.95
+    //
+    // fetchLimit = min(3 * 4, 500) = 12 — all 6 rows land in the scored set.
+    const warm = (i: number) => ({
+      email: `warm${i}@example.com`,
+      business_name: null,
+      city: null,
+      vertical: "coffee_shops",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    });
+    LEADS = [
+      ...Array.from({ length: 3 }, (_, i) => warm(i)),
+      hotLead(0),
+      hotLead(1),
+      hotLead(2),
+    ];
+
+    await run(true, 3);
+
+    expect(QUEUED).toHaveLength(3);
+    const sent = new Set(QUEUED.map((q) => q.to));
+    expect(sent).toEqual(
+      new Set(["lead0@example.com", "lead1@example.com", "lead2@example.com"]),
+    );
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
