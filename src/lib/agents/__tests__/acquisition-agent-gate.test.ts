@@ -149,6 +149,41 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("decisions are returned highest-confidence-first (load-bearing for the registry slice)", async () => {
+    // Three leads all above the 0.55 threshold with distinct scores.
+    // Cap of 1 means only the highest-confidence lead should be executed.
+    // If the sort order were ascending (lowest-first), "c@example.com" (0.55)
+    // would be sent instead of "a@example.com" (0.95) — so this assertion is
+    // load-bearing, not a style check.
+    // Scores: A = 0.30+0.30+0.20+0.10+0.05 = 0.95 (hot)
+    //         B = 0.30+0.30                 = 0.60 (warm)
+    //         C = 0.30+0.20+0.05            = 0.55 (at threshold)
+    // The DB returns them oldest-first; all share the same timestamp so
+    // fetch order is insertion order: C, B, A — reversed from confidence
+    // order. Only ranking by confidence can surface A first.
+    const fresh = new Date(NOW.getTime() - 5 * 86_400_000).toISOString();
+    const hotA = { email: "a@example.com", business_name: "Shop A", city: "Portland", vertical: "coffee_shops", referrer: "partner", created_at: fresh };
+    const warmB = { email: "b@example.com", business_name: null, city: null, vertical: "other", referrer: "partner", created_at: fresh };
+    const minC = { email: "c@example.com", business_name: null, city: "Austin", vertical: "coffee_shops", referrer: null, created_at: fresh };
+    LEADS = [minC, warmB, hotA]; // reverse of confidence order
+
+    const decisions = await run(true, 1);
+
+    // Only the highest-confidence lead executes.
+    expect(QUEUED.map((q) => q.to)).toEqual(["a@example.com"]);
+    expect(CONTACTED).toEqual(["a@example.com"]);
+
+    // Decisions must come back highest-confidence-first. The registry slices
+    // to maxActionsPerRun after run() returns; wrong order here would cut
+    // the lead that was actually emailed out of the visible audit log.
+    expect(decisions[0].targetId).toBe("a@example.com");
+    expect(decisions[0].executed).toBe(true);
+    expect(decisions[1].targetId).toBe("b@example.com");
+    expect(decisions[1].executed).toBe(false);
+    expect(decisions[2].targetId).toBe("c@example.com");
+    expect(decisions[2].executed).toBe(false);
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
