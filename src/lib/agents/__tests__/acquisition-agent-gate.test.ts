@@ -149,6 +149,39 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("when multiple above-threshold leads compete for a capped slot, ranking (not threshold) is the discriminator", async () => {
+    // Three eligible leads (all ≥ 0.55), ordered by decreasing confidence:
+    //   hot (0.95): referred + ICP + named + city
+    //   warm (0.90): referred + ICP + named          (score = 0.30+0.30+0.20+0.10)
+    //   mild (0.65): referred + city                 (score = 0.30+0.30+0.05)
+    //
+    // With cap=1, the ONLY way the hot lead wins is through confidence
+    // ranking — threshold alone would let any of the three be sent.
+    // The DB returns them oldest-first, so mild is FIRST in fetch order.
+    const mild = {
+      email: "mild@example.com",
+      business_name: null,
+      city: "Austin",
+      vertical: "restaurants",
+      referrer: "ref",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    };
+    const warm = {
+      email: "warm@example.com",
+      business_name: "Warm Shop",
+      city: null,
+      vertical: "coffee_shops",
+      referrer: "ref",
+      created_at: new Date(NOW.getTime() - 4 * 86_400_000).toISOString(),
+    };
+
+    LEADS = [mild, warm, hotLead(99)]; // mild first in fetch order
+
+    await run(true, 1); // cap=1 → only the top-ranked lead may be sent
+
+    expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
