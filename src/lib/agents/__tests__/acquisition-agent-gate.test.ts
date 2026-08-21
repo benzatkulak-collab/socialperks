@@ -182,3 +182,69 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+// ── email personalization ─────────────────────────────────────────────────────
+// The invite email has two personalization branches each for name and city. A
+// regression in either silently degrades every invite to a generic fallback.
+// These tests pin both the happy path and the fallback so a breakage fails
+// loudly rather than shipping bland copy to real leads.
+
+type QueuedEmail = { to: string; subject: string; html: string; text: string };
+
+describe("acquisition agent — email personalization", () => {
+  it("addresses the lead by business name when businessName is provided", async () => {
+    // hotLead sets business_name: `Shop N`
+    LEADS = [hotLead(0)];
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html, text } = QUEUED[0] as QueuedEmail;
+    expect(html).toContain("Hi Shop 0");
+    expect(text).toContain("Hi Shop 0");
+  });
+
+  it("falls back to 'there' as the salutation when businessName is absent", async () => {
+    LEADS = [{
+      email: "anon@example.com",
+      business_name: null,
+      city: null,
+      vertical: "coffee_shops",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    }];
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html, text } = QUEUED[0] as QueuedEmail;
+    expect(html).toContain("Hi there");
+    expect(text).toContain("Hi there");
+  });
+
+  it("includes the city name in the invite when city is provided", async () => {
+    // hotLead sets city: "Portland"
+    LEADS = [hotLead(0)];
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html, text } = QUEUED[0] as QueuedEmail;
+    expect(html).toContain("Portland");
+    expect(text).toContain("Portland");
+  });
+
+  it("uses a generic city clause when city is absent", async () => {
+    LEADS = [{
+      email: "nocity@example.com",
+      business_name: "Generic Shop",
+      city: null,
+      vertical: "coffee_shops",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    }];
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html, text } = QUEUED[0] as QueuedEmail;
+    expect(html).toContain("opening up early-access slots");
+    expect(text).toContain("opening up early-access slots");
+  });
+});
