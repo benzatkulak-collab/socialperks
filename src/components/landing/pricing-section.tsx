@@ -479,7 +479,7 @@ export function PricingSection({
           Have questions before you sign up?{" "}
           <a
             href="/contact?intent=questions"
-            className="text-brand-cyan underline-offset-2 hover:underline"
+            className="text-brand-cyan underline underline-offset-2"
           >
             Talk to the founder →
           </a>
@@ -651,7 +651,20 @@ function PricingFaq() {
       <h3 className="text-center font-heading text-2xl italic text-brand-white sm:text-3xl">
         Questions
       </h3>
-      <dl className="mt-8 divide-y divide-brand-border/40 rounded-2xl border border-brand-border/40 bg-brand-surface/30">
+      {/* Deliberately NOT a <dl>.
+          A <dl> may contain only <dt>, <dd>, <script>, <template> or <div>,
+          and <dt>/<dd> must be its DIRECT children. An accordion needs each
+          Q/A pair inside a <details>, which put <dt> under <summary> and <dd>
+          under <details> — so the list was malformed in two ways at once and
+          could not be fixed while keeping <details>.
+          axe flagged both `definition-list` and `dlitem` on every page that
+          renders this section (the landing page and /pricing), which was 14 of
+          the ~28 audit weight holding accessibility under the 0.9 launch-gate
+          budget — the gate had never once passed.
+          <details>/<summary> is already the native disclosure widget and
+          announces correctly on its own, so the list semantics were adding
+          nothing a screen reader used. */}
+      <div className="mt-8 divide-y divide-brand-border/40 rounded-2xl border border-brand-border/40 bg-brand-surface/30">
         {FAQ.map((item, i) => (
           <details
             key={item.q}
@@ -659,9 +672,9 @@ function PricingFaq() {
             open={i === 0}
           >
             <summary className="flex cursor-pointer items-start justify-between gap-4 text-left list-none [&::-webkit-details-marker]:hidden">
-              <dt className="font-body text-base font-semibold text-brand-white sm:text-lg">
+              <span className="font-body text-base font-semibold text-brand-white sm:text-lg">
                 {item.q}
-              </dt>
+              </span>
               <span
                 className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-brand-border text-brand-cyan transition-transform"
                 aria-hidden="true"
@@ -669,12 +682,12 @@ function PricingFaq() {
                 +
               </span>
             </summary>
-            <dd className="mt-3 text-sm leading-relaxed text-brand-dim sm:text-base">
+            <div className="mt-3 text-sm leading-relaxed text-brand-dim sm:text-base">
               {item.a}
-            </dd>
+            </div>
           </details>
         ))}
-      </dl>
+      </div>
 
       {/* FAQPage JSON-LD — eligible for Google rich result.
           Google allows ONE FAQPage per URL, so this carries BOTH this
