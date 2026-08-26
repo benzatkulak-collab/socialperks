@@ -24,7 +24,13 @@ export default defineConfig({
     // this makes the tests exercise the reduced-motion path real users with
     // that OS setting already get, rather than bypassing the stability
     // check with force-click.
-    reducedMotion: "reduce",
+    // Via contextOptions, not a top-level `use` key: `reducedMotion` is a
+    // browser-context option and is NOT part of PlaywrightTestOptions in
+    // @playwright/test 1.58.2 (verified against the installed types).
+    // It matters here because tsconfig includes this file, so `next build`
+    // typechecks it — an invalid key fails the BUILD, which takes the
+    // Lighthouse job down with it before it ever runs.
+    contextOptions: { reducedMotion: "reduce" },
     screenshot: "only-on-failure",
     trace: "on-first-retry",
   },
