@@ -118,7 +118,7 @@ export function CostComparisonSection() {
           Typical local-business ranges, not guarantees — actual cost depends on
           your perk value, category, and participation. Ad figures reflect
           marginal cost per conversion for small businesses. See the full{" "}
-          <Link href="/vs/meta-ads" className="text-brand-cyan hover:underline">
+          <Link href="/vs/meta-ads" className="text-brand-cyan underline underline-offset-2">
             head-to-head comparisons
           </Link>{" "}
           for the math.

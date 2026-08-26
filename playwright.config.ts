@@ -7,6 +7,24 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     headless: true,
+    // The onboarding wizard's container animates in over 500ms
+    // (contentScaleIn), and its "Skip for now" button is absolutely
+    // positioned INSIDE that container — so the button's bounding box is
+    // still moving while Playwright runs its actionability check, which
+    // waits for the element to be "visible, enabled and stable". The click
+    // retried until the 30s timeout and the node detached mid-retry.
+    //
+    // That produced 3 intermittent failures in the launch gate's smoke job
+    // and was read as a flaky selector; the locator always resolved fine.
+    //
+    // globals.css:1179 already ships a complete prefers-reduced-motion
+    // reset (animation-duration: 0.01ms !important), and an author
+    // !important beats the wizard's inline style attribute — so emulating
+    // the preference here is enough on its own. No component change needed:
+    // this makes the tests exercise the reduced-motion path real users with
+    // that OS setting already get, rather than bypassing the stability
+    // check with force-click.
+    reducedMotion: "reduce",
     screenshot: "only-on-failure",
     trace: "on-first-retry",
   },
