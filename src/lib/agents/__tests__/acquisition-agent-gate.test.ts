@@ -182,3 +182,37 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — email HTML safety", () => {
+  it("escapes HTML-special characters in businessName before inserting into the HTML body", async () => {
+    LEADS = [{ ...hotLead(0), business_name: '</p><b>hacked</b>' }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html = (QUEUED[0] as Record<string, string>).html;
+    expect(html).not.toContain('</p><b>hacked</b>');
+    expect(html).toContain('&lt;/p&gt;&lt;b&gt;hacked&lt;/b&gt;');
+  });
+
+  it("escapes HTML-special characters in city before inserting into the HTML body", async () => {
+    LEADS = [{ ...hotLead(0), city: '<script>alert("xss")</script>' }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html = (QUEUED[0] as Record<string, string>).html;
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
+  });
+
+  it("plain-text body is not affected — user-supplied values appear verbatim in text", async () => {
+    LEADS = [{ ...hotLead(0), business_name: 'Joe & Sons', city: 'Austin' }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const text = (QUEUED[0] as Record<string, string>).text;
+    expect(text).toContain('Joe & Sons');
+  });
+});
