@@ -182,3 +182,31 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — email HTML safety", () => {
+  it("escapes HTML special characters in businessName and city to prevent XSS in the invite email", async () => {
+    // User-supplied fields land in waitlist.business_name / city via the signup
+    // form. Without escaping, a crafted value like `<script>` ends up verbatim
+    // in the HTML body — some mail clients render it. The fix uses escapeHtml()
+    // from lib/security/sanitize before interpolating into the <p> tags.
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: '<script>alert("xss")</script>',
+        city: "<img src=x onerror=alert(1)>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html } = QUEUED[0] as { html: string };
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;img");
+  });
+});
