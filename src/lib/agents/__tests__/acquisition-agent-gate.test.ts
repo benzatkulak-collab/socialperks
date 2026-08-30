@@ -149,6 +149,28 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("sends the HIGHEST-confidence lead when the cap is 1 and multiple clear the threshold", async () => {
+    // Both leads clear the 0.55 threshold, but they arrive in fetch order
+    // with the moderate lead first (older created_at). Without confidence-based
+    // ranking before the loop, the moderate lead (0.60) would be sent and the
+    // hot lead (0.95) would be skipped by the cap. Ranking first ensures the
+    // better candidate wins. fetchLimit is min(1*4, 500) = 4, so both fit.
+    const moderate = {
+      email: "moderate@example.com",
+      business_name: null,
+      city: null,
+      vertical: "restaurants",
+      referrer: "blog.com", // 0.30 + 0.30 = 0.60, above threshold
+      created_at: new Date(NOW.getTime() - 10 * 86_400_000).toISOString(), // older → first in DB order
+    };
+    LEADS = [moderate, hotLead(99)]; // moderate arrives first from the DB
+
+    await run(true, 1); // cap of 1 — forces exactly one send
+
+    expect(QUEUED).toHaveLength(1);
+    expect(QUEUED[0].to).toBe("lead99@example.com"); // hot lead (0.95) wins over moderate (0.60)
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
