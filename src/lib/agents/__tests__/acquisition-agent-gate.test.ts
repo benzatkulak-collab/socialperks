@@ -181,4 +181,22 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes businessName and city so injection payloads cannot break the email body", async () => {
+    LEADS = [{
+      ...hotLead(0),
+      business_name: '<script>alert("xss")</script>',
+      city: "<b>Portland</b>",
+    }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html = (QUEUED[0] as { html: string }).html;
+    // Raw tags must be absent; escaped equivalents must be present
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<b>Portland</b>");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;b&gt;Portland&lt;/b&gt;");
+  });
 });
