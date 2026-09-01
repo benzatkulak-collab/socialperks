@@ -181,4 +181,37 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes businessName and city in the invite email body", async () => {
+    // Leads come from a public waitlist form — a submitted business name or
+    // city containing HTML special characters must be escaped in the HTML
+    // body so email clients don't render attacker-controlled markup.
+    // The plain-text version is left unescaped (email clients don't render
+    // HTML there, so entity-encoding would corrupt the displayed text).
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: "<Café & Roastery>",
+        city: "<Downtown>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const job = QUEUED[0] as { to: string; html: string; text: string };
+
+    // HTML template must escape the special chars.
+    expect(job.html).not.toContain("<Café");
+    expect(job.html).not.toContain("<Downtown>");
+    expect(job.html).toContain("&lt;Café &amp; Roastery&gt;");
+    expect(job.html).toContain("&lt;Downtown&gt;");
+
+    // Plain-text template must NOT encode entities (would look garbled in inbox).
+    expect(job.text).toContain("<Café & Roastery>");
+    expect(job.text).toContain("<Downtown>");
+  });
 });
