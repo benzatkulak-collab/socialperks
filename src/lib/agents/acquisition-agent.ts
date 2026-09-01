@@ -67,10 +67,12 @@ async function fetchUncontactedLeads(limit: number): Promise<WaitlistLead[]> {
     );
     return result.rows.map((r) => ({
       email: r.email,
-      businessName: r.business_name ?? undefined,
-      city: r.city ?? undefined,
+      // Use || rather than ?? so empty strings ("") from the DB are treated as
+      // absent, matching the WaitlistLead semantic and preventing "Hi ," in emails.
+      businessName: r.business_name || undefined,
+      city: r.city || undefined,
       vertical: r.vertical,
-      referrer: r.referrer ?? undefined,
+      referrer: r.referrer || undefined,
       createdAt: r.created_at,
     }));
   } catch {
