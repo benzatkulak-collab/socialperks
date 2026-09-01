@@ -27,6 +27,7 @@
  */
 
 import type { Agent, AgentDecision } from "./types";
+import { escapeHtml } from "@/lib/security/sanitize";
 
 export interface WaitlistLead {
   email: string;
@@ -149,8 +150,15 @@ You can set up your first perk in about 60 seconds: pick a reward (say 15% off),
 Claim your slot: https://socialperks.app
 
 — The Social Perks team`;
-  const html = `<p>Hi ${name},</p>
-<p>${cityClause}, and a spot just opened for you.</p>
+  // Escape user-supplied fields before embedding in HTML (business name and city
+  // come from the waitlist table and must not be trusted as safe markup).
+  const safeName = escapeHtml(name);
+  const safeCity = lead.city ? escapeHtml(lead.city) : null;
+  const safeCityClause = safeCity
+    ? `We're onboarding shops in ${safeCity} right now`
+    : "We're opening up early-access slots right now";
+  const html = `<p>Hi ${safeName},</p>
+<p>${safeCityClause}, and a spot just opened for you.</p>
 <p>You can set up your first perk in about 60 seconds: pick a reward (say <strong>15% off</strong>), choose the action customers take (a story, a tag, a post), and we handle the rest — including verifying the post actually happened.</p>
 <p><a href="https://socialperks.app" style="display:inline-block;padding:12px 24px;background-color:#22D3EE;color:#0C0F1A;border-radius:8px;text-decoration:none;font-weight:600;">Claim your slot</a></p>
 <p>— The Social Perks team</p>`;
