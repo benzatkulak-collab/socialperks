@@ -1,5 +1,5 @@
 # ─── Stage 1: Dependencies ──────────────────────────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -12,7 +12,7 @@ COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci
 
 # ─── Stage 2: Build ─────────────────────────────────────────────────────────
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # ─── Stage 3: Runtime ───────────────────────────────────────────────────────
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 
 LABEL org.opencontainers.image.title="social-perks"
 LABEL org.opencontainers.image.description="Social Perks — Turn Customers Into Your Marketing Team"
