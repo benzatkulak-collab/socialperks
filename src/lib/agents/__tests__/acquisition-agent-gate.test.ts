@@ -181,4 +181,30 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes businessName and city so user input cannot inject markup", async () => {
+    // A malicious (or just unusual) business name with HTML special characters.
+    // Without escapeHtml, `<script>alert(1)</script>` would land verbatim in
+    // the email HTML body — a stored-XSS risk for any webmail renderer that
+    // displays the message inline.
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: '<script>alert("xss")</script>',
+        city: '<img src=x onerror=alert(1)>',
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as { html: string }).html;
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;img");
+  });
 });
