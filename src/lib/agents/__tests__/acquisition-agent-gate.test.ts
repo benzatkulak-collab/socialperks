@@ -149,6 +149,32 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("cap selects the top-N by confidence when multiple leads clear the threshold", async () => {
+    // Three leads all above the 0.55 threshold — scores 0.65, 0.80, 0.95 —
+    // fed to the agent in ascending-score order (oldest-first as the DB
+    // would return them). With cap=2 the agent must emit exactly the two
+    // highest-scoring ones, proving that ranking happens before the send
+    // loop, not after.
+    //
+    // Scores (base 0.30 throughout):
+    //   "low"  — referred + city              = 0.30 + 0.30 + 0.05 = 0.65
+    //   "mid"  — referred + ICP               = 0.30 + 0.30 + 0.20 = 0.80
+    //   "high" — referred + ICP + named + city = hotLead  →  0.95
+    const freshTs = new Date(NOW.getTime() - 5 * 86_400_000).toISOString();
+    LEADS = [
+      { email: "low@example.com",  business_name: null,    city: "Austin",   vertical: "other",        referrer: "ref", created_at: freshTs },
+      { email: "mid@example.com",  business_name: null,    city: null,       vertical: "coffee_shops", referrer: "ref", created_at: freshTs },
+      { email: "high@example.com", business_name: "Top",   city: "Portland", vertical: "coffee_shops", referrer: "ref", created_at: freshTs },
+    ];
+
+    await run(true, 2);
+
+    // Only the two highest should have been emailed.
+    expect(QUEUED.map((q) => q.to)).toEqual(["high@example.com", "mid@example.com"]);
+    expect(QUEUED).toHaveLength(2);
+    expect(CONTACTED).toHaveLength(2);
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
