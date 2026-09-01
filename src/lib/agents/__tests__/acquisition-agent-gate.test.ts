@@ -182,3 +182,50 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML escaping in invite email", () => {
+  it("escapes XSS payloads in businessName before interpolating into HTML", async () => {
+    LEADS = [
+      {
+        ...hotLead(0),
+        business_name: '<script>alert("xss")</script>',
+        city: null,
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as { html: string }).html;
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("escapes XSS payloads in city before interpolating into HTML", async () => {
+    LEADS = [
+      {
+        ...hotLead(0),
+        business_name: "Safe Shop",
+        city: '<img src=x onerror=evil()>',
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const html: string = (QUEUED[0] as { html: string }).html;
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
+  });
+
+  it("leaves plain-text body unescaped (HTML entities would show as literal text in email clients)", async () => {
+    LEADS = [{ ...hotLead(0), business_name: "Joe's Coffee & Tea", city: null }];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const text: string = (QUEUED[0] as { text: string }).text;
+    expect(text).toContain("Joe's Coffee & Tea");
+    expect(text).not.toContain("&amp;");
+  });
+});
