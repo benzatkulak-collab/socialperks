@@ -182,3 +182,33 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML email safety", () => {
+  it("escapes HTML in businessName and city so injected markup can't reach the email body", async () => {
+    LEADS = [
+      {
+        email: "evil@example.com",
+        business_name: '<script>alert("xss")</script>',
+        city: "<b>Gotham</b>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html, text } = QUEUED[0] as { html: string; text: string };
+
+    // HTML body must not contain raw tags from user input.
+    expect(html).not.toMatch(/<script>/i);
+    expect(html).not.toMatch(/<b>Gotham/i);
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;b&gt;Gotham");
+
+    // Plain-text body should contain the raw values unmodified.
+    expect(text).toContain("<b>Gotham</b>");
+    expect(text).toContain('<script>alert("xss")</script>');
+  });
+});
