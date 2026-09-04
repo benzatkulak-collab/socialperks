@@ -182,3 +182,38 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML injection safety", () => {
+  it("escapes HTML special characters in businessName before embedding in the email body", async () => {
+    LEADS = [
+      {
+        ...hotLead(0),
+        business_name: "<script>alert('xss')</script>Café",
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html } = QUEUED[0] as { html: string };
+    // The raw tag must not appear verbatim — it must be entity-escaped.
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("escapes HTML special characters in city before embedding in the email body", async () => {
+    LEADS = [
+      {
+        ...hotLead(0),
+        city: `Portland<b onmouseover="alert(1)">`,
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html } = QUEUED[0] as { html: string };
+    expect(html).not.toContain("<b onmouseover");
+    expect(html).toContain("&lt;b onmouseover");
+  });
+});
