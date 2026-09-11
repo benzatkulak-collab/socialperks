@@ -182,3 +182,33 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML escaping in invite email", () => {
+  it("escapes businessName and city before interpolating into the HTML body", async () => {
+    // A lead with HTML-special characters in the DB fields — realistic if
+    // someone registers with e.g. 'O'Brien & Sons <Bakery>' as their name.
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: "<script>alert('xss')</script>",
+        city: "Austin & Beyond",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const job = QUEUED[0] as { html: string; text: string };
+
+    // HTML body must not contain raw tags or unescaped ampersands.
+    expect(job.html).not.toContain("<script>");
+    expect(job.html).not.toContain("</script>");
+    expect(job.html).toContain("&lt;script&gt;");
+
+    // Plain-text body may keep the raw city string (no HTML entities needed).
+    expect(job.text).toContain("Austin & Beyond");
+  });
+});
