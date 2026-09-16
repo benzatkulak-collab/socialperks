@@ -181,4 +181,26 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes businessName and city so injected markup cannot appear in the email", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: "<script>alert('xss')</script>",
+        city: "<b>bad city</b>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 1);
+
+    expect(QUEUED).toHaveLength(1);
+    const html = (QUEUED[0] as Record<string, string>).html;
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<b>bad city</b>");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;b&gt;bad city&lt;/b&gt;");
+  });
 });
