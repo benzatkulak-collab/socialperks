@@ -149,6 +149,35 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("selects the top-N by confidence when cap < count of above-threshold leads", async () => {
+    // 4 leads, ALL above threshold 0.55, placed in DB fetch order with the two
+    // lower-scoring leads FIRST. This distinguishes "sends in fetch order" from
+    // "ranks first, then caps" — the former would email c@ and d@; the latter
+    // must email a@ and b@.
+    //
+    // Expected scores (base 0.30 each, fresh):
+    //   a@  referred + ICP + named + city → 0.30+0.30+0.20+0.10+0.05 = 0.95
+    //   b@  referred + ICP + named        → 0.30+0.30+0.20+0.10      = 0.90
+    //   c@  ICP + named + city            → 0.30+0.20+0.10+0.05      = 0.65
+    //   d@  referred only                 → 0.30+0.30                 = 0.60
+    const ts = new Date(NOW.getTime() - 5 * 86_400_000).toISOString();
+    LEADS = [
+      { email: "c@example.com", business_name: "C Shop", city: "Denver",   vertical: "coffee_shops", referrer: null,      created_at: ts },
+      { email: "d@example.com", business_name: null,     city: null,        vertical: "restaurants",  referrer: "blog.com", created_at: ts },
+      { email: "b@example.com", business_name: "B Shop", city: null,        vertical: "coffee_shops", referrer: "partner",  created_at: ts },
+      { email: "a@example.com", business_name: "A Shop", city: "Portland",  vertical: "coffee_shops", referrer: "partner",  created_at: ts },
+    ];
+
+    const decisions = await run(true, 2);
+
+    expect(QUEUED.map((q) => q.to).sort()).toEqual(["a@example.com", "b@example.com"]);
+    expect(CONTACTED.sort()).toEqual(["a@example.com", "b@example.com"]);
+    // Lower-scoring leads appear in decisions but must NOT be executed.
+    const notExecuted = decisions.filter((d) => !d.executed).map((d) => d.targetId);
+    expect(notExecuted).toContain("c@example.com");
+    expect(notExecuted).toContain("d@example.com");
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
