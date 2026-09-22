@@ -149,6 +149,35 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("cap slot goes to the highest-confidence lead even when all leads clear threshold", async () => {
+    // Prior test used below-threshold cold leads — they can never consume a
+    // cap slot, so removing the `.sort()` still passes. This fixture closes
+    // that gap: all three leads score >= 0.55 (actionable), but confidence
+    // varies. The hot lead is injected LAST in DB (oldest-first) order. With
+    // a cap of 1 and no ranking, the first medium lead would consume the slot;
+    // with ranking the hot lead (highest confidence) wins it.
+    //
+    // Scores:
+    //   medium: base 0.30 + ICP 0.20 + city 0.05 = 0.55 (at threshold)
+    //   hot:    base 0.30 + ICP 0.20 + city 0.05 + named 0.10 + ref 0.30 = 0.95
+    //
+    // fetchLimit = min(1*4, 500) = 4, so all 3 rows are returned.
+    const medium = (i: number) => ({
+      email: `medium${i}@example.com`,
+      business_name: null,
+      city: "Austin",
+      vertical: "coffee_shops",
+      referrer: null,
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    });
+    LEADS = [medium(1), medium(2), hotLead(99)]; // hot lead arrives last from DB
+
+    await run(true, 1); // cap = 1: exactly one slot
+
+    expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
+    expect(QUEUED).toHaveLength(1);
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
