@@ -181,4 +181,30 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes businessName and city before embedding them in the invite HTML", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: '<script>alert("xss")</script>',
+        city: "<b>Bad City</b>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 1);
+
+    expect(QUEUED).toHaveLength(1);
+    // Cast to access the full job payload — QUEUED is typed narrowly as { to: string }.
+    const item = QUEUED[0] as unknown as { html: string };
+    // Raw injection tags must not appear in the HTML email body.
+    expect(item.html).not.toContain("<script>");
+    expect(item.html).not.toContain("</script>");
+    expect(item.html).not.toContain("<b>Bad City</b>");
+    // Escaped entities must be present instead.
+    expect(item.html).toContain("&lt;script&gt;");
+    expect(item.html).toContain("&lt;b&gt;Bad City&lt;/b&gt;");
+  });
 });
