@@ -182,3 +182,34 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML escaping in email body", () => {
+  it("escapes HTML special characters in businessName and city", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: "Joe's & Sons <Coffee>",
+        city: 'Austin "TX" & Beyond',
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const job = QUEUED[0] as { html: string; text: string };
+
+    // HTML body must escape user-supplied characters
+    expect(job.html).toContain("Joe&#x27;s &amp; Sons &lt;Coffee&gt;");
+    expect(job.html).toContain("Austin &quot;TX&quot; &amp; Beyond");
+    // Literal angle bracket must not appear in HTML greeting or city clause
+    expect(job.html).not.toContain("<Coffee>");
+    expect(job.html).not.toContain('"TX"');
+
+    // Plain-text body must preserve the originals unescaped
+    expect(job.text).toContain("Joe's & Sons <Coffee>");
+    expect(job.text).toContain('Austin "TX" & Beyond');
+  });
+});
