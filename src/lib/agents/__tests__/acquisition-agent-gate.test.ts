@@ -182,3 +182,40 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — decision ordering", () => {
+  it("returns decisions sorted by confidence descending regardless of DB fetch order", async () => {
+    // DB returns oldest-first: cold → hot → cold → referred.
+    // After scoring+ranking the agent must return them hot → referred → cold → cold.
+    // This guards the sort that aligns the audit log with what was actually emailed:
+    // if `.sort()` is removed, sends happen in fetch order while the returned list
+    // looks correct only by accident.
+    const cold = (i: number) => ({
+      email: `order-cold${i}@example.com`,
+      business_name: null,
+      city: null,
+      vertical: "other",
+      referrer: null,
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    });
+    const referred = (i: number) => ({
+      email: `order-ref${i}@example.com`,
+      business_name: null,
+      city: null,
+      vertical: "other",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    });
+    // Interleaved so that correct ordering can't happen without the sort.
+    LEADS = [cold(0), hotLead(1), cold(2), referred(3)];
+
+    const decisions = await run(false, 25);
+
+    expect(decisions).toHaveLength(4);
+    for (let i = 0; i < decisions.length - 1; i++) {
+      expect(decisions[i].confidence).toBeGreaterThanOrEqual(decisions[i + 1].confidence);
+    }
+    // Hot lead (0.95) must be first.
+    expect(decisions[0].targetId).toBe("lead1@example.com");
+  });
+});
