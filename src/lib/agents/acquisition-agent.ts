@@ -244,7 +244,7 @@ export const acquisitionAgent: Agent = {
           businessName: lead.businessName,
           city: lead.city,
           vertical: lead.vertical,
-          referred: Boolean(lead.referrer),
+          referred: reasons.includes("referred"),
           ageDays: Math.round((nowMs - new Date(lead.createdAt).getTime()) / 86_400_000),
         },
       });

@@ -166,6 +166,47 @@ describe("acquisition agent — per-run send cap", () => {
   });
 });
 
+describe("acquisition agent — meta field accuracy", () => {
+  it("meta.referred is false for a whitespace-only referrer (scoring skips the bonus; audit must agree)", async () => {
+    // scoreLead requires referrer.trim().length > 0; Boolean("   ") is true,
+    // so the old `Boolean(lead.referrer)` set referred:true in the audit log
+    // while the confidence score didn't include the +0.30 bonus. An admin
+    // reviewing the log would think a warm-channel lead was worked, but the
+    // invite was sent at cold-channel priority.
+    LEADS = [
+      {
+        email: "ws@example.com",
+        business_name: "Drip Lab",
+        city: "Portland",
+        vertical: "coffee_shops",
+        referrer: "   ", // whitespace only
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    const decisions = await run(false, 25);
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].meta?.referred).toBe(false);
+  });
+
+  it("meta.referred is true for a real referrer string", async () => {
+    LEADS = [
+      {
+        email: "warm@example.com",
+        business_name: null,
+        city: null,
+        vertical: "restaurants",
+        referrer: "partner.com",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    const decisions = await run(false, 25);
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].meta?.referred).toBe(true);
+  });
+});
+
 describe("acquisition agent — outbound copy compliance", () => {
   it("never offers a perk for a review (Google/Yelp/TripAdvisor reviews are banned)", async () => {
     LEADS = [hotLead(0)];
