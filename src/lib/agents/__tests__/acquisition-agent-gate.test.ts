@@ -149,6 +149,45 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("ranking determines cap allocation when multiple above-threshold leads compete", async () => {
+    // Previous test's cold leads score 0.30 (below threshold) so they can
+    // never consume a cap slot regardless of sort order — it only proved that
+    // below-threshold leads are skipped, not that ranking happens before
+    // capping. This fixture uses three leads ALL above the 0.55 threshold
+    // with distinct scores, fed to the mock in ascending confidence order so
+    // that fetch order and rank order diverge. Removing the pre-send sort
+    // would change which two get the cap.
+    //
+    // Scores (max-age 30, fresh leads):
+    //   lead_lo  — referrer only:         0.30 + 0.30 = 0.60
+    //   lead_mid — ICP + city:            0.30 + 0.20 + 0.05 = 0.55  (at threshold)
+    //   lead_hi  — referrer + ICP:        0.30 + 0.30 + 0.20 = 0.80
+    //
+    // Fetch order fed to mock: [lo, mid, hi]
+    // Ranked order (descending):          [hi (0.80), lo (0.60), mid (0.55)]
+    // cap=2 → hi + lo are emailed; mid is NOT
+    //
+    // Without sort, cap=2 iterates fetch order: lo (sent=1) + mid (sent=2);
+    // hi is skipped because the cap is exhausted. The assertion below fails
+    // in that case, proving the sort is load-bearing.
+    const FRESH_ISO = new Date(NOW.getTime() - 5 * 86_400_000).toISOString();
+    LEADS = [
+      // lo: 0.60 — first in fetch order, second in ranked order
+      { email: "lo@example.com",  business_name: null, city: null,     vertical: "other",        referrer: "blog", created_at: FRESH_ISO },
+      // mid: 0.55 — second in fetch order, last in ranked order
+      { email: "mid@example.com", business_name: null, city: "Austin", vertical: "coffee_shops", referrer: null,   created_at: FRESH_ISO },
+      // hi: 0.80 — last in fetch order, first in ranked order
+      { email: "hi@example.com",  business_name: null, city: null,     vertical: "coffee_shops", referrer: "conf", created_at: FRESH_ISO },
+    ];
+
+    await run(true, 2);
+
+    const sent = QUEUED.map((q) => q.to).sort();
+    expect(sent).toEqual(["hi@example.com", "lo@example.com"].sort());
+    // mid scored lowest of the three; the cap should have been spent on hi + lo
+    expect(QUEUED).not.toContainEqual(expect.objectContaining({ to: "mid@example.com" }));
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
