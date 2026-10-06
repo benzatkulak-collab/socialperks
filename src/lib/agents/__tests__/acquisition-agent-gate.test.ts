@@ -167,6 +167,29 @@ describe("acquisition agent — per-run send cap", () => {
 });
 
 describe("acquisition agent — outbound copy compliance", () => {
+  it("HTML-escapes user-provided businessName and city in the email body", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: "<script>alert('xss')</script>",
+        city: "<b>Portland</b>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    // Only the HTML part needs escaping — plain text renders as-is and is safe
+    const { html } = QUEUED[0] as unknown as { html: string };
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<b>Portland</b>");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&lt;b&gt;Portland&lt;/b&gt;");
+  });
+
   it("never offers a perk for a review (Google/Yelp/TripAdvisor reviews are banned)", async () => {
     LEADS = [hotLead(0)];
     const mod = await import("../acquisition-agent");
