@@ -149,6 +149,26 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("with multiple above-threshold leads, cap=1 picks the highest-scoring one regardless of fetch order", async () => {
+    // All three leads score above the 0.55 threshold, but they're inserted
+    // in ascending confidence order (as the DB would return oldest-first).
+    // Without the sort() in the run loop, the first above-threshold lead in
+    // fetch order (0.55) would be emailed. The sort must pick the 0.80 lead.
+    //   lead-low:  base 0.30 + ICP 0.20 + city 0.05  = 0.55 (at threshold)
+    //   lead-mid:  base 0.30 + referral 0.30          = 0.60
+    //   lead-high: base 0.30 + referral 0.30 + ICP 0.20 = 0.80
+    const fresh = new Date(NOW.getTime() - 5 * 86_400_000).toISOString();
+    LEADS = [
+      { email: "low@example.com",  business_name: null, city: "Portland", vertical: "coffee_shops", referrer: null,      created_at: fresh },
+      { email: "mid@example.com",  business_name: null, city: null,       vertical: "other",        referrer: "blog.com", created_at: fresh },
+      { email: "high@example.com", business_name: null, city: null,       vertical: "coffee_shops", referrer: "blog.com", created_at: fresh },
+    ];
+
+    await run(true, 1);
+
+    expect(QUEUED.map((q) => q.to)).toEqual(["high@example.com"]);
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
