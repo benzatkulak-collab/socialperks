@@ -149,6 +149,27 @@ describe("acquisition agent — per-run send cap", () => {
     expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
   });
 
+  it("when cap forces a choice between above-threshold leads, emails the highest-confidence one", async () => {
+    // Two leads BOTH above threshold, in ascending-confidence DB order.
+    // Without the pre-send sort the weaker lead (first in DB order) claims
+    // the cap slot; WITH the sort the stronger one wins.
+    // Scores: weak = base(0.30) + ICP(0.20) + city(0.05) = 0.55 (at threshold)
+    //         hot  = base(0.30) + ref(0.30) + ICP(0.20) + biz(0.10) + city(0.05) = 0.95
+    const weakAboveThreshold = {
+      email: "weak@example.com",
+      business_name: null,
+      city: "Austin",
+      vertical: "coffee_shops",
+      referrer: null,
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    };
+    LEADS = [weakAboveThreshold, hotLead(99)]; // weakest first in DB order
+
+    await run(true, 1); // cap of 1 forces a choice
+
+    expect(QUEUED.map((q) => q.to)).toEqual(["lead99@example.com"]);
+  });
+
   it("emails nobody when every lead is below threshold", async () => {
     LEADS = Array.from({ length: 5 }, (_, i) => ({
       email: `cold${i}@example.com`,
