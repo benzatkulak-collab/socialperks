@@ -24,7 +24,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * these tests guarantee is that protection cannot be lost entirely.
  */
 
-const QUEUED: Array<{ to: string }> = [];
+const QUEUED: Array<{ to: string; subject?: string; html?: string; text?: string }> = [];
 const CONTACTED: string[] = [];
 
 // A fake Postgres-ish connection: NOT an InMemoryConnection, so the agent
@@ -180,5 +180,54 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(QUEUED).toHaveLength(1);
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
+  });
+});
+
+describe("acquisition agent — invite email personalization", () => {
+  function leadRow(overrides: Partial<{
+    email: string;
+    business_name: string | null;
+    city: string | null;
+    vertical: string;
+    referrer: string | null;
+  }>): Record<string, unknown> {
+    return {
+      email: "test@example.com",
+      business_name: null,
+      city: null,
+      vertical: "coffee_shops",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      ...overrides,
+    };
+  }
+
+  it("includes the city in email copy when the lead has one", async () => {
+    LEADS = [leadRow({ city: "Portland" })];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    expect(QUEUED[0].html).toMatch(/Portland/);
+    expect(QUEUED[0].text).toMatch(/Portland/);
+  });
+
+  it("uses the generic slot-opening line when the lead has no city", async () => {
+    LEADS = [leadRow({ city: null })];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    expect(QUEUED[0].text).toMatch(/opening up early-access slots/i);
+  });
+
+  it("addresses the email to the business name when one is given", async () => {
+    LEADS = [leadRow({ business_name: "Drip Lab" })];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    expect(QUEUED[0].text).toMatch(/Hi Drip Lab/);
+  });
+
+  it("falls back to 'there' in the greeting when businessName is absent", async () => {
+    LEADS = [leadRow({ business_name: null })];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    expect(QUEUED[0].text).toMatch(/Hi there/);
   });
 });
