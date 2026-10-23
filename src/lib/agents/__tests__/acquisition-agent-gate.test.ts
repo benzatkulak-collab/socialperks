@@ -181,4 +181,36 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes businessName and city before embedding them in the email body", async () => {
+    // A waitlist entry could have been submitted with HTML-dangerous characters.
+    // The HTML email body must entity-escape them — raw tags in email HTML can
+    // break layout and be used for phishing (e.g. injecting a different CTA link).
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: '<script>alert("xss")</script>',
+        city: '<img src=x onerror=alert(1)>',
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const job = QUEUED[0] as { html: string; text: string };
+
+    // HTML body must not contain raw tags.
+    expect(job.html).not.toContain("<script>");
+    expect(job.html).not.toContain("<img");
+
+    // HTML body must contain the escaped equivalents.
+    expect(job.html).toContain("&lt;script&gt;");
+    expect(job.html).toContain("&lt;img");
+
+    // Plain-text body is not HTML so the raw values are fine there.
+    expect(job.text).toContain('<script>alert("xss")</script>');
+  });
 });
