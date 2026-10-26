@@ -181,4 +181,28 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes business name and city in the invite HTML body", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: "<script>alert('xss')</script>",
+        city: "O'Brien & Sons",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html } = QUEUED[0] as { html: string };
+    // Raw special characters must not appear in the HTML body.
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("</script>");
+    // Escaped forms must be present — proving the content reached the template.
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("O&#x27;Brien &amp; Sons");
+  });
 });
