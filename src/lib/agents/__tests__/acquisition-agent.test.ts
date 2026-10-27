@@ -282,7 +282,8 @@ describe("acquisitionAgent.run() — dry-run, no database", () => {
     // NOTE: this asserts the no-DB posture ONLY. It cannot verify the
     // dry-run gate — with no leads the decision list is empty, so a loop
     // over it vacuously "passes" even if the gate is broken. The real
-    // gate coverage lives in the suite below, which injects leads.
+    // gate coverage lives in `acquisition-agent-gate.test.ts`, which
+    // injects leads via module mocks.
     expect(decisions).toEqual([]);
   });
 });
