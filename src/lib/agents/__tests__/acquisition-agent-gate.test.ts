@@ -182,3 +182,34 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — HTML escaping in invite email", () => {
+  it("escapes HTML-special characters in businessName and city", async () => {
+    LEADS = [
+      {
+        email: "xss@example.com",
+        business_name: '<script>alert("xss")</script>',
+        city: "Austin & <TX>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const { html } = QUEUED[0] as { html: string };
+    // Unescaped tags must not appear in the HTML body.
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("</script>");
+    // The escaped forms must be present instead.
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&amp;");
+    expect(html).toContain("&lt;TX&gt;");
+    // Plain-text body is not HTML and must preserve the original characters.
+    const { text } = QUEUED[0] as { text: string };
+    expect(text).toContain('<script>alert("xss")</script>');
+    expect(text).toContain("Austin & <TX>");
+  });
+});
