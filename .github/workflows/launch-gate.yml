@@ -73,7 +73,7 @@ jobs:
   #    first. ──
   e2e-smoke:
     name: Smoke (Playwright critical paths)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000

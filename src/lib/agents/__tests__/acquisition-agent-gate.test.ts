@@ -182,3 +182,55 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — invite email personalization", () => {
+  it("addresses the lead by businessName when present", async () => {
+    LEADS = [hotLead(0)]; // business_name: "Shop 0"
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const body = JSON.stringify(QUEUED[0]);
+    expect(body).toContain("Shop 0");
+  });
+
+  it("falls back to 'there' when businessName is absent", async () => {
+    LEADS = [
+      {
+        email: "anon@example.com",
+        business_name: null,
+        city: null,
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const body = JSON.stringify(QUEUED[0]);
+    expect(body).toContain("Hi there");
+  });
+
+  it("localizes the pitch when city is known", async () => {
+    LEADS = [hotLead(0)]; // city: "Portland"
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const body = JSON.stringify(QUEUED[0]);
+    expect(body).toContain("Portland");
+  });
+
+  it("uses a generic opening when city is absent", async () => {
+    LEADS = [
+      {
+        email: "nocity@example.com",
+        business_name: "My Shop",
+        city: null,
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const body = JSON.stringify(QUEUED[0]);
+    expect(body).toContain("opening up early-access slots");
+  });
+});
