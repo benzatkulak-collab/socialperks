@@ -182,3 +182,53 @@ describe("acquisition agent — outbound copy compliance", () => {
     expect(body).not.toMatch(/a review/i);
   });
 });
+
+describe("acquisition agent — invite email personalization", () => {
+  it("greets a named business by name, not 'there'", async () => {
+    LEADS = [hotLead(0)]; // hotLead sets business_name = "Shop 0"
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const { text, html } = QUEUED[0] as { text: string; html: string };
+    expect(text).toMatch(/Hi Shop 0,/);
+    expect(html).toMatch(/Hi Shop 0,/);
+    expect(text).not.toMatch(/Hi there,/);
+  });
+
+  it("falls back to 'there' for an anonymous lead", async () => {
+    LEADS = [{
+      email: "anon@example.com",
+      business_name: null,
+      city: null,
+      vertical: "coffee_shops",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    }];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const { text } = QUEUED[0] as { text: string };
+    expect(text).toMatch(/Hi there,/);
+  });
+
+  it("uses the city clause when city is known", async () => {
+    LEADS = [hotLead(0)]; // hotLead sets city = "Portland"
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const { text } = QUEUED[0] as { text: string };
+    expect(text).toMatch(/onboarding shops in Portland/i);
+  });
+
+  it("uses the generic clause when city is absent", async () => {
+    LEADS = [{
+      email: "nocity@example.com",
+      business_name: "No City Shop",
+      city: null,
+      vertical: "coffee_shops",
+      referrer: "partner",
+      created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+    }];
+    await run(true, 5);
+    expect(QUEUED).toHaveLength(1);
+    const { text } = QUEUED[0] as { text: string };
+    expect(text).toMatch(/opening up early-access slots right now/i);
+  });
+});
