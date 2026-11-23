@@ -25,6 +25,7 @@
 import type { NextRequest } from "next/server";
 import { ok, err } from "../../_shared";
 import { constantTimeEqual } from "@/lib/security/order-by";
+import { getInternalApiKey } from "@/lib/security/internal-key";
 import { logger } from "@/lib/logging";
 
 export async function GET(req: NextRequest) {
@@ -41,11 +42,10 @@ export async function GET(req: NextRequest) {
     return err("UNAUTHORIZED", "Invalid cron token", 401);
   }
 
-  // Internal API key the /drip route accepts. Same secret pool —
-  // CRON_SECRET doubles as the internal trigger token, so operators
-  // only have one env var to rotate.
-  const internalKey =
-    process.env.DRIP_API_KEY ?? process.env.INTERNAL_API_KEY ?? cronSecret;
+  // Internal API key the /drip route accepts, resolved by the same helper
+  // /drip uses (DRIP_API_KEY || INTERNAL_API_KEY || CRON_SECRET), so the
+  // two sides can't drift apart again. CRON_SECRET is set (checked above).
+  const internalKey = getInternalApiKey() ?? cronSecret;
 
   // Build the absolute URL to POST to /api/v1/drip. The scheduler calls
   // the public URL, so the request origin is the live site.

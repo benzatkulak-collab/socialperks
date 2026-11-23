@@ -124,7 +124,7 @@ variables on the `social-perks` project as of Nov 22, 2026:
   (secret `CRON_SECRET`) and on whichever host serves `socialperks.app`.
 - **Required for boot:** `AUTH_SECRET`, `DATABASE_URL`.
 - **Not set on Vercel today, so leave them unset unless you want them:**
-  - `DRIP_API_KEY` (see the onboarding-drip note below)
+  - `DRIP_API_KEY` (optional; `CRON_SECRET` covers it)
   - `ENCRYPTION_MASTER_KEY` (`src/lib/encryption/` isn't imported by any
     production code yet, so nothing uses it)
   - `PERK_LINK_SECRET`, `SENTRY_DSN`, `DATABASE_SSL_CA`,
@@ -216,10 +216,10 @@ Rollback until step 10 is done: point the DNS records back to Vercel.
   calls the `*.code.run` origin directly, bypassing Cloudflare. The old
   `x-real-ip` had the same weakness.
 
-## Known issue found along the way (already there before this change)
+## Onboarding-drip 401 (fixed)
 
-`/api/v1/cron/onboarding-drip` sends `x-api-key: DRIP_API_KEY ||
-INTERNAL_API_KEY || CRON_SECRET` to `/api/v1/drip`. But `/api/v1/drip` only
-accepts `DRIP_API_KEY || INTERNAL_API_KEY`. With neither set, the cron gets
-a 401 (`DRIP_FAILED`). This happens on Vercel too. Workaround: set
-`DRIP_API_KEY`. The code fix is a separate follow-up.
+`/api/v1/cron/onboarding-drip` used to send `x-api-key: DRIP_API_KEY ||
+INTERNAL_API_KEY || CRON_SECRET` to `/api/v1/drip`, but `/api/v1/drip` only
+accepted `DRIP_API_KEY || INTERNAL_API_KEY`. Production sets neither, so the
+cron always got a 401 (`DRIP_FAILED`), on Vercel too. Both sides now use
+`src/lib/security/internal-key.ts`, so `CRON_SECRET` alone is enough.
