@@ -73,7 +73,9 @@ jobs:
   #    first. ──
   e2e-smoke:
     name: Smoke (Playwright critical paths)
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is now 26.04, which Playwright 1.58 can't
+    # install Chromium on ("does not support chromium on ubuntu26.04-x64").
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000

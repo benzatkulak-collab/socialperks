@@ -7,7 +7,7 @@
  *   - Auto-pause campaigns over the new plan limit when a business
  *     downgrades
  *
- * Auth: Vercel Cron `Authorization: Bearer ${CRON_SECRET}`.
+ * Auth: scheduler sends `Authorization: Bearer ${CRON_SECRET}` (.github/workflows/cron.yml).
  * Skipped without DATABASE_URL.
  */
 

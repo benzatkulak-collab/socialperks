@@ -26,7 +26,21 @@ COPY next.config.js tsconfig.json tailwind.config.js postcss.config.js ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN npm run build
+# NEXT_PUBLIC_* values are inlined into the client bundle at BUILD time, so
+# the host must pass them as build args (runtime env is too late for them).
+# Unset any that arrive empty: an empty NEXT_PUBLIC_SITE_URL would beat the
+# `??` fallback to https://socialperks.app and crash `new URL("")`.
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ARG NEXT_PUBLIC_POSTHOG_HOST
+ARG NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_GTAG_ID
+ARG NEXT_PUBLIC_META_PIXEL_ID
+
+RUN for v in NEXT_PUBLIC_SITE_URL NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST \
+      NEXT_PUBLIC_SENTRY_DSN NEXT_PUBLIC_GTAG_ID NEXT_PUBLIC_META_PIXEL_ID; do \
+      eval "[ -n \"\${$v}\" ] && export $v || unset $v"; \
+    done && npm run build
 
 # ─── Stage 3: Runtime ───────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
@@ -42,6 +56,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+# Optional: commit SHA for Sentry releases (replaces VERCEL_GIT_COMMIT_SHA).
+ARG GIT_COMMIT_SHA
+ENV GIT_COMMIT_SHA=${GIT_COMMIT_SHA}
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs

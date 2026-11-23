@@ -243,13 +243,17 @@ function deriveAnonSessionId(req: NextRequest): string {
  * Resolve the client's IP from request headers.
  *
  * SECURITY: Previously trusted the leftmost X-Forwarded-For value, which
- * is attacker-spoofable. On Vercel the trusted client IP lives in
- * `x-real-ip` (set by the edge); we prefer that, then fall back to
- * `x-vercel-forwarded-for` (set by Vercel and not attacker-controlled),
- * and only finally to XFF (which is spoofable but better than 'unknown'
- * for non-Vercel deployments).
+ * is attacker-spoofable. Production sits behind the Cloudflare proxy
+ * (orange-cloud DNS for socialperks.app), which sets `cf-connecting-ip`
+ * to the real visitor and overwrites any client-sent value. Without it,
+ * the container ingress's `x-real-ip` would be a Cloudflare edge IP and
+ * every visitor would share one rate-limit bucket. Then `x-real-ip`,
+ * `x-vercel-forwarded-for` (legacy Vercel host), and only finally XFF
+ * (spoofable but better than 'unknown').
  */
 function getClientIp(req: NextRequest): string {
+  const cfIp = req.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp.trim();
   const realIp = req.headers.get("x-real-ip");
   if (realIp) return realIp.trim();
   const vercelXff = req.headers.get("x-vercel-forwarded-for");

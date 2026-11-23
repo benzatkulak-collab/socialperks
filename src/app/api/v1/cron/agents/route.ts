@@ -4,15 +4,9 @@
  * Tick endpoint for the agent scheduler. Each invocation runs every
  * agent that's due (interval elapsed since lastRunAt, mode != off).
  *
- * Not registered in vercel.json by default — the current Vercel plan
- * tier already uses its cron budget for the daily campaign-sweeps,
- * waitlist-drip, and onboarding-drip jobs. Add this path to
- * vercel.json `crons` when promoting agents to autonomous scheduling,
- * or drive it from an external scheduler (GitHub Actions on a cron,
- * Cloudflare Worker cron trigger, etc.).
- *
- * Until then, agents fire via the "Run now" button on /admin/agents
- * (audited as admin.agent.manual_run).
+ * Scheduled daily at 05:00 UTC by .github/workflows/cron.yml (formerly
+ * Vercel Cron). Agents can also be fired via the "Run now" button on
+ * /admin/agents (audited as admin.agent.manual_run).
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}`.
  */

@@ -110,7 +110,7 @@ export const billingRecoveryAgent: Agent = {
   name: "Billing Recovery",
   description: "Retries failed payments and runs a dunning sequence; cancels subscriptions at day 14.",
   // Defaults to dry-run: the shared /api/v1/cron/agents tick (wired in
-  // vercel.json) runs every non-off agent on a schedule, so we gate
+  // .github/workflows/cron.yml) runs every non-off agent on a schedule, so we gate
   // dunning emails + the day-14 cancel behind an explicit live flip
   // from /admin/agents rather than letting them fire autonomously. The
   // sequence is idempotent (same step won't fire twice), so enabling

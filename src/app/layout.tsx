@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { PLANS } from "@/lib/billing/store";
-import { Analytics } from "@vercel/analytics/next";
 import { SWRegister } from "@/components/shared/sw-register";
 import { OfflineIndicator } from "@/components/shared/offline-indicator";
 import { TrackingPixels } from "@/components/shared/tracking-pixels";
@@ -12,7 +11,7 @@ import { safeJsonForScript } from "@/lib/security/json-ld";
 
 // metadataBase prefers an explicit NEXT_PUBLIC_SITE_URL env var so OG image
 // URLs resolve correctly on whatever host you're actually deployed to
-// (vercel.app preview, custom domain, local dev). Falls back to the
+// (preview host, custom domain, local dev). Falls back to the
 // canonical socialperks.app for the configured prod domain.
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -271,7 +270,6 @@ export default function RootLayout({
             harmless (browser walks first-match). */}
         <div id="main-content">{children}</div>
         <OfflineIndicator />
-        <Analytics />
         <TrackingPixels />
         <PostHogLoader />
       </body>

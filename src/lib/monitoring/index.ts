@@ -72,7 +72,8 @@ export function buildEnvelope(
     platform: "javascript",
     level: level === "warning" ? "warning" : level,
     environment: process.env.NODE_ENV ?? "development",
-    release: process.env.VERCEL_GIT_COMMIT_SHA || undefined,
+    release:
+      process.env.GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || undefined,
     logger: "social-perks",
     tags: source ? { source: String(source) } : undefined,
     exception: {

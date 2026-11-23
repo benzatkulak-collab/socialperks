@@ -1,8 +1,10 @@
 # Launch / Deploy Runbook
 
 Single source of truth for shipping Social Perks to production and turning on
-revenue. Production deploys automatically from `main` (Vercel). Database is
-Postgres (Supabase). Everything code-side is in the repo; the only remaining
+revenue. Production is the `Dockerfile` image on an always-on container host
+(Northflank), auto-deployed from `main`; scheduled jobs run from
+`.github/workflows/cron.yml`. Database is Postgres (Supabase). Moving off
+Vercel: see `docs/hosting-move.md`. Everything code-side is in the repo; the only remaining
 work is **external configuration** (account-owned secrets) — see the table at
 the bottom.
 
@@ -27,15 +29,16 @@ the **non-negotiable** vars (`AUTH_SECRET`, `DATABASE_URL`) are missing/invalid.
 | `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` | Sentry → project → DSN | observability |
 | `NEXT_PUBLIC_POSTHOG_KEY` / GA / META_PIXEL | PostHog/GA/Meta | analytics |
 
-Helpers: `scripts/setup-vercel-env.sh`, `scripts/setup-stripe.sh`.
-Set them with `vercel env add <NAME> production` (or the dashboard), then redeploy.
+Helper: `scripts/setup-stripe.sh`. Set runtime vars as secrets on the container
+service, and `NEXT_PUBLIC_*` vars as **build arguments** (they are inlined at
+build time), then redeploy. `CRON_SECRET` also goes in GitHub Actions secrets.
 
 ---
 
 ## 1. Release checklist
 
 ```
-□ Merge the branch to main (triggers the Vercel production deploy).
+□ Merge the branch to main (the host rebuilds the Docker image and deploys).
 □ Pre-merge gates (CI / local):
     npx tsc --noEmit          # types
     npm run lint              # warnings-only is OK
@@ -89,18 +92,18 @@ missing table fails the probe instead of silently swallowing writes.
 
 ## 3. Rollback
 
-Production is a Vercel deploy from `main`, and all schema changes are additive
+Production is a container build from `main`, and all schema changes are additive
 (`CREATE TABLE IF NOT EXISTS`), so rollback is code-only:
 
 ```
-# Fastest: Vercel dashboard → Deployments → previous good deploy → "Promote to Production".
+# Fastest: host dashboard → the service's deployments → redeploy the previous good build.
 # Or via git:
 git revert <bad-commit>      # then push to main → auto-deploy
 ```
 
 - Migrations are **forward-only and idempotent**; you do not roll them back
   (the new tables are harmless to older code). Never DROP a table to roll back.
-- Secrets/env changes roll back independently in the Vercel dashboard.
+- Secrets/env changes roll back independently in the host dashboard.
 
 ---
 
