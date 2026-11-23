@@ -1,5 +1,33 @@
 # Moving Social Perks off Vercel
 
+> **Update, Nov 23, 2026: the host is now Netlify Free, not Northflank.**
+> Northflank's free tier asks for a card at signup, and Ben chose a host
+> that doesn't. The Dockerfile and the Northflank notes below still work
+> if that ever changes. What's different on Netlify:
+>
+> - **Deploys are on demand.** Free is 300 credits a month, 15 per
+>   production deploy, and the whole site pauses when they run out.
+>   `scripts/netlify-ignore.sh` skips every production build except the
+>   first one, a build-hook run, and commits whose message has `[deploy]`.
+>   To ship `main`: Actions → **Deploy to Netlify** → Run workflow (needs
+>   secret `NETLIFY_BUILD_HOOK_URL`, from Netlify → Build & deploy → Build
+>   hooks). Deploy previews are skipped; CI builds PRs.
+> - **Setup** (Netlify UI, "Import from Git"): pick "Configure manually",
+>   base directory `/`, build `npm run build`, publish `.next`. Netlify's
+>   Next.js runtime (v5) handles `output: "standalone"`. Local check:
+>   `npx netlify-cli build --offline` passes.
+> - **Env vars:** same list as step 4 below. `NEXT_PUBLIC_SITE_URL` and
+>   the Stripe price IDs go in as plain values; Netlify applies variables
+>   to builds and functions alike, so there are no separate build args.
+>   Changing a variable only takes effect on the next deploy.
+> - **DNS (Cloudflare):** keep the records **DNS-only (grey cloud)**.
+>   Apex: `CNAME` to `apex-loadbalancer.netlify.com` (Cloudflare flattens
+>   it) or `A 75.2.60.5`. `www`: `CNAME` to `socialperks.netlify.app`.
+>   Rate limiting reads Netlify's `x-nf-client-connection-ip` first.
+> - **Crons** stay in `.github/workflows/cron.yml` (step 7 below).
+> - Runtime is serverless (Lambda), like Vercel: cold starts come back,
+>   and in-memory rate limits are per instance.
+
 Ben's Vercel Hobby account is over its free limits (Fluid Active CPU 4h 52m
 of 4h, Functions Storage 10.3 of 10 GB). Social Perks moves to a free
 host. The code changes are on this branch. Everything below the
