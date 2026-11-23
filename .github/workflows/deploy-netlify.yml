@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────
+# Deploy main to production on Netlify, on demand.
+#
+# Pushes to main don't deploy by themselves (see netlify.toml and
+# scripts/netlify-ignore.sh): Netlify Free allows about 20 production
+# deploys a month before the whole site pauses. Run this from
+# Actions → "Deploy to Netlify" → Run workflow when main should go live.
+#
+# Needs, in GitHub → Settings → Secrets and variables → Actions:
+#   secret  NETLIFY_BUILD_HOOK_URL   Netlify → Project configuration →
+#                                    Build & deploy → Build hooks → main
+# ─────────────────────────────────────────────────────────────
+
+name: Deploy to Netlify
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the Netlify build hook
+        env:
+          HOOK: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::Secret NETLIFY_BUILD_HOOK_URL is not set."
+            exit 1
+          fi
+          curl -fsS -X POST -d '{}' "$HOOK"
+          echo "Build requested. Follow it in Netlify → Deploys."
