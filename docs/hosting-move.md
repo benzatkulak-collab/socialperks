@@ -92,28 +92,43 @@ runtime env:
 `GIT_COMMIT_SHA`. Only set the ones that have a value on Vercel today.
 
 ### 4. Set runtime secrets (names only)
-To list what's on Vercel now, run
-`vercel env ls production --scope team_z3Rvn5xOHQdOo7QakeRAOAKn` inside the
-linked project, then copy each one into the service's runtime variables.
-Keep the **same values**:
+**Vercel stores these as "Sensitive", so their values can't be read back.**
+`vercel env pull` returns them empty, so there is nothing to copy. Get each
+value from its source, or generate a new one. These are the 21 production
+variables on the `social-perks` project as of Nov 22, 2026:
 
-- Required for boot: `AUTH_SECRET`, `DATABASE_URL`.
-- Must match the old values, or existing data breaks: `AUTH_SECRET`
-  (sessions), `ENCRYPTION_MASTER_KEY` (encrypted tokens), `PERK_LINK_SECRET`
-  (issued perk links), `CSRF_SECRET`.
-- Crons: `CRON_SECRET`, and `DRIP_API_KEY` or `INTERNAL_API_KEY` if Vercel
-  has one (see the onboarding-drip note below).
-- Payments: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-  `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_STARTER_ANNUAL`,
-  `STRIPE_PRICE_PROFESSIONAL_MONTHLY`, `STRIPE_PRICE_PROFESSIONAL_ANNUAL`,
-  plus any other `STRIPE_*`.
-- Email: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_POSTAL_ADDRESS`,
-  `FOUNDER_EMAIL`, `SUPPORT_EMAIL`, `WAITLIST_NOTIFY_EMAIL`.
-- Ops: `SENTRY_DSN`, `DATABASE_SSL_CA`, `MIGRATION_SECRET`,
-  `ALLOW_MIGRATIONS`, `ADMIN_PASSWORD`, `READINESS_TOKEN`,
-  `WAITLIST_ADMIN_TOKEN`.
-- Anything else in the list: the OAuth `*_CLIENT_ID` / `*_CLIENT_SECRET`
-  pairs, `TWILIO_*`, `REDIS_URL`, and so on.
+- **Readable, so copy them as-is:**
+  - `NEXT_PUBLIC_SITE_URL` (a build arg, see step 3)
+  - `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_STARTER_ANNUAL`
+  - `STRIPE_PRICE_PROFESSIONAL_MONTHLY`, `STRIPE_PRICE_PROFESSIONAL_ANNUAL`
+- **Get these again from the provider:**
+  - `DATABASE_URL`: Supabase → Connect → transaction pooler
+  - `STRIPE_SECRET_KEY`: Stripe → API keys
+  - `STRIPE_WEBHOOK_SECRET`: Stripe → the webhook endpoint's signing secret
+    (the endpoint URL stays the same)
+  - `RESEND_API_KEY`: Resend → API keys (create a new key)
+  - `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`: PostHog → project
+    settings (these are build args, see step 3)
+- **Retype the value you chose:** `EMAIL_FROM`, `ADMIN_PASSWORD`,
+  `ALLOW_MIGRATIONS`.
+- **Generate new ones** with `openssl rand -base64 32`:
+  - `AUTH_SECRET`, `CSRF_SECRET`, `CRON_SECRET`, `READINESS_TOKEN`,
+    `WAITLIST_ADMIN_TOKEN`
+  - `WEBHOOK_SECRET`, `WEBHOOK_VERIFY_TOKEN`
+- **What a new `AUTH_SECRET` does:**
+  - It signs everyone out.
+  - Because `PERK_LINK_SECRET` isn't set, perk links are signed with
+    `AUTH_SECRET`, so perk links issued before the switch stop working.
+    That's fine while pre-launch.
+- **If you rotate `CRON_SECRET`:** use the same new value in GitHub Actions
+  (secret `CRON_SECRET`) and on whichever host serves `socialperks.app`.
+- **Required for boot:** `AUTH_SECRET`, `DATABASE_URL`.
+- **Not set on Vercel today, so leave them unset unless you want them:**
+  - `DRIP_API_KEY` (see the onboarding-drip note below)
+  - `ENCRYPTION_MASTER_KEY` (`src/lib/encryption/` isn't imported by any
+    production code yet, so nothing uses it)
+  - `PERK_LINK_SECRET`, `SENTRY_DSN`, `DATABASE_SSL_CA`,
+    `EMAIL_POSTAL_ADDRESS`, the OAuth pairs
 - Skip: `VERCEL_*` (only Vercel sets these) and `NODE_ENV`, `PORT`,
   `HOSTNAME` (the Dockerfile sets these).
 
