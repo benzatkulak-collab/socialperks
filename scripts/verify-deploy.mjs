@@ -202,8 +202,8 @@ async function main() {
 
   // ─── 8. OG images ────────────────────────────────────────────────────
   console.log("\n─── OG images");
-  await checkContentType("/api/og/action?id=ig_rl", "image/svg+xml");
-  await checkContentType("/api/og/platform?id=ig", "image/svg+xml");
+  await checkContentType("/api/og/action?id=ig_rl", "image/png");
+  await checkContentType("/api/og/platform?id=ig", "image/png");
   await head("/.well-known/ai-plugin.json");
 
   // ─── 9. Schema.org markup ────────────────────────────────────────────
