@@ -22,15 +22,14 @@ import {
 import { db, InMemoryConnection } from "@/lib/db/connection";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { getBusinessPlan } from "@/lib/billing/enforcement";
+import { isInternalApiKey } from "@/lib/security/internal-key";
 
 // -- Internal API Key Check ---------------------------------------------------
 
-const INTERNAL_API_KEY = process.env.DRIP_API_KEY || process.env.INTERNAL_API_KEY;
-
 function isAuthorized(req: NextRequest): boolean {
-  // Check for internal API key in header
-  const apiKey = req.headers.get("x-api-key");
-  if (INTERNAL_API_KEY && apiKey === INTERNAL_API_KEY) {
+  // Internal API key (DRIP_API_KEY || INTERNAL_API_KEY || CRON_SECRET),
+  // resolved the same way as the onboarding-drip cron that calls us.
+  if (isInternalApiKey(req.headers.get("x-api-key"))) {
     return true;
   }
 
