@@ -22,7 +22,7 @@
 >   Changing a variable only takes effect on the next deploy.
 > - **DNS (Cloudflare):** keep the records **DNS-only (grey cloud)**.
 >   Apex: `CNAME` to `apex-loadbalancer.netlify.com` (Cloudflare flattens
->   it) or `A 75.2.60.5`. `www`: `CNAME` to `socialperks.netlify.app`.
+>   it) or `A 75.2.60.5`. `www`: `CNAME` to `socialperks-app.netlify.app` (the project is `socialperks-app`; `socialperks` was taken).
 >   Rate limiting reads Netlify's `x-nf-client-connection-ip` first.
 > - **Crons** stay in `.github/workflows/cron.yml` (step 7 below).
 > - Runtime is serverless (Lambda), like Vercel: cold starts come back,
