@@ -99,7 +99,7 @@ export const submissionReviewerAgent: Agent = {
   name: "Submission Reviewer",
   description: "Auto-approves clean submissions; rejects obvious abuse; queues ambiguous for human review.",
   // Defaults to dry-run: the shared /api/v1/cron/agents tick (wired in
-  // vercel.json) runs every non-off agent on a schedule, so auto-approve/
+  // .github/workflows/cron.yml) runs every non-off agent on a schedule, so auto-approve/
   // reject stays gated behind an explicit live flip from /admin/agents.
   // Decisions are reversible (admin override in /admin/submissions) and
   // threshold-gated (ambiguous cases still queue for human review), so

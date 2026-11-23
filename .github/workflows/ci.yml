@@ -128,3 +128,55 @@ jobs:
           name: next-build
           path: .next/
           retention-days: 7
+
+  # ── Job 5: Container image (production host) ─────────────────
+  # Production runs this Dockerfile on an always-on container host
+  # (see docs/hosting-move.md). Build the image exactly as the host will,
+  # boot it against a throwaway Postgres, and check it serves.
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: socialperks
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --build-arg GIT_COMMIT_SHA=${{ github.sha }} -t social-perks:ci .
+
+      - name: Boot container and smoke-test
+        run: |
+          docker run -d --name app --network host \
+            -e AUTH_SECRET="$(openssl rand -base64 32)" \
+            -e DATABASE_URL="postgres://ci:ci@127.0.0.1:5432/socialperks" \
+            -e CRON_SECRET=ci-cron-secret \
+            social-perks:ci
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:3000/api/v1/health > /tmp/health.json && break
+            sleep 2
+          done
+          docker logs app | tail -40
+          cat /tmp/health.json; echo
+          grep -q '"durable":true' /tmp/health.json
+          for path in / /pricing /sitemap.xml /api/v1/actions; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000$path")
+            echo "$path -> $code"
+            [ "$code" = "200" ]
+          done
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ci-cron-secret" \
+            http://127.0.0.1:3000/api/v1/cron/campaign-sweeps)
+          echo "/api/v1/cron/campaign-sweeps -> $code"
+          [ "$code" = "200" ]

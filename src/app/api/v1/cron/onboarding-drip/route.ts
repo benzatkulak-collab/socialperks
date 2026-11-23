@@ -1,7 +1,7 @@
 /**
  * GET /api/v1/cron/onboarding-drip
  *
- * Scheduled by Vercel Cron (see vercel.json). Runs daily and fires
+ * Scheduled by .github/workflows/cron.yml (formerly Vercel Cron). Runs daily and fires
  * day-1 / day-3 / day-7 / day-14 onboarding emails to real users who
  * crossed the corresponding window since their signup.
  *
@@ -11,7 +11,7 @@
  * in 60 seconds" email — the highest-impact activation email — was
  * effectively dead in production.
  *
- * Auth: same pattern as the waitlist-drip cron — Vercel Cron sends
+ * Auth: same pattern as the waitlist-drip cron — the scheduler sends
  * `Authorization: Bearer ${CRON_SECRET}`. Without `CRON_SECRET` set
  * the route refuses to run, so it can't be invoked anonymously from
  * the public internet.
@@ -47,8 +47,8 @@ export async function GET(req: NextRequest) {
   const internalKey =
     process.env.DRIP_API_KEY ?? process.env.INTERNAL_API_KEY ?? cronSecret;
 
-  // Build the absolute URL to POST to /api/v1/drip. Vercel sets the
-  // host headers correctly so url construction via req works.
+  // Build the absolute URL to POST to /api/v1/drip. The scheduler calls
+  // the public URL, so the request origin is the live site.
   const url = new URL("/api/v1/drip", req.nextUrl.origin);
 
   let processed = 0;

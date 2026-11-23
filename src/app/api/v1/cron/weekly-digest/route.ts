@@ -1,12 +1,12 @@
 /**
  * GET /api/v1/cron/weekly-digest
  *
- * Scheduled by Vercel Cron (see vercel.json). Once a week, direct-sends the
+ * Scheduled by .github/workflows/cron.yml (formerly Vercel Cron). Once a week, direct-sends the
  * weekly performance digest to every business with an active campaign — the
  * #1 missing retention mechanic (the digest was built but nothing ever sent
  * it, and the job-queue worker never runs in serverless).
  *
- * Auth: same pattern as the other crons — Vercel Cron sends
+ * Auth: same pattern as the other crons — the scheduler sends
  * `Authorization: Bearer ${CRON_SECRET}`. Without CRON_SECRET set the route
  * refuses to run, so it can't be triggered anonymously and won't email anyone
  * until an operator explicitly configures it.

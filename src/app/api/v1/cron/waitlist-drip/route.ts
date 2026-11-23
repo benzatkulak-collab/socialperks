@@ -1,11 +1,11 @@
 /**
  * GET /api/v1/cron/waitlist-drip
  *
- * Scheduled by Vercel Cron (see vercel.json). Runs daily and sends
+ * Scheduled by .github/workflows/cron.yml (formerly Vercel Cron). Runs daily and sends
  * the day-3 + day-7 nurture emails to anyone on the waitlist whose
  * createdAt falls inside the corresponding window.
  *
- * Auth: Vercel Cron sends an `Authorization: Bearer ${CRON_SECRET}`
+ * Auth: the scheduler sends an `Authorization: Bearer ${CRON_SECRET}`
  * header. We verify it. Without `CRON_SECRET` set, the route refuses
  * to run (so it can't be invoked from the public internet by mistake).
  *

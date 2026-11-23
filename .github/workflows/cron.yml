@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────────────────────────
+# Scheduled jobs — replaces the `crons` block of the old vercel.json.
+#
+# Each schedule calls one /api/v1/cron/* route on the live site with
+# `Authorization: Bearer $CRON_SECRET`, exactly as Vercel Cron did.
+# Times are UTC (same as Vercel Cron).
+#
+# Needs, in GitHub → Settings → Secrets and variables → Actions:
+#   variable  CRON_BASE_URL   e.g. https://socialperks.app (no trailing slash)
+#   secret    CRON_SECRET     same value as CRON_SECRET on the host
+# Until CRON_BASE_URL is set every run is a no-op, so merging this does
+# not start sending emails by itself.
+#
+# GitHub caveats: scheduled runs can start a few minutes late, and on a
+# public repo GitHub disables schedules after 60 days with no commits
+# (it emails a warning first; re-enable from the Actions tab).
+# ─────────────────────────────────────────────────────────────
+
+name: Cron
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # agents
+    - cron: "0 9 * * *"   # campaign-sweeps
+    - cron: "0 14 * * *"  # waitlist-drip
+    - cron: "0 15 * * *"  # onboarding-drip
+    - cron: "0 14 * * 1"  # weekly-digest (Mondays)
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Cron route to run now"
+        required: true
+        type: choice
+        options:
+          - agents
+          - campaign-sweeps
+          - waitlist-drip
+          - onboarding-drip
+          - weekly-digest
+
+permissions: {}
+
+concurrency:
+  group: cron-${{ github.event.schedule || inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  call:
+    name: Call cron route
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call ${{ github.event.schedule || inputs.job }}
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          MANUAL_JOB: ${{ inputs.job }}
+          CRON_BASE_URL: ${{ vars.CRON_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$MANUAL_JOB" ]; then
+            job="$MANUAL_JOB"
+          else
+            case "$SCHEDULE" in
+              "0 5 * * *")  job=agents ;;
+              "0 9 * * *")  job=campaign-sweeps ;;
+              "0 14 * * *") job=waitlist-drip ;;
+              "0 15 * * *") job=onboarding-drip ;;
+              "0 14 * * 1") job=weekly-digest ;;
+              *) echo "::error::No route mapped for schedule '$SCHEDULE'"; exit 1 ;;
+            esac
+          fi
+
+          if [ -z "$CRON_BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::notice::CRON_BASE_URL or CRON_SECRET not set — skipping $job."
+            exit 0
+          fi
+
+          echo "GET $CRON_BASE_URL/api/v1/cron/$job"
+          curl --silent --show-error --fail-with-body --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$CRON_BASE_URL/api/v1/cron/$job"
+          echo

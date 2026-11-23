@@ -38,8 +38,6 @@ const nextConfig = {
     const pixelConnectHosts = [
       metaPixelEnabled ? "https://www.facebook.com" : null,
       gtagEnabled ? "https://www.google-analytics.com" : null,
-      // Vercel Analytics
-      "https://va.vercel-scripts.com",
     ]
       .filter((s) => s !== null)
       .join(" ");
@@ -51,7 +49,6 @@ const nextConfig = {
         ? "'self' 'unsafe-inline' 'unsafe-eval'"
         : "'self' 'unsafe-inline'",
       pixelScriptHosts,
-      "https://va.vercel-scripts.com",
     ]
       .filter(Boolean)
       .join(" ");
@@ -66,8 +63,6 @@ const nextConfig = {
     const connectSrc = [
       "'self'",
       "https://api.stripe.com",
-      "https://va.vercel-scripts.com",
-      "https://vitals.vercel-insights.com",
       pixelConnectHosts, // FB, GA when enabled
     ]
       .filter(Boolean)
