@@ -24,6 +24,13 @@
 >   Apex: `CNAME` to `apex-loadbalancer.netlify.com` (Cloudflare flattens
 >   it) or `A 75.2.60.5`. `www`: `CNAME` to `socialperks-app.netlify.app` (the project is `socialperks-app`; `socialperks` was taken).
 >   Rate limiting reads Netlify's `x-nf-client-connection-ip` first.
+> - **Database: Neon Free, not Supabase** (since Nov 23, 2026). Project
+>   `socialperks` (AWS us-east-1, Postgres 17), database **`socialperks`**
+>   (the project's older `neondb` database is a stale May copy; leave it).
+>   `DATABASE_URL` uses the `-pooler` host; the app already sets
+>   `prepare: false`. Copied from Supabase with `pg_dump --schema=public`
+>   and verified identical (39 tables, 512 rows). The app uses plain
+>   Postgres only (no Supabase SDK, auth or storage), so any Postgres works.
 > - **Crons** stay in `.github/workflows/cron.yml` (step 7 below).
 > - Runtime is serverless (Lambda), like Vercel: cold starts come back,
 >   and in-memory rate limits are per instance.
