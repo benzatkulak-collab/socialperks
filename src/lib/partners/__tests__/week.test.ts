@@ -44,7 +44,7 @@ describe("businessWeeks", () => {
     const perks = perksCall[0] as string;
     expect(perks).toMatch(/earned_at >= \$3 and p\.earned_at < \$4/i);
     expect(perks).toMatch(/redeemed_at >= \$3 and p\.redeemed_at < \$4/i);
-    expect(perks).toMatch(/expires_at >= \$3 and p\.expires_at < \$4/i);
+    expect(perks).toMatch(/expires_at >= \$3 and p\.expires_at < least\(\$4::timestamptz, now\(\)\)/i); // lapsed is clamped to now
   });
 
   it("never adds a pct perk's value to dolTotal", async () => {
@@ -79,11 +79,11 @@ describe("businessWeeks", () => {
     );
   });
 
-  it("counts lapsed as available perks whose expires_at is in the window", async () => {
+  it("counts lapsed as available perks whose expires_at is in the window and already past (a future `to` does not count perks yet to lapse)", async () => {
     feed({ businesses: biz });
     await businessWeeks("p1", "all", { from: FROM, to: TO }, 10);
     const perks = sqls().find((s) => /from perk_wallet_entries/i.test(s))!;
-    expect(perks).toMatch(/p\.status = 'available' and p\.expires_at >= \$3 and p\.expires_at < \$4/i);
+    expect(perks).toMatch(/p\.status = 'available' and p\.expires_at >= \$3 and p\.expires_at < least\(\$4::timestamptz, now\(\)\)/i);
   });
 
   it("maps submissions, waiting, plan and latest", async () => {

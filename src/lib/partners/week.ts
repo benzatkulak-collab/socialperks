@@ -88,7 +88,7 @@ const PERKS_SQL = `
     coalesce(sum(p.value) filter (where p.earned_at >= $3 and p.earned_at < $4), 0) as awarded_value,
     count(*) filter (where p.redeemed_at >= $3 and p.redeemed_at < $4)::int as redeemed,
     coalesce(sum(p.value) filter (where p.redeemed_at >= $3 and p.redeemed_at < $4), 0) as redeemed_value,
-    count(*) filter (where p.status = 'available' and p.expires_at >= $3 and p.expires_at < $4)::int as lapsed
+    count(*) filter (where p.status = 'available' and p.expires_at >= $3 and p.expires_at < least($4::timestamptz, now()))::int as lapsed
   from perk_wallet_entries p
   ${GRANT("p.business_id")}
   group by p.business_id, p.type`;
