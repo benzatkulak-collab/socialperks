@@ -116,7 +116,7 @@ export function scoreLead(
     score += 0.2;
     reasons.push("ICP vertical");
   }
-  if (lead.businessName) {
+  if (lead.businessName && lead.businessName.trim().length > 0) {
     score += 0.1;
     reasons.push("named business");
   }
@@ -136,7 +136,7 @@ export function scoreLead(
 
 /** Personalized early-access invite. Enqueued as a generic "drip" email. */
 function inviteEmail(lead: WaitlistLead): { subject: string; html: string; text: string } {
-  const name = lead.businessName ?? "there";
+  const name = lead.businessName?.trim() || "there";
   const cityClause = lead.city
     ? `We're onboarding shops in ${lead.city} right now`
     : "We're opening up early-access slots right now";
