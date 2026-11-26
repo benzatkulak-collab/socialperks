@@ -25,12 +25,15 @@ import { describe, expect, it, vi } from "vitest";
 const ORIGIN = "http://localhost:3000";
 
 type FetchListener = (event: { request: Request; respondWith: (r: Promise<Response> | Response) => void }) => void;
+type ActivateListener = (event: { waitUntil: (p: Promise<unknown>) => void }) => void;
 
-function loadWorker(): FetchListener {
-  const listeners = new Map<string, FetchListener>();
+/** The worker's event listeners, run against a stand-in `self` and Cache Storage holding these cache names. */
+function loadWorkerListeners(cacheNames: string[] = []) {
+  const listeners = new Map<string, unknown>();
+  const deleted: string[] = [];
   const self = {
     location: { origin: ORIGIN },
-    addEventListener: (type: string, listener: FetchListener) => listeners.set(type, listener),
+    addEventListener: (type: string, listener: unknown) => listeners.set(type, listener),
     skipWaiting: () => {},
     clients: { claim: () => {}, matchAll: async () => [] },
   };
@@ -38,10 +41,19 @@ function loadWorker(): FetchListener {
   const caches = {
     open: async () => ({ put: async () => {} }),
     match: async () => undefined,
+    keys: async () => cacheNames,
+    delete: async (name: string) => {
+      deleted.push(name);
+      return true;
+    },
   };
   const fetch = async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
   vm.runInNewContext(code, { self, URL, Request, Response, Headers, console, fetch, caches, indexedDB: {} });
-  const onFetch = listeners.get("fetch");
+  return { listeners, deleted };
+}
+
+function loadWorker(): FetchListener {
+  const onFetch = loadWorkerListeners().listeners.get("fetch") as FetchListener | undefined;
   if (!onFetch) throw new Error("sw.js registered no fetch listener");
   return onFetch;
 }
@@ -74,5 +86,22 @@ describe("public/sw.js — the realtime stream", () => {
   it("still answers other API reads itself", () => {
     expect(workerAnswers("/api/v1/campaigns?businessId=biz_test_alpha")).toBe(true);
     expect(workerAnswers("/api/v1/eventsfeed")).toBe(true);
+  });
+});
+
+/**
+ * The worker before this change answered the stream itself and, once a stream
+ * ended, kept the finished body in its API cache (`sp-v1-api`), including the
+ * `connected` event with the caller's email. The new worker uses new cache
+ * names, so activating it deletes every cache the old one kept.
+ */
+describe("public/sw.js — the caches the old worker kept", () => {
+  it("deletes the old worker's caches when it activates", async () => {
+    const { listeners, deleted } = loadWorkerListeners(["sp-v1-api", "sp-v1-static", "sp-v1-pages", "another-app-cache"]);
+    const onActivate = listeners.get("activate") as ActivateListener;
+    let done: Promise<unknown> = Promise.resolve();
+    onActivate({ waitUntil: (p) => (done = p) });
+    await done;
+    expect(deleted.sort()).toEqual(["sp-v1-api", "sp-v1-pages", "sp-v1-static"]);
   });
 });

@@ -8,7 +8,10 @@
 //   Offline mutations:          Queued in IndexedDB, replayed on reconnect
 // ══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = "sp-v1";
+// v2 (Nov 2026): v1 answered the realtime stream itself and could keep a
+// finished stream (with the caller's email) in its API cache. New names make
+// the activate step below delete every v1 cache.
+const CACHE_VERSION = "sp-v2";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;

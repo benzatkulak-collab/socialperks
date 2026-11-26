@@ -829,7 +829,7 @@ Other answers: `204 No Content` when this server streams nothing (`REALTIME_EVEN
 
 ### `HEAD /api/v1/events` -- can this caller stream?
 
-The same checks and status codes as `GET`, without opening a stream. The web client asks it, through `apiFetch` (which renews an expired access cookie), before each connection.
+The same checks and status codes as `GET`, without opening a stream. The web client asks it before each connection, through `apiFetch`, which is where an expired access cookie gets renewed (PR #252 adds that renewal). After a `401` it asks once more a minute later before it stops.
 
 ---
 
