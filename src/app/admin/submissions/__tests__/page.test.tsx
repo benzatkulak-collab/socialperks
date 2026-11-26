@@ -60,6 +60,8 @@ describe("admin submissions: ?submission=<id>", () => {
     expect(await screen.findByText("camp_old_9")).toBeInTheDocument();
     const call = fetchMock.mock.calls.find((c) => String(c[0]).startsWith("/api/v1/admin/submissions"))!;
     expect(call[0]).toBe("/api/v1/admin/submissions?id=old_9");
+    // read through apiFetch (a signed-in GET), which keeps the session cookie
+    expect(call[1]).toMatchObject({ credentials: "include" });
   });
 
   it("an unknown id leaves the list showing and no drawer", async () => {

@@ -9,6 +9,7 @@ import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
 import { useAdminUser } from "@/components/admin/admin-guard";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Status = "pending" | "approved" | "rejected";
 
@@ -97,7 +98,7 @@ function AdminSubmissionsContent() {
     if (inList) { setDetailSub(inList); return; }
     void (async () => {
       try {
-        const res = await fetch(`/api/v1/admin/submissions?id=${encodeURIComponent(linkedId)}`, { credentials: "include" });
+        const res = await apiFetch(`/api/v1/admin/submissions?id=${encodeURIComponent(linkedId)}`);
         const json = await res.json();
         if (json?.success && json.data?.submission) setDetailSub(json.data.submission as Submission);
       } catch {
