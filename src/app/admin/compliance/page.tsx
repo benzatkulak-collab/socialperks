@@ -56,10 +56,8 @@ export default function AdminCompliancePage() {
 
   const runNow = async () => {
     setWorking(true);
-    await fetch("/api/v1/admin/agents", {
+    await apiFetch("/api/v1/admin/agents", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ agentId: "compliance-watchdog", action: "run" }),
     });
     setWorking(false);

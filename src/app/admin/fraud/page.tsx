@@ -61,10 +61,8 @@ export default function AdminFraudPage() {
 
   const runNow = async () => {
     setWorking(true);
-    await fetch("/api/v1/admin/agents", {
+    await apiFetch("/api/v1/admin/agents", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ agentId: "fraud-sentinel", action: "run" }),
     });
     setWorking(false);

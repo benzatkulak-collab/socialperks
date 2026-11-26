@@ -649,10 +649,8 @@ export default function AdminDashboard() {
       setReviewing(reviewKey);
 
       try {
-        const res = await fetch("/api/v1/submissions/review", {
+        const res = await apiFetch("/api/v1/submissions/review", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             submissionId,
             reviewerId: user.id,

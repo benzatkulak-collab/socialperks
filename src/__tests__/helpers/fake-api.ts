@@ -66,6 +66,22 @@ export function csrfToken(token: string): FixedAnswer {
   return okWith({ csrfToken: token });
 }
 
+/**
+ * A route that checks the CSRF token, as `requireCsrf` does
+ * (src/app/api/v1/_shared.ts): no `X-CSRF-Token` header gets 403
+ * CSRF_TOKEN_MISSING, a token other than the one `GET /api/v1/csrf` issued
+ * gets 403 CSRF_TOKEN_INVALID, and only then does `answer` run. The real
+ * token is also tied to the caller's account, which this does not model.
+ */
+export function requiresCsrf(issued: string, answer: Answer): Answer {
+  return (req) => {
+    const sent = req.headers.get("X-CSRF-Token");
+    if (!sent) return errorWith(403, "CSRF_TOKEN_MISSING", "CSRF token is required. Include X-CSRF-Token header.")();
+    if (sent !== issued) return errorWith(403, "CSRF_TOKEN_INVALID", "CSRF token is invalid or expired. Refresh and retry.")();
+    return answer(req);
+  };
+}
+
 /** One campaign as `GET /api/v1/campaigns` lists it (a `CampaignLifecycle`). */
 export const testCampaign = {
   id: "cmp_test_1",

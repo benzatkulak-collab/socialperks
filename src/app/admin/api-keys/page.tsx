@@ -48,10 +48,8 @@ export default function AdminApiKeysPage() {
     setCreating(true);
     setNewPlaintext(null);
     try {
-      const res = await fetch("/api/v1/api-keys", {
+      const res = await apiFetch("/api/v1/api-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           agentName: newKeyName,
           permissions: newKeyPerms.split(",").map((p) => p.trim()).filter(Boolean),

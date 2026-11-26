@@ -107,10 +107,8 @@ export default function AdminAgentsPage() {
 
   const setMode = async (agentId: string, mode: Mode) => {
     setWorking(`mode:${agentId}`);
-    await fetch("/api/v1/admin/agents", {
+    await apiFetch("/api/v1/admin/agents", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ agentId, mode }),
     });
     setWorking(null);
@@ -119,10 +117,8 @@ export default function AdminAgentsPage() {
 
   const setConfig = async (agentId: string, config: Partial<AgentConfigValues>) => {
     setWorking(`config:${agentId}`);
-    await fetch("/api/v1/admin/agents", {
+    await apiFetch("/api/v1/admin/agents", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ agentId, config }),
     });
     setWorking(null);
@@ -131,10 +127,8 @@ export default function AdminAgentsPage() {
 
   const runNow = async (agentId: string) => {
     setWorking(`run:${agentId}`);
-    await fetch("/api/v1/admin/agents", {
+    await apiFetch("/api/v1/admin/agents", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ agentId, action: "run" }),
     });
     setWorking(null);

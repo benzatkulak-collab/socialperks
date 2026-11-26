@@ -93,10 +93,8 @@ export default function AdminCampaignsPage() {
   const action = async (act: "pause" | "resume" | "end", reason?: string) => {
     if (!selected) return;
     setWorking(act);
-    const res = await fetch("/api/v1/admin/campaigns", {
+    const res = await apiFetch("/api/v1/admin/campaigns", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({
         campaignId: selected.campaignId ?? selected.id,
         action: act,
