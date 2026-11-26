@@ -144,8 +144,20 @@ test.describe("API Endpoints", () => {
   });
 
   test.describe("Campaigns API", () => {
-    test("GET /api/v1/campaigns returns campaign list", async ({ request }) => {
+    test("GET /api/v1/campaigns requires authentication", async ({ request }) => {
       const res = await request.get("/api/v1/campaigns");
+      expect(res.status()).toBe(401);
+    });
+
+    test("GET /api/v1/campaigns returns the signed-in business's campaigns", async ({ request }) => {
+      const loginRes = await request.post("/api/v1/auth", {
+        data: { action: "login", email: "yoga@demo.com", pin: "1234" },
+      });
+      const token = (await loginRes.json()).data.accessToken;
+
+      const res = await request.get("/api/v1/campaigns", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       expect(res.status()).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
@@ -241,7 +253,14 @@ test.describe("API Endpoints", () => {
     });
 
     test("GET /api/v1/campaigns supports state filter", async ({ request }) => {
-      const res = await request.get("/api/v1/campaigns?state=active");
+      const loginRes = await request.post("/api/v1/auth", {
+        data: { action: "login", email: "yoga@demo.com", pin: "1234" },
+      });
+      const token = (await loginRes.json()).data.accessToken;
+
+      const res = await request.get("/api/v1/campaigns?state=active", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       expect(res.status()).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
@@ -250,6 +269,11 @@ test.describe("API Endpoints", () => {
   });
 
   test.describe("Protected Endpoints", () => {
+    test("GET /api/v1/submissions requires auth", async ({ request }) => {
+      const res = await request.get("/api/v1/submissions");
+      expect(res.status()).toBe(401);
+    });
+
     test("POST /api/v1/ai/generate requires auth", async ({ request }) => {
       const res = await request.post("/api/v1/ai/generate", {
         data: { businessType: "yoga studio" },

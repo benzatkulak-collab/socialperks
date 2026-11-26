@@ -24,6 +24,7 @@ import {
   type ProgramMember,
 } from "@/lib/programs/store";
 import { validateEmail, validateString } from "@/lib/security/validate";
+import { requireOwnership } from "@/lib/security/owner";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
 
@@ -49,10 +50,10 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
-  // Tenant isolation: only the program owner can list members
-  if (user.businessId && program.businessId !== user.businessId) {
-    return err("FORBIDDEN", "You do not have access to this program's members", 403);
-  }
+  // Tenant isolation: only the program owner can list members (names and
+  // emails). Fails closed for a caller with no business.
+  const denied = requireOwnership(user, program.businessId);
+  if (denied) return denied;
 
   const params = getQuery(req);
   const { page, perPage } = paginate(params);
@@ -104,10 +105,9 @@ export const POST = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
-  // Tenant isolation: only the program owner can enroll members
-  if (user.businessId && program.businessId !== user.businessId) {
-    return err("FORBIDDEN", "You cannot enroll members in another business's program", 403);
-  }
+  // Tenant isolation: only the program owner can enroll members.
+  const denied = requireOwnership(user, program.businessId);
+  if (denied) return denied;
 
   if (program.status !== "active") {
     return err("PROGRAM_NOT_ACTIVE", `Cannot enroll in a program that is '${program.status}'`, 400);
