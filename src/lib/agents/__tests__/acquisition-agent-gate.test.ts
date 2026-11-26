@@ -33,6 +33,9 @@ class InMemoryConnection {}
 
 let LEADS: Array<Record<string, unknown>> = [];
 
+// Set to true to make the NEXT emailQueue.add() call throw, then auto-reset.
+let throwOnNextAdd = false;
+
 vi.mock("@/lib/db/connection", () => ({
   InMemoryConnection,
   db: {
@@ -50,6 +53,10 @@ vi.mock("@/lib/db/connection", () => ({
 vi.mock("@/lib/jobs/registry", () => ({
   emailQueue: {
     add: (job: { to: string }) => {
+      if (throwOnNextAdd) {
+        throwOnNextAdd = false;
+        throw new Error("queue full");
+      }
       QUEUED.push(job);
     },
   },
@@ -83,6 +90,7 @@ beforeEach(() => {
   QUEUED.length = 0;
   CONTACTED.length = 0;
   LEADS = [];
+  throwOnNextAdd = false;
 });
 
 describe("acquisition agent — dry-run gate (with leads present)", () => {
@@ -208,5 +216,34 @@ describe("acquisition agent — outbound copy compliance", () => {
     // Plain text is NOT HTML — it should still have the raw values.
     expect(job.text).toContain("AT&T");
     expect(job.text).toContain("Fort <Wayne>");
+  });
+});
+
+describe("acquisition agent — queue error resilience", () => {
+  it("continues to the next lead when emailQueue.add throws, and the failed lead does not consume the cap", async () => {
+    // Three hot leads. The first enqueue attempt throws. We want to confirm:
+    //   (a) the run does not crash
+    //   (b) the failed lead is marked executed:false and not stamped contacted
+    //   (c) the two remaining leads are still sent (failure didn't eat a cap slot)
+    LEADS = Array.from({ length: 3 }, (_, i) => hotLead(i));
+    throwOnNextAdd = true;
+
+    const decisions = await run(true, 3);
+
+    // All three leads were scored and appear in the decision log.
+    expect(decisions).toHaveLength(3);
+
+    // Exactly one lead failed (the one whose add() threw).
+    const failed = decisions.filter((d) => !d.executed);
+    const succeeded = decisions.filter((d) => d.executed);
+    expect(failed).toHaveLength(1);
+    expect(succeeded).toHaveLength(2);
+
+    // The two succeeded leads were actually queued and stamped.
+    expect(QUEUED).toHaveLength(2);
+    expect(CONTACTED).toHaveLength(2);
+
+    // The failed lead was NOT stamped — it will be retried on the next run.
+    expect(CONTACTED).not.toContain(failed[0].targetId);
   });
 });
