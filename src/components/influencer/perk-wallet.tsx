@@ -133,9 +133,9 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
     setLoading(true);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/v1/submissions?userId=${encodeURIComponent(influencerId)}`,
-        { signal: controller.signal, credentials: "include" }
+        { signal: controller.signal }
       );
       if (!res.ok) throw new Error("Failed to fetch submissions");
       const json = await res.json();
@@ -172,9 +172,8 @@ export function PerkWallet({ influencerId, influencerName }: PerkWalletProps) {
   const fetchPayoutStatus = useCallback(async () => {
     setPayoutLoading(true);
     try {
-      const res = await fetch(
-        `/api/v1/payouts?influencerId=${encodeURIComponent(influencerId)}`,
-        { credentials: "include" }
+      const res = await apiFetch(
+        `/api/v1/payouts?influencerId=${encodeURIComponent(influencerId)}`
       );
       if (!res.ok) return;
       const json = await res.json();

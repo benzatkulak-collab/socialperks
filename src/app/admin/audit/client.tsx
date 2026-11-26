@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface AuditEntry {
   action: string;
@@ -60,9 +61,7 @@ export function AuditClient() {
       params.set("limit", String(limit));
       params.set("offset", String(offset));
 
-      const res = await fetch(`/api/v1/admin/audit?${params.toString()}`, {
-        credentials: "include",
-      });
+      const res = await apiFetch(`/api/v1/admin/audit?${params.toString()}`);
       if (res.status === 401) {
         setState({ status: "unauthenticated" });
         return;

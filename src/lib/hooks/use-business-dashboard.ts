@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface DashboardStats {
   activeCampaigns: number;
@@ -23,7 +24,7 @@ export function useBusinessDashboard(businessId: string) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`, { signal: controller.signal, credentials: "include" });
+      const res = await apiFetch(`/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`, { signal: controller.signal });
       if (!res.ok) throw new Error(`Failed to fetch dashboard stats (${res.status})`);
       const json = await res.json();
       if (controller.signal.aborted) return;

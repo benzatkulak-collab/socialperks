@@ -9,6 +9,7 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { useAdminUser } from "@/components/admin/admin-guard";
 import { useLivePoll } from "@/components/admin/use-live-poll";
 import { LiveIndicator } from "@/components/admin/live-indicator";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -581,11 +582,11 @@ export default function AdminDashboard() {
     setError(null);
     try {
       const [campaignsRes, submissionsRes, healthRes, statsRes, agentsRes] = await Promise.allSettled([
-        fetch("/api/v1/campaigns", { credentials: "include" }),
-        fetch("/api/v1/submissions", { credentials: "include" }),
-        fetch("/api/v1/admin/system", { credentials: "include" }),
-        fetch("/api/v1/admin/stats", { credentials: "include" }),
-        fetch("/api/v1/admin/agents", { credentials: "include" }),
+        apiFetch("/api/v1/campaigns"),
+        apiFetch("/api/v1/submissions"),
+        apiFetch("/api/v1/admin/system"),
+        apiFetch("/api/v1/admin/stats"),
+        apiFetch("/api/v1/admin/agents"),
       ]);
 
       // Process campaigns

@@ -122,7 +122,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const [referralModalOpen, setReferralModalOpen] = useState(false);
   useEffect(() => {
     const ac = new AbortController();
-    fetch("/api/v1/referrals/me", { signal: ac.signal, credentials: "include" })
+    apiFetch("/api/v1/referrals/me", { signal: ac.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
         if (!body?.data) return;

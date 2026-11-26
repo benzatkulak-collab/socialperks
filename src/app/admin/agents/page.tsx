@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
 import { useLivePoll } from "@/components/admin/use-live-poll";
 import { LiveIndicator } from "@/components/admin/live-indicator";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Mode = "off" | "dry-run" | "live";
 type Status = "idle" | "running" | "errored";
@@ -94,7 +95,7 @@ export default function AdminAgentsPage() {
 
   const fetchAgents = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/admin/agents", { credentials: "include" });
+    const res = await apiFetch("/api/v1/admin/agents");
     const json = await res.json();
     if (json.success) setAgents(json.data?.agents ?? []);
     setLoading(false);

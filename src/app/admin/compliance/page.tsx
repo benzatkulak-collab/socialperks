@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface Decision {
   targetId: string;
@@ -42,7 +43,7 @@ export default function AdminCompliancePage() {
 
   const fetchAgent = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/admin/agents", { credentials: "include" });
+    const res = await apiFetch("/api/v1/admin/agents");
     const json = await res.json();
     if (json.success) {
       const found = (json.data?.agents ?? []).find((a: AgentRow & { name: string }) => a.id === "compliance-watchdog");

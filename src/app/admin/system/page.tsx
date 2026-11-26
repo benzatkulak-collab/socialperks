@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface SystemMetrics {
   status: "ok" | "degraded";
@@ -48,7 +49,7 @@ export default function AdminSystemPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/admin/system", { credentials: "include" });
+    const res = await apiFetch("/api/v1/admin/system");
     const json = await res.json();
     if (json.success) setData(json.data);
     setLoading(false);
