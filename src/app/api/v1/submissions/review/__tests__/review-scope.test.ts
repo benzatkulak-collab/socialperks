@@ -220,3 +220,33 @@ describe("POST /api/v1/submissions/review — the decision email's recipient", (
     expect(sent).toHaveLength(0);
   });
 });
+
+/**
+ * The published API (OpenAPI) and the MCP reviewSubmission tool call the
+ * reviewer's explanation `reason`; the founder console sends it as `note`.
+ * Either one is saved on the submission and shown in the rejection email.
+ */
+describe("POST /api/v1/submissions/review — the reviewer's reason", () => {
+  const REASON = "The proof link is private";
+
+  it("saves a `reason` and puts it in the rejection email", async () => {
+    const { status, json } = await review({ submissionId, decision: "reject", reason: REASON });
+    expect(status).toBe(200);
+    expect(json.data.submission.reviewNote).toBe(REASON);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toContain(`Reason: ${REASON}`);
+  });
+
+  it("saves a `note`, as the founder console sends it", async () => {
+    const { status, json } = await review({ submissionId, decision: "reject", note: REASON });
+    expect(status).toBe(200);
+    expect(json.data.submission.reviewNote).toBe(REASON);
+    expect(sent[0].text).toContain(`Reason: ${REASON}`);
+  });
+
+  it("refuses a `reason` longer than a note may be", async () => {
+    const { status, json } = await review({ submissionId, decision: "reject", reason: "x".repeat(1001) });
+    expect(status).toBe(400);
+    expect(json.error.code).toBe("INVALID_NOTE");
+  });
+});

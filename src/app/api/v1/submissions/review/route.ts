@@ -46,17 +46,19 @@ export const POST = withTiming(async (req: NextRequest) => {
   const csrfErr = requireCsrf(req);
   if (csrfErr) return csrfErr;
 
-  // Parse body. Only the decision comes from the caller. The campaign is never
-  // read from the body (an approval is priced, booked and counted from the
-  // submission's own stored campaign, see resolvedCampaign below), and neither
-  // is the email recipient (see submitterEmail below). A `campaign`,
-  // `followerCount`, `submitterEmail` or `submitterName` field a client still
-  // sends is ignored.
+  // Parse body. Only the decision and the reviewer's note come from the
+  // caller. The campaign is never read from the body (an approval is priced,
+  // booked and counted from the submission's own stored campaign, see
+  // resolvedCampaign below), and neither is the email recipient (see
+  // submitterEmail below). A `campaign`, `followerCount`, `submitterEmail` or
+  // `submitterName` field a client still sends is ignored.
   const body = await parseBody<{
     submissionId?: string;
     reviewerId?: string;
     decision?: string;
     note?: string;
+    /** The published name (OpenAPI, the MCP reviewSubmission tool) for `note`. */
+    reason?: string;
   }>(req);
   if (body instanceof Response) return body;
 
@@ -76,9 +78,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   const dv = validateEnum(body.decision, "decision", ["approve", "reject"] as const);
   if (!dv.success) return err("INVALID_DECISION", dv.error, 400);
 
-  // Optional: validate note
-  if (body.note !== undefined) {
-    const nv = validateString(body.note, "note", { max: 1000 });
+  // Optional: validate note. The founder console sends it as `note`; the
+  // OpenAPI spec and the MCP tool call it `reason`.
+  const note = body.note ?? body.reason;
+  if (note !== undefined) {
+    const nv = validateString(note, "note", { max: 1000 });
     if (!nv.success) return err("INVALID_NOTE", nv.error, 400);
   }
 
@@ -132,7 +136,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     sv.data,
     rv.data,
     dv.data as "approve" | "reject",
-    body.note
+    note
   );
 
   if (!result.success) {
@@ -235,7 +239,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       );
       emailProvider.send({ to: submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     } else {
-      const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
+      const template = submissionRejectedEmail(recipientName, campaignName, note);
       emailProvider.send({ to: submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     }
   }

@@ -453,7 +453,7 @@ const TOOLS: Tool[] = [
   {
     name: "reviewSubmission",
     description:
-      "Approve or reject a submission. Approving releases the perk; rejecting requires a reason. Use this when the business chooses manual review over auto-verification.",
+      "Approve or reject a submission. Approving releases the perk; a rejection may carry a reason, which the customer sees. Use this when the business chooses manual review over auto-verification.",
     requiresAuth: true,
     // State transition only — no quota consumed. The perk-cost
     // accrues against the campaign's budget, not against the API call.
@@ -470,7 +470,7 @@ const TOOLS: Tool[] = [
         },
         reason: {
           type: "string",
-          description: "Required when decision='reject'. 1-500 chars.",
+          description: "Optional. Saved with the decision and shown to the customer in the rejection email. Up to 500 chars.",
           maxLength: 500,
         },
       },

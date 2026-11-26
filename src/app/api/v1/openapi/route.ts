@@ -365,7 +365,7 @@ function buildSpec() {
           tags: ["Submissions"],
           summary: "Approve or reject a submission",
           description:
-            "Approve releases the perk and closes the submission. Reject requires a reason (1–500 chars). Owner business or API key with review.submissions scope only.",
+            "Approve releases the perk and closes the submission. An optional reason (up to 500 chars) is saved with the decision and shown to the customer in the rejection email. Owner business or API key with review.submissions scope only.",
           security: [{ BearerAuth: [] }, { ApiKey: [] }],
           requestBody: {
             required: true,
