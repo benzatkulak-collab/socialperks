@@ -13,6 +13,7 @@
  */
 
 import { ConsoleEmailProvider, ResendEmailProvider, type EmailProvider } from "./index";
+import { escapeHtml } from "@/lib/security/sanitize";
 
 export interface DripEntry {
   email: string;
@@ -36,6 +37,8 @@ function getProvider(): EmailProvider {
 
 export function day3Template(entry: DripEntry): DripEmail {
   const greeting = entry.businessName ? `Hi ${entry.businessName}` : "Hi there";
+  // Business name is visitor-supplied: escape it for the HTML body only.
+  const htmlGreeting = entry.businessName ? `Hi ${escapeHtml(entry.businessName)}` : "Hi there";
   return {
     subject: "How does Social Perks actually work? (3 minute read)",
     text: `${greeting},
@@ -51,7 +54,7 @@ If you'd rather see it in action, hit reply and tell me which platform matters m
 
 — Social Perks
 `,
-    html: `<p>${greeting},</p>
+    html: `<p>${htmlGreeting},</p>
 <p>You signed up for early access a few days ago. Here's the 3-minute version of how it works.</p>
 <ol>
   <li>You set a perk — say <strong>15% off the next visit</strong>.</li>
@@ -69,6 +72,9 @@ export function day7Template(entry: DripEntry): DripEmail {
   const cityLine = entry.city
     ? ` in ${entry.city}`
     : "";
+  // Business name and city are visitor-supplied: escape them for the HTML body only.
+  const htmlGreeting = entry.businessName ? `Hi ${escapeHtml(entry.businessName)}` : "Hi";
+  const htmlCityLine = entry.city ? ` in ${escapeHtml(entry.city)}` : "";
   return {
     subject: "Quick check-in: still interested?",
     text: `${greeting},
@@ -83,8 +89,8 @@ If you want to keep getting these but we can drop the priority slot, no action n
 
 — Social Perks
 `,
-    html: `<p>${greeting},</p>
-<p>It's been about a week since you joined the early-access list. We're hand-picking the first 10 coffee shops${cityLine} to onboard, and I want to make sure you don't get lost in the queue.</p>
+    html: `<p>${htmlGreeting},</p>
+<p>It's been about a week since you joined the early-access list. We're hand-picking the first 10 coffee shops${htmlCityLine} to onboard, and I want to make sure you don't get lost in the queue.</p>
 <p>If you're still interested, just reply with one word: <strong>"yes"</strong>. I'll move you up.</p>
 <p>If now's not the right time, no worries — reply with <strong>"later"</strong> and I'll pause.</p>
 <p>— Social Perks</p>`,
