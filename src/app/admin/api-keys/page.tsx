@@ -58,7 +58,8 @@ export default function AdminApiKeysPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setNewPlaintext(json.data?.plaintext ?? json.data?.token ?? null);
+        // POST /api/v1/api-keys sends the plaintext in `key`, this once only.
+        setNewPlaintext(json.data?.key ?? null);
         setNewKeyName("");
         fetchKeys();
       } else {

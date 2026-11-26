@@ -634,4 +634,11 @@ describe("/admin/api-keys", () => {
     const [issue] = expectRenewedWrite(api, "POST /api/v1/api-keys");
     expect(issue.body).toMatchObject({ agentName: "Test Agent", permissions: ["read"] });
   });
+
+  it("shows the new key's plaintext, which the route sends only this once", async () => {
+    fakeApi(issueRoutes());
+    await issueKey();
+
+    expect(await screen.findByText("sp_test_0123456789abcdef0123456789abcdef")).toBeInTheDocument();
+  });
 });
