@@ -46,14 +46,15 @@ export const POST = withTiming(async (req: NextRequest) => {
   const csrfErr = requireCsrf(req);
   if (csrfErr) return csrfErr;
 
-  // Parse body
+  // Parse body. The campaign is never read from the body: an approval is
+  // priced, booked and counted from the submission's own stored campaign
+  // (see resolvedCampaign below). A `campaign` or `followerCount` field a
+  // client still sends is ignored.
   const body = await parseBody<{
     submissionId?: string;
     reviewerId?: string;
     decision?: string;
     note?: string;
-    campaign?: LaunchedCampaign;
-    followerCount?: number;
     submitterEmail?: string;
     submitterName?: string;
   }>(req);
@@ -101,15 +102,15 @@ export const POST = withTiming(async (req: NextRequest) => {
   const accessDenied = checkResourceAccess(tenant, campaignLifecycle.businessId);
   if (accessDenied) return accessDenied;
 
-  // Resolve the campaign server-side from the durable lifecycle so the perk
-  // award + notification email fire regardless of whether the caller sent
-  // body.campaign. The admin console (and any minimal client) only sends
-  // { submissionId, decision, note }; the old code gated awardPerk on
-  // body.campaign, so Approve silently awarded nothing and sent no email —
-  // the core loop dead-ended after approval. calculatePerkValue only reads
+  // Resolve the campaign server-side from the durable lifecycle, and ONLY from
+  // there: it is the campaign the tenant check above just passed. It decides
+  // the perk's value and type, the business whose wallet the perk lands in,
+  // the business whose monthly completion limit is checked and counted, and
+  // the campaign name in the customer's email. Nothing in the request body
+  // changes any of them. calculatePerkValue only reads
   // discountValue/discountType/useTiers; the remaining fields are filled from
   // the lifecycle (or safe defaults) so the LaunchedCampaign shape is honest.
-  const resolvedCampaign: LaunchedCampaign = body.campaign ?? {
+  const resolvedCampaign: LaunchedCampaign = {
     id: campaignLifecycle.id,
     businessId: campaignLifecycle.businessId,
     name: campaignLifecycle.name ?? "your campaign",
@@ -118,9 +119,9 @@ export const POST = withTiming(async (req: NextRequest) => {
     discountValue: campaignLifecycle.budget.allocated,
     discountType: campaignLifecycle.budget.type,
     expiresInDays: 0,
-    // Lifecycle doesn't carry the follower-tier flag; default off so the base
-    // perk is awarded. A client that wants tier bonuses can still pass
-    // body.campaign with useTiers + body.followerCount.
+    // The lifecycle doesn't carry a follower-tier flag, so every approval
+    // earns the base perk. A tier bonus would need the flag (and a follower
+    // count the server trusts) stored with the campaign.
     useTiers: false,
     status: "active",
     createdAt: campaignLifecycle.expiry.launchedAt,
@@ -142,12 +143,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   const submission = result.data!;
 
   // If approving, calculate and award the perk using the server-resolved
-  // campaign (above). Fires for every approval, not just ones where the
-  // caller happened to send body.campaign.
+  // campaign (above).
   let perk = null;
   if (dv.data === "approve") {
     const campaign = resolvedCampaign;
-    const followerCount = body.followerCount ?? 0;
 
     // ── Plan enforcement: completion limit ──────────────────────────────────
     const completionBusinessId = campaign.businessId;
@@ -165,8 +164,9 @@ export const POST = withTiming(async (req: NextRequest) => {
       return NextResponse.json(body403, { status: 403 });
     }
 
-    // Calculate perk value using submission engine
-    const perkCalc = calculatePerkValue(submission, campaign, followerCount);
+    // Calculate perk value using submission engine (base perk: no tier flag
+    // is stored with the campaign, so no follower count is needed).
+    const perkCalc = calculatePerkValue(submission, campaign);
 
     // Record completion in campaign state machine (if tracked)
     const lifecycle = campaignManager.getState(submission.campaignId);
@@ -221,7 +221,7 @@ export const POST = withTiming(async (req: NextRequest) => {
     (typeof submission.metadata.name === "string" ? submission.metadata.name : undefined);
   if (submitterEmail) {
     const recipientName = submitterName || "there";
-    const campaignName = body.campaign?.name || resolvedCampaign.name || "your campaign";
+    const campaignName = resolvedCampaign.name || "your campaign";
 
     if (dv.data === "approve") {
       const perkDisplay = perk?.calculation

@@ -142,7 +142,9 @@ class ApiClient {
     return this.request(API_ENDPOINTS.submissions + "?" + qs.toString());
   }
 
-  async reviewSubmission(data: { submissionId: string; reviewerId: string; decision: "approve" | "reject"; note?: string; campaign?: Record<string, unknown>; followerCount?: number }) {
+  // The route prices and books an approval from the submission's own stored
+  // campaign, so a campaign or follower count is not part of the request.
+  async reviewSubmission(data: { submissionId: string; reviewerId: string; decision: "approve" | "reject"; note?: string }) {
     return this.request(API_ENDPOINTS.submissionsReview, { method: "POST", body: JSON.stringify(data) });
   }
 
