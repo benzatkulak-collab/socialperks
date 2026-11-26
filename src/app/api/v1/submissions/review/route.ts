@@ -46,12 +46,12 @@ export const POST = withTiming(async (req: NextRequest) => {
   const csrfErr = requireCsrf(req);
   if (csrfErr) return csrfErr;
 
-  // Parse body. Only the decision and the reviewer's note come from the
-  // caller. The campaign is never read from the body (an approval is priced,
-  // booked and counted from the submission's own stored campaign, see
-  // resolvedCampaign below), and neither is the email recipient (see
-  // submitterEmail below). A `campaign`, `followerCount`, `submitterEmail` or
-  // `submitterName` field a client still sends is ignored.
+  // Parse body. Besides the submission id, only the decision and the
+  // reviewer's note come from the caller. The campaign is never read from the
+  // body (an approval is priced, booked and counted from the submission's own
+  // stored campaign, see resolvedCampaign below), and neither is the email
+  // recipient (see submitterEmail below). A `campaign`, `followerCount`,
+  // `submitterEmail` or `submitterName` field a client still sends is ignored.
   const body = await parseBody<{
     submissionId?: string;
     reviewerId?: string;
