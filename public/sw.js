@@ -161,6 +161,12 @@ function isApiRoute(url) {
   return url.pathname.startsWith("/api/v1/");
 }
 
+function isStaticAsset(url) {
+  return /\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico|json)$/i.test(
+    url.pathname
+  );
+}
+
 function isPublicApiRead(url, request) {
   return request.method === "GET" && PUBLIC_API_READS.has(url.pathname);
 }
@@ -169,12 +175,6 @@ function isPublicApiRead(url, request) {
 function changesWhoIsSignedIn(url, request) {
   if (request.method === "GET" || request.method === "HEAD") return false;
   return SIGN_IN_ROUTES.has(url.pathname.replace(/\/+$/, ""));
-}
-
-function isStaticAsset(url) {
-  return /\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico|json)$/i.test(
-    url.pathname
-  );
 }
 
 function offlineApiResponse() {
