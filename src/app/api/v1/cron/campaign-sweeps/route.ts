@@ -1,11 +1,17 @@
 /**
  * GET /api/v1/cron/campaign-sweeps
  *
- * Daily housekeeping pass (Phases 37-38, 153-154):
- *   - Auto-archive ended/expired campaigns older than 30 days
- *   - Auto-prompt-extend campaigns near expiry with budget remaining
- *   - Auto-pause campaigns over the new plan limit when a business
- *     downgrades
+ * Daily housekeeping pass:
+ *   - Auto-archive ended/expired campaigns untouched for >30 days
+ *   - Detect campaigns near capacity + expiry (extension candidates)
+ *   - Auto-pause campaigns over the business's plan limit (e.g. after a
+ *     downgrade)
+ *
+ * Operates on the durable `launched_campaign_state` table (flat, TEXT-keyed),
+ * which is the source of truth the campaign state machine writes through to.
+ * The previous implementation ran against the dead v1 `launched_campaigns`
+ * table using columns that don't exist there and JOINed `businesses` on a TEXT
+ * id that never matched, so all three steps were silent no-ops.
  *
  * Auth: scheduler sends `Authorization: Bearer ${CRON_SECRET}` (.github/workflows/cron.yml).
  * Skipped without DATABASE_URL.
@@ -16,6 +22,8 @@ import { ok, err } from "../../_shared";
 import { db, InMemoryConnection } from "@/lib/db/connection";
 import { logger } from "@/lib/logging";
 import { constantTimeEqual } from "@/lib/security/order-by";
+import { hydrateSubscriptions } from "@/lib/billing/store";
+import { getBusinessPlan, getPlanLimits } from "@/lib/billing/enforcement";
 
 const usingDb = !(db instanceof InMemoryConnection);
 
@@ -32,13 +40,18 @@ export async function GET(req: NextRequest) {
   }
 
   let archived = 0;
-  let promptedExtensions = 0;
+  let nearCapacity = 0;
   let pausedOverLimit = 0;
 
-  // 1. Archive: campaigns that ended >30 days ago → state="archived"
+  // 1. Archive: terminal campaigns untouched for >30 days → state="archived".
+  //    "archived" is a cron-only terminal marker beyond the CampaignState enum
+  //    (draft|active|paused|ended|expired); it's safe because the state
+  //    machine's expiry sweep only ticks active/paused campaigns, so archived
+  //    rows are inert. updated_at is bumped on every write-through, so for a
+  //    terminal campaign it tracks "time since it ended".
   try {
     const result = await db.query<{ id: string }>(
-      `UPDATE launched_campaigns
+      `UPDATE launched_campaign_state
        SET state = 'archived', updated_at = NOW()
        WHERE state IN ('ended', 'expired')
          AND updated_at < NOW() - INTERVAL '30 days'
@@ -49,58 +62,80 @@ export async function GET(req: NextRequest) {
     logger.error("campaign-sweeps archive failed", { error: e instanceof Error ? e.message : String(e) });
   }
 
-  // 2. Auto-prompt extend: campaign at >85% of cap and >50% of expiry — flag a notification.
-  // We only INSERT a notifications row; downstream notify channel handles delivery.
+  // 2. Near-capacity detection: active campaigns at >=85% of cap and within 14
+  //    days of expiry are extension candidates. We only COUNT them here — the
+  //    v1 code tried to INSERT into `notifications`, but that table is uuid-keyed
+  //    with a uuid user_id FK to `users` and uuid entity_id, so it can't address
+  //    a TEXT business id or reference a TEXT campaign id; the INSERT also named
+  //    columns (channel/subject/status) that don't exist. It always failed
+  //    silently. Surfacing the count keeps the signal without a broken write; an
+  //    out-of-band notify channel can consume it later.
   try {
-    const result = await db.query<{ id: string; business_id: string }>(
-      `WITH near_full AS (
-         SELECT id, business_id
-         FROM launched_campaigns
-         WHERE state = 'active'
-           AND max_completions IS NOT NULL
-           AND completions::float / NULLIF(max_completions, 0) >= 0.85
-           AND expires_at < NOW() + INTERVAL '14 days'
-       )
-       INSERT INTO notifications (id, user_id, type, channel, subject, body, status, created_at)
-       SELECT
-         CONCAT('extend-prompt:', id, ':', to_char(NOW(), 'YYYY-MM-DD')),
-         business_id,
-         'extend-prompt',
-         'in-app',
-         'Your campaign is filling up — extend?',
-         CONCAT('Campaign ', id, ' is at 85%+ capacity. Extend to keep collecting.'),
-         'pending',
-         NOW()
-       FROM near_full
-       ON CONFLICT (id) DO NOTHING
-       RETURNING id`,
+    const result = await db.query<{ count: string }>(
+      `SELECT COUNT(*)::int AS count
+       FROM launched_campaign_state
+       WHERE state = 'active'
+         AND max_completions IS NOT NULL
+         AND completions::float / NULLIF(max_completions, 0) >= 0.85
+         AND expires_at < NOW() + INTERVAL '14 days'`,
     );
-    promptedExtensions = result.rowCount;
+    nearCapacity = Number(result.rows[0]?.count ?? 0);
   } catch (e) {
-    logger.error("campaign-sweeps extend-prompt failed", { error: e instanceof Error ? e.message : String(e) });
+    logger.error("campaign-sweeps near-capacity scan failed", { error: e instanceof Error ? e.message : String(e) });
   }
 
-  // 3. Auto-pause over-limit: businesses on Free plan should only have 1 active campaign.
-  // If they have more (e.g. downgraded), pause the oldest.
+  // 3. Auto-pause over plan limit: a business should have no more ACTIVE
+  //    campaigns than its plan allows (`maxCampaigns` in PLAN_LIMITS,
+  //    src/lib/billing/enforcement.ts — read at runtime, so repricing can't
+  //    make this sweep drift). After a downgrade the excess stays active until
+  //    this sweep pauses the oldest ones back down to the cap. Plans are
+  //    resolved via the billing/subscription store (warmed from
+  //    business_subscriptions), NOT a `businesses` JOIN — the seeded businesses
+  //    table is keyed by uuid while real businesses/campaigns use TEXT ids.
   try {
-    const result = await db.query<{ id: string }>(
-      `WITH ranked AS (
-         SELECT lc.id, lc.business_id,
-                ROW_NUMBER() OVER (PARTITION BY lc.business_id ORDER BY lc.launched_at DESC) AS rn
-         FROM launched_campaigns lc
-         JOIN businesses b ON b.id = lc.business_id
-         WHERE lc.state = 'active'
-           AND b.plan = 'free'
-       )
-       UPDATE launched_campaigns
-       SET state = 'paused', updated_at = NOW()
-       WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
-       RETURNING id`,
+    // Warm the in-memory subscription cache from Postgres; getBusinessPlan reads
+    // it synchronously and would otherwise report "free" for everyone on a cold
+    // cron lambda, wrongly pausing paid customers' campaigns.
+    await hydrateSubscriptions();
+
+    const actives = await db.query<{ id: string; business_id: string }>(
+      `SELECT id, business_id
+       FROM launched_campaign_state
+       WHERE state = 'active'
+       ORDER BY business_id, launched_at DESC`,
     );
-    pausedOverLimit = result.rowCount;
+
+    // Group campaign ids per business, newest-first (matches ORDER BY above).
+    const byBusiness = new Map<string, string[]>();
+    for (const row of actives.rows) {
+      const ids = byBusiness.get(row.business_id);
+      if (ids) ids.push(row.id);
+      else byBusiness.set(row.business_id, [row.id]);
+    }
+
+    // Keep the newest `maxCampaigns`; everything older is over the cap.
+    const toPause: string[] = [];
+    for (const [businessId, ids] of byBusiness) {
+      const max = getPlanLimits(getBusinessPlan(businessId)).maxCampaigns;
+      if (Number.isFinite(max) && ids.length > max) {
+        toPause.push(...ids.slice(max));
+      }
+    }
+
+    if (toPause.length > 0) {
+      const result = await db.query<{ id: string }>(
+        `UPDATE launched_campaign_state
+         SET state = 'paused', updated_at = NOW()
+         WHERE id = ANY($1::text[])
+           AND state = 'active'
+         RETURNING id`,
+        [toPause],
+      );
+      pausedOverLimit = result.rowCount;
+    }
   } catch (e) {
     logger.error("campaign-sweeps over-limit pause failed", { error: e instanceof Error ? e.message : String(e) });
   }
 
-  return ok({ ran: true, archived, promptedExtensions, pausedOverLimit });
+  return ok({ ran: true, archived, nearCapacity, pausedOverLimit });
 }

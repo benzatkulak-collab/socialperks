@@ -4,9 +4,11 @@
  * Generates DDL from the SCHEMA object in schema.ts and applies it
  * via the db.query() interface from connection.ts.
  *
- * This complements the hand-written migrations in migrations.ts by
- * providing an automated path: read the TypeScript schema definition,
- * emit CREATE TABLE / CREATE INDEX SQL, and run it idempotently.
+ * This is the single, authoritative migration path: read the TypeScript schema
+ * definition, emit CREATE TABLE / CREATE INDEX SQL, and run it idempotently.
+ * Used by /api/v1/migrate and `npm run db:migrate`. (A legacy hand-written
+ * migrations.ts + init.ts/seed-data.ts bootstrap once existed alongside this but
+ * was dead and had drifted from the schema, so it was removed.)
  *
  * Usage:
  *   import { generateSQL, runMigrations, getMigrationState } from "./migrate";
@@ -335,8 +337,10 @@ export function generateSQL(): string {
   statements.push("");
 
   // Tables that require RLS with a direct business_id column.
-  // campaign_submissions is isolated transitively via launched_campaigns.
-  const rlsTables = ["launched_campaigns", "perk_wallets", "api_keys", "webhooks", "platform_connections"];
+  // (The v1 launched_campaigns / perk_wallets tables were dropped; their durable
+  // replacements — launched_campaign_state / perk_wallet_entries — are TEXT-keyed
+  // and tenant-scoped in application code, not via Postgres RLS.)
+  const rlsTables = ["api_keys", "webhooks", "platform_connections"];
 
   for (const tableName of rlsTables) {
     // Only apply if the table exists in the schema

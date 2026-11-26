@@ -3,12 +3,14 @@
  *
  * Triggered by the campaign-launch flow (or a scheduled sweep) — picks
  * top-N matched influencers via the matching engine, sends them an
- * email via the existing email provider. Dedupes via the per-creator
- * `notified_campaign_ids` set so a creator can't get spammed.
+ * email via the existing email provider. Dedupes per (campaign, creator)
+ * via the durable `notify_dedup` table so a creator can't get spammed,
+ * even across serverless cold starts.
  */
 
 import { ConsoleEmailProvider, ResendEmailProvider, type EmailProvider } from "./index";
-import { db, InMemoryConnection } from "@/lib/db/connection";
+import { db, getInMemoryStore } from "@/lib/db/connection";
+import { captureError } from "@/lib/monitoring";
 
 interface NotifyArgs {
   campaignId: string;
@@ -19,8 +21,12 @@ interface NotifyArgs {
   baseUrl?: string;
 }
 
-const usingDb = !(db instanceof InMemoryConnection);
-const memoryDedup = new Set<string>(); // `${campaignId}:${influencerId}`
+const DEDUP_TABLE = "notify_dedup";
+
+/** Namespaced dedup id for a `${campaignId}:${influencerId}` key. */
+function dedupId(key: string): string {
+  return `match-notify:${key}`;
+}
 
 function provider(): EmailProvider {
   return process.env.RESEND_API_KEY ? new ResendEmailProvider() : new ConsoleEmailProvider();
@@ -53,7 +59,7 @@ A campaign just launched that matches your platforms + niches:
   ${baseUrl}/c/${args.campaignId}
 
 You can submit a post and claim the perk. We notified you because your
-profile is a strong match — only 1 email per business per week.
+profile is a strong match — and we only email you once per campaign.
 
 — Social Perks
 `;
@@ -61,7 +67,7 @@ profile is a strong match — only 1 email per business per week.
 <p>A campaign just launched that matches your platforms + niches:</p>
 <p><strong>${args.businessName}</strong> — ${args.perkText}<br/>
 <a href="${baseUrl}/c/${args.campaignId}">${baseUrl}/c/${args.campaignId}</a></p>
-<p>You can submit a post and claim the perk. We notified you because your profile is a strong match — only 1 email per business per week.</p>
+<p>You can submit a post and claim the perk. We notified you because your profile is a strong match — and we only email you once per campaign.</p>
 <p>— Social Perks</p>`;
     try {
       const result = await p.send({ to: m.email, subject, text, html });
@@ -79,36 +85,37 @@ profile is a strong match — only 1 email per business per week.
 }
 
 async function alreadyNotified(key: string): Promise<boolean> {
-  if (usingDb) {
-    try {
-      const result = await db.query<{ exists: boolean }>(
-        `SELECT EXISTS (
-           SELECT 1 FROM notifications WHERE id = $1
-         ) AS exists`,
-        [`match-notify:${key}`],
-      );
-      return result.rows[0]?.exists === true;
-    } catch {
-      return memoryDedup.has(key);
-    }
+  const id = dedupId(key);
+  const store = getInMemoryStore();
+  if (store) return store.selectById(DEDUP_TABLE, id) != null;
+  try {
+    const result = await db.query<{ exists: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM notify_dedup WHERE id = $1) AS exists`,
+      [id],
+    );
+    return result.rows[0]?.exists === true;
+  } catch (e) {
+    // Best-effort: on a DB error, treat as "not yet notified" rather than
+    // blocking the send. Worst case is a duplicate email, not a missed one.
+    captureError(e, { source: "creator-match-notify.alreadyNotified" });
+    return false;
   }
-  return memoryDedup.has(key);
 }
 
 async function markNotified(key: string): Promise<void> {
-  if (usingDb) {
-    try {
-      await db.query(
-        `INSERT INTO notifications (id, user_id, type, channel, subject, body, status, created_at)
-         VALUES ($1, $2, 'match-notify', 'email', '', '', 'sent', NOW())
-         ON CONFLICT (id) DO NOTHING`,
-        [`match-notify:${key}`, key.split(":")[1]],
-      );
-      return;
-    } catch {
-      memoryDedup.add(key);
-      return;
-    }
+  const id = dedupId(key);
+  const store = getInMemoryStore();
+  if (store) {
+    if (!store.selectById(DEDUP_TABLE, id)) store.insert(DEDUP_TABLE, { id });
+    return;
   }
-  memoryDedup.add(key);
+  try {
+    await db.query(
+      `INSERT INTO notify_dedup (id, created_at) VALUES ($1, NOW())
+       ON CONFLICT (id) DO NOTHING`,
+      [id],
+    );
+  } catch (e) {
+    captureError(e, { source: "creator-match-notify.markNotified" });
+  }
 }
