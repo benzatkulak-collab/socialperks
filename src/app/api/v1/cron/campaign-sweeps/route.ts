@@ -85,8 +85,9 @@ export async function GET(req: NextRequest) {
   }
 
   // 3. Auto-pause over plan limit: a business should have no more ACTIVE
-  //    campaigns than its plan allows (free=1, starter=10, professional=50,
-  //    enterprise=unlimited). After a downgrade the excess stays active until
+  //    campaigns than its plan allows (`maxCampaigns` in PLAN_LIMITS,
+  //    src/lib/billing/enforcement.ts — read at runtime, so repricing can't
+  //    make this sweep drift). After a downgrade the excess stays active until
   //    this sweep pauses the oldest ones back down to the cap. Plans are
   //    resolved via the billing/subscription store (warmed from
   //    business_subscriptions), NOT a `businesses` JOIN — the seeded businesses
