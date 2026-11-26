@@ -12,7 +12,7 @@ export default defineConfig({
       ["src/components/**", "happy-dom"],
     ],
     setupFiles: ["src/__tests__/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "scripts/__tests__/**/*.test.ts"],
     // Never traverse agent/editor scratch worktrees that get nested under the
     // tree — they carry stale copies of the source whose tests pollute the run
     // (and aren't in the git repo at all). Keeps local `npm test` == CI.
