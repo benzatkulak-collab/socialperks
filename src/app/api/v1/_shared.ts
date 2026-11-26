@@ -95,8 +95,9 @@ export function getUser(req: NextRequest): AuthUser | null {
       if (apiKeyUser) return apiKeyUser;
     }
 
-    // Try JWT next
-    const jwt = verifyJWT(token);
+    // Try JWT next. Access tokens only: the 7-day refresh token is only for
+    // POST /api/v1/auth {action: "refresh"}, never a credential itself.
+    const jwt = verifyJWT(token, "access");
     if (jwt) {
       return {
         id: jwt.sub,
@@ -129,7 +130,7 @@ export function getUser(req: NextRequest): AuthUser | null {
   // 3. Check cookie
   const cookie = req.cookies.get("sp-access-token")?.value;
   if (cookie) {
-    const jwt = verifyJWT(cookie);
+    const jwt = verifyJWT(cookie, "access");
     if (jwt) {
       return {
         id: jwt.sub,
