@@ -7,8 +7,11 @@
  *
  * It also renews the 15-minute access cookie: a 401 from anything but the
  * auth route asks `POST /api/v1/auth {action: "refresh"}` for a new one and
- * sends the request once more (see `renewAccessCookie`). Sign-outs go
- * through `signOutWith`, so a renewal cannot undo them.
+ * sends the request once more (see `renewAccessCookie`). Session checks
+ * (`GET /api/v1/auth`, which renews on the server) go through `checkSession`,
+ * and sign-outs through `signOutWith`. Sign-outs wait for any refresh or
+ * session check already on its way, and session checks wait for any sign-out
+ * on its way, so neither can undo a sign-out.
  *
  * `apiFetch` returns the raw Response; `apiFetchJson` throws on non-2xx so
  * callers cannot silently swallow failures (this was the bug that hid every
@@ -77,8 +80,13 @@ let refreshInFlight: Promise<boolean> | null = null;
 /** Refreshes that succeeded since this page loaded. */
 let refreshesDone = 0;
 let lastRefreshAt = -Infinity;
-/** Sign-outs on their way; no refresh starts while there is one. */
-let signOutsInFlight = 0;
+/**
+ * Sign-outs on their way, each until it has its answer. No refresh starts
+ * while there is one, and a session check waits for them before it goes out.
+ */
+const signOutsInFlight = new Set<Promise<unknown>>();
+/** The session check on its way; callers that ask while it runs share it. */
+let sessionCheckInFlight: Promise<Response> | null = null;
 
 /**
  * The auth route never triggers a renewal. Its sign-in 401 means a wrong
@@ -108,7 +116,7 @@ function isAuthRoute(input: string): boolean {
  *   or not about the cookie at all, because the request carried a new one.
  */
 function renewAccessCookie(refreshesBeforeRequest: number): Promise<boolean> {
-  if (signOutsInFlight > 0) return Promise.resolve(false);
+  if (signOutsInFlight.size > 0) return Promise.resolve(false);
   if (refreshesDone !== refreshesBeforeRequest) return Promise.resolve(true);
   if (refreshInFlight) return refreshInFlight;
   // A clock set back since the last refresh gives a negative gap: ask again.
@@ -138,19 +146,66 @@ function renewAccessCookie(refreshesBeforeRequest: number): Promise<boolean> {
 
 /**
  * Send a sign-out (or anything else that clears the auth cookies) with no
- * refresh running. A refresh answered after the sign-out would set again the
- * cookies it has just cleared. This waits for one already on its way, and
- * none starts until the sign-out has its answer; after that a refresh finds
- * no refresh cookie.
+ * refresh or session check running. Either one answered after the sign-out
+ * would set again the cookies it has just cleared: a session check renews
+ * from the refresh cookie on the server. This waits for any already on its
+ * way. Until the sign-out has its answer no refresh starts, and every session
+ * check asked meanwhile waits; after that they find no refresh cookie.
  */
 export async function signOutWith<T>(request: () => Promise<T>): Promise<T> {
-  signOutsInFlight++;
+  const checkOnItsWay = sessionCheckInFlight;
+  // A check asked from now on goes out after this sign-out: it does not
+  // share the answer of one sent before it.
+  sessionCheckInFlight = null;
+  const signOut = Promise.allSettled([refreshInFlight, checkOnItsWay]).then(() => request());
+  signOutsInFlight.add(signOut);
   try {
-    await refreshInFlight;
-    return await request();
+    return await signOut;
   } finally {
-    signOutsInFlight--;
+    signOutsInFlight.delete(signOut);
   }
+}
+
+// ─── Session checks ─────────────────────────────────────────────────────────
+
+/**
+ * Ask the server who is signed in: GET /api/v1/auth, with the cookies. Every
+ * session check in the browser goes through here.
+ *
+ * A check with no good access cookie renews from the refresh cookie on the
+ * server and sets the auth cookies again, so checks and sign-outs never
+ * cross: a check asked while a sign-out is on its way goes out once the
+ * sign-out has its answer, and finds no refresh cookie; a sign-out waits for
+ * a check already on its way (signOutWith).
+ *
+ * Callers that ask while a check is on its way share its one request, and
+ * each reads its own copy of the answer. `signal` ends only this caller's
+ * wait: it rejects with the signal's reason, and the request goes on for the
+ * other callers.
+ */
+export function checkSession(signal?: AbortSignal): Promise<Response> {
+  if (signal?.aborted) return Promise.reject(signal.reason);
+  const answer = (sessionCheckInFlight ?? startSessionCheck()).then((res) => res.clone());
+  if (!signal) return answer;
+  return new Promise<Response>((resolve, reject) => {
+    const giveUp = () => reject(signal.reason);
+    signal.addEventListener("abort", giveUp, { once: true });
+    answer.then(resolve, reject).finally(() => signal.removeEventListener("abort", giveUp));
+  });
+}
+
+/** One session check, sent once every sign-out on its way has its answer. */
+function startSessionCheck(): Promise<Response> {
+  const check = Promise.allSettled([...signOutsInFlight]).then(() =>
+    fetch(AUTH_ROUTE, { method: "GET", credentials: "include" })
+  );
+  sessionCheckInFlight = check;
+  const forget = () => {
+    // A sign-out may already have moved later callers to a check of their own.
+    if (sessionCheckInFlight === check) sessionCheckInFlight = null;
+  };
+  check.then(forget, forget);
+  return check;
 }
 
 /**

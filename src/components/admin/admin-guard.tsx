@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
+import { checkSession } from "@/lib/api/csrf-fetch";
 
 interface AdminUser {
   id: string;
@@ -36,7 +37,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/v1/auth", { credentials: "include" });
+        const res = await checkSession();
         if (!res.ok) {
           if (!cancelled) {
             setAuthorized(false);

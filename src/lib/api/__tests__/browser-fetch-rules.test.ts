@@ -1,13 +1,17 @@
 /**
- * Two rules for browser code that talks to the app's own API.
+ * Three rules for browser code that talks to the app's own API.
  *
  * 1. Signed-in reads go through apiFetch. apiFetch renews the 15-minute
  *    access cookie on a 401; a plain fetch() does not, so a signed-in read
  *    made with one fails on any tab open longer than 15 minutes. Plain reads
- *    stay allowed for the auth route itself (apiFetch never renews there
- *    either) and for the public routes listed below.
- * 2. Sign-outs go through signOutWith, so a renewal that is on its way
- *    cannot set again the cookies a sign-out has just cleared.
+ *    stay allowed for the public routes listed below. A read of the auth
+ *    route is a session check, and rule 3 covers it.
+ * 2. Sign-outs go through signOutWith, so neither a refresh nor a session
+ *    check that is on its way can set again the cookies a sign-out has just
+ *    cleared.
+ * 3. Session checks go through checkSession, which waits for any sign-out on
+ *    its way. A session check renews from the refresh cookie on the server,
+ *    so a plain one could undo a sign-out.
  *
  * Only a browser can fetch a relative URL, so server code never matches.
  * The scan (src/__tests__/helpers/scan-fetch-calls.ts) sees only URLs
@@ -40,6 +44,9 @@ function allFetchCalls(): FetchCall[] {
 }
 
 const isSameOriginApi = (call: FetchCall) => call.url?.startsWith("/api/v1/") ?? false;
+
+/** A read, or a call whose method the scanner cannot tell. */
+const mayRead = (call: FetchCall) => call.method === null || call.method === "GET" || call.method === "HEAD";
 
 describe("the fetch() scanner", () => {
   it("reads the URL, method, action and enclosing calls of each plain fetch", () => {
@@ -83,7 +90,8 @@ describe("browser code", () => {
   it("reads no signed-in /api/v1 route with a plain fetch()", () => {
     const signedInReads = allFetchCalls()
       .filter(isSameOriginApi)
-      .filter((c) => c.method === null || c.method === "GET" || c.method === "HEAD")
+      .filter(mayRead)
+      // The auth route's reads are session checks: the checkSession rule below.
       .filter((c) => c.path !== AUTH_ROUTE && !isPublic(c.path ?? ""))
       .map((c) => `${c.where}  ${c.path}`);
 
@@ -101,5 +109,14 @@ describe("browser code", () => {
       .map((c) => `${c.where}  ${c.method} ${c.path}${c.action ? ` (${c.action})` : ""}`);
 
     expect(unguarded).toEqual([]);
+  });
+
+  it("sends every session check through checkSession", () => {
+    // checkSession fetches through a constant, so its own call is not seen here.
+    const plainChecks = allFetchCalls()
+      .filter((c) => c.path === AUTH_ROUTE && (mayRead(c) || c.action === "session"))
+      .map((c) => `${c.where}  ${c.method ?? "?"} ${c.path}${c.action ? ` (${c.action})` : ""}`);
+
+    expect(plainChecks).toEqual([]);
   });
 });

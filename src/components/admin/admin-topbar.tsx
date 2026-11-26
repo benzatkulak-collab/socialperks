@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { findNavItem } from "./nav-config";
-import { signOutWith } from "@/lib/api/csrf-fetch";
+import { checkSession, signOutWith } from "@/lib/api/csrf-fetch";
 
 interface AuthUser {
   id: string;
@@ -21,7 +21,7 @@ export function AdminTopbar() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/v1/auth", { credentials: "include" })
+    checkSession()
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
         if (cancelled) return;

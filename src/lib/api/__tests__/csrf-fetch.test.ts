@@ -4,7 +4,8 @@
  * Sign-in sets `sp-access-token` (15 minutes) and `sp-refresh-token`
  * (7 days, sent only to /api/v1/auth). `POST /api/v1/auth {action:"refresh"}`
  * trades the second for a new first. These tests pin when apiFetch asks for
- * that, how often, and what the caller gets back.
+ * that, how often, and what the caller gets back; and how sign-outs
+ * (signOutWith) and session checks (checkSession) keep clear of each other.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -22,12 +23,13 @@ import {
 type CsrfFetchModule = typeof import("../csrf-fetch");
 let apiFetch: CsrfFetchModule["apiFetch"];
 let signOutWith: CsrfFetchModule["signOutWith"];
+let checkSession: CsrfFetchModule["checkSession"];
 
 beforeEach(async () => {
   // The module keeps its CSRF token and its refresh state between calls, as
   // it does in a browser tab. Each test starts from a freshly loaded tab.
   vi.resetModules();
-  ({ apiFetch, signOutWith } = await import("../csrf-fetch"));
+  ({ apiFetch, signOutWith, checkSession } = await import("../csrf-fetch"));
 });
 
 afterEach(() => {
@@ -48,6 +50,9 @@ const csrfInvalid = errorWith(403, "CSRF_TOKEN_INVALID", "CSRF token is invalid 
 
 /** Let every answer already queued arrive before the test goes on. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const logoutBody = JSON.stringify({ action: "logout" });
+const signOutRequest = () => fetch("/api/v1/auth", { method: "POST", body: logoutBody });
 
 describe("apiFetch on a 401", () => {
   it("renews the access cookie with the refresh cookie and repeats the read", async () => {
@@ -273,8 +278,6 @@ describe("apiFetch on a 401", () => {
 });
 
 describe("signOutWith", () => {
-  const logoutBody = JSON.stringify({ action: "logout" });
-  const signOutRequest = () => fetch("/api/v1/auth", { method: "POST", body: logoutBody });
   const authActions = (api: ReturnType<typeof fakeApi>) =>
     api.sent("POST /api/v1/auth").map((r) => (r.body as { action?: string }).action);
 
@@ -314,6 +317,106 @@ describe("signOutWith", () => {
     // Signed in again in the same tab: renewal works as before.
     expect((await apiFetch(campaignsUrl)).status).toBe(200);
     expect(authActions(api)).toEqual(["logout", "refresh"]);
+  });
+});
+
+describe("checkSession", () => {
+  // GET /api/v1/auth renews from the refresh cookie on the server and sets
+  // the auth cookies, so a check answered after a sign-out would sign the
+  // person back in for 7 days.
+  const signedIn = okWith({
+    user: { id: "usr_test_1", email: "owner@example.test", role: "business", businessId: "biz_usr_test_1" },
+    expiresAt: "2026-03-02T15:15:00.000Z",
+  });
+  /** The same check once a sign-out has cleared the cookies. */
+  const signedOut = errorWith(401, "NO_TOKEN", "No session token provided. Send Authorization: Bearer <token>.");
+  const loggedOut = okWith({ loggedOut: true, sessionDestroyed: false });
+  const routesSent = (api: ReturnType<typeof fakeApi>) => api.requests.map((r) => `${r.method} ${r.path}`);
+
+  it("a sign-out waits for a session check on its way", async () => {
+    const check = heldAnswer();
+    const api = fakeApi({
+      "GET /api/v1/auth": [check.answer],
+      "POST /api/v1/auth": [loggedOut],
+    });
+
+    const session = checkSession();
+    const signOut = signOutWith(signOutRequest);
+    await settle();
+    expect(routesSent(api)).toEqual(["GET /api/v1/auth"]); // the logout has not been sent
+
+    check.release(signedIn());
+    await signOut;
+    expect(routesSent(api)).toEqual(["GET /api/v1/auth", "POST /api/v1/auth"]);
+    expect((await session).status).toBe(200);
+  });
+
+  it("a session check asked during a sign-out goes out after it", async () => {
+    const logout = heldAnswer();
+    const api = fakeApi({
+      "POST /api/v1/auth": [logout.answer],
+      "GET /api/v1/auth": [signedOut],
+    });
+
+    const signOut = signOutWith(signOutRequest);
+    const session = checkSession();
+    await settle();
+    expect(api.sent("GET /api/v1/auth")).toEqual([]);
+
+    logout.release(loggedOut());
+    expect((await session).status).toBe(401);
+    await signOut;
+    expect(routesSent(api)).toEqual(["POST /api/v1/auth", "GET /api/v1/auth"]);
+  });
+
+  it("a session check asked during a sign-out does not share one sent before it", async () => {
+    const early = heldAnswer();
+    const api = fakeApi({
+      "GET /api/v1/auth": [early.answer, signedOut],
+      "POST /api/v1/auth": [loggedOut],
+    });
+
+    const before = checkSession();
+    await settle(); // the first check is on its way
+    const signOut = signOutWith(signOutRequest);
+    const during = checkSession();
+
+    early.release(signedIn());
+    expect((await before).status).toBe(200);
+    expect((await during).status).toBe(401);
+    await signOut;
+    expect(routesSent(api)).toEqual(["GET /api/v1/auth", "POST /api/v1/auth", "GET /api/v1/auth"]);
+  });
+
+  it("callers share one session check, each reading its own answer", async () => {
+    const api = fakeApi({ "GET /api/v1/auth": [signedIn] });
+
+    const [first, second] = await Promise.all([checkSession(), checkSession()]);
+    const [a, b] = await Promise.all([first.json(), second.json()]);
+
+    expect([a.data.user.id, b.data.user.id]).toEqual(["usr_test_1", "usr_test_1"]);
+    const sent = api.sent("GET /api/v1/auth");
+    expect(sent).toHaveLength(1);
+    expect(sent[0].credentials).toBe("include");
+  });
+
+  it("a caller's signal ends only its own wait", async () => {
+    const check = heldAnswer();
+    const api = fakeApi({ "GET /api/v1/auth": [check.answer] });
+    const controller = new AbortController();
+
+    const abandoned = checkSession(controller.signal);
+    const kept = checkSession();
+    // Before the request leaves: a request carrying this signal would never
+    // leave, and the second caller would get the AbortError too.
+    controller.abort();
+    const reason = await abandoned.catch((e: unknown) => e);
+    expect(reason).toBe(controller.signal.reason);
+    expect(reason).toMatchObject({ name: "AbortError" });
+
+    check.release(signedIn());
+    expect((await kept).status).toBe(200);
+    expect(api.sent("GET /api/v1/auth")).toHaveLength(1);
   });
 });
 

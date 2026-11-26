@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api/csrf-fetch";
+import { apiFetch, checkSession } from "@/lib/api/csrf-fetch";
 
 interface PerkProgram {
   id: string;
@@ -32,10 +32,7 @@ export default function ProgramsPage() {
         // cookie is HttpOnly, so JS can never see it and the page always
         // showed "Sign in to view…" even when authenticated. Ask the
         // server for the session instead; it has access to the cookie.
-        const sessionRes = await apiFetch("/api/v1/auth", {
-          method: "POST",
-          body: JSON.stringify({ action: "session" }),
-        });
+        const sessionRes = await checkSession();
         if (sessionRes.status === 401) {
           setError("Sign in to view your perk programs.");
           setLoading(false);
