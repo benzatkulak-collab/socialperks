@@ -619,7 +619,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               {biz.avatar} {biz.name}
             </button>
             {connected && <span className="flex h-2 w-2 rounded-full bg-brand-green animate-pulse" title="Live" />}
-            <NotificationCenter />
+            <NotificationCenter businessId={biz.id} />
             <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
           </div>
         </div>

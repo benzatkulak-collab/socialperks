@@ -96,6 +96,12 @@ const NOTIFICATION_EVENT_TYPES = [
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 interface UseNotificationsSSEOptions {
+  /**
+   * The business whose events to show. Name the same business as the page's
+   * useRealtime, so the two share one connection; a business receives its own
+   * events whatever it names.
+   */
+  businessId?: string;
   enabled?: boolean;
 }
 
@@ -108,7 +114,7 @@ interface UseNotificationsSSEOptions {
  * connected.
  */
 export function useNotificationsSSE(options: UseNotificationsSSEOptions = {}): UseNotificationsSSEReturn {
-  const { enabled = true } = options;
+  const { businessId, enabled = true } = options;
   const [notifications, setNotifications] = useState<SSENotification[]>([]);
   const [connected, setConnected] = useState(false);
 
@@ -126,6 +132,7 @@ export function useNotificationsSSE(options: UseNotificationsSSEOptions = {}): U
     if (!enabled || typeof window === "undefined") return;
 
     const stream = openEventStream({
+      businessId,
       eventTypes: NOTIFICATION_EVENT_TYPES,
       onConnectedChange: setConnected,
       onEvent: (type, data) => {
@@ -143,7 +150,7 @@ export function useNotificationsSSE(options: UseNotificationsSSEOptions = {}): U
       stream.close();
       setConnected(false);
     };
-  }, [enabled]);
+  }, [enabled, businessId]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

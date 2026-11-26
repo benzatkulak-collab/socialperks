@@ -44,13 +44,18 @@ function relativeTime(iso: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+interface NotificationCenterProps {
+  /** The business whose events to show; the business portal passes its own, to share its live connection. */
+  businessId?: string;
+}
+
 /**
  * The bell. It connects by itself with the sign-in cookie (see
- * useNotificationsSSE); a portal renders it and passes nothing.
+ * useNotificationsSSE).
  */
-export function NotificationCenter() {
+export function NotificationCenter({ businessId }: NotificationCenterProps = {}) {
   const { notifications, unreadCount, markAsRead, markAllAsRead, connected } =
-    useNotificationsSSE();
+    useNotificationsSSE({ businessId });
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

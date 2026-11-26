@@ -16,6 +16,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FakeEventSource } from "@/__tests__/helpers/fake-event-source";
 import { apiFetch } from "@/lib/api/csrf-fetch";
+import { _closeAllEventStreams } from "@/lib/realtime/event-stream";
 import { useRealtime, type RealtimeEvent } from "../use-realtime";
 
 vi.mock("@/lib/api/csrf-fetch", () => ({ apiFetch: vi.fn() }));
@@ -29,6 +30,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  _closeAllEventStreams();
   vi.unstubAllGlobals();
 });
 
