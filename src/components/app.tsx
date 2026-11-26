@@ -285,7 +285,7 @@ export function SocialPerksApp() {
         setAuthHash(hash.replace(/^#/, ""));
         setScreen("auth");
         // Clear hash so back button works naturally
-        window.history.replaceState(null, "", window.location.pathname);
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
       }
     }
     window.addEventListener("hashchange", handleHashChange);
