@@ -21,6 +21,7 @@ import { validateEmail } from "@/lib/security/validate";
 import { logger } from "@/lib/logging";
 import { db, InMemoryConnection } from "@/lib/db/connection";
 import { constantTimeEqual } from "@/lib/security/order-by";
+import { escapeHtml } from "@/lib/security/sanitize";
 
 const usingDb = !(db instanceof InMemoryConnection);
 
@@ -132,7 +133,9 @@ export async function POST(req: NextRequest) {
         to: adminTo,
         subject: `[waitlist] ${email}${businessName ? ` — ${businessName}` : ""}`,
         text: `New waitlist signup\n\nEmail: ${email}\nBusiness: ${businessName ?? "—"}\nCity: ${city ?? "—"}\nVertical: ${vertical}\nReferrer: ${referrer ?? "—"}\nIP: ${entry.ip}\nAt: ${entry.createdAt}`,
-        html: `<p><strong>New waitlist signup</strong></p><ul><li>Email: <code>${email}</code></li><li>Business: ${businessName ?? "—"}</li><li>City: ${city ?? "—"}</li><li>Vertical: ${vertical}</li><li>Referrer: ${referrer ?? "—"}</li><li>IP: ${entry.ip}</li><li>At: ${entry.createdAt}</li></ul>`,
+        // Every field here is visitor-supplied (IP comes from a spoofable
+        // header), so escape it before it lands in HTML.
+        html: `<p><strong>New waitlist signup</strong></p><ul><li>Email: <code>${escapeHtml(email)}</code></li><li>Business: ${businessName ? escapeHtml(businessName) : "—"}</li><li>City: ${city ? escapeHtml(city) : "—"}</li><li>Vertical: ${vertical}</li><li>Referrer: ${referrer ? escapeHtml(referrer) : "—"}</li><li>IP: ${escapeHtml(entry.ip)}</li><li>At: ${entry.createdAt}</li></ul>`,
       })
       .catch((e) => logger.warn("waitlist admin notify failed", { error: String(e) }));
   }
@@ -142,7 +145,9 @@ export async function POST(req: NextRequest) {
       to: email,
       subject: "You're on the Social Perks early-access list",
       text: `Thanks for joining the early-access list.\n\nWe're starting with independent coffee shops${city ? ` in ${city}` : ""}. We'll reach out as soon as we have a slot for you.\n\n— Social Perks`,
-      html: `<p>Thanks for joining the early-access list.</p><p>We're starting with independent coffee shops${city ? ` in <strong>${city}</strong>` : ""}. We'll reach out as soon as we have a slot for you.</p><p>— Social Perks</p>`,
+      // Sent to whatever address was submitted, so the city must be escaped —
+      // otherwise anyone can inject markup into a Social Perks email to a third party.
+      html: `<p>Thanks for joining the early-access list.</p><p>We're starting with independent coffee shops${city ? ` in <strong>${escapeHtml(city)}</strong>` : ""}. We'll reach out as soon as we have a slot for you.</p><p>— Social Perks</p>`,
     })
     .catch((e) => logger.warn("waitlist confirm email failed", { error: String(e) }));
 

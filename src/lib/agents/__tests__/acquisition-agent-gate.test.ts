@@ -181,4 +181,32 @@ describe("acquisition agent — outbound copy compliance", () => {
     const body = JSON.stringify(QUEUED[0]);
     expect(body).not.toMatch(/a review/i);
   });
+
+  it("HTML-escapes ampersands and angle brackets in business name and city", async () => {
+    LEADS = [
+      {
+        email: "escaped@example.com",
+        business_name: "AT&T Wireless",
+        city: "Fort <Wayne>",
+        vertical: "coffee_shops",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+    ];
+
+    await run(true, 5);
+
+    expect(QUEUED).toHaveLength(1);
+    const job = QUEUED[0] as { html: string; text: string };
+
+    // HTML must have escaped entities; raw characters must not appear.
+    expect(job.html).toContain("AT&amp;T");
+    expect(job.html).not.toContain("AT&T");
+    expect(job.html).toContain("Fort &lt;Wayne&gt;");
+    expect(job.html).not.toContain("Fort <Wayne>");
+
+    // Plain text is NOT HTML — it should still have the raw values.
+    expect(job.text).toContain("AT&T");
+    expect(job.text).toContain("Fort <Wayne>");
+  });
 });
