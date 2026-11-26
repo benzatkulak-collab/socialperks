@@ -84,13 +84,14 @@ describe("GET /api/v1/auth", () => {
     expect(body.data.expiresAt).toBe(new Date((access?.exp ?? 0) * 1000).toISOString());
   });
 
-  it("with a good access cookie sets no cookies", async () => {
-    const { accessToken } = createTokenPair(owner.id, owner.role, owner.email, owner.businessId);
+  it("with a good access cookie sets no cookies, even though the refresh cookie travels too", async () => {
+    // In a browser both cookies reach every check within the 15 minutes.
+    const { accessToken, refreshToken } = createTokenPair(owner.id, owner.role, owner.email, owner.businessId);
 
-    const res = await GET(getRequest(`sp-access-token=${accessToken}`));
+    const res = await GET(getRequest(`sp-access-token=${accessToken}; sp-refresh-token=${refreshToken}`));
 
     expect(res.status).toBe(200);
-    expect(setCookie(res, "sp-access-token")).toBeUndefined();
+    expect(res.headers.getSetCookie()).toEqual([]);
   });
 
   it("refuses a suspended account and clears its cookies", async () => {
@@ -126,5 +127,16 @@ describe("POST /api/v1/auth {action: session}", () => {
 
     expect(res.status).toBe(200);
     expect(verifyJWT(cookieValue(res, "sp-access-token") ?? "", "access")?.sub).toBe(owner.id);
+  });
+
+  it("with a good access cookie sets no cookies, even though the refresh cookie travels too", async () => {
+    const { accessToken, refreshToken } = createTokenPair(owner.id, owner.role, owner.email, owner.businessId);
+
+    const res = await POST(
+      sessionPostRequest(`sp-access-token=${accessToken}; sp-refresh-token=${refreshToken}`)
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.getSetCookie()).toEqual([]);
   });
 });
