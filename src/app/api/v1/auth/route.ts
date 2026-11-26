@@ -299,13 +299,17 @@ export const POST = withTiming(async (req: NextRequest) => {
 
   const action = body.action ?? "login";
 
-  // The refresh and the session check share the session counter; every
-  // other action shares the strict one.
-  const limited =
-    action === "refresh" || action === "session"
-      ? rateLimit(req, "standard", "session")
-      : rateLimit(req, "strict");
-  if (limited) return limited;
+  // A logout is never refused: it only clears cookies and drops a session
+  // token the caller already holds, and a refused one would leave the person
+  // signed in for the refresh cookie's 7 days. The refresh and the session
+  // check share the session counter; every other action shares the strict one.
+  if (action !== "logout") {
+    const limited =
+      action === "refresh" || action === "session"
+        ? rateLimit(req, "standard", "session")
+        : rateLimit(req, "strict");
+    if (limited) return limited;
+  }
 
   switch (action) {
     // ── Signup ──────────────────────────────────────────────────────────────

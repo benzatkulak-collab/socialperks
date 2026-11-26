@@ -5,6 +5,7 @@
  * Session checks (GET, and POST "session") and the refresh have their own,
  * so a page that checks its session on every load cannot lock a person out
  * of signing in, and refused sign-ins cannot lock out a session check.
+ * Logout counts against neither and is never refused.
  */
 import { NextRequest } from "next/server";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -73,5 +74,19 @@ describe("auth route rate limits", () => {
     const ip = "10.79.0.5";
     for (let i = 0; i < 5; i++) expect((await POST(post(ip, "null"))).status).toBe(400);
     expect((await POST(login(ip))).status).toBe(429);
+  });
+
+  it("a sign-out is never refused, even once sign-in's limit is used up", async () => {
+    // A refused sign-out clears no cookies, and the 7-day refresh cookie
+    // would keep the person signed in.
+    const ip = "10.79.0.6";
+    for (let i = 0; i < 5; i++) expect((await POST(login(ip))).status).toBe(401);
+    expect((await POST(login(ip))).status).toBe(429);
+
+    const res = await POST(post(ip, JSON.stringify({ action: "logout" })));
+
+    expect(res.status).toBe(200);
+    const marker = res.headers.getSetCookie().find((line) => line.startsWith("sp-session="));
+    expect(marker).toMatch(/Max-Age=0/);
   });
 });
