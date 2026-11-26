@@ -21,6 +21,7 @@ import { NextRequest } from "next/server";
 import { GET, HEAD } from "../route";
 import { signJWT, createTokenPair } from "@/lib/auth";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { createApiKey } from "@/lib/auth/api-keys";
 
 const BIZ_A = "biz_test_alpha";
 const BIZ_B = "biz_test_beta";
@@ -33,12 +34,14 @@ function accessToken(sub: string, role: string, businessId: string | null): stri
 interface Credentials {
   cookie?: string;
   bearer?: string;
+  apiKey?: string;
 }
 
 function request(query: string, creds: Credentials, init: { method?: string; signal?: AbortSignal } = {}): NextRequest {
   const headers = new Headers();
   if (creds.cookie) headers.set("cookie", `sp-access-token=${creds.cookie}`);
   if (creds.bearer) headers.set("authorization", `Bearer ${creds.bearer}`);
+  if (creds.apiKey) headers.set("x-api-key", creds.apiKey);
   return new NextRequest(`http://localhost/api/v1/events${query ? `?${query}` : ""}`, {
     method: init.method ?? "GET",
     headers,
@@ -141,6 +144,15 @@ describe("GET /api/v1/events — other ways to sign in", () => {
     expect(text).not.toContain("sub_test_for_b");
   });
 
+  it("accepts a business's API key in x-api-key, for that business's events only", async () => {
+    const key = createApiKey({ businessId: BIZ_A, agentName: "test agent realtime", permissions: ["read"] }).plaintext;
+    const { status, text } = await streamWhile("", { apiKey: key }, publishAll);
+    expect(status).toBe(200);
+    expect(text).toContain("sub_test_for_a");
+    expect(text).not.toContain("sub_test_for_b");
+    expect(text).not.toContain(NEW_SIGNUP_EMAIL);
+  });
+
   it("goes by ?token= when a request carries both it and a cookie", async () => {
     const { text } = await streamWhile(
       `token=${accessToken("usr_test_owner_b", "business", BIZ_B)}`,
@@ -177,9 +189,40 @@ describe("HEAD /api/v1/events — what GET would answer, with no stream", () => 
     expect(status).toBe(403);
   });
 
+  it("goes by ?token= too: 200 for an access token, 401 for a refresh token", async () => {
+    const { refreshToken } = createTokenPair("usr_test_owner_a", "business", "usr_test_owner_a@example.test", BIZ_A);
+    expect((await head(`token=${accessToken("usr_test_owner_a", "business", BIZ_A)}`, {})).status).toBe(200);
+    expect((await head(`token=${refreshToken}`, {})).status).toBe(401);
+  });
+
+  it("answers 200 for a business's API key", async () => {
+    const key = createApiKey({ businessId: BIZ_A, agentName: "test agent realtime head", permissions: ["read"] }).plaintext;
+    expect((await head("", { apiKey: key })).status).toBe(200);
+  });
+
   it("answers 204 for an account with no business, which has no events to receive", async () => {
     const { status, listenersAdded } = await head("", { cookie: accessToken("usr_test_influencer", "influencer", null) });
     expect(status).toBe(204);
     expect(listenersAdded).toBe(0);
+  });
+});
+
+describe("GET /api/v1/events — the response", () => {
+  it("is private to the caller and never stored by a cache", async () => {
+    const abort = new AbortController();
+    const res = await GET(request("", { cookie: accessToken("usr_test_owner_a", "business", BIZ_A) }, { signal: abort.signal }));
+    const cacheControl = res.headers.get("cache-control") ?? "";
+    abort.abort();
+    expect(cacheControl).toContain("private");
+    expect(cacheControl).toContain("no-store");
+    expect(cacheControl).toContain("no-transform");
+  });
+
+  it("stops forwarding events once the reader cancels the stream", async () => {
+    const before = eventPublisher.listenerCount;
+    const res = await GET(request("", { cookie: accessToken("usr_test_owner_a", "business", BIZ_A) }));
+    expect(eventPublisher.listenerCount).toBe(before + 1);
+    await res.body!.cancel();
+    expect(eventPublisher.listenerCount).toBe(before);
   });
 });

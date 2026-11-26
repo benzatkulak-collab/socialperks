@@ -8,7 +8,8 @@
  * HEAD /api/v1/events makes the same checks and answers with the status GET
  * would give, without opening a stream. The browser client asks it, through
  * apiFetch, before each connection: EventSource never shows the status of a
- * refused connection, and apiFetch renews an expired access cookie.
+ * refused connection, and apiFetch is where an expired access cookie gets
+ * renewed (PR #252 adds that renewal).
  *
  * Signing in, access credentials only (never the 7-day refresh token):
  *   - `?token=`: an access JWT or a session token, for non-browser clients.
@@ -212,7 +213,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     status: 200,
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
+      // One caller's events: no cache may keep or share them. no-transform
+      // keeps proxies from compressing (and so holding back) the stream.
+      "Cache-Control": "private, no-store, no-transform",
       Connection: "keep-alive",
       "X-Request-Id": crypto.randomUUID(),
       "X-Accel-Buffering": "no",
