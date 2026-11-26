@@ -91,7 +91,7 @@ export function getUser(req: NextRequest): AuthUser | null {
     // API-key tokens carry the sp_ prefix. Try those first so we don't
     // pay the JWT-verify CPU cost on every agent call.
     if (token.startsWith("sp_")) {
-      const apiKeyUser = tryApiKey(token);
+      const apiKeyUser = tryApiKey(token, req.method);
       if (apiKeyUser) return apiKeyUser;
     }
 
@@ -123,7 +123,7 @@ export function getUser(req: NextRequest): AuthUser | null {
   //    MCP / OpenAPI clients typically use this header.
   const apiKeyHeader = req.headers.get("x-api-key");
   if (apiKeyHeader) {
-    const apiKeyUser = tryApiKey(apiKeyHeader);
+    const apiKeyUser = tryApiKey(apiKeyHeader, req.method);
     if (apiKeyUser) return apiKeyUser;
   }
 
@@ -157,9 +157,11 @@ export function getUser(req: NextRequest): AuthUser | null {
  * hydrates sessions from the database at module load, so the key store now
  * warms at the same moment. No route runs on the edge runtime.
  */
-function tryApiKey(plaintext: string): AuthUser | null {
+function tryApiKey(plaintext: string, method: string): AuthUser | null {
   const record = verifyApiKey(plaintext);
   if (!record) return null;
+  // A key that may not write authenticates nothing that writes.
+  if (!keyAllowsMethod(record.permissions, method)) return null;
   return {
     // Use the api-key record id rather than businessId so audit logs
     // can distinguish between two agents acting on the same business.
@@ -168,6 +170,53 @@ function tryApiKey(plaintext: string): AuthUser | null {
     role: "agent",
     businessId: record.businessId,
   };
+}
+
+const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * API-key permissions: "read", "write", "admin". The dashboard mints "read"
+ * and, only if the owner ticks it, "write"; agent OAuth maps read.* scopes to
+ * "read" and the rest to "write". Any key may read (as it always could); only
+ * "write" or "admin" may send a request that can change data. A POST that
+ * only reads (e.g. billing get_usage) therefore needs a write key too.
+ */
+function keyAllowsMethod(permissions: readonly string[], method: string): boolean {
+  if (READ_METHODS.has(method.toUpperCase())) return true;
+  return permissions.includes("write") || permissions.includes("admin");
+}
+
+/**
+ * True when the request carries a valid API key that may only read, on a
+ * request that writes. getUser treats such a request as unauthenticated;
+ * this lets requireAuth / withTenant say why.
+ */
+function isReadOnlyKeyOnWrite(req: NextRequest): boolean {
+  if (READ_METHODS.has(req.method.toUpperCase())) return false;
+  const authHeader = req.headers.get("authorization");
+  const candidates = [
+    authHeader?.startsWith("Bearer sp_") ? authHeader.slice(7) : null,
+    req.headers.get("x-api-key"),
+  ];
+  return candidates.some((c) => {
+    const record = c ? verifyApiKey(c) : null;
+    return !!record && !keyAllowsMethod(record.permissions, req.method);
+  });
+}
+
+/**
+ * The response for a request getUser could not authenticate: 403 when it
+ * carried a read-only API key on a write, else 401.
+ */
+export function unauthenticated(req: NextRequest): NextResponse {
+  if (isReadOnlyKeyOnWrite(req)) {
+    return err(
+      "API_KEY_READ_ONLY",
+      "This API key can only read. Use a key with write permission to change data.",
+      403,
+    );
+  }
+  return err("NO_TOKEN", "Authentication required", 401);
 }
 
 /**
@@ -187,7 +236,7 @@ export function isApiKeyAuth(req: NextRequest): boolean {
  */
 export function requireAuth(req: NextRequest): AuthUser | NextResponse {
   const user = getUser(req);
-  if (!user) return err("NO_TOKEN", "Authentication required", 401);
+  if (!user) return unauthenticated(req);
   return user;
 }
 
