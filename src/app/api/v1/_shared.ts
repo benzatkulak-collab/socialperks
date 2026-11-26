@@ -83,6 +83,22 @@ export interface AuthUser {
  * inspect businessId instead).
  */
 export function getUser(req: NextRequest): AuthUser | null {
+  return authenticate(req)?.user ?? null;
+}
+
+/** Who a request authenticates as, and until when that credential holds. */
+export interface Authenticated {
+  user: AuthUser;
+  /**
+   * When the credential stops being accepted, in ms since the epoch: a JWT's
+   * `exp`, a session's or API key's expiry. Null for an API key that never
+   * expires. A long-lived response (the realtime stream) ends by then.
+   */
+  expiresAt: number | null;
+}
+
+/** getUser, with the credential's expiry. Same checks, in the same order. */
+export function authenticate(req: NextRequest): Authenticated | null {
   // 1. Check Authorization header
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
@@ -100,10 +116,13 @@ export function getUser(req: NextRequest): AuthUser | null {
     const jwt = verifyJWT(token, "access");
     if (jwt) {
       return {
-        id: jwt.sub,
-        email: jwt.email,
-        role: jwt.role,
-        businessId: jwt.businessId,
+        user: {
+          id: jwt.sub,
+          email: jwt.email,
+          role: jwt.role,
+          businessId: jwt.businessId,
+        },
+        expiresAt: jwt.exp * 1000,
       };
     }
 
@@ -111,10 +130,13 @@ export function getUser(req: NextRequest): AuthUser | null {
     const session = sessionStore.get(token);
     if (session) {
       return {
-        id: session.userId,
-        email: session.email,
-        role: session.userRole,
-        businessId: session.businessId,
+        user: {
+          id: session.userId,
+          email: session.email,
+          role: session.userRole,
+          businessId: session.businessId,
+        },
+        expiresAt: session.expiresAt,
       };
     }
   }
@@ -133,10 +155,13 @@ export function getUser(req: NextRequest): AuthUser | null {
     const jwt = verifyJWT(cookie, "access");
     if (jwt) {
       return {
-        id: jwt.sub,
-        email: jwt.email,
-        role: jwt.role,
-        businessId: jwt.businessId,
+        user: {
+          id: jwt.sub,
+          email: jwt.email,
+          role: jwt.role,
+          businessId: jwt.businessId,
+        },
+        expiresAt: jwt.exp * 1000,
       };
     }
   }
@@ -145,8 +170,8 @@ export function getUser(req: NextRequest): AuthUser | null {
 }
 
 /**
- * Resolve an API key into an AuthUser, or null if the key is invalid /
- * expired / revoked.
+ * Resolve an API key into the caller it stands for, or null if the key is
+ * invalid / expired / revoked.
  *
  * The key store is imported statically. It used to be a lazy
  * `require("@/lib/auth/api-keys")`, which had two costs: the `@/` alias does
@@ -157,18 +182,21 @@ export function getUser(req: NextRequest): AuthUser | null {
  * hydrates sessions from the database at module load, so the key store now
  * warms at the same moment. No route runs on the edge runtime.
  */
-function tryApiKey(plaintext: string, method: string): AuthUser | null {
+function tryApiKey(plaintext: string, method: string): Authenticated | null {
   const record = verifyApiKey(plaintext);
   if (!record) return null;
   // A key that may not write authenticates nothing that writes.
   if (!keyAllowsMethod(record.permissions, method)) return null;
   return {
-    // Use the api-key record id rather than businessId so audit logs
-    // can distinguish between two agents acting on the same business.
-    id: `agent:${record.id}`,
-    email: `${record.agentName}@agent.local`,
-    role: "agent",
-    businessId: record.businessId,
+    user: {
+      // Use the api-key record id rather than businessId so audit logs
+      // can distinguish between two agents acting on the same business.
+      id: `agent:${record.id}`,
+      email: `${record.agentName}@agent.local`,
+      role: "agent",
+      businessId: record.businessId,
+    },
+    expiresAt: record.expiresAt ? record.expiresAt.getTime() : null,
   };
 }
 
