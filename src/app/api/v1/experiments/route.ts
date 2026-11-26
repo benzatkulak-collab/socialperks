@@ -4,12 +4,14 @@
  */
 
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import {
   ok,
   err,
   rateLimit,
   parseBody,
   getQuery,
+  requireAuth,
   withTiming,
 } from "../_shared";
 import { validateString, validateEnum } from "@/lib/security/validate";
@@ -25,11 +27,30 @@ import {
   type CreateExperimentConfig,
 } from "@/lib/experiments";
 
+/**
+ * Running experiments is the founder's. Returns a 401/403 response for
+ * anyone else, or null when the caller is the founder.
+ */
+function requireFounder(req: NextRequest): NextResponse | null {
+  const user = requireAuth(req);
+  if (user instanceof NextResponse) return user;
+  if (user.role !== "admin") {
+    return err("FORBIDDEN", "Only the founder can manage experiments", 403);
+  }
+  return null;
+}
+
+/** Visitor-level actions the useExperiment hook calls for whoever is on the page. */
+const VISITOR_ACTIONS = new Set(["assign", "convert"]);
+
 // ─── GET ────────────────────────────────────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
+
+  const denied = requireFounder(req);
+  if (denied) return denied;
 
   const params = getQuery(req);
   const statusParam = params.get("status");
@@ -77,6 +98,11 @@ export const POST = withTiming(async (req: NextRequest) => {
     ["create", "start", "assign", "convert", "results", "auto-winner"] as const
   );
   if (!actionV.success) return err("INVALID_ACTION", actionV.error, 400);
+
+  if (!VISITOR_ACTIONS.has(actionV.data)) {
+    const denied = requireFounder(req);
+    if (denied) return denied;
+  }
 
   switch (actionV.data) {
     // ── Create ──────────────────────────────────────────────────────────
