@@ -4,9 +4,11 @@
  * Generates DDL from the SCHEMA object in schema.ts and applies it
  * via the db.query() interface from connection.ts.
  *
- * This complements the hand-written migrations in migrations.ts by
- * providing an automated path: read the TypeScript schema definition,
- * emit CREATE TABLE / CREATE INDEX SQL, and run it idempotently.
+ * This is the single, authoritative migration path: read the TypeScript schema
+ * definition, emit CREATE TABLE / CREATE INDEX SQL, and run it idempotently.
+ * Used by /api/v1/migrate and `npm run db:migrate`. (A legacy hand-written
+ * migrations.ts + init.ts/seed-data.ts bootstrap once existed alongside this but
+ * was dead and had drifted from the schema, so it was removed.)
  *
  * Usage:
  *   import { generateSQL, runMigrations, getMigrationState } from "./migrate";

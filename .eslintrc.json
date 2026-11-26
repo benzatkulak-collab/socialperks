@@ -34,7 +34,7 @@
       }
     },
     {
-      "files": ["**/logging/**", "**/db/init.ts", "**/db/seed-data.ts"],
+      "files": ["**/logging/**"],
       "rules": {
         "no-console": "off"
       }
