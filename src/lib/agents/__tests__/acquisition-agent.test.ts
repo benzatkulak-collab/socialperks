@@ -79,6 +79,14 @@ describe("scoreLead — named business bonus (+0.10)", () => {
     const { confidence } = scoreLead(lead({ businessName: undefined }), NOW_MS, DEFAULT_MAX_AGE);
     expect(confidence).toBeCloseTo(0.3);
   });
+
+  it("does NOT add the bonus for a whitespace-only businessName", () => {
+    // Mirrors the referrer whitespace check: a form field left as "   " shows
+    // no real intent; the bonus should behave consistently across both fields.
+    const { confidence, reasons } = scoreLead(lead({ businessName: "   " }), NOW_MS, DEFAULT_MAX_AGE);
+    expect(confidence).toBeCloseTo(0.3);
+    expect(reasons).not.toContain("named business");
+  });
 });
 
 describe("scoreLead — city bonus (+0.05)", () => {
