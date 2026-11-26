@@ -101,9 +101,8 @@ const LATEST_SQL = `
     from campaign_submissions_v2 s
     join launched_campaign_state c on c.id = s.campaign_id
     ${GRANT("c.business_id")}
-    where s.submitted_at >= $3 and s.submitted_at < $4
   ) t
-  where t.rn <= $5
+  where t.rn <= $3
   order by t.business_id, t.submitted_at desc, t.id desc`;
 
 function currentMonthUtc(now = new Date()): string {
@@ -154,7 +153,7 @@ export async function businessWeeks(
     db.query<Row>(RECEIVED_SQL, win),
     db.query<Row>(WAITING_SQL, base),
     db.query<Row>(PERKS_SQL, win),
-    db.query<Row>(LATEST_SQL, [...win, latestLimit]),
+    db.query<Row>(LATEST_SQL, [...base, latestLimit]),
   ]);
 
   const campaignsBy = groupBy(campaigns.rows);
@@ -182,7 +181,7 @@ export async function businessWeeks(
     for (const r of receivedBy.get(id) ?? []) {
       const status = String(r.status);
       if (status in receivedByStatus) receivedByStatus[status as keyof typeof receivedByStatus] += num(r.n);
-      const platform = findAction(String(r.action_id))?.platformId ?? "unknown";
+      const platform = findAction(String(r.action_id))?.platformName ?? "Other";
       byPlatform[platform] = (byPlatform[platform] ?? 0) + num(r.n);
     }
     const w = (waitingBy.get(id) ?? [])[0];
@@ -225,7 +224,7 @@ export async function businessWeeks(
           id: String(r.id),
           submittedAt: iso(r.submitted_at),
           status: String(r.status),
-          platform: action?.platformId ?? "unknown",
+          platform: action?.platformName ?? "Other",
           actionLabel: action?.label ?? "Unknown action",
           campaignName: r.campaign_name ? String(r.campaign_name) : "",
           links: submissionLinks(String(r.id)),

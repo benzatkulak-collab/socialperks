@@ -35,9 +35,12 @@ describe("businessWeeks", () => {
     const rec = sqls().find((s) => /submitted_at >= \$3 and [a-z.]*submitted_at < \$4/i.test(s) && /group by/i.test(s));
     expect(rec).toBeDefined();
     const call = dbQuery.mock.calls.find((c) => c[0] === rec)!;
-    expect(call[1]).toContain(FROM);
-    expect(call[1]).toContain(TO);
-    const perks = sqls().find((s) => /from perk_wallet_entries/i.test(s))!;
+    expect(call[1][2]).toBe(FROM);
+    expect(call[1][3]).toBe(TO);
+    const perksCall = dbQuery.mock.calls.find((c) => /from perk_wallet_entries/i.test(c[0]))!;
+    expect(perksCall[1][2]).toBe(FROM);
+    expect(perksCall[1][3]).toBe(TO);
+    const perks = perksCall[0] as string;
     expect(perks).toMatch(/earned_at >= \$3 and p\.earned_at < \$4/i);
     expect(perks).toMatch(/redeemed_at >= \$3 and p\.redeemed_at < \$4/i);
     expect(perks).toMatch(/expires_at >= \$3 and p\.expires_at < \$4/i);
@@ -70,8 +73,9 @@ describe("businessWeeks", () => {
     const sql = sqls().find((s) => /from launched_campaign_state c\b/i.test(s) && /group by/i.test(s) && !/campaign_submissions_v2/i.test(s))!;
     expect(sql).toMatch(/c\.state = 'active' and c\.expires_at > now\(\)/i);
     expect(sql).toMatch(/c\.state = 'active' and c\.expires_at <= now\(\)/i);
-    expect(sql).toMatch(/c\.completions >= 0\.8 \* c\.max_completions/i);
-    expect(sql).toMatch(/c\.max_completions is not null/i);
+    expect(sql).toContain(
+      "count(*) filter (where c.state = 'active' and c.expires_at > now() and c.max_completions is not null and c.completions >= 0.8 * c.max_completions)",
+    );
   });
 
   it("counts lapsed as available perks whose expires_at is in the window", async () => {
@@ -98,14 +102,14 @@ describe("businessWeeks", () => {
     expect(week.businessName).toBe("Test Cafe");
     expect(week.plan).toEqual({ name: "starter", status: "active", completionsThisMonth: 120, completionsLimit: 500 });
     expect(week.submissions.receivedByStatus).toEqual({ pending: 2, approved: 3, rejected: 1, expired: 0 });
-    expect(week.submissions.byPlatform.ig).toBe(5);
-    expect(week.submissions.byPlatform.unknown).toBe(1);
+    expect(week.submissions.byPlatform.Instagram).toBe(5);
+    expect(week.submissions.byPlatform.Other).toBe(1);
     expect(week.submissions.waitingNow).toBe(4);
     expect(week.submissions.oldestWaitingSince).toBe("2026-11-01T10:00:00.000Z");
     expect(week.latest).toEqual([
       {
         id: "sub_9", submittedAt: "2026-11-25T10:00:00.000Z", status: "pending",
-        platform: "ig", actionLabel: "Story Tag", campaignName: "Summer",
+        platform: "Instagram", actionLabel: "Story Tag", campaignName: "Summer",
         links: {
           console: "https://socialperks.app/admin/submissions?submission=sub_9",
           portal: "https://socialperks.app/dashboard?tab=submissions&submission=sub_9",
@@ -175,7 +179,16 @@ describe("businessWeeks", () => {
     await businessWeeks("p1", "all", { from: FROM, to: TO }, 50);
     const call = dbQuery.mock.calls.find((c) => /row_number\(\)/i.test(c[0]))!;
     expect(call[0]).toMatch(/partition by c\.business_id/i);
-    expect(call[1]).toContain(50);
+    expect(call[1]).toEqual(["p1", null, 50]);
+  });
+
+  it("latest has no submitted_at bound and receives no window dates", async () => {
+    feed({ businesses: biz });
+    await businessWeeks("p1", "all", { from: FROM, to: TO }, 10);
+    const call = dbQuery.mock.calls.find((c) => /row_number\(\)/i.test(c[0]))!;
+    expect(call[0]).not.toMatch(/submitted_at\s*(>=|<|>|<=)/i);
+    expect(call[0]).toMatch(/t\.rn <= \$3/);
+    expect(call[1].some((v: unknown) => v instanceof Date)).toBe(false);
   });
 
   it("a revoked grant stops yielding the business on the very next call", async () => {

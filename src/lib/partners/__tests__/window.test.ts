@@ -32,4 +32,13 @@ describe("parseWindow", () => {
   it("accepts offsets", () => {
     expect(parseWindow("2026-11-19T00:00:00-05:00", "2026-11-26T00:00:00-05:00").ok).toBe(true);
   });
+
+  it("refuses impossible calendar dates instead of rolling them over", () => {
+    expect(parseWindow("2026-11-31T00:00:00Z", "2026-12-05T00:00:00Z").ok).toBe(false);
+    expect(parseWindow("2026-02-30T00:00:00Z", "2026-03-05T00:00:00Z").ok).toBe(false);
+    expect(parseWindow("2026-11-20T00:00:00Z", "2026-11-31T00:00:00Z").ok).toBe(false);
+    expect(parseWindow("2026-11-00T00:00:00Z", "2026-11-05T00:00:00Z").ok).toBe(false);
+    expect(parseWindow("2028-02-29T00:00:00Z", "2028-03-05T00:00:00Z").ok).toBe(true);
+    expect(parseWindow("2026-02-29T00:00:00Z", "2026-03-05T00:00:00Z").ok).toBe(false);
+  });
 });

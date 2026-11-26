@@ -6,6 +6,9 @@ const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}
 
 function parseInstant(value: string | null): Date | null {
   if (!value || !ISO_INSTANT.test(value)) return null;
+  // V8 rolls 2026-02-30 over to March; refuse a day past the month's length.
+  const year = Number(value.slice(0, 4)), month = Number(value.slice(5, 7)), day = Number(value.slice(8, 10));
+  if (month < 1 || month > 12 || day < 1 || day > new Date(Date.UTC(year, month, 0)).getUTCDate()) return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
