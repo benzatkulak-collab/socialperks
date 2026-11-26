@@ -9,7 +9,10 @@
  *   - cross_promotions     (requires businessId)
  *
  * Rate limit: relaxed
- * Auth: required
+ * Auth: required. The three questions about a named business
+ * (similar_businesses, overlapping_audiences, cross_promotions) are answered
+ * only for that business's own login or API key, or for the founder
+ * (role "admin").
  */
 
 import type { NextRequest } from "next/server";
@@ -20,6 +23,7 @@ import {
   rateLimit,
   getQuery,
   withTiming,
+  type AuthUser,
 } from "../_shared";
 import { validateId, validateEnum, validateNumber } from "@/lib/security/validate";
 import {
@@ -40,6 +44,19 @@ const QUERY_TYPES = [
 ] as const;
 
 type QueryType = (typeof QUERY_TYPES)[number];
+
+/**
+ * May this caller ask about the named business's relationships? Only the
+ * business itself or the founder. Fails closed: an account with no business
+ * (an influencer, a customer) matches no business.
+ */
+function mayAskAbout(user: AuthUser, businessId: string): boolean {
+  return user.role === "admin" || user.businessId === businessId;
+}
+
+function notYourBusiness() {
+  return err("FORBIDDEN", "You can only ask about your own business", 403);
+}
 
 // Lazily populate the graph on first request
 let graphPopulated = false;
@@ -84,6 +101,7 @@ export const GET = withTiming(async (req: NextRequest) => {
       }
       const v = validateId(bizId);
       if (!v.success) return err("INVALID_BUSINESS_ID", v.error, 400);
+      if (!mayAskAbout(auth, v.data)) return notYourBusiness();
 
       const limitParam = params.get("limit");
       let limit = 10;
@@ -103,6 +121,7 @@ export const GET = withTiming(async (req: NextRequest) => {
       }
       const v = validateId(bizId);
       if (!v.success) return err("INVALID_BUSINESS_ID", v.error, 400);
+      if (!mayAskAbout(auth, v.data)) return notYourBusiness();
 
       return ok(findOverlappingAudiences(v.data));
     }
@@ -137,6 +156,7 @@ export const GET = withTiming(async (req: NextRequest) => {
       }
       const v = validateId(bizId);
       if (!v.success) return err("INVALID_BUSINESS_ID", v.error, 400);
+      if (!mayAskAbout(auth, v.data)) return notYourBusiness();
 
       return ok(suggestCrossPromotions(v.data));
     }
