@@ -9,7 +9,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders, type RateLimitTier } from "@/lib/security/rate-limiter";
 import { verifyJWT, sessionStore } from "@/lib/auth";
-import type { ApiKeyRecord } from "@/lib/auth/api-keys";
+import { verifyApiKey } from "@/lib/auth/api-keys";
 import { validateCsrfToken } from "@/lib/security/csrf";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
 
@@ -145,15 +145,18 @@ export function getUser(req: NextRequest): AuthUser | null {
 
 /**
  * Resolve an API key into an AuthUser, or null if the key is invalid /
- * expired / revoked. Lazy-imports the api-keys module to avoid pulling
- * the database connection during cold-start of read-only routes.
+ * expired / revoked.
+ *
+ * The key store is imported statically. It used to be a lazy
+ * `require("@/lib/auth/api-keys")`, which had two costs: the `@/` alias does
+ * not resolve for a runtime require under vitest, so no route test could
+ * authenticate with a key; and the store's database hydration only started
+ * on the first key request, so that request always missed the cache and got
+ * a 401 on a cold instance. This file already imports `@/lib/auth`, which
+ * hydrates sessions from the database at module load, so the key store now
+ * warms at the same moment. No route runs on the edge runtime.
  */
 function tryApiKey(plaintext: string): AuthUser | null {
-  // Lazy require so this file remains importable in edge contexts
-  // where the api-keys module's crypto deps aren't available.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const apiKeysMod = require("@/lib/auth/api-keys");
-  const verifyApiKey = apiKeysMod.verifyApiKey as (k: string) => ApiKeyRecord | null;
   const record = verifyApiKey(plaintext);
   if (!record) return null;
   return {
