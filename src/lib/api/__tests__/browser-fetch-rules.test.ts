@@ -17,7 +17,8 @@
  * Only a browser can fetch a relative URL, so server code never matches.
  * The scan (src/__tests__/helpers/scan-fetch-calls.ts) sees only URLs
  * written out in the call: not URLs held in variables, wrappers around
- * fetch, or EventSource. A read sent as POST counts as a write.
+ * fetch, or EventSource. A read sent as POST counts as a write, and so does
+ * a call whose options do not say plainly which method it uses.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -135,9 +136,10 @@ describe("browser code", () => {
   });
 
   it("writes to no signed-in /api/v1 route with a plain fetch()", () => {
+    // A method the options do not say plainly (null) may be a write.
     const signedInWrites = allFetchCalls()
       .filter(isSameOriginApi)
-      .filter((c) => c.method !== null && c.method !== "GET" && c.method !== "HEAD")
+      .filter((c) => c.method !== "GET" && c.method !== "HEAD")
       .filter((c) => c.path !== AUTH_ROUTE && !isSignOut(c) && !isPublicWrite(c))
       .filter((c) => !(plainWriteKey(c) in PLAIN_SIGNED_IN_WRITES))
       .map((c) => `${c.where}  ${named(c)}`);
@@ -145,10 +147,15 @@ describe("browser code", () => {
     expect(signedInWrites).toEqual([]);
   });
 
-  it("lists only plain signed-in writes that are still in the source", () => {
-    const present = new Set(allFetchCalls().map(plainWriteKey));
-    const gone = Object.keys(PLAIN_SIGNED_IN_WRITES).filter((key) => !present.has(key));
+  it("finds each allowed plain signed-in write exactly once in the source", () => {
+    const counts = new Map<string, number>();
+    for (const call of allFetchCalls()) {
+      counts.set(plainWriteKey(call), (counts.get(plainWriteKey(call)) ?? 0) + 1);
+    }
+    const notOnce = Object.keys(PLAIN_SIGNED_IN_WRITES)
+      .filter((key) => counts.get(key) !== 1)
+      .map((key) => `${key}  (found ${counts.get(key) ?? 0})`);
 
-    expect(gone).toEqual([]);
+    expect(notOnce).toEqual([]);
   });
 });
