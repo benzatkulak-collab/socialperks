@@ -46,17 +46,17 @@ export const POST = withTiming(async (req: NextRequest) => {
   const csrfErr = requireCsrf(req);
   if (csrfErr) return csrfErr;
 
-  // Parse body. The campaign is never read from the body: an approval is
-  // priced, booked and counted from the submission's own stored campaign
-  // (see resolvedCampaign below). A `campaign` or `followerCount` field a
-  // client still sends is ignored.
+  // Parse body. Only the decision comes from the caller. The campaign is never
+  // read from the body (an approval is priced, booked and counted from the
+  // submission's own stored campaign, see resolvedCampaign below), and neither
+  // is the email recipient (see submitterEmail below). A `campaign`,
+  // `followerCount`, `submitterEmail` or `submitterName` field a client still
+  // sends is ignored.
   const body = await parseBody<{
     submissionId?: string;
     reviewerId?: string;
     decision?: string;
     note?: string;
-    submitterEmail?: string;
-    submitterName?: string;
   }>(req);
   if (body instanceof Response) return body;
 
@@ -207,18 +207,16 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
   }
 
-  // Fire-and-forget notification email to submitter. The recipient is resolved
-  // from the request OR the submission's stored metadata — the public /c submit
-  // persists { email, name } there (submissions/public/route.ts), so the
-  // "your perk is ready" email fires regardless of what the reviewing client
-  // sends. Previously gating on body.submitterEmail meant the customer was
-  // never told their perk was approved.
+  // Fire-and-forget notification email to submitter. The recipient and the
+  // greeting come ONLY from the submission's stored metadata: the public /c
+  // submit persists { email, name } there (submissions/public/route.ts), so the
+  // "your perk is ready" email fires without the reviewing client sending
+  // anything. The approval email carries the customer's perk link, so it goes
+  // only to the address the customer gave, never to one in the request.
   const submitterEmail =
-    body.submitterEmail ??
-    (typeof submission.metadata.email === "string" ? submission.metadata.email : undefined);
+    typeof submission.metadata.email === "string" ? submission.metadata.email : undefined;
   const submitterName =
-    body.submitterName ??
-    (typeof submission.metadata.name === "string" ? submission.metadata.name : undefined);
+    typeof submission.metadata.name === "string" ? submission.metadata.name : undefined;
   if (submitterEmail) {
     const recipientName = submitterName || "there";
     const campaignName = resolvedCampaign.name || "your campaign";

@@ -177,3 +177,46 @@ describe("POST /api/v1/submissions/review — a campaign in the body is not trus
     expect(sent[0].text).not.toContain(bodyCampaign.name);
   });
 });
+
+/**
+ * The approval email carries the customer's perk link. So the decision email
+ * goes only to the address the submission stored, and greets the customer by
+ * the stored name; an address or name in the request body changes neither.
+ */
+describe("POST /api/v1/submissions/review — the decision email's recipient", () => {
+  const BODY_EMAIL = "someone.else@example.test";
+  const BODY_NAME = "Body Name";
+
+  it("sends the approval email to the stored address, not one in the body", async () => {
+    const { status } = await review({ submissionId, decision: "approve", submitterEmail: BODY_EMAIL });
+    expect(status).toBe(200);
+    expect(sent.map((m) => m.to)).toEqual([CUSTOMER_EMAIL]);
+  });
+
+  it("sends the rejection email to the stored address, not one in the body", async () => {
+    const { status } = await review({ submissionId, decision: "reject", submitterEmail: BODY_EMAIL });
+    expect(status).toBe(200);
+    expect(sent.map((m) => m.to)).toEqual([CUSTOMER_EMAIL]);
+  });
+
+  it("greets the customer by the stored name, not one in the body", async () => {
+    const { status } = await review({ submissionId, decision: "approve", submitterName: BODY_NAME });
+    expect(status).toBe(200);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].html).toContain("Sam Sample");
+    expect(sent[0].html).not.toContain(BODY_NAME);
+  });
+
+  it("sends nothing when the submission stored no address, whatever the body says", async () => {
+    const created = createSubmission(CAMPAIGN, "usr_test_no_email", "ig_st", "https://example.test/proof-2", "url");
+    if (!created.success || !created.data) throw new Error(`fixture submission failed: ${created.error?.message}`);
+    const { status } = await review({
+      submissionId: created.data.id,
+      decision: "approve",
+      submitterEmail: BODY_EMAIL,
+      submitterName: BODY_NAME,
+    });
+    expect(status).toBe(200);
+    expect(sent).toHaveLength(0);
+  });
+});
