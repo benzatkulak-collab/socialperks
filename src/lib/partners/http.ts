@@ -12,6 +12,8 @@ import { NextResponse } from "next/server";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/security/rate-limiter";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
 import { getClientIp } from "@/app/api/v1/_client-ip";
+import { ZodError } from "zod";
+import { captureError } from "@/lib/monitoring";
 import { authenticatePartner } from "./auth";
 
 function headers(extra?: Record<string, string>): Headers {
@@ -50,10 +52,24 @@ export async function partnerGate(
     return { response: partnerErr("RATE_LIMIT_EXCEEDED", "Too many requests", 429, rateLimitHeaders(result)) };
   }
   const auth = await authenticatePartner(req);
+  if (!auth.ok && auth.reason === "unavailable") {
+    return { response: partnerErr("SERVICE_UNAVAILABLE", "The service is temporarily unavailable", 503) };
+  }
   if (!auth.ok) return { response: partnerErr("UNAUTHORIZED", "A valid partner key is required", 401) };
   return { partnerId: auth.partner.id };
 }
 
-export function internalError(): NextResponse {
+/**
+ * A route's catch: log what failed (the message; for a schema mismatch only the
+ * failing paths, never the values; never a header or a key), then answer 500.
+ */
+export function internalError(source: string, e: unknown): NextResponse {
+  const message =
+    e instanceof ZodError
+      ? `response schema mismatch at: ${[...new Set(e.issues.map((i) => i.path.join(".") || "(root)"))].join(", ")}`
+      : e instanceof Error
+        ? e.message
+        : "unknown error";
+  captureError(new Error(message), { source });
   return partnerErr("INTERNAL_ERROR", "The request could not be completed", 500);
 }

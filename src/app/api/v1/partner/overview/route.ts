@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         businesses,
       }),
     );
-  } catch {
-    return internalError();
+  } catch (e) {
+    return internalError("partner.overview", e);
   }
 }

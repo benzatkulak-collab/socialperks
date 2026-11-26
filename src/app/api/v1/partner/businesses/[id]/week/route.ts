@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
         business,
       }),
     );
-  } catch {
-    return internalError();
+  } catch (e) {
+    return internalError("partner.week", e);
   }
 }

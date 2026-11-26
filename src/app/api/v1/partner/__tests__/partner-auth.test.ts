@@ -6,6 +6,11 @@ import { NextRequest } from "next/server";
 const dbQuery = vi.fn();
 vi.mock("@/lib/db/connection", () => ({ db: { query: (...a: unknown[]) => dbQuery(...a) } }));
 
+const captureError = vi.fn();
+vi.mock("@/lib/monitoring", () => ({ captureError: (...a: unknown[]) => captureError(...a) }));
+// Errors stringify to {}, so read the message and the context separately.
+const logged = () => JSON.stringify(captureError.mock.calls.map(([e, c]) => [(e as Error).message, c]));
+
 import { GET as listBusinesses } from "../businesses/route";
 import { GET as overview } from "../overview/route";
 import { GET as week } from "../businesses/[id]/week/route";
@@ -22,7 +27,7 @@ const call = (key: string | null): Array<() => Promise<Response>> => {
   ];
 };
 
-beforeEach(() => dbQuery.mockReset());
+beforeEach(() => { dbQuery.mockReset(); captureError.mockReset(); });
 
 describe("partner routes with the real authenticator", () => {
   it("401s with no key, and runs no query", async () => {
@@ -48,5 +53,17 @@ describe("partner routes with the real authenticator", () => {
       expect(dbQuery).toHaveBeenCalledTimes(1);
       expect(dbQuery.mock.calls[0][0]).toMatch(/from partners where key_hash/i);
     }
+  });
+
+  it("503s (never 401) when the key lookup fails, so a partner does not rotate a good key", async () => {
+    const { key } = generatePartnerKey();
+    dbQuery.mockRejectedValue(new Error("connection terminated"));
+    for (const run of call(key)) {
+      const res = await run();
+      expect(res.status).toBe(503);
+      expect((await res.json()).error.code).toBe("SERVICE_UNAVAILABLE");
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    }
+    expect(logged()).not.toContain(key);
   });
 });

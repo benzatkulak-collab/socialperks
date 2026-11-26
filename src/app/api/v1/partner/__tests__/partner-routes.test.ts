@@ -10,6 +10,10 @@ vi.mock("@/lib/partners/week", () => ({
   grantedBusinesses: (...a: unknown[]) => grantedBusinesses(...a),
   businessWeeks: (...a: unknown[]) => businessWeeks(...a),
 }));
+const captureError = vi.fn();
+vi.mock("@/lib/monitoring", () => ({ captureError: (...a: unknown[]) => captureError(...a) }));
+// Errors stringify to {}, so read the message and the context separately.
+const logged = () => JSON.stringify(captureError.mock.calls.map(([e, c]) => [(e as Error).message, c]));
 vi.mock("@/lib/security/rate-limiter", () => ({
   checkRateLimit: (...a: unknown[]) => checkRateLimit(...a),
   rateLimitHeaders: () => ({ "X-RateLimit-Limit": "100" }),
@@ -48,7 +52,7 @@ async function bodyOf(res: Response) { return res.json(); }
 const noStore = (r: Response) => expect(r.headers.get("cache-control")).toBe("no-store");
 
 beforeEach(() => {
-  for (const m of [auth, grantedBusinesses, businessWeeks, checkRateLimit]) m.mockReset();
+  for (const m of [auth, grantedBusinesses, businessWeeks, checkRateLimit, captureError]) m.mockReset();
   checkRateLimit.mockReturnValue({ allowed: true, remaining: 9, resetAt: Date.now() + 1000, limit: 10 });
   auth.mockResolvedValue({ ok: true, partner: { id: "p1", name: "Partner" } });
   grantedBusinesses.mockResolvedValue([]);
@@ -60,6 +64,43 @@ const calls: Array<[string, () => Promise<Response>]> = [
   ["overview", () => overview(get(`/overview?${W}`))],
   ["week", () => week(get(`/businesses/biz_a/week?${W}`), weekCtx("biz_a"))],
 ];
+
+describe("a read failure", () => {
+  const failing: Array<[string, () => Promise<Response>]> = [
+    ["businesses", () => listBusinesses(get("/businesses"))],
+    ["overview", () => overview(get(`/overview?${W}`))],
+    ["week", () => week(get(`/businesses/biz_a/week?${W}`), weekCtx("biz_a"))],
+  ];
+  for (const [name, call] of failing) {
+    it(`${name}: answers 500 and logs the message, never the key`, async () => {
+      grantedBusinesses.mockRejectedValue(new Error("relation partners does not exist"));
+      businessWeeks.mockRejectedValue(new Error("relation partners does not exist"));
+      const res = await call();
+      expect(res.status).toBe(500);
+      expect((await bodyOf(res)).error.code).toBe("INTERNAL_ERROR");
+      expect(captureError).toHaveBeenCalledTimes(1);
+      const logged_ = logged();
+      expect(logged_).toContain("relation partners does not exist");
+      expect(logged_).not.toContain(KEY);
+    });
+  }
+  it("a schema mismatch logs the failing paths only, not the values", async () => {
+    grantedBusinesses.mockResolvedValue([{ id: "biz_secretname" }]);
+    const res = await listBusinesses(get("/businesses"));
+    expect(res.status).toBe(500);
+    const logged_ = logged();
+    expect(logged_).toContain("businesses");
+    expect(logged_).not.toContain("biz_secretname");
+  });
+  it("auth unavailable answers 503 SERVICE_UNAVAILABLE and runs no read", async () => {
+    auth.mockResolvedValue({ ok: false, reason: "unavailable" });
+    const res = await listBusinesses(get("/businesses"));
+    expect(res.status).toBe(503);
+    expect((await bodyOf(res)).error.code).toBe("SERVICE_UNAVAILABLE");
+    noStore(res);
+    expect(grantedBusinesses).not.toHaveBeenCalled();
+  });
+});
 
 describe("authentication", () => {
   for (const [name, call] of calls) {

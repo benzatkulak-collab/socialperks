@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     const businesses = await grantedBusinesses(gate.partnerId);
     return partnerOk(partnerBusinessesResponse.parse({ businesses }));
-  } catch {
-    return internalError();
+  } catch (e) {
+    return internalError("partner.businesses", e);
   }
 }
