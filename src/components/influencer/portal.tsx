@@ -64,12 +64,6 @@ export function InfluencerPortal({
     perkValue: s.perkValue,
   })), [serverSubmissions]);
 
-  // Extract auth token from cookie for SSE notifications
-  const authToken = useMemo(() => {
-    if (typeof document === "undefined") return null;
-    return document.cookie.match(/sp-access-token=([^;]+)/)?.[1] ?? null;
-  }, []);
-
   const [showSubmitModal, setShowSubmitModal] = useState<MarketplaceCampaign | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
@@ -364,7 +358,7 @@ export function InfluencerPortal({
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-brand-dim hidden sm:block">{influencer.avatar} {influencer.displayName}</span>
-            <NotificationCenter token={authToken} />
+            <NotificationCenter />
             <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
           </div>
         </div>

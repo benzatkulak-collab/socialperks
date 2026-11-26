@@ -3,12 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNotificationsSSE, type SSENotification } from "@/lib/hooks/use-notifications-sse";
 
-// ─── Props ──────────────────────────────────────────────────────────────────
-
-interface NotificationCenterProps {
-  token: string | null;
-}
-
 // ─── Notification icon by type ──────────────────────────────────────────────
 
 function notificationIcon(type: string): string {
@@ -50,9 +44,13 @@ function relativeTime(iso: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function NotificationCenter({ token }: NotificationCenterProps) {
+/**
+ * The bell. It connects by itself with the sign-in cookie (see
+ * useNotificationsSSE); a portal renders it and passes nothing.
+ */
+export function NotificationCenter() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, connected } =
-    useNotificationsSSE(token);
+    useNotificationsSSE();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

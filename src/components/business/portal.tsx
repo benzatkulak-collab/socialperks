@@ -170,12 +170,6 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const { stats, loading: dashboardLoading } = useBusinessDashboard(biz.id);
   const { connected, subscribe } = useRealtime({ businessId: biz.id });
 
-  // Extract auth token from cookie for SSE notifications
-  const authToken = useMemo(() => {
-    if (typeof document === "undefined") return null;
-    return document.cookie.match(/sp-access-token=([^;]+)/)?.[1] ?? null;
-  }, []);
-
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -625,7 +619,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               {biz.avatar} {biz.name}
             </button>
             {connected && <span className="flex h-2 w-2 rounded-full bg-brand-green animate-pulse" title="Live" />}
-            <NotificationCenter token={authToken} />
+            <NotificationCenter />
             <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
           </div>
         </div>
