@@ -48,6 +48,9 @@ const ensureSeeded = ensureUsersSeeded;
 
 // ─── Cookie Helper ──────────────────────────────────────────────────────────
 
+/** How long the refresh cookie, and the session marker with it, live: 7 days. */
+const REFRESH_COOKIE_MAX_AGE = 604800;
+
 function buildCookieHeaders(
   userId: string,
   role: string,
@@ -79,7 +82,7 @@ function buildCookieHeaders(
     `sp-refresh-token=${tokens.refreshToken}`,
     "HttpOnly",
     "Path=/api/v1/auth",
-    `Max-Age=604800`,
+    `Max-Age=${REFRESH_COOKIE_MAX_AGE}`,
     `SameSite=Lax`,
     secure ? "Secure" : "",
   ]
@@ -87,12 +90,13 @@ function buildCookieHeaders(
     .join("; ");
 
   // Non-HttpOnly marker cookie used by the client to short-circuit session
-  // restore without exposing the real access token to JS. Same Max-Age as
-  // the access cookie so they expire together.
+  // restore without exposing the real access token to JS. It lives as long
+  // as the refresh cookie, not the 15-minute access cookie: while the refresh
+  // cookie can renew the session, a reload must still ask the server.
   const sessionMarker = [
     "sp-session=1",
     "Path=/",
-    `Max-Age=900`,
+    `Max-Age=${REFRESH_COOKIE_MAX_AGE}`,
     `SameSite=Lax`,
     secure ? "Secure" : "",
   ]

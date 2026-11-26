@@ -83,9 +83,9 @@ let signOutsInFlight = 0;
 /**
  * The auth route never triggers a renewal. Its sign-in 401 means a wrong
  * password, and the refresh's own 401 must not ask for another refresh.
- * Its session check (GET) is left out too, although its 401 can mean an
- * expired cookie: renewing there would put the session checks, sign-in and
- * the refresh in one rate limit of 5 a minute per address.
+ * Its session checks need no renewal here: they renew on the server, because
+ * the refresh cookie reaches them, so a 401 from the auth route is final for
+ * the browser.
  */
 function isAuthRoute(input: string): boolean {
   let path: string;

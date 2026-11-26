@@ -9,7 +9,7 @@
  */
 import { NextRequest } from "next/server";
 import { beforeAll, describe, expect, it } from "vitest";
-import { createTokenPair, verifyJWT } from "@/lib/auth";
+import { createTokenPair, hashPassword, verifyJWT } from "@/lib/auth";
 import { ensureUsersSeeded, putUser, type UserRecord } from "@/lib/auth/user-store";
 import { GET, POST } from "../route";
 
@@ -138,5 +138,54 @@ describe("POST /api/v1/auth {action: session}", () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.getSetCookie()).toEqual([]);
+  });
+});
+
+/** The Max-Age of one Set-Cookie line, as a number. */
+function maxAge(res: Response, name: string): number {
+  const match = /Max-Age=(\d+)/.exec(setCookie(res, name) ?? "");
+  return match ? Number(match[1]) : Number.NaN;
+}
+
+describe("the sp-session marker", () => {
+  it("sign-in sets the marker for as long as the refresh cookie", async () => {
+    const password = "made-up-password-1";
+    const signer = account({
+      id: "usr_test_marker_signer",
+      email: "marker-signer@example.test",
+      passwordHash: await hashPassword(password),
+    });
+    await putUser(signer);
+
+    const res = await POST(
+      new NextRequest("http://localhost/api/v1/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-real-ip": nextAddress() },
+        body: JSON.stringify({ action: "login", email: signer.email, password }),
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(maxAge(res, "sp-refresh-token")).toBe(604800);
+    expect(maxAge(res, "sp-session")).toBe(maxAge(res, "sp-refresh-token"));
+  });
+
+  it("a renewal sets the marker for as long as the refresh cookie", async () => {
+    const res = await GET(getRequest(refreshCookieFor(owner)));
+
+    expect(res.status).toBe(200);
+    expect(maxAge(res, "sp-session")).toBe(maxAge(res, "sp-refresh-token"));
+  });
+
+  it("sign-out clears the marker", async () => {
+    const res = await POST(
+      new NextRequest("http://localhost/api/v1/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-real-ip": nextAddress() },
+        body: JSON.stringify({ action: "logout" }),
+      })
+    );
+
+    expect(maxAge(res, "sp-session")).toBe(0);
   });
 });
