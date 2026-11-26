@@ -145,6 +145,13 @@ function isApiRoute(url) {
   return url.pathname.startsWith("/api/v1/");
 }
 
+// The realtime stream and its HEAD check, or any request for an event stream
+function isEventStream(url, request) {
+  if (url.pathname === "/api/v1/events") return true;
+  const accept = request.headers.get("accept") || "";
+  return accept.includes("text/event-stream");
+}
+
 function isStaticAsset(url) {
   return /\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico|json)$/i.test(
     url.pathname
@@ -272,6 +279,15 @@ self.addEventListener("fetch", (event) => {
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Leave the realtime stream to the browser. handleApiRequest reads a GET's
+  // whole body to keep a copy before it answers, and GET /api/v1/events never
+  // ends, so the page would never hear a byte of it. Its HEAD check goes
+  // straight to the server too: the client must hear the server's answer, and
+  // the Cache API cannot store a HEAD.
+  if (isEventStream(url, event.request)) {
     return;
   }
 
