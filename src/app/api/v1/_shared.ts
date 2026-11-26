@@ -320,12 +320,19 @@ function getClientIp(req: NextRequest): string {
   return "unknown";
 }
 
+/**
+ * Count this request against the caller's address and the route's path.
+ * With `bucket`, the request has a counter of its own (path + "#bucket"),
+ * so a different kind of request on the same path cannot use it up.
+ */
 export function rateLimit(
   req: NextRequest,
-  tier: RateLimitTier = "standard"
+  tier: RateLimitTier = "standard",
+  bucket?: string
 ): NextResponse | null {
   const ip = getClientIp(req);
-  const endpoint = new URL(req.url).pathname;
+  const path = new URL(req.url).pathname;
+  const endpoint = bucket ? `${path}#${bucket}` : path;
   const result = checkRateLimit(ip, endpoint, tier);
 
   if (!result.allowed) {

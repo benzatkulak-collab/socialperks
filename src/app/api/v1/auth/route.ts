@@ -218,7 +218,9 @@ async function renewFromRefreshCookie(req: NextRequest): Promise<Renewal> {
 // ─── GET /api/v1/auth — Validate Session ────────────────────────────────────
 
 export const GET = withTiming(async (req: NextRequest) => {
-  const limited = rateLimit(req, "strict");
+  // A page checks its session on every load: its own counter, so it can
+  // neither use up sign-in's five a minute nor be locked out by them.
+  const limited = rateLimit(req, "standard", "session");
   if (limited) return limited;
 
   const user = getUser(req);
@@ -274,9 +276,9 @@ export const GET = withTiming(async (req: NextRequest) => {
 // ─── POST /api/v1/auth — Auth Actions ──────────────────────────────────────
 
 export const POST = withTiming(async (req: NextRequest) => {
-  const limited = rateLimit(req, "strict");
-  if (limited) return limited;
-
+  // Parse first: which counter applies depends on the action. A body that
+  // is not JSON is counted like a sign-in attempt, and refused with the 429
+  // before the 400.
   const body = await parseBody<{
     action?: string;
     email?: string;
@@ -288,9 +290,17 @@ export const POST = withTiming(async (req: NextRequest) => {
     newPassword?: string;
     referralCode?: string;
   }>(req);
-  if (body instanceof Response) return body;
+  if (body instanceof Response) return rateLimit(req, "strict") ?? body;
 
   const action = body.action ?? "login";
+
+  // The refresh and the session check share the session counter; every
+  // other action shares the strict one.
+  const limited =
+    action === "refresh" || action === "session"
+      ? rateLimit(req, "standard", "session")
+      : rateLimit(req, "strict");
+  if (limited) return limited;
 
   switch (action) {
     // ── Signup ──────────────────────────────────────────────────────────────
