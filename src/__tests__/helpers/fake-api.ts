@@ -66,20 +66,67 @@ export function csrfToken(token: string): FixedAnswer {
   return okWith({ csrfToken: token });
 }
 
+/** The token `fakeSession().csrf` issues while the access cookie is valid. */
+export const SIGNED_IN_CSRF = "csrf-test-signed-in";
+/** The token it issues once the cookie has run out: the server sees an anonymous visitor. */
+export const ANONYMOUS_CSRF = "csrf-test-anonymous";
+
 /**
- * A route that checks the CSRF token, as `requireCsrf` does
- * (src/app/api/v1/_shared.ts): no `X-CSRF-Token` header gets 403
- * CSRF_TOKEN_MISSING, a token other than the one `GET /api/v1/csrf` issued
- * gets 403 CSRF_TOKEN_INVALID, and only then does `answer` run. The real
- * token is also tied to the caller's account, which this does not model.
+ * One signed-in tab and the server's rules for it. The 15-minute access
+ * cookie can run out (`expire()`), and `refresh` gets a new one. A route
+ * wrapped by one of the functions below checks the cookie when the request
+ * arrives, so a test does not script which attempt gets 401.
+ *
+ * CSRF follows `GET /api/v1/csrf` and `requireCsrf`
+ * (src/app/api/v1/_shared.ts). A token is tied to whoever is signed in when
+ * it is issued, which is an anonymous visitor once the cookie has gone. A
+ * write is checked against whoever is signed in when it arrives. So a token
+ * fetched on an expired tab is refused after the renewal.
  */
-export function requiresCsrf(issued: string, answer: Answer): Answer {
-  return (req) => {
+export function fakeSession(user: { id: string; email: string; role: string; businessId: string | null }) {
+  let cookieValid = true;
+  const tokenNow = () => (cookieValid ? SIGNED_IN_CSRF : ANONYMOUS_CSRF);
+
+  /** requireCsrf's refusal, or null when the token passes. */
+  const csrfRefusal = (req: SentRequest): Response | null => {
     const sent = req.headers.get("X-CSRF-Token");
     if (!sent) return errorWith(403, "CSRF_TOKEN_MISSING", "CSRF token is required. Include X-CSRF-Token header.")();
-    if (sent !== issued) return errorWith(403, "CSRF_TOKEN_INVALID", "CSRF token is invalid or expired. Refresh and retry.")();
-    return answer(req);
+    if (sent !== tokenNow()) {
+      return errorWith(403, "CSRF_TOKEN_INVALID", "CSRF token is invalid or expired. Refresh and retry.")();
+    }
+    return null;
   };
+
+  return {
+    /** The access cookie runs out: 15 minutes have passed since it was set. */
+    expire(): void {
+      cookieValid = false;
+    },
+    /** `GET /api/v1/csrf`. */
+    csrf: (() => okWith({ csrfToken: tokenNow() })()) as Answer,
+    /** `POST /api/v1/auth {action: "refresh"}` while the 7-day refresh cookie is valid. */
+    refresh: (() => {
+      cookieValid = true;
+      return okWith({ user, accessToken: "test.access.token" })();
+    }) as Answer,
+    /** A route that needs the sign-in and checks no CSRF token. */
+    signedIn(answer: Answer): Answer {
+      return (req) => (cookieValid ? answer(req) : expiredAccess());
+    },
+    /** A route that checks the sign-in, then the CSRF token (POST /api/v1/submissions/review). */
+    signedInThenCsrf(answer: Answer): Answer {
+      return (req) => (cookieValid ? (csrfRefusal(req) ?? answer(req)) : expiredAccess());
+    },
+    /** A route that checks the CSRF token, then the sign-in (POST /api/v1/api-keys). */
+    csrfThenSignedIn(answer: Answer): Answer {
+      return (req) => csrfRefusal(req) ?? (cookieValid ? answer(req) : expiredAccess());
+    },
+  };
+}
+
+/** The same answer for each of `count` requests in a row. */
+export function times(count: number, answer: Answer): Answer[] {
+  return Array.from({ length: count }, () => answer);
 }
 
 /** One campaign as `GET /api/v1/campaigns` lists it (a `CampaignLifecycle`). */
