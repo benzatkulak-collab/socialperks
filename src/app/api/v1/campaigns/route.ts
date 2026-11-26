@@ -42,6 +42,13 @@ export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
+  // Never anonymous. A business sees its own campaigns and the founder sees
+  // every one, both as full records. Any other account (an influencer, or an
+  // agent acting for one, finding campaigns to fulfil) sees active campaigns
+  // only, shaped like the public /c page: no state history and no spend.
+  const user = requireAuth(req);
+  if (user instanceof NextResponse) return user;
+
   const params = getQuery(req);
   const { page, perPage } = paginate(params);
 
@@ -53,6 +60,10 @@ export const GET = withTiming(async (req: NextRequest) => {
   const tenantBusinessId = !(tenantResult instanceof NextResponse)
     ? tenantResult.tenant.tenantId
     : null;
+
+  if (!tenantBusinessId && user.role !== "admin") {
+    return listActiveForNonOwner(businessId, stateParam, page, perPage);
+  }
 
   // Resolve the campaign list based on filters
   let campaigns: CampaignLifecycle[];
@@ -109,6 +120,65 @@ export const GET = withTiming(async (req: NextRequest) => {
     totalPages,
   });
 });
+
+/**
+ * The list for a signed-in account that owns no business and is not the
+ * founder: active campaigns only, optionally one business's, in the public
+ * shape. Asking for any other state is refused rather than quietly answered
+ * with active ones.
+ */
+async function listActiveForNonOwner(
+  businessId: string | null,
+  stateParam: string | null,
+  page: number,
+  perPage: number,
+): Promise<NextResponse> {
+  if (stateParam) {
+    const sv = validateEnum(stateParam, "state", ["draft", "active", "paused", "ended", "expired"] as const);
+    if (!sv.success) return err("INVALID_STATE", sv.error, 400);
+    if (sv.data !== "active") {
+      return err("FORBIDDEN", "Accounts without a business can list active campaigns only", 403);
+    }
+  }
+
+  let campaigns: CampaignLifecycle[];
+  if (businessId) {
+    const v = validateId(businessId);
+    if (!v.success) return err("INVALID_BUSINESS_ID", v.error, 400);
+    await ensureBusinessCampaignsLoaded(v.data);
+    campaigns = campaignManager.listByBusiness(v.data).filter((c) => c.state === "active");
+  } else {
+    campaigns = campaignManager.listByState("active");
+  }
+
+  const total = campaigns.length;
+  const offset = (page - 1) * perPage;
+  return ok({
+    campaigns: campaigns.slice(offset, offset + perPage).map(publicCampaignView),
+    total,
+    page,
+    perPage,
+    totalPages: Math.ceil(total / perPage),
+  });
+}
+
+/**
+ * What anyone may see of a live campaign: what the public /c page shows.
+ * Leaves out the state history (who changed it, and the reason they gave)
+ * and the spend.
+ */
+function publicCampaignView(c: CampaignLifecycle) {
+  return {
+    id: c.id,
+    state: c.state,
+    businessId: c.businessId,
+    name: c.name,
+    actions: c.actions,
+    budget: { allocated: c.budget.allocated, type: c.budget.type },
+    completions: { current: c.completions.current, max: c.completions.max },
+    expiry: { launchedAt: c.expiry.launchedAt, expiresAt: c.expiry.expiresAt },
+  };
+}
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 

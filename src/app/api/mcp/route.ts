@@ -453,7 +453,7 @@ const TOOLS: Tool[] = [
   {
     name: "reviewSubmission",
     description:
-      "Approve or reject a submission. Approving releases the perk; rejecting requires a reason. Use this when the business chooses manual review over auto-verification.",
+      "Approve or reject a submission. Approving releases the perk; a rejection may carry a reason, which the customer sees. Use this when the business chooses manual review over auto-verification.",
     requiresAuth: true,
     // State transition only — no quota consumed. The perk-cost
     // accrues against the campaign's budget, not against the API call.
@@ -470,7 +470,7 @@ const TOOLS: Tool[] = [
         },
         reason: {
           type: "string",
-          description: "Required when decision='reject'. 1-500 chars.",
+          description: "Optional. Saved with the decision and shown to the customer in the rejection email. Up to 500 chars.",
           maxLength: 500,
         },
       },
@@ -502,9 +502,12 @@ const TOOLS: Tool[] = [
     },
     invoke: async (args, ctx) => {
       const params = new URLSearchParams();
-      for (const k of ["businessId", "campaignId", "state", "page", "perPage"]) {
+      for (const k of ["businessId", "campaignId", "page", "perPage"]) {
         if (args[k] !== undefined && args[k] !== null) params.set(k, String(args[k]));
       }
+      // The tool calls this filter `state`; GET /api/v1/submissions reads it
+      // as `status` (same values) and ignores a `state` parameter.
+      if (args.state !== undefined && args.state !== null) params.set("status", String(args.state));
       const qs = params.toString();
       return callRestApi(ctx.baseUrl, `/api/v1/submissions${qs ? `?${qs}` : ""}`, {
         authHeader: ctx.authHeader,

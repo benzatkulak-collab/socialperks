@@ -25,8 +25,9 @@ function formatSSE(event: string, data: unknown, id?: string): string {
 }
 
 function authenticateToken(token: string): { id: string; email: string; role: string; businessId: string | null } | null {
-  // Try JWT
-  const jwt = verifyJWT(token);
+  // Try JWT. Access tokens only: the 7-day refresh token is for minting a
+  // new access token, never a credential in its own right.
+  const jwt = verifyJWT(token, "access");
   if (jwt) {
     return { id: jwt.sub, email: jwt.email, role: jwt.role, businessId: jwt.businessId };
   }
@@ -43,7 +44,7 @@ function authenticateToken(token: string): { id: string; email: string; role: st
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const q = getQuery(req);
   const token = q.get("token");
-  const businessId = q.get("businessId") ?? undefined;
+  const requestedBusinessId = q.get("businessId");
 
   if (!token) {
     return err("MISSING_TOKEN", "token query parameter is required for SSE", 401);
@@ -54,9 +55,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return err("INVALID_TOKEN", "Invalid or expired token", 401);
   }
 
-  const encoder = new TextEncoder();
+  // Which events this stream may carry:
+  //   - a business: its own business's events only
+  //   - the founder (admin, no business): every event, or one business's
+  //   - anyone else: no business's events
+  // An event that names no business (e.g. `user.created`, which carries the
+  // new account's email) goes to the founder only.
+  const isFounder = user.role === "admin" && !user.businessId;
+  if (requestedBusinessId && !isFounder && requestedBusinessId !== user.businessId) {
+    return err("FORBIDDEN", "You can only stream your own business's events", 403);
+  }
+  const effectiveBusinessId: string | null = isFounder
+    ? requestedBusinessId
+    : user.businessId;
+  const forwards = (eventBusinessId: string | undefined): boolean => {
+    if (isFounder) return !effectiveBusinessId || eventBusinessId === effectiveBusinessId;
+    return !!effectiveBusinessId && eventBusinessId === effectiveBusinessId;
+  };
 
-  const effectiveBusinessId = businessId ?? user.businessId;
+  const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     start(controller) {
@@ -72,10 +89,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
       // Subscribe to the event publisher and forward matching events
       const unsubscribe = eventPublisher.subscribe((event) => {
-        // If the event targets a specific business, only forward if it matches
-        if (event.businessId && effectiveBusinessId && event.businessId !== effectiveBusinessId) {
-          return;
-        }
+        if (!forwards(event.businessId)) return;
         try {
           controller.enqueue(encoder.encode(formatSSE(event.type, event.data)));
         } catch {

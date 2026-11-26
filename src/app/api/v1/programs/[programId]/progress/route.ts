@@ -20,6 +20,7 @@ import {
   hydratePrograms,
   type ProgramTier,
 } from "@/lib/programs/store";
+import { requireOwnership } from "@/lib/security/owner";
 
 // ─── Route Context Type ─────────────────────────────────────────────────────
 
@@ -46,10 +47,10 @@ export const GET = withTiming(async (req: NextRequest, ctx?: unknown) => {
     return err("NOT_FOUND", `Program '${programId}' not found`, 404);
   }
 
-  // Tenant isolation: only the program owner can view progress
-  if (user.businessId && program.businessId !== user.businessId) {
-    return err("FORBIDDEN", "You do not have access to this program's progress", 403);
-  }
+  // Tenant isolation: only the program owner can view progress. Fails closed
+  // for a caller with no business.
+  const denied = requireOwnership(user, program.businessId);
+  if (denied) return denied;
 
   const params = getQuery(req);
   const memberId = params.get("memberId");

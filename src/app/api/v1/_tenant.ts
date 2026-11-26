@@ -11,7 +11,7 @@
  */
 
 import type { NextRequest, NextResponse } from "next/server";
-import { getUser, err, type AuthUser } from "./_shared";
+import { getUser, err, unauthenticated, type AuthUser } from "./_shared";
 import {
   getTenantContext,
   assertTenantAccess,
@@ -35,7 +35,7 @@ export function withTenant(
   // Step 1: Authenticate
   const user = getUser(req);
   if (!user) {
-    return err("NO_TOKEN", "Authentication required", 401);
+    return unauthenticated(req);
   }
 
   // Step 2: Derive tenant context

@@ -170,8 +170,8 @@ export const GET = withTiming(async (req: NextRequest) => {
     if (session) {
       expiresAt = new Date(session.expiresAt).toISOString();
     } else {
-      // Might be a JWT — get exp from payload
-      const jwt = verifyJWT(token);
+      // Might be a JWT — get exp from payload (access tokens only)
+      const jwt = verifyJWT(token, "access");
       if (jwt) {
         expiresAt = new Date(jwt.exp * 1000).toISOString();
       }
@@ -538,8 +538,8 @@ export const POST = withTiming(async (req: NextRequest) => {
         });
       }
 
-      // Try JWT
-      const jwt = verifyJWT(token);
+      // Try JWT. Access tokens only: a refresh token is not a session.
+      const jwt = verifyJWT(token, "access");
       if (jwt) {
         return ok({
           user: { id: jwt.sub, email: jwt.email, role: jwt.role, businessId: jwt.businessId },

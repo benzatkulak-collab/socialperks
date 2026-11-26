@@ -6,7 +6,7 @@
  * GET:  Return drip sequence status (how many users at each stage).
  */
 
-import type { NextRequest } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import { ok, err, getUser, rateLimit, withTiming } from "../_shared";
 import { emailProvider } from "@/lib/email";
 import {
@@ -27,16 +27,24 @@ import { createTimeBudget, cronTimeBudgetMs } from "@/lib/cron/time-budget";
 
 // -- Internal API Key Check ---------------------------------------------------
 
-function isAuthorized(req: NextRequest): boolean {
+/**
+ * The drip emails, and reports on, EVERY account, so only the scheduler and
+ * the founder may run it. Any signed-in account used to be enough. Returns an
+ * error response, or null when the caller may proceed.
+ */
+function authorize(req: NextRequest): NextResponse | null {
   // Internal API key (DRIP_API_KEY || INTERNAL_API_KEY || CRON_SECRET),
   // resolved the same way as the onboarding-drip cron that calls us.
   if (isInternalApiKey(req.headers.get("x-api-key"))) {
-    return true;
+    return null;
   }
 
-  // Check for authenticated user
   const user = getUser(req);
-  return user !== null;
+  if (!user) return err("UNAUTHORIZED", "Authentication or API key required", 401);
+  if (user.role !== "admin") {
+    return err("FORBIDDEN", "Only the scheduler or the founder can run the drip", 403);
+  }
+  return null;
 }
 
 // -- User Store Access --------------------------------------------------------
@@ -184,9 +192,8 @@ export const POST = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "strict");
   if (limited) return limited;
 
-  if (!isAuthorized(req)) {
-    return err("UNAUTHORIZED", "Authentication or API key required", 401);
-  }
+  const denied = authorize(req);
+  if (denied) return denied;
 
   const users = await fetchDripUsers();
   // Cold-start: load already-sent steps from Postgres so a fresh serverless
@@ -243,9 +250,8 @@ export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "standard");
   if (limited) return limited;
 
-  if (!isAuthorized(req)) {
-    return err("UNAUTHORIZED", "Authentication or API key required", 401);
-  }
+  const denied = authorize(req);
+  if (denied) return denied;
 
   const users = await fetchDripUsers();
 

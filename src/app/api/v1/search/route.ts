@@ -109,19 +109,30 @@ export const GET = withTiming(async (req: NextRequest) => {
   // Ensure data is indexed
   ensureIndexed();
 
-  // Execute search
-  const results = searchEngine.search(qv.data, {
+  // This route is anonymous, so it may only return what is public: campaigns
+  // that are live right now. The index is built once per process and goes
+  // stale, so each hit is checked against the campaign's current state, and
+  // drafts, paused, ended and unknown campaigns are dropped. That happens
+  // before the page is cut, so a page is never short because of it.
+  const matches = searchEngine.search(qv.data, {
     types,
-    limit,
-    offset,
+    limit: Number.MAX_SAFE_INTEGER,
+    offset: 0,
     fuzzyDistance,
   });
+  const live = matches.flatMap((r) => {
+    if (r.type !== "campaign") return [];
+    const campaign = campaignManager.getState(r.id);
+    if (!campaign || campaign.state !== "active") return [];
+    return [{ ...r, metadata: { state: campaign.state, businessId: campaign.businessId } }];
+  });
+  const results = live.slice(offset, offset + limit);
 
   const took = Math.round((performance.now() - start) * 100) / 100;
 
   return ok({
     results,
-    total: results.length,
+    total: live.length,
     query: qv.data,
     took,
   });

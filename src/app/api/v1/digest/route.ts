@@ -24,6 +24,11 @@ export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
+  // A digest holds one business's campaign names, submission counts and
+  // estimated value: only that business, or the founder, may preview it.
+  const user = requireAuth(req);
+  if (user instanceof NextResponse) return user;
+
   const params = getQuery(req);
   const businessId = params.get("businessId");
 
@@ -33,6 +38,10 @@ export const GET = withTiming(async (req: NextRequest) => {
 
   const bv = validateId(businessId);
   if (!bv.success) return err("INVALID_BUSINESS_ID", bv.error, 400);
+
+  if (user.role !== "admin" && user.businessId !== bv.data) {
+    return err("FORBIDDEN", "You can only preview your own business's digest", 403);
+  }
 
   // Build digest data (use businessId as placeholder name for preview)
   const businessName = params.get("businessName") ?? bv.data;
@@ -53,9 +62,13 @@ export const GET = withTiming(async (req: NextRequest) => {
 // ─── POST — Send weekly digests to all businesses with active campaigns ─────
 
 export const POST = withTiming(async (req: NextRequest) => {
-  // Auth required — only admins or cron should trigger mass sends
+  // Mails every business's digest, to addresses the body may supply: the
+  // founder only. (The weekly cron calls sendWeeklyDigests directly, not this.)
   const user = requireAuth(req);
   if (user instanceof NextResponse) return user;
+  if (user.role !== "admin") {
+    return err("FORBIDDEN", "Only the founder can send digests to every business", 403);
+  }
 
   const limited = rateLimit(req, "strict");
   if (limited) return limited;
