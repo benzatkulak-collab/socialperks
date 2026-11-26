@@ -20,6 +20,19 @@
 >   the Stripe price IDs go in as plain values; Netlify applies variables
 >   to builds and functions alike, so there are no separate build args.
 >   Changing a variable only takes effect on the next deploy.
+> - **Reading secrets back from Netlify** (found Nov 26, 2026): for a
+>   variable marked secret, `netlify env:get X --context production` (and
+>   the API) returns a 20-character stand-in, **not the real value**. Only
+>   the `dev` context returns the real one. Copying the "production" value
+>   of `CRON_SECRET` into GitHub gave every cron run a 401 "Invalid cron
+>   token". Before trusting a copied cron secret, test it without printing
+>   it: `S=$(netlify env:get CRON_SECRET --context dev)`, then
+>   `curl -H "Authorization: Bearer $S" https://socialperks.app/api/v1/cron/campaign-sweeps`
+>   should return 200 (it runs that day's sweep, which is harmless).
+> - **Don't deploy with `netlify deploy --build --prod` from a laptop.** The
+>   local build gets the same stand-in `DATABASE_URL` and fails with
+>   `[DB] FATAL: DATABASE_URL is malformed`. Use the **Deploy to Netlify**
+>   workflow, which builds on Netlify with the real values.
 > - **DNS (Cloudflare):** keep the records **DNS-only (grey cloud)**.
 >   Apex: `CNAME` to `apex-loadbalancer.netlify.com` (Cloudflare flattens
 >   it) or `A 75.2.60.5`. `www`: `CNAME` to `socialperks-app.netlify.app` (the project is `socialperks-app`; `socialperks` was taken).
@@ -182,7 +195,8 @@ crons. Switch the Northflank service's branch to `main`.
 
 ### 7. Turn on the crons
 In GitHub → Settings → Secrets and variables → Actions:
-1. Add the **secret** `CRON_SECRET` (same value as on the host).
+1. Add the **secret** `CRON_SECRET` (same value as on the host; on
+   Netlify, read it from the `dev` context, see the note at the top).
 2. Add the **variable** `CRON_BASE_URL` = `https://socialperks.app`.
 3. Actions → Cron → Run workflow → `campaign-sweeps` to confirm a 200.
 
