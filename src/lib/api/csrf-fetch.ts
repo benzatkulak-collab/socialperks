@@ -58,14 +58,90 @@ export interface ApiFetchOptions extends RequestInit {
   skipCsrf?: boolean;
 }
 
+// ─── Access-cookie renewal ──────────────────────────────────────────────────
+
+const AUTH_ROUTE = "/api/v1/auth";
+
+/**
+ * Refreshes are at least this far apart. The refresh shares POST
+ * /api/v1/auth, and so its rate limit, with sign-in: 5 a minute per address.
+ */
+const MIN_REFRESH_GAP_MS = 60_000;
+
+let refreshInFlight: Promise<boolean> | null = null;
+/** Refreshes that succeeded since this page loaded. */
+let refreshesDone = 0;
+let lastRefreshAt = -Infinity;
+
+/**
+ * A 401 from the auth route is its answer, not an expired cookie: a wrong
+ * password, a refused refresh, or a session check finding none.
+ */
+function isAuthRoute(input: string): boolean {
+  try {
+    return new URL(input, "http://localhost").pathname === AUTH_ROUTE;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get a new access cookie for a request that got 401. Resolves true when the
+ * request is worth repeating:
+ * - a refresh succeeded after the request was sent, so it carried the old
+ *   cookie: repeat it as it is;
+ * - otherwise one refresh, shared by every caller that asks while it runs,
+ *   and at most one a minute. A 401 within a minute of the last refresh is
+ *   either a refusal that will not change (the refresh cookie has gone too)
+ *   or not about the cookie at all, because the request carried a new one.
+ */
+function renewAccessCookie(refreshesBeforeRequest: number): Promise<boolean> {
+  if (refreshesDone !== refreshesBeforeRequest) return Promise.resolve(true);
+  if (refreshInFlight) return refreshInFlight;
+  if (Date.now() - lastRefreshAt < MIN_REFRESH_GAP_MS) return Promise.resolve(false);
+
+  refreshInFlight = fetch(AUTH_ROUTE, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "refresh" }),
+  })
+    .then(
+      (res) => res.ok,
+      () => false // offline or blocked: the caller still gets its own 401
+    )
+    .then((renewed) => {
+      lastRefreshAt = Date.now();
+      if (renewed) refreshesDone++;
+      return renewed;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
 /**
  * Authenticated, CSRF-aware fetch. Returns the raw Response — callers should
  * still check `res.ok`. For a throwing happy-path use `apiFetchJson`.
+ *
+ * On a 401 from anything but the auth route it renews the 15-minute access
+ * cookie with the 7-day refresh cookie and sends the request once more. When
+ * no renewal happens it returns the 401 as it came, for the caller to handle.
  */
 export async function apiFetch(
   input: string,
   init: ApiFetchOptions = {}
 ): Promise<Response> {
+  const refreshesBeforeRequest = refreshesDone;
+  const res = await send(input, init);
+  if (res.status !== 401 || isAuthRoute(input)) return res;
+  if (!(await renewAccessCookie(refreshesBeforeRequest))) return res;
+  return send(input, init);
+}
+
+/** One request: auth header, CSRF token for writes, and one CSRF retry. */
+async function send(input: string, init: ApiFetchOptions): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
   const needsCsrf = !init.skipCsrf && MUTATING_METHODS.has(method);
 
