@@ -25,6 +25,7 @@ import { findByCode, recordConversion } from "@/lib/referrals/codes";
 import {
   ensureUsersSeeded,
   getUserByEmail,
+  getUserById,
   hasUser,
   putUser,
   type UserRecord,
@@ -484,10 +485,30 @@ export const POST = withTiming(async (req: NextRequest) => {
         return err("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired", 401);
       }
 
-      const { tokens, headers } = buildCookieHeaders(payload.sub, payload.role, payload.email, payload.businessId);
+      // The client renews the access cookie on every 401, so this is where an
+      // open tab meets the account again. Answer from the account as it is
+      // now, as sign-in does, never from the token's own claims: otherwise a
+      // suspension or a role change would never reach a tab left open.
+      await ensureSeeded();
+      const account = getUserById(payload.sub);
+      if (!account) {
+        // Possibly deleted, possibly a server that failed to load the
+        // accounts table. Keep the cookie for a server that can answer.
+        return err("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired", 401);
+      }
+      if (account.suspendedAt) {
+        return err(
+          "ACCOUNT_SUSPENDED",
+          "This account has been suspended. Contact support.",
+          401,
+          clearCookieHeaders()
+        );
+      }
+
+      const { tokens, headers } = buildCookieHeaders(account.id, account.role, account.email, account.businessId);
       return ok(
         {
-          user: { id: payload.sub, email: payload.email, role: payload.role, businessId: payload.businessId },
+          user: { id: account.id, email: account.email, role: account.role, businessId: account.businessId },
           accessToken: tokens.accessToken,
         },
         200,
