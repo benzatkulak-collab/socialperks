@@ -25,6 +25,7 @@ import {
   type ProgramTier,
 } from "@/lib/programs/store";
 import { validateString, validateNumber, validateEnum } from "@/lib/security/validate";
+import { requireOwnership } from "@/lib/security/owner";
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 
@@ -43,10 +44,10 @@ export const GET = withTiming(async (req: NextRequest) => {
     return err("MISSING_BUSINESS_ID", "businessId query parameter is required", 400);
   }
 
-  // Tenant isolation: users can only list their own business's programs
-  if (user.businessId && user.businessId !== businessId) {
-    return err("FORBIDDEN", "You can only view your own business's programs", 403);
-  }
+  // Tenant isolation: only the business itself may list its programs. Fails
+  // closed for a caller with no business (influencer, admin, keyless agent).
+  const denied = requireOwnership(user, businessId);
+  if (denied) return denied;
 
   const { page, perPage } = paginate(params);
 
@@ -109,10 +110,9 @@ export const POST = withTiming(async (req: NextRequest) => {
     return err("MISSING_BUSINESS_ID", "businessId is required", 400);
   }
 
-  // Tenant isolation: users can only create programs for their own business
-  if (user.businessId && user.businessId !== businessId) {
-    return err("FORBIDDEN", "You can only create programs for your own business", 403);
-  }
+  // Tenant isolation: only the business itself may create its programs.
+  const denied = requireOwnership(user, businessId);
+  if (denied) return denied;
 
   const nameResult = validateString(name, "name", { min: 1, max: 200 });
   if (!nameResult.success) return err("INVALID_NAME", nameResult.error, 400);
