@@ -502,9 +502,12 @@ const TOOLS: Tool[] = [
     },
     invoke: async (args, ctx) => {
       const params = new URLSearchParams();
-      for (const k of ["businessId", "campaignId", "state", "page", "perPage"]) {
+      for (const k of ["businessId", "campaignId", "page", "perPage"]) {
         if (args[k] !== undefined && args[k] !== null) params.set(k, String(args[k]));
       }
+      // The tool calls this filter `state`; GET /api/v1/submissions reads it
+      // as `status` (same values) and ignores a `state` parameter.
+      if (args.state !== undefined && args.state !== null) params.set("status", String(args.state));
       const qs = params.toString();
       return callRestApi(ctx.baseUrl, `/api/v1/submissions${qs ? `?${qs}` : ""}`, {
         authHeader: ctx.authHeader,
