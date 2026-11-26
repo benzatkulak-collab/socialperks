@@ -27,8 +27,16 @@ import { ok, err } from "../../_shared";
 import { constantTimeEqual } from "@/lib/security/order-by";
 import { getInternalApiKey } from "@/lib/security/internal-key";
 import { logger } from "@/lib/logging";
+import { createTimeBudget } from "@/lib/cron/time-budget";
+
+// What this route keeps for itself after /drip answers: reading the JSON,
+// logging and responding, plus the hop back from the /drip function.
+const PROXY_HEADROOM_MS = 1_000;
 
 export async function GET(req: NextRequest) {
+  // Netlify Free stops a function at 10s, and this one waits on /drip
+  // inside that, so /drip gets what's left of our budget minus headroom.
+  const budget = createTimeBudget();
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     return err(
@@ -54,6 +62,7 @@ export async function GET(req: NextRequest) {
   let processed = 0;
   let sent = 0;
   let failed = 0;
+  let more = false;
   let errors: string[] = [];
 
   try {
@@ -62,11 +71,13 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": internalKey,
+        "x-cron-budget-ms": String(
+          Math.max(1, budget.remainingMs() - PROXY_HEADROOM_MS),
+        ),
       },
-      // 5-minute generous budget — drip is bursty but should never
-      // take that long. Aborts so a stuck send doesn't wedge the
-      // entire cron slot.
-      signal: AbortSignal.timeout(5 * 60 * 1000),
+      // /drip stops itself at the cron time budget (Netlify Free kills a
+      // function at 10s), so this only guards against a hung request.
+      signal: AbortSignal.timeout(9_000),
     });
 
     if (!res.ok) {
@@ -88,6 +99,7 @@ export async function GET(req: NextRequest) {
         processed: number;
         sent: number;
         failed: number;
+        more?: boolean;
         errors?: string[];
       };
     };
@@ -95,6 +107,7 @@ export async function GET(req: NextRequest) {
       processed = json.data.processed;
       sent = json.data.sent;
       failed = json.data.failed;
+      more = json.data.more === true;
       errors = json.data.errors ?? [];
     }
   } catch (e) {
@@ -119,6 +132,8 @@ export async function GET(req: NextRequest) {
     processed,
     sent,
     failed,
+    // The scheduler (.github/workflows/cron.yml) calls again while true.
+    more,
     // Only surface error details when there are some, and cap length so
     // a runaway upstream doesn't produce a huge response.
     errors: errors.length > 0 ? errors.slice(0, 50) : undefined,

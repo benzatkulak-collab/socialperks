@@ -9,6 +9,11 @@
  * header. We verify it. Without `CRON_SECRET` set, the route refuses
  * to run (so it can't be invoked from the public internet by mistake).
  *
+ * Time budget: Netlify Free stops a function after 10s, so sending stops
+ * once the cron time budget is spent. Only the entries a send was attempted
+ * for are marked; the response says `more: true` and the scheduler calls
+ * again for the rest.
+ *
  * Persistence: only operates against the DB-backed waitlist. The
  * in-memory fallback resets on every redeploy and is therefore not a
  * meaningful target for a daily nurture flow.
@@ -20,6 +25,7 @@ import { db, InMemoryConnection } from "@/lib/db/connection";
 import { sendDripBatch, type DripEntry } from "@/lib/email/waitlist-drip";
 import { logger } from "@/lib/logging";
 import { constantTimeEqual } from "@/lib/security/order-by";
+import { createTimeBudget } from "@/lib/cron/time-budget";
 
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -46,8 +52,10 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  const budget = createTimeBudget();
   let day3 = { sent: 0, failed: 0 };
   let day7 = { sent: 0, failed: 0 };
+  let more = false;
 
   try {
     // Day 3: between 3 and 4 days after createdAt, day3_sent_at IS NULL
@@ -72,15 +80,22 @@ export async function GET(req: NextRequest) {
       vertical: r.vertical,
       createdAt: r.created_at,
     }));
-    day3 = await sendDripBatch(day3Entries, "day3");
-    if (day3Entries.length > 0) {
+    const batch = await sendDripBatch(day3Entries, "day3", { budget });
+    day3 = { sent: batch.sent, failed: batch.failed };
+    if (batch.more) more = true;
+    if (batch.attempted.length > 0) {
       await db.query(
         `UPDATE waitlist SET day3_sent_at = NOW() WHERE email = ANY($1::text[])`,
-        [day3Entries.map((e) => e.email)],
+        [batch.attempted],
       );
     }
   } catch (e) {
     logger.error("waitlist drip day3 failed", { error: e instanceof Error ? e.message : String(e) });
+  }
+
+  if (budget.expired()) {
+    // No time left for day 7; the next call picks it up.
+    return ok({ ran: true, day3, day7, more: true });
   }
 
   try {
@@ -105,16 +120,18 @@ export async function GET(req: NextRequest) {
       vertical: r.vertical,
       createdAt: r.created_at,
     }));
-    day7 = await sendDripBatch(day7Entries, "day7");
-    if (day7Entries.length > 0) {
+    const batch = await sendDripBatch(day7Entries, "day7", { budget });
+    day7 = { sent: batch.sent, failed: batch.failed };
+    if (batch.more) more = true;
+    if (batch.attempted.length > 0) {
       await db.query(
         `UPDATE waitlist SET day7_sent_at = NOW() WHERE email = ANY($1::text[])`,
-        [day7Entries.map((e) => e.email)],
+        [batch.attempted],
       );
     }
   } catch (e) {
     logger.error("waitlist drip day7 failed", { error: e instanceof Error ? e.message : String(e) });
   }
 
-  return ok({ ran: true, day3, day7 });
+  return ok({ ran: true, day3, day7, more });
 }

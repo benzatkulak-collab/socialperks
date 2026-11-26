@@ -23,6 +23,7 @@ import { db, InMemoryConnection } from "@/lib/db/connection";
 import { campaignManager } from "@/lib/campaign-state-machine";
 import { getBusinessPlan } from "@/lib/billing/enforcement";
 import { isInternalApiKey } from "@/lib/security/internal-key";
+import { createTimeBudget, cronTimeBudgetMs } from "@/lib/cron/time-budget";
 
 // -- Internal API Key Check ---------------------------------------------------
 
@@ -164,9 +165,22 @@ async function fetchDripUsers(): Promise<DripUser[]> {
   return users;
 }
 
+/** The caller's remaining budget, if it sent one, capped at our own default. */
+function requestBudgetMs(req: NextRequest): number {
+  const fallback = cronTimeBudgetMs();
+  const asked = Number(req.headers.get("x-cron-budget-ms"));
+  return Number.isFinite(asked) && asked > 0 ? Math.min(asked, fallback) : fallback;
+}
+
 // -- POST /api/v1/drip -- Trigger Drip Check ----------------------------------
 
 export const POST = withTiming(async (req: NextRequest) => {
+  // Netlify Free stops a function after 10s. Each send is persisted as it
+  // goes, so stopping early is safe: report `more` and the onboarding-drip
+  // cron asks again. That cron waits on this request inside its own 10s, so
+  // it passes what's left of its budget in x-cron-budget-ms.
+  const budget = createTimeBudget(requestBudgetMs(req));
+
   const limited = rateLimit(req, "strict");
   if (limited) return limited;
 
@@ -181,11 +195,14 @@ export const POST = withTiming(async (req: NextRequest) => {
   await hydrateDripState();
   const dueEmails = getDueEmails(users);
 
+  let attempted = 0;
   let sent = 0;
   let failed = 0;
   const errors: string[] = [];
 
   for (const { user, step, stepIndex } of dueEmails) {
+    if (budget.expired()) break;
+    attempted++;
     const template = step.templateFn(user);
 
     // Strip HTML tags for plain-text fallback
@@ -212,9 +229,10 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   return ok({
-    processed: dueEmails.length,
+    processed: attempted,
     sent,
     failed,
+    more: attempted < dueEmails.length,
     errors: errors.length > 0 ? errors : undefined,
   });
 });

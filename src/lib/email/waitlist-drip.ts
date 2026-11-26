@@ -13,6 +13,7 @@
  */
 
 import { ConsoleEmailProvider, ResendEmailProvider, type EmailProvider } from "./index";
+import { UNLIMITED_BUDGET, type TimeBudget } from "@/lib/cron/time-budget";
 import { escapeHtml } from "@/lib/security/sanitize";
 
 export interface DripEntry {
@@ -99,12 +100,31 @@ If you want to keep getting these but we can drop the priority slot, no action n
 
 // ─── Runner ─────────────────────────────────────────────────────────────────
 
-export async function sendDripBatch(entries: DripEntry[], stage: "day3" | "day7"): Promise<{ sent: number; failed: number }> {
-  const provider = getProvider();
+export interface DripBatchResult {
+  sent: number;
+  failed: number;
+  /** Emails a send was attempted for (sent or failed), in order. Mark these so they aren't retried. */
+  attempted: string[];
+  /** True when the time budget ran out before every entry was attempted. */
+  more: boolean;
+}
+
+export async function sendDripBatch(
+  entries: DripEntry[],
+  stage: "day3" | "day7",
+  opts: { budget?: TimeBudget; provider?: EmailProvider } = {},
+): Promise<DripBatchResult> {
+  const provider = opts.provider ?? getProvider();
+  const budget = opts.budget ?? UNLIMITED_BUDGET;
   const template = stage === "day3" ? day3Template : day7Template;
   let sent = 0;
   let failed = 0;
+  const attempted: string[] = [];
   for (const entry of entries) {
+    // Stop before Netlify kills the function; the caller marks what was
+    // attempted and the scheduler calls again for the rest.
+    if (budget.expired()) break;
+    attempted.push(entry.email);
     try {
       const t = template(entry);
       const result = await provider.send({
@@ -119,7 +139,7 @@ export async function sendDripBatch(entries: DripEntry[], stage: "day3" | "day7"
       failed += 1;
     }
   }
-  return { sent, failed };
+  return { sent, failed, attempted, more: attempted.length < entries.length };
 }
 
 /**
