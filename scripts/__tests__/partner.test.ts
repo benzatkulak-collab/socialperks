@@ -63,6 +63,18 @@ describe("partner script", () => {
     expect(lastSql()).not.toMatch(/delete/i);
   });
 
+  it("revoke says Revoked when a grant was revoked", async () => {
+    const out = await run(["revoke", "--partner", P, "--business", "biz_1"]);
+    expect(out.stdout).toMatch(/Revoked biz_1/);
+  });
+
+  it("revoke fails loudly when no active grant was found", async () => {
+    query.mockResolvedValueOnce({ rows: [], rowCount: 0, duration: 0 });
+    await expect(run(["revoke", "--partner", P, "--business", "biz_1"])).rejects.toThrow(
+      `No active grant found for partner ${P} and business biz_1`,
+    );
+  });
+
   it("parseArgs rejects unknown commands and missing flags", () => {
     expect(() => parseArgs(["nope"])).toThrow(/usage/i);
     expect(() => parseArgs(["create"])).toThrow(/--name/);

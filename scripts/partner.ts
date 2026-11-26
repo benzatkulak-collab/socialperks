@@ -110,10 +110,13 @@ export async function run(argv: string[]): Promise<{ stdout: string }> {
     }
     case "revoke": {
       requireBizId(cmd.business);
-      await db.query(
+      const res = await db.query(
         "update partner_businesses set revoked_at = now() where partner_id = $1 and business_id = $2 and revoked_at is null",
         [cmd.partner, cmd.business],
       );
+      if (res.rowCount === 0) {
+        throw new Error(`No active grant found for partner ${cmd.partner} and business ${cmd.business}`);
+      }
       lines.push(`Revoked ${cmd.business} from partner ${cmd.partner}`);
       break;
     }
