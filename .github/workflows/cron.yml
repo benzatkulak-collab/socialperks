@@ -11,6 +11,10 @@
 # Until CRON_BASE_URL is set every run is a no-op, so merging this does
 # not start sending emails by itself.
 #
+# Netlify Free stops a function after 10 seconds, so long jobs stop at a
+# time budget (src/lib/cron/time-budget.ts) and answer `"more": true`; the
+# step below calls again until they're done.
+#
 # GitHub caveats: scheduled runs can start a few minutes late, and on a
 # public repo GitHub disables schedules after 60 days with no commits
 # (it emails a warning first; re-enable from the Actions tab).
@@ -75,8 +79,28 @@ jobs:
             exit 0
           fi
 
-          echo "GET $CRON_BASE_URL/api/v1/cron/$job"
-          curl --silent --show-error --fail-with-body --max-time 300 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$CRON_BASE_URL/api/v1/cron/$job"
-          echo
+          # Netlify Free stops a function after 10s, so the email jobs stop at
+          # a time budget and answer `"more": true` (plus a `cursor` for the
+          # weekly digest). Keep calling until they're done, up to MAX_CALLS.
+          # The pause keeps /api/v1/drip under its 5-requests-a-minute limit.
+          MAX_CALLS=20
+          cursor=""
+          for call in $(seq 1 "$MAX_CALLS"); do
+            url="$CRON_BASE_URL/api/v1/cron/$job"
+            if [ -n "$cursor" ]; then
+              url="$url?cursor=$(printf '%s' "$cursor" | jq -sRr @uri)"
+            fi
+            echo "GET $url (call $call)"
+            if ! body=$(curl --silent --show-error --fail-with-body --max-time 30 \
+                -H "Authorization: Bearer $CRON_SECRET" "$url"); then
+              echo "$body"
+              exit 1
+            fi
+            echo "$body"
+            if [ "$(printf '%s' "$body" | jq -r '.data.more // false')" != "true" ]; then
+              exit 0
+            fi
+            cursor=$(printf '%s' "$body" | jq -r '.data.cursor // empty')
+            sleep 13
+          done
+          echo "::warning::$job still had work after $MAX_CALLS calls; the next scheduled run picks it up."

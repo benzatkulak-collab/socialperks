@@ -10,6 +10,10 @@
  * `Authorization: Bearer ${CRON_SECRET}`. Without CRON_SECRET set the route
  * refuses to run, so it can't be triggered anonymously and won't email anyone
  * until an operator explicitly configures it.
+ *
+ * Time budget: Netlify Free stops a function after 10s. The run stops at the
+ * cron time budget and returns `more: true` plus a `cursor`; the scheduler
+ * calls again with `?cursor=<id>` to carry on after that business.
  */
 
 import type { NextRequest } from "next/server";
@@ -17,6 +21,7 @@ import { ok, err } from "../../_shared";
 import { constantTimeEqual } from "@/lib/security/order-by";
 import { logger } from "@/lib/logging";
 import { sendWeeklyDigests } from "@/lib/email/send-weekly-digests";
+import { createTimeBudget } from "@/lib/cron/time-budget";
 
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -33,7 +38,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await sendWeeklyDigests();
+    const after = req.nextUrl.searchParams.get("cursor") ?? undefined;
+    const result = await sendWeeklyDigests({ budget: createTimeBudget(), after });
     logger.info("weekly-digest cron complete", { ...result });
     return ok(result);
   } catch (e) {
