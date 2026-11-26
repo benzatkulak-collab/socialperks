@@ -16,7 +16,6 @@ import {
   paginate,
   withTiming,
 } from "../_shared";
-import { withTenant } from "../_tenant";
 import { recordUsage } from "@/lib/multi-tenant/isolation";
 import { createSubmission, getSubmissions, getSubmissionById, hydrateSubmissions } from "@/lib/submissions";
 import type { SubmissionFilters } from "@/lib/submissions";
@@ -35,14 +34,17 @@ export const GET = withTiming(async (req: NextRequest) => {
   const limited = rateLimit(req, "relaxed");
   if (limited) return limited;
 
+  // A submission carries the proof URL, the submitter's id and, from the
+  // public /c form, the customer's email and name in `metadata`. The list is
+  // never anonymous. Who sees what:
+  //   - a business (or its API key): submissions on its own campaigns
+  //   - the founder (role "admin", no business): every submission
+  //   - any other account (influencer, customer): its own submissions
+  const user = requireAuth(req);
+  if (user instanceof NextResponse) return user;
+
   const params = getQuery(req);
   const { page, perPage } = paginate(params);
-
-  // ── Tenant isolation: scope to authenticated tenant's campaigns ────────
-  const tenantResult = withTenant(req);
-  const tenantBusinessId = !(tenantResult instanceof NextResponse)
-    ? tenantResult.tenant.tenantId
-    : null;
 
   // Build filters from query params
   const filters: SubmissionFilters = {};
@@ -51,43 +53,15 @@ export const GET = withTiming(async (req: NextRequest) => {
   if (campaignId) {
     const v = validateId(campaignId);
     if (!v.success) return err("INVALID_CAMPAIGN_ID", v.error, 400);
-
-    // If authenticated, verify the campaign belongs to the tenant. Cold-start:
-    // load the campaign from durable storage FIRST and DENY when it's unknown —
-    // otherwise a fresh lambda's empty manager makes getState return undefined,
-    // the ownership check is skipped, and the caller can read another business's
-    // submissions (proof URLs + customer emails). Deny on missing, not fall-through.
-    if (tenantBusinessId) {
-      const campaign = await ensureCampaignLoaded(v.data);
-      if (!campaign || campaign.businessId !== tenantBusinessId) {
-        return err("TENANT_ACCESS_DENIED", "Cannot access submissions for another business's campaign", 403);
-      }
-    }
-
     filters.campaignId = v.data;
   }
 
-  const businessId = params.get("businessId");
-  if (businessId) {
-    const v = validateId(businessId);
+  let businessId: string | null = null;
+  const businessParam = params.get("businessId");
+  if (businessParam) {
+    const v = validateId(businessParam);
     if (!v.success) return err("INVALID_BUSINESS_ID", v.error, 400);
-
-    // Enforce: authenticated tenants can only query their own business
-    if (tenantBusinessId && tenantBusinessId !== v.data) {
-      return err("TENANT_ACCESS_DENIED", "Cannot access submissions for another business", 403);
-    }
-  }
-
-  // If tenant is authenticated and no campaign/business filter was given,
-  // scope submissions to campaigns owned by this tenant by collecting
-  // the tenant's campaign IDs and filtering post-query.
-  let tenantCampaignIds: Set<string> | null = null;
-  if (tenantBusinessId && !campaignId && !businessId) {
-    // Cold-start: hydrate the tenant's durable campaigns so the scope set isn't
-    // empty (which would silently hide the entire review queue after a redeploy).
-    await ensureBusinessCampaignsLoaded(tenantBusinessId);
-    const tenantCampaigns = campaignManager.listByBusiness(tenantBusinessId);
-    tenantCampaignIds = new Set(tenantCampaigns.map((c) => c.id));
+    businessId = v.data;
   }
 
   const userId = params.get("userId");
@@ -111,24 +85,45 @@ export const GET = withTiming(async (req: NextRequest) => {
     filters.actionId = v.data;
   }
 
+  if (user.businessId) {
+    // A business, or an API key for one: only its own campaigns' submissions.
+    const ownBusinessId = user.businessId;
+    recordUsage(ownBusinessId, "api_calls");
+
+    if (businessId && businessId !== ownBusinessId) {
+      return err("TENANT_ACCESS_DENIED", "Cannot access submissions for another business", 403);
+    }
+
+    // Cold-start: load the campaign from durable storage FIRST and DENY when
+    // it's unknown — a fresh lambda's empty manager must not turn into a
+    // skipped ownership check.
+    if (filters.campaignId) {
+      const campaign = await ensureCampaignLoaded(filters.campaignId);
+      if (!campaign || campaign.businessId !== ownBusinessId) {
+        return err("TENANT_ACCESS_DENIED", "Cannot access submissions for another business's campaign", 403);
+      }
+    }
+
+    filters.campaignIds = await campaignIdsOf(ownBusinessId);
+  } else if (user.role === "admin") {
+    // The founder: every submission, narrowed to one business if asked.
+    if (businessId) filters.campaignIds = await campaignIdsOf(businessId);
+  } else {
+    // No business: only the caller's own submissions.
+    if (filters.userId && filters.userId !== user.id) {
+      return err("FORBIDDEN", "You can only list your own submissions", 403);
+    }
+    filters.userId = user.id;
+    if (businessId) filters.campaignIds = await campaignIdsOf(businessId);
+  }
+
   // Cold-start: rehydrate the in-memory cache from durable storage so a fresh
   // serverless instance doesn't report an empty submission list / zero earnings.
   await hydrateSubmissions();
 
-  let result = getSubmissions(filters, page, perPage);
-
-  // Post-filter: scope to tenant's campaigns if needed
-  if (tenantCampaignIds) {
-    const filtered = result.submissions.filter((s) =>
-      tenantCampaignIds!.has(s.campaignId)
-    );
-    result = {
-      ...result,
-      submissions: filtered,
-      total: filtered.length,
-      totalPages: Math.ceil(filtered.length / perPage),
-    };
-  }
+  // Scope and filters are applied before pagination, so pages and totals
+  // count only what this caller may see.
+  const result = getSubmissions(filters, page, perPage);
 
   return ok({
     submissions: result.submissions,
@@ -138,6 +133,16 @@ export const GET = withTiming(async (req: NextRequest) => {
     totalPages: result.totalPages,
   });
 });
+
+/**
+ * The ids of a business's campaigns. Cold-start: loads its durable campaigns
+ * first, so the set isn't empty (which would hide its whole review queue
+ * after a redeploy).
+ */
+async function campaignIdsOf(businessId: string): Promise<Set<string>> {
+  await ensureBusinessCampaignsLoaded(businessId);
+  return new Set(campaignManager.listByBusiness(businessId).map((c) => c.id));
+}
 
 // ─── POST ───────────────────────────────────────────────────────────────────
 

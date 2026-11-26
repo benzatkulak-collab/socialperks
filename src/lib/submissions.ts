@@ -87,6 +87,11 @@ export interface SubmissionFilters {
   userId?: string;
   status?: SubmissionStatus;
   actionId?: string;
+  /**
+   * Keep only submissions on these campaigns. Applied before pagination, so a
+   * caller scoped to its own campaigns gets correct pages and totals.
+   */
+  campaignIds?: ReadonlySet<string>;
 }
 
 export interface PaginatedSubmissions {
@@ -511,6 +516,10 @@ export function getSubmissions(
   }
   if (filters.actionId) {
     results = results.filter((s) => s.actionId === filters.actionId);
+  }
+  if (filters.campaignIds) {
+    const allowed = filters.campaignIds;
+    results = results.filter((s) => allowed.has(s.campaignId));
   }
 
   // Sort by submittedAt descending
