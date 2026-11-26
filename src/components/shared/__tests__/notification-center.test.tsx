@@ -34,7 +34,7 @@ it("counts a submission that arrives on the stream as unread", async () => {
 
   act(() => {
     FakeEventSource.latest().emit("connected", {});
-    FakeEventSource.latest().emit("submission.created", { submissionId: "sub_test_1", campaignName: "Test Latte Week" });
+    FakeEventSource.latest().emit("submission.created", { submissionId: "sub_test_1", campaignId: "cmp_test_1", campaignName: "Test Latte Week" });
   });
 
   expect(screen.getByRole("button", { name: "Notifications (1 unread)" })).toBeInTheDocument();

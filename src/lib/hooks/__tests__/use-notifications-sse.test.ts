@@ -41,7 +41,7 @@ it("connects with the sign-in cookie, with no token handed to it, and lists a ne
   expect(result.current.connected).toBe(true);
 
   act(() =>
-    FakeEventSource.latest().emit("submission.created", { submissionId: "sub_test_1", campaignName: "Test Latte Week" }),
+    FakeEventSource.latest().emit("submission.created", { submissionId: "sub_test_1", campaignId: "cmp_test_1", campaignName: "Test Latte Week" }),
   );
   expect(result.current.notifications).toHaveLength(1);
   expect(result.current.notifications[0].message).toBe("New submission for Test Latte Week");
@@ -71,4 +71,36 @@ it("does not connect while it is turned off", async () => {
   renderHook(() => useNotificationsSSE({ enabled: false }));
   await act(async () => {});
   expect(apiFetchMock).not.toHaveBeenCalled();
+});
+
+/**
+ * Since #250 only a business (and the founder) receives events, so the bell
+ * speaks to the business. Its approvals and rejections are its own decisions
+ * on its customers' submissions, and the events carry no perk amount.
+ */
+it("tells the business a submission was approved, with no amount it does not have", async () => {
+  const { result } = renderHook(() => useNotificationsSSE({ businessId: "biz_test_alpha" }));
+  await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+  act(() =>
+    FakeEventSource.latest().emit("submission.approved", { submissionId: "sub_test_1", decision: "approve", campaignName: "Test Latte Week" }),
+  );
+  const message = result.current.notifications[0]?.message ?? "";
+  expect(message).toBe("Submission approved for Test Latte Week");
+  expect(message).not.toContain("$");
+});
+
+it("tells the business a submission was not approved", async () => {
+  const { result } = renderHook(() => useNotificationsSSE({ businessId: "biz_test_alpha" }));
+  await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+  act(() =>
+    FakeEventSource.latest().emit("submission.rejected", { submissionId: "sub_test_1", decision: "reject", campaignName: "Test Latte Week" }),
+  );
+  expect(result.current.notifications[0]?.message).toBe("Submission for Test Latte Week was not approved");
+});
+
+it("says \"a campaign\" when an event names none", async () => {
+  const { result } = renderHook(() => useNotificationsSSE({ businessId: "biz_test_alpha" }));
+  await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+  act(() => FakeEventSource.latest().emit("submission.created", { submissionId: "sub_test_1", campaignId: "cmp_test_1" }));
+  expect(result.current.notifications[0]?.message).toBe("New submission for a campaign");
 });

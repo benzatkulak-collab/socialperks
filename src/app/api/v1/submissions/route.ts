@@ -229,8 +229,14 @@ export const POST = withTiming(async (req: NextRequest) => {
       });
   }
 
-  const campaignBusinessId = campaignManager.getState(cv.data)?.businessId;
-  eventPublisher.publish("submission.created", { submissionId: result.data!.id, campaignId: cv.data }, campaignBusinessId);
+  const campaignState = campaignManager.getState(cv.data);
+  const campaignBusinessId = campaignState?.businessId;
+  // The campaign's name, as stored, so the business's bell can say which campaign.
+  eventPublisher.publish(
+    "submission.created",
+    { submissionId: result.data!.id, campaignId: cv.data, campaignName: campaignState?.name },
+    campaignBusinessId,
+  );
 
   // Record usage: submission received against the campaign owner's tenant
   if (campaignBusinessId) {

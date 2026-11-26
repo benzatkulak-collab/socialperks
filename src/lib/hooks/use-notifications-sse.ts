@@ -39,12 +39,14 @@ function eventToNotification(eventType: string, data: Record<string, unknown>): 
         timestamp,
         read: false,
       };
+    // Only a business (and the founder) receives events since #250, so the
+    // bell speaks to the business: an approval is its own decision on a
+    // customer's submission, and the event carries no perk amount.
     case "submission.approved":
       return {
         id,
         type: eventType,
-        message: `Your submission was approved! +$${(data.perkValue as number) ?? (data.value as number) ?? 0}`,
-        value: (data.perkValue as number) ?? (data.value as number) ?? undefined,
+        message: `Submission approved for ${(data.campaignName as string) || "a campaign"}`,
         campaignName: (data.campaignName as string) || undefined,
         timestamp,
         read: false,
