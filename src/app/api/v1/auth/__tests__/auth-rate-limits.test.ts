@@ -68,4 +68,10 @@ describe("auth route rate limits", () => {
     for (let i = 0; i < 5; i++) expect((await POST(post(ip, "not json"))).status).toBe(400);
     expect((await POST(login(ip))).status).toBe(429);
   });
+
+  it("a JSON null body counts as a sign-in attempt", async () => {
+    const ip = "10.79.0.5";
+    for (let i = 0; i < 5; i++) expect((await POST(post(ip, "null"))).status).toBe(400);
+    expect((await POST(login(ip))).status).toBe(429);
+  });
 });

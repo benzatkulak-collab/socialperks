@@ -291,6 +291,11 @@ export const POST = withTiming(async (req: NextRequest) => {
     referralCode?: string;
   }>(req);
   if (body instanceof Response) return rateLimit(req, "strict") ?? body;
+  // A JSON body that is not an object (null, a number, a string) is counted
+  // like any other sign-in attempt, then refused.
+  if (body === null || typeof body !== "object") {
+    return rateLimit(req, "strict") ?? err("INVALID_BODY", "Request body must be a JSON object", 400);
+  }
 
   const action = body.action ?? "login";
 
