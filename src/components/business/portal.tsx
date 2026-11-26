@@ -85,11 +85,13 @@ const REWARD_OPTIONS = [
 export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProps) {
   // Initial tab can be set via `?tab=analytics` so direct /analytics
   // redirects can land on the right view rather than the dashboard.
-  const initialPage: "home" | "analytics" =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("tab") === "analytics"
-      ? "analytics"
-      : "home";
+  // `?tab=submissions&submission=<id>` opens Submissions on one submission
+  // (a partner's "open it" link).
+  const linkParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const linkedTab = linkParams?.get("tab");
+  const linkedSubmission = linkedTab === "submissions" ? linkParams?.get("submission") ?? undefined : undefined;
+  const initialPage: "home" | "analytics" | "submissions" =
+    linkedTab === "analytics" ? "analytics" : linkedTab === "submissions" ? "submissions" : "home";
   const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics" | "submissions">(initialPage);
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
 
@@ -695,6 +697,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
             <PortalSubmissions
               campaigns={myCampaigns}
               onPendingCount={setPendingSubmissions}
+              highlightId={linkedSubmission}
             />
           </SectionErrorBoundary>
         )}

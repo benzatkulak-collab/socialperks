@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,16 @@ function formatDate(iso: string): string {
   });
 }
 
+// useSearchParams needs a Suspense boundary for static rendering.
 export default function AdminSubmissionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminSubmissionsContent />
+    </Suspense>
+  );
+}
+
+function AdminSubmissionsContent() {
   const user = useAdminUser();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +85,26 @@ export default function AdminSubmissionsPage() {
   }, [search, statusFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // A partner's link: /admin/submissions?submission=<id>. Open that submission's
+  // drawer once per id: from the loaded list, otherwise through the read-one route.
+  const linkedId = useSearchParams()?.get("submission") ?? null;
+  const openedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkedId || loading || openedFor.current === linkedId) return;
+    openedFor.current = linkedId;
+    const inList = submissions.find((s) => s.id === linkedId);
+    if (inList) { setDetailSub(inList); return; }
+    void (async () => {
+      try {
+        const res = await fetch(`/api/v1/admin/submissions?id=${encodeURIComponent(linkedId)}`, { credentials: "include" });
+        const json = await res.json();
+        if (json?.success && json.data?.submission) setDetailSub(json.data.submission as Submission);
+      } catch {
+        // an unknown or unreachable id leaves the list as it is
+      }
+    })();
+  }, [linkedId, loading, submissions]);
 
   const toggleSelect = (id: string) => {
     const next = new Set(selected);
