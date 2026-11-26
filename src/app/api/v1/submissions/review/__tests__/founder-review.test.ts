@@ -29,6 +29,7 @@ import { getWallet, clearStore as clearWallets } from "@/lib/perk-wallet";
 import { getUsageSummary, recordCompletion, _resetUsage } from "@/lib/billing/enforcement";
 import { emailProvider, type EmailMessage } from "@/lib/email";
 import { _peekRecentAuditEntries, _resetAuditLog } from "@/lib/audit-log";
+import { eventPublisher } from "@/lib/realtime/publisher";
 
 const OWNER_BIZ = "biz_test_owner";
 const OTHER_BIZ = "biz_test_other";
@@ -121,6 +122,8 @@ afterEach(() => {
 
 describe("POST /api/v1/submissions/review — the founder", () => {
   it("approves a business's submission, booked to that business as if it had approved it", async () => {
+    const published = vi.spyOn(eventPublisher, "publish");
+
     const { status, json } = await review(FOUNDER, { submissionId, decision: "approve" });
 
     expect(status).toBe(200);
@@ -129,6 +132,8 @@ describe("POST /api/v1/submissions/review — the founder", () => {
     expect(getWallet(CUSTOMER, OWNER_BIZ).perks).toHaveLength(1);
     expect(getUsageSummary(OWNER_BIZ).completions.used).toBe(1);
     expect(sent.map((m) => m.to)).toEqual([CUSTOMER_EMAIL]);
+    // The business's own live stream hears about it, as for its own review.
+    expect(published).toHaveBeenCalledWith("submission.approved", { submissionId, decision: "approve" }, OWNER_BIZ);
   });
 
   it("rejects one and saves the reason", async () => {
@@ -146,6 +151,9 @@ describe("POST /api/v1/submissions/review — the founder", () => {
     });
     expect(getWallet(CUSTOMER, OWNER_BIZ).perks).toHaveLength(0);
     expect(getUsageSummary(OWNER_BIZ).completions.used).toBe(0);
+    expect(adminReviews()).toEqual([
+      expect.objectContaining({ actor: "user:usr_test_founder", meta: { decision: "reject", campaignId: CAMPAIGN } }),
+    ]);
   });
 
   it("is held to the business's monthly completion limit, as the business is", async () => {
@@ -156,6 +164,16 @@ describe("POST /api/v1/submissions/review — the founder", () => {
     expect(status).toBe(403);
     expect(json.error.code).toBe("PLAN_LIMIT_EXCEEDED");
     expect(getSubmissionById(submissionId)?.status).toBe("pending");
+    expect(adminReviews()).toEqual([]); // refused, so nothing was reviewed
+  });
+
+  it("cannot review a submission twice, and only the review that happened is audited", async () => {
+    await review(FOUNDER, { submissionId, decision: "approve" });
+    const { status, json } = await review(FOUNDER, { submissionId, decision: "reject" });
+
+    expect(status).toBe(400);
+    expect(json.error.code).toBe("ALREADY_REVIEWED");
+    expect(adminReviews().map((e) => e.meta)).toEqual([{ decision: "approve", campaignId: CAMPAIGN }]);
   });
 
   it("writes the review to the audit log, naming the founder, the business and the decision", async () => {
