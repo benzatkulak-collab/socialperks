@@ -14,7 +14,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+  # No PR write access: nothing here comments on PRs (bot comments emailed the owner).
 
 env:
   NODE_VERSION: "22"
@@ -133,4 +133,4 @@ jobs:
         with:
           fail-on-severity: high
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, SSPL-1.0
-          comment-summary-in-pr: always
+          comment-summary-in-pr: never
