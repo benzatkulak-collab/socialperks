@@ -17,9 +17,10 @@
  *     browser has: EventSource sends no headers, and page scripts cannot read
  *     the HttpOnly cookie), `Authorization: Bearer`, or `x-api-key`.
  *
- * Answers: 200 and the stream; 204 No Content when the caller may receive no
- * events (204 also tells an EventSource to stop reconnecting); 401 not signed
- * in; 403 asking for another business's events.
+ * Answers: 200 and the stream; 204 No Content when this server streams
+ * nothing (REALTIME_EVENTS, see src/lib/realtime/switch.ts) or the caller may
+ * receive no events (204 also tells an EventSource to stop reconnecting);
+ * 401 not signed in; 403 asking for another business's events.
  *
  * Does NOT use withTiming — sets up a ReadableStream directly.
  */
@@ -29,6 +30,7 @@ import { NextResponse } from "next/server";
 import { authenticate, err, getQuery, unauthenticated, type Authenticated } from "../_shared";
 import { verifyJWT, sessionStore } from "@/lib/auth";
 import { eventPublisher } from "@/lib/realtime/publisher";
+import { realtimeEventsEnabled } from "@/lib/realtime/switch";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -61,7 +63,7 @@ function authenticateToken(token: string): Authenticated | null {
   return null;
 }
 
-/** No content: there is nothing this caller may receive. */
+/** No content: realtime is off here, or there is nothing this caller may receive. */
 function noStream(): NextResponse {
   return new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 }
@@ -77,6 +79,8 @@ type Decision =
 
 /** Everything GET checks before it opens a stream, for GET and HEAD alike. */
 function decide(req: NextRequest): Decision {
+  if (!realtimeEventsEnabled()) return { stream: false, response: noStream() };
+
   const q = getQuery(req);
   const token = q.get("token");
   const requestedBusinessId = q.get("businessId");

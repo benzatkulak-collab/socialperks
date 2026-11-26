@@ -47,6 +47,15 @@
 > - **Crons** stay in `.github/workflows/cron.yml` (step 7 below).
 > - Runtime is serverless (Lambda), like Vercel: cold starts come back,
 >   and in-memory rate limits are per instance.
+> - **The realtime stream is off here** (`GET /api/v1/events` answers
+>   204, and the portals' live dot and bell stay quiet). A stream keeps
+>   its function running for as long as the tab stays open, billed as
+>   compute (10 credits per GB-hour), and it would hardly ever carry an
+>   event: the publisher is in-process memory, and a Lambda instance
+>   runs one request at a time, so the requests that publish (new
+>   submissions, campaign changes) run on other instances.
+>   `REALTIME_EVENTS=on` turns it on; unset, production streams nothing
+>   (`src/lib/realtime/switch.ts`).
 
 Ben's Vercel Hobby account is over its free limits (Fluid Active CPU 4h 52m
 of 4h, Functions Storage 10.3 of 10 GB). Social Perks moves to a free
@@ -260,7 +269,8 @@ Rollback until step 10 is done: point the DNS records back to Vercel.
 - **Vercel Analytics stops.** Use PostHog for traffic.
 - **Logs** are in Northflank's log viewer, as the same JSON lines on stdout.
 - **Long-lived connections** like the `/api/v1/events` SSE stream are no
-  longer capped by a function timeout.
+  longer capped by a function timeout. Set `REALTIME_EVENTS=on` there:
+  production streams nothing unless it is set.
 - **Rate-limit IP spoofing.** `cf-connecting-ip` can be spoofed if someone
   calls the `*.code.run` origin directly, bypassing Cloudflare. The old
   `x-real-ip` had the same weakness.
