@@ -10,7 +10,7 @@ import { partnerWeekResponse } from "@/lib/partners/schemas";
 import { internalError, partnerErr, partnerGate, partnerOk } from "@/lib/partners/http";
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const gate = await partnerGate(req);
+  const gate = await partnerGate(req, "partner-week");
   if ("response" in gate) return gate.response;
 
   const q = new URL(req.url).searchParams;

@@ -73,13 +73,6 @@ describe("authentication", () => {
       expect(businessWeeks).not.toHaveBeenCalled();
     });
   }
-  it("401s with no key, a business sp_live_ key, and a revoked key (real authenticator contract)", async () => {
-    // authenticatePartner itself is covered in auth.test.ts; here the route must pass the request through.
-    await listBusinesses(get("/businesses", "sp_live_0123abcd_" + "0".repeat(32)));
-    expect(auth.mock.calls[0][0].headers.get("authorization")).toMatch(/^Bearer sp_live_/);
-    auth.mockResolvedValue({ ok: false });
-    expect((await listBusinesses(get("/businesses", null))).status).toBe(401);
-  });
 });
 
 describe("rate limit comes first", () => {
@@ -97,6 +90,17 @@ describe("rate limit comes first", () => {
   it("uses the standard tier", async () => {
     await listBusinesses(get("/businesses"));
     expect(checkRateLimit.mock.calls[0][2]).toBe("standard");
+  });
+  it("buckets by a fixed route name, so varying the id from one IP shares one limit", async () => {
+    const headers = { authorization: `Bearer ${KEY}`, "x-nf-client-connection-ip": "203.0.113.9" };
+    for (const id of ["biz_a", "biz_b", "biz_c"]) {
+      await week(new NextRequest(`http://localhost/api/v1/partner/businesses/${id}/week?${W}`, { headers }), weekCtx(id));
+    }
+    const keys = checkRateLimit.mock.calls.map((c) => c.slice(0, 3));
+    expect(keys).toEqual(Array(3).fill(["203.0.113.9", "partner-week", "standard"]));
+    await listBusinesses(get("/businesses"));
+    await overview(get(`/overview?${W}`));
+    expect(checkRateLimit.mock.calls.slice(3).map((c) => c[1])).toEqual(["partner-businesses", "partner-overview"]);
   });
   it("rate-limits an unauthenticated request before auth runs", async () => {
     const order: string[] = [];

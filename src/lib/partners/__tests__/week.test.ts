@@ -4,6 +4,7 @@ const dbQuery = vi.fn();
 vi.mock("@/lib/db/connection", () => ({ db: { query: (...a: unknown[]) => dbQuery(...a) } }));
 
 import { businessWeeks, grantedBusinesses } from "../week";
+import { businessWeekSchema, partnerBusinessesResponse } from "../schemas";
 
 const FROM = new Date("2026-11-19T05:00:00Z");
 const TO = new Date("2026-11-26T05:00:00Z");
@@ -106,6 +107,7 @@ describe("businessWeeks", () => {
     expect(week.submissions.byPlatform.Other).toBe(1);
     expect(week.submissions.waitingNow).toBe(4);
     expect(week.submissions.oldestWaitingSince).toBe("2026-11-01T10:00:00.000Z");
+    expect(businessWeekSchema.parse(week)).toEqual(week); // real output satisfies the response schema
     expect(week.latest).toEqual([
       {
         id: "sub_9", submittedAt: "2026-11-25T10:00:00.000Z", status: "pending",
@@ -116,6 +118,12 @@ describe("businessWeeks", () => {
         },
       },
     ]);
+  });
+
+  it("an empty week (no rows at all) still satisfies the response schema", async () => {
+    feed({ businesses: biz });
+    const [week] = await businessWeeks("p1", "all", { from: FROM, to: TO }, 10);
+    expect(businessWeekSchema.parse(week)).toEqual(week);
   });
 
   it("falls back to free, and enterprise has a null limit", async () => {
@@ -212,6 +220,7 @@ describe("grantedBusinesses", () => {
       { id: "biz_1", name: "Test Cafe", plan: "starter", planStatus: "active", grantedAt: "2026-11-20T00:00:00.000Z" },
       { id: "biz_2", name: "Other", plan: "free", planStatus: null, grantedAt: "2026-11-21T00:00:00.000Z" },
     ]);
+    expect(partnerBusinessesResponse.parse({ businesses: list })).toEqual({ businesses: list });
     expect(sqls()[0]).toMatch(/join partner_businesses pb on pb.business_id = .* and pb.partner_id = \$1 and pb.revoked_at is null/i);
     expect(dbQuery.mock.calls[0][1][0]).toBe("p1");
   });

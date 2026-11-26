@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const SRC = path.resolve(__dirname, "../../..");
+const SHARED = path.resolve(SRC, "../packages/shared/src"); // tsconfig: "@social-perks/shared/*"
 const EXTS = [".ts", ".tsx"];
 
 type Fs = { read: (f: string) => string; isFile: (f: string) => boolean };
@@ -17,14 +18,17 @@ const realFs: Fs = {
 export function resolveModule(spec: string, fromFile: string, host: Fs = realFs): string | null {
   let base: string;
   if (spec.startsWith("@/")) base = path.join(SRC, spec.slice(2));
+  else if (spec.startsWith("@social-perks/shared/")) base = path.join(SHARED, spec.slice("@social-perks/shared/".length));
   else if (spec.startsWith(".")) base = path.resolve(path.dirname(fromFile), spec);
-  else return null; // a package, not ours
+  else if (spec.startsWith("@social-perks/")) throw new Error(`unknown workspace alias "${spec}" in ${fromFile}`);
+  else return null; // a package from node_modules, not ours
   for (const ext of EXTS) if (host.isFile(base + ext)) return base + ext;
   for (const ext of EXTS) {
     const idx = path.join(base, "index" + ext);
     if (host.isFile(idx)) return idx;
   }
-  return null;
+  // Fail closed: an import of ours that cannot be resolved is a hole in the walk.
+  throw new Error(`cannot resolve "${spec}" imported from ${fromFile}`);
 }
 
 const IMPORT_RE = /(?:\bimport|\bexport)\s+(?:type\s+)?(?:[\w*{}\s,$]+?\s+from\s+)?["']([^"']+)["']|\bimport\(\s*["']([^"']+)["']\s*\)|\brequire\(\s*["']([^"']+)["']\s*\)/g;
@@ -102,5 +106,15 @@ describe("partner modules stay off whole-table loaders", () => {
       const r = reachableModules([fake], overlay({ [fake]: form }));
       expect(FORBIDDEN.some((f) => r.has(f)), form).toBe(true);
     }
+  });
+
+  it("fails closed on an unresolvable specifier and resolves the shared alias", () => {
+    const fake = path.join(SRC, "lib/partners/fake.ts");
+    const overlay = (src: string): Fs => ({ read: (f) => (f === fake ? src : realFs.read(f)), isFile: (f) => f === fake || realFs.isFile(f) });
+    expect(() => reachableModules([fake], overlay(`import "@/lib/does-not-exist";`))).toThrow(/cannot resolve/);
+    expect(() => reachableModules([fake], overlay(`import "./nope";`))).toThrow(/cannot resolve/);
+    expect(() => reachableModules([fake], overlay(`import "@social-perks/other/x";`))).toThrow(/unknown workspace alias/);
+    const r = reachableModules([fake], overlay(`import "@social-perks/shared/types";`));
+    expect(r.has(path.join(SHARED, "types.ts"))).toBe(true);
   });
 });

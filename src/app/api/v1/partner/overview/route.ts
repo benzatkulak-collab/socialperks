@@ -9,7 +9,7 @@ import { partnerOverviewResponse } from "@/lib/partners/schemas";
 import { internalError, partnerErr, partnerGate, partnerOk } from "@/lib/partners/http";
 
 export async function GET(req: NextRequest) {
-  const gate = await partnerGate(req);
+  const gate = await partnerGate(req, "partner-overview");
   if ("response" in gate) return gate.response;
 
   const q = new URL(req.url).searchParams;

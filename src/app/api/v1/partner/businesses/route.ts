@@ -7,7 +7,7 @@ import { partnerBusinessesResponse } from "@/lib/partners/schemas";
 import { internalError, partnerGate, partnerOk } from "@/lib/partners/http";
 
 export async function GET(req: NextRequest) {
-  const gate = await partnerGate(req);
+  const gate = await partnerGate(req, "partner-businesses");
   if ("response" in gate) return gate.response;
   try {
     const businesses = await grantedBusinesses(gate.partnerId);
