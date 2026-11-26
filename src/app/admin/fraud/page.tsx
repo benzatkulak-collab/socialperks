@@ -61,10 +61,14 @@ export default function AdminFraudPage() {
 
   const runNow = async () => {
     setWorking(true);
-    await apiFetch("/api/v1/admin/agents", {
-      method: "POST",
-      body: JSON.stringify({ agentId: "fraud-sentinel", action: "run" }),
-    });
+    try {
+      await apiFetch("/api/v1/admin/agents", {
+        method: "POST",
+        body: JSON.stringify({ agentId: "fraud-sentinel", action: "run" }),
+      });
+    } catch {
+      // No CSRF token or no connection. The read below shows the agent as it is.
+    }
     setWorking(false);
     fetchAgent();
   };

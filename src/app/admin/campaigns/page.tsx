@@ -93,20 +93,25 @@ export default function AdminCampaignsPage() {
   const action = async (act: "pause" | "resume" | "end", reason?: string) => {
     if (!selected) return;
     setWorking(act);
-    const res = await apiFetch("/api/v1/admin/campaigns", {
-      method: "POST",
-      body: JSON.stringify({
-        campaignId: selected.campaignId ?? selected.id,
-        action: act,
-        reason,
-      }),
-    });
-    const json = await res.json();
-    if (json.success && json.data?.campaign) {
-      setSelected(json.data.campaign);
-      fetchData();
-    } else {
-      alert(json.error?.message ?? "Action failed");
+    try {
+      const res = await apiFetch("/api/v1/admin/campaigns", {
+        method: "POST",
+        body: JSON.stringify({
+          campaignId: selected.campaignId ?? selected.id,
+          action: act,
+          reason,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data?.campaign) {
+        setSelected(json.data.campaign);
+        fetchData();
+      } else {
+        alert(json.error?.message ?? "Action failed");
+      }
+    } catch {
+      // apiFetch could not get a CSRF token, or the server could not be reached.
+      alert("Network error");
     }
     setWorking(null);
   };

@@ -701,3 +701,92 @@ describe("/admin/api-keys", () => {
     expect(await screen.findByText("sp_test_0123456789abcdef0123456789abcdef")).toBeInTheDocument();
   });
 });
+
+// ─── When the CSRF token cannot be had ──────────────────────────────────────
+
+describe("a write whose CSRF token request is refused", () => {
+  // apiFetch fetches a token before a tab's first write and throws when
+  // GET /api/v1/csrf refuses, for example over its limit of 30 a minute per
+  // address. The write is never sent. The page must not stay busy.
+  const tokenRefused = errorWith(429, "RATE_LIMIT_EXCEEDED", "Too many requests");
+
+  it("/admin/agents: Run now, a mode button and a slider are usable again, and the list is read again", async () => {
+    const api = fakeApi({
+      "GET /api/v1/auth": [adminSession],
+      "GET /api/v1/admin/agents": times(4, agentList(fraudSentinel)),
+      "GET /api/v1/csrf": times(3, tokenRefused),
+    });
+    await openPage(() => import("../agents/page"));
+
+    const runNow = await screen.findByRole("button", { name: "Run now" });
+    fireEvent.click(runNow);
+    expect(runNow).toBeDisabled();
+    await waitFor(() => expect(runNow).toBeEnabled());
+    await waitFor(() => expect(api.sent("GET /api/v1/admin/agents")).toHaveLength(2));
+
+    const live = screen.getByRole("button", { name: "live" });
+    fireEvent.click(live);
+    expect(live).toBeDisabled();
+    await waitFor(() => expect(live).toBeEnabled());
+    await waitFor(() => expect(api.sent("GET /api/v1/admin/agents")).toHaveLength(3));
+
+    fireEvent.click(screen.getByRole("button", { name: "Configure" }));
+    const threshold = screen.getAllByRole("slider")[0];
+    fireEvent.change(threshold, { target: { value: "0.9" } });
+    fireEvent.mouseUp(threshold);
+    expect(threshold).toBeDisabled();
+    await waitFor(() => expect(threshold).toBeEnabled());
+    await waitFor(() => expect(api.sent("GET /api/v1/admin/agents")).toHaveLength(4));
+
+    expect(writeLog(api)).toEqual(["GET /api/v1/csrf", "GET /api/v1/csrf", "GET /api/v1/csrf"]);
+  });
+
+  it("/admin/fraud: Run agent now is usable again and the agent is read again", async () => {
+    const api = fakeApi({
+      "GET /api/v1/auth": [adminSession],
+      "GET /api/v1/admin/agents": times(2, agentList(fraudSentinel)),
+      "GET /api/v1/csrf": [tokenRefused],
+    });
+    await openPage(() => import("../fraud/page"));
+
+    const runNow = await screen.findByRole("button", { name: "Run agent now" });
+    fireEvent.click(runNow);
+    expect(runNow).toBeDisabled();
+    await waitFor(() => expect(runNow).toBeEnabled());
+    await waitFor(() => expect(api.sent("GET /api/v1/admin/agents")).toHaveLength(2));
+    expect(api.sent("POST /api/v1/admin/agents")).toEqual([]);
+  });
+
+  it("/admin/compliance: Run scan is usable again and the agent is read again", async () => {
+    const api = fakeApi({
+      "GET /api/v1/auth": [adminSession],
+      "GET /api/v1/admin/agents": times(2, agentList(complianceWatchdog)),
+      "GET /api/v1/csrf": [tokenRefused],
+    });
+    await openPage(() => import("../compliance/page"));
+
+    const runScan = await screen.findByRole("button", { name: "Run scan" });
+    fireEvent.click(runScan);
+    expect(runScan).toBeDisabled();
+    await waitFor(() => expect(runScan).toBeEnabled());
+    await waitFor(() => expect(api.sent("GET /api/v1/admin/agents")).toHaveLength(2));
+    expect(api.sent("POST /api/v1/admin/agents")).toEqual([]);
+  });
+
+  it("/admin/campaigns: Pause says it failed and is usable again", async () => {
+    const api = fakeApi({
+      "GET /api/v1/auth": [adminSession],
+      "GET /api/v1/campaigns": [listOf("campaigns", [testCampaign])],
+      "GET /api/v1/csrf": [tokenRefused],
+    });
+    await openPage(() => import("../campaigns/page"));
+
+    fireEvent.click(await screen.findByRole("button", { name: /Manage/ }));
+    const pause = screen.getByRole("button", { name: "Pause" });
+    fireEvent.click(pause);
+    expect(pause).toBeDisabled();
+    await waitFor(() => expect(pause).toBeEnabled());
+    expect(alerts).toEqual(["Network error"]);
+    expect(api.sent("POST /api/v1/admin/campaigns")).toEqual([]);
+  });
+});
