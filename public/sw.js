@@ -2,18 +2,34 @@
 // Social Perks — Service Worker
 //
 // Strategies:
-//   API routes (/api/v1/*):     Network-first, cache fallback (GET only cached)
+//   Public API reads:           Network-first, cache fallback (PUBLIC_API_READS)
+//   Other API reads:            Network only, 503 when offline
 //   Static assets:              Cache-first, network fallback
 //   Pages:                      Stale-while-revalidate
 //   Offline mutations:          Queued in IndexedDB, replayed on reconnect
 // ══════════════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = "sp-v1";
+// v3 (Nov 2026): earlier workers kept a copy of every API read, signed-in
+// ones included, and answered from it offline to whoever used the browser
+// next. This one keeps public reads only. New names make the activate step
+// below delete every cache an earlier worker kept: v1's, and v2's from the
+// realtime-stream fix, whichever of the two ships first.
+const CACHE_VERSION = "sp-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 
-const API_CACHE_MAX_AGE = 5 * 60 * 1000; // 5 minutes
+// The API reads this worker keeps a copy of, to answer while offline: reads
+// that answer the same for everyone and whose address says nothing about who
+// is asking. Every other API read goes to the network only, so no signed-in
+// answer stays in the browser. A route added here must never look at the
+// caller; src/__tests__/service-worker-api-cache.test.ts checks.
+const PUBLIC_API_READS = new Set(["/api/v1/stats/public", "/api/v1/search"]);
+
+// The routes whose writes can change who is signed in on this browser:
+// sign-in, sign-up, renewal and sign-out, and the start and end of an
+// impersonation. The worker empties its API copies when one goes by.
+const SIGN_IN_ROUTES = new Set(["/api/v1/auth", "/api/v1/admin/impersonate"]);
 
 // App shell resources to pre-cache on install
 const APP_SHELL = [
@@ -145,13 +161,31 @@ function isApiRoute(url) {
   return url.pathname.startsWith("/api/v1/");
 }
 
+function isPublicApiRead(url, request) {
+  return request.method === "GET" && PUBLIC_API_READS.has(url.pathname);
+}
+
+// A write to a sign-in route, however its path is spelled ("/api/v1/auth/")
+function changesWhoIsSignedIn(url, request) {
+  if (request.method === "GET" || request.method === "HEAD") return false;
+  return SIGN_IN_ROUTES.has(url.pathname.replace(/\/+$/, ""));
+}
+
 function isStaticAsset(url) {
   return /\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico|json)$/i.test(
     url.pathname
   );
 }
 
-// Network-first for API GETs; queue mutations when offline
+function offlineApiResponse() {
+  return new Response(
+    JSON.stringify({ error: "You are offline and no cached data is available." }),
+    { status: 503, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+// API requests: mutations are queued when offline; reads go to the network,
+// and only public reads keep a copy for when it fails
 async function handleApiRequest(request) {
   const isReadOnly = request.method === "GET" || request.method === "HEAD";
 
@@ -181,38 +215,30 @@ async function handleApiRequest(request) {
     }
   }
 
-  // GET/HEAD: network-first with cache fallback
+  // Any other read, and every HEAD: the network only. The answer goes to the
+  // page as it arrives, and no copy is kept.
+  if (!isPublicApiRead(new URL(request.url), request)) {
+    try {
+      return await fetch(request);
+    } catch {
+      return offlineApiResponse();
+    }
+  }
+
+  // A public read: network first, keeping a copy for when the network fails
   try {
     const response = await fetch(request);
     if (response.ok) {
-      const cache = await caches.open(API_CACHE);
-      const responseToCache = response.clone();
-      // Store with a timestamp header for TTL checking
-      const headers = new Headers(responseToCache.headers);
-      headers.set("sw-cache-time", String(Date.now()));
-      const timedResponse = new Response(await responseToCache.blob(), {
-        status: responseToCache.status,
-        statusText: responseToCache.statusText,
-        headers,
-      });
-      cache.put(request, timedResponse);
+      const copy = response.clone();
+      caches
+        .open(API_CACHE)
+        .then((cache) => cache.put(request, copy))
+        .catch(() => {});
     }
     return response;
   } catch {
-    // Network failed — check cache
-    const cached = await caches.match(request);
-    if (cached) {
-      const cacheTime = Number(cached.headers.get("sw-cache-time") || 0);
-      if (Date.now() - cacheTime < API_CACHE_MAX_AGE) {
-        return cached;
-      }
-      // Expired but better than nothing when offline
-      return cached;
-    }
-    return new Response(
-      JSON.stringify({ error: "You are offline and no cached data is available." }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
-    );
+    const cached = await caches.match(request, { cacheName: API_CACHE });
+    return cached || offlineApiResponse();
   }
 }
 
@@ -276,6 +302,13 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isApiRoute(url)) {
+    // A sign-in, sign-out or impersonation empties the API copies, whatever
+    // the server answers, so the next person to use this browser finds none
+    // of the last one's reads. The worker keeps public reads only, so this is
+    // a second line of defence.
+    if (changesWhoIsSignedIn(url, event.request)) {
+      event.waitUntil(caches.delete(API_CACHE));
+    }
     event.respondWith(handleApiRequest(event.request));
   } else if (isStaticAsset(url)) {
     event.respondWith(handleStaticAsset(event.request));
