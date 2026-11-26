@@ -139,6 +139,16 @@ describe("POST /api/v1/auth {action: session}", () => {
     expect(res.status).toBe(200);
     expect(res.headers.getSetCookie()).toEqual([]);
   });
+
+  it("refuses a suspended account and clears its cookies", async () => {
+    const res = await POST(sessionPostRequest(refreshCookieFor(suspended)));
+
+    expect(res.status).toBe(401);
+    expect((await res.json()).error.code).toBe("ACCOUNT_SUSPENDED");
+    for (const name of ["sp-access-token", "sp-refresh-token", "sp-session"]) {
+      expect(setCookie(res, name)).toMatch(/Max-Age=0/);
+    }
+  });
 });
 
 /** The Max-Age of one Set-Cookie line, as a number. */
@@ -187,5 +197,27 @@ describe("the sp-session marker", () => {
     );
 
     expect(maxAge(res, "sp-session")).toBe(0);
+  });
+});
+
+describe("answers that set or clear the auth cookies", () => {
+  it("a renewal's answer is never cached", async () => {
+    const res = await GET(getRequest(refreshCookieFor(owner)));
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("a sign-out's answer is never cached", async () => {
+    const res = await POST(
+      new NextRequest("http://localhost/api/v1/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-real-ip": nextAddress() },
+        body: JSON.stringify({ action: "logout" }),
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
   });
 });

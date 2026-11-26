@@ -110,6 +110,8 @@ function buildCookieHeaders(
       // emit each cookie as its own Set-Cookie header (HTTP requires
       // multiple Set-Cookie lines, not comma-joined).
       "Set-Cookie": `${accessCookie}\u0000${refreshCookie}\u0000${sessionMarker}`,
+      // An answer that carries the auth cookies is never kept by a cache.
+      "Cache-Control": "no-store",
     },
   };
 }
@@ -150,7 +152,10 @@ function clearCookieHeaders(): Record<string, string> {
     .filter(Boolean)
     .join("; ");
 
-  return { "Set-Cookie": `${accessClear}\u0000${refreshClear}\u0000${markerClear}` };
+  return {
+    "Set-Cookie": `${accessClear}\u0000${refreshClear}\u0000${markerClear}`,
+    "Cache-Control": "no-store",
+  };
 }
 
 // ─── Renewal From the Refresh Cookie ────────────────────────────────────────
@@ -215,12 +220,28 @@ async function renewFromRefreshCookie(req: NextRequest): Promise<Renewal> {
   return { ok: true, account, accessToken: tokens.accessToken, headers };
 }
 
+/** A session check's answer after a renewal: `{ user, expiresAt }`, with the new cookies. */
+function answerRenewed({ account, accessToken, headers }: Extract<Renewal, { ok: true }>): NextResponse {
+  const jwt = verifyJWT(accessToken, "access");
+  return ok(
+    {
+      user: { id: account.id, email: account.email, role: account.role, businessId: account.businessId },
+      expiresAt: jwt ? new Date(jwt.exp * 1000).toISOString() : null,
+    },
+    200,
+    headers
+  );
+}
+
 // ─── GET /api/v1/auth — Validate Session ────────────────────────────────────
+
+/** The rate-limit counter of the session checks (GET, POST "session") and the refresh. */
+const SESSION_BUCKET = "session";
 
 export const GET = withTiming(async (req: NextRequest) => {
   // A page checks its session on every load: its own counter, so it can
   // neither use up sign-in's five a minute nor be locked out by them.
-  const limited = rateLimit(req, "standard", "session");
+  const limited = rateLimit(req, "standard", SESSION_BUCKET);
   if (limited) return limited;
 
   const user = getUser(req);
@@ -228,18 +249,7 @@ export const GET = withTiming(async (req: NextRequest) => {
     // No usable access token: the refresh cookie travels with this request
     // (Path=/api/v1/auth), so renew from it rather than make the client ask.
     const renewal = await renewFromRefreshCookie(req);
-    if (renewal.ok) {
-      const { account, accessToken, headers } = renewal;
-      const jwt = verifyJWT(accessToken, "access");
-      return ok(
-        {
-          user: { id: account.id, email: account.email, role: account.role, businessId: account.businessId },
-          expiresAt: jwt ? new Date(jwt.exp * 1000).toISOString() : null,
-        },
-        200,
-        headers
-      );
-    }
+    if (renewal.ok) return answerRenewed(renewal);
     if (!renewal.noCookie) return renewal.response;
     return err("NO_TOKEN", "No session token provided. Send Authorization: Bearer <token>.", 401);
   }
@@ -306,7 +316,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (action !== "logout") {
     const limited =
       action === "refresh" || action === "session"
-        ? rateLimit(req, "standard", "session")
+        ? rateLimit(req, "standard", SESSION_BUCKET)
         : rateLimit(req, "strict");
     if (limited) return limited;
   }
@@ -618,18 +628,7 @@ export const POST = withTiming(async (req: NextRequest) => {
 
       // No token validates: renew from the refresh cookie when there is one.
       const renewal = await renewFromRefreshCookie(req);
-      if (renewal.ok) {
-        const { account, accessToken, headers } = renewal;
-        const renewed = verifyJWT(accessToken, "access");
-        return ok(
-          {
-            user: { id: account.id, email: account.email, role: account.role, businessId: account.businessId },
-            expiresAt: renewed ? new Date(renewed.exp * 1000).toISOString() : null,
-          },
-          200,
-          headers
-        );
-      }
+      if (renewal.ok) return answerRenewed(renewal);
       if (!renewal.noCookie) return renewal.response;
 
       return token

@@ -56,6 +56,14 @@ describe("auth route rate limits", () => {
     expect((await POST(login(ip))).status).toBe(401);
   });
 
+  it("session checks sent as POST do not use up sign-in's five a minute", async () => {
+    const ip = "10.79.0.7";
+    for (let i = 0; i < 6; i++) {
+      expect((await POST(post(ip, JSON.stringify({ action: "session" })))).status).toBe(401);
+    }
+    expect((await POST(login(ip))).status).toBe(401);
+  });
+
   it("refresh attempts do not count against sign-in", async () => {
     const ip = "10.79.0.3";
     for (let i = 0; i < 6; i++) {
