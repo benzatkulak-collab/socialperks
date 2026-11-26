@@ -27,4 +27,5 @@ it("renews an expired access cookie and shows the campaign numbers", async () =>
     "/api/v1/campaigns?businessId=biz_usr_test_1",
     "/api/v1/campaigns?businessId=biz_usr_test_1",
   ]);
+  expect(api.sent("POST /api/v1/auth")).toHaveLength(1);
 });

@@ -58,6 +58,7 @@ export default function AdminBillingPage() {
       apiFetch("/api/v1/billing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        skipCsrf: true, // a read sent as POST; /billing checks no CSRF token
         body: JSON.stringify({ action: "get_usage" }),
       }),
       apiFetch("/api/v1/admin/agents"),

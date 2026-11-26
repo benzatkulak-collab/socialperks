@@ -21,12 +21,13 @@ import {
 
 type CsrfFetchModule = typeof import("../csrf-fetch");
 let apiFetch: CsrfFetchModule["apiFetch"];
+let signOutWith: CsrfFetchModule["signOutWith"];
 
 beforeEach(async () => {
   // The module keeps its CSRF token and its refresh state between calls, as
   // it does in a browser tab. Each test starts from a freshly loaded tab.
   vi.resetModules();
-  ({ apiFetch } = await import("../csrf-fetch"));
+  ({ apiFetch, signOutWith } = await import("../csrf-fetch"));
 });
 
 afterEach(() => {
@@ -224,6 +225,96 @@ describe("apiFetch on a 401", () => {
     expect(session.status).toBe(401);
     expect(api.requests.filter((r) => (r.body as { action?: string } | undefined)?.action === "refresh")).toEqual([]);
   });
+
+  it("treats every spelling of the auth route as the auth route", async () => {
+    const api = fakeApi({
+      "GET /api/v1/auth/": [expiredAccess],
+      "GET /api/v1/auth": [expiredAccess, expiredAccess],
+    });
+
+    for (const url of ["/api/v1/auth/", "/api/v1/auth?check=1", "https://socialperks.app/api/v1/auth"]) {
+      expect((await apiFetch(url)).status).toBe(401);
+    }
+
+    expect(api.requests.filter((r) => (r.body as { action?: string } | undefined)?.action === "refresh")).toEqual([]);
+  });
+
+  it("recovers a write on a route that checks the CSRF token before the sign-in", async () => {
+    // Like POST /api/v1/api-keys: CSRF first, then the cookie. The token held
+    // from before the cookie ran out is tied to the user, and the server no
+    // longer knows the user, so the write is refused twice before it lands.
+    let signedIn = true;
+    const tokenNow = () => (signedIn ? "csrf-user" : "csrf-anon");
+    const issueToken: Answer = () => csrfToken(tokenNow())();
+    const csrfFirstWrite: Answer = (req) => {
+      if (req.headers.get("X-CSRF-Token") !== tokenNow()) return csrfInvalid();
+      if (!signedIn) return expiredAccess();
+      return okWith({ key: { id: "key_test_1" } })();
+    };
+    const api = fakeApi({
+      "GET /api/v1/csrf": [issueToken, issueToken, issueToken],
+      "POST /api/v1/api-keys": Array(6).fill(csrfFirstWrite),
+      "POST /api/v1/auth": [
+        () => {
+          signedIn = true;
+          return refreshAccepted();
+        },
+      ],
+    });
+    const body = JSON.stringify({ agentName: "Test Agent", permissions: ["read"] });
+
+    expect((await apiFetch("/api/v1/api-keys", { method: "POST", body })).status).toBe(200);
+    signedIn = false; // the access cookie runs out
+    const res = await apiFetch("/api/v1/api-keys", { method: "POST", body });
+
+    expect(res.status).toBe(200);
+    expect(api.sent("POST /api/v1/auth")).toHaveLength(1);
+  });
+});
+
+describe("signOutWith", () => {
+  const logoutBody = JSON.stringify({ action: "logout" });
+  const signOutRequest = () => fetch("/api/v1/auth", { method: "POST", body: logoutBody });
+  const authActions = (api: ReturnType<typeof fakeApi>) =>
+    api.sent("POST /api/v1/auth").map((r) => (r.body as { action?: string }).action);
+
+  it("waits for a refresh in flight, so the refresh's cookies land before the sign-out clears them", async () => {
+    const refresh = heldAnswer();
+    const api = fakeApi({
+      "GET /api/v1/campaigns": [expiredAccess, campaignList],
+      "POST /api/v1/auth": [refresh.answer, okWith({ loggedOut: true, sessionDestroyed: false })],
+    });
+
+    const read = apiFetch(campaignsUrl);
+    await settle(); // the 401 is in and the refresh is on its way
+    const signOut = signOutWith(signOutRequest);
+    await settle();
+    expect(authActions(api)).toEqual(["refresh"]);
+
+    refresh.release(refreshAccepted());
+    await signOut;
+    await read;
+    expect(authActions(api)).toEqual(["refresh", "logout"]);
+  });
+
+  it("starts no refresh while the sign-out is on its way, and renews again afterwards", async () => {
+    const logout = heldAnswer();
+    const api = fakeApi({
+      "GET /api/v1/campaigns": [expiredAccess, expiredAccess, campaignList],
+      "POST /api/v1/auth": [logout.answer, refreshAccepted],
+    });
+
+    const signOut = signOutWith(signOutRequest);
+    expect((await apiFetch(campaignsUrl)).status).toBe(401);
+    expect(authActions(api)).toEqual(["logout"]);
+
+    logout.release(okWith({ loggedOut: true, sessionDestroyed: true })());
+    await signOut;
+
+    // Signed in again in the same tab: renewal works as before.
+    expect((await apiFetch(campaignsUrl)).status).toBe(200);
+    expect(authActions(api)).toEqual(["logout", "refresh"]);
+  });
 });
 
 describe("apiFetch asks for a refresh at most once a minute", () => {
@@ -266,6 +357,19 @@ describe("apiFetch asks for a refresh at most once a minute", () => {
 
     expect(api.sent("POST /api/v1/auth")).toHaveLength(1);
     expect(api.sent("GET /api/v1/admin/stats")).toHaveLength(1);
+  });
+
+  it("asks again when the computer's clock has been set back since the last refresh", async () => {
+    const api = fakeApi({
+      "GET /api/v1/campaigns": [expiredAccess, expiredAccess],
+      "POST /api/v1/auth": [refreshRefused, refreshRefused],
+    });
+
+    expect((await apiFetch(campaignsUrl)).status).toBe(401);
+    vi.setSystemTime(start - 60 * 60_000); // the clock is put back an hour
+    expect((await apiFetch(campaignsUrl)).status).toBe(401);
+
+    expect(api.sent("POST /api/v1/auth")).toHaveLength(2);
   });
 
   it("renews again when the renewed cookie runs out 15 minutes later", async () => {

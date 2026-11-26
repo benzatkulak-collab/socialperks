@@ -5,6 +5,11 @@
  * `sp-access-token` cookie as a Bearer token + `X-CSRF-Token` on every
  * mutating request, and retries once on `CSRF_TOKEN_INVALID`/`CSRF_TOKEN_MISSING`.
  *
+ * It also renews the 15-minute access cookie: a 401 from anything but the
+ * auth route asks `POST /api/v1/auth {action: "refresh"}` for a new one and
+ * sends the request once more (see `renewAccessCookie`). Sign-outs go
+ * through `signOutWith`, so a renewal cannot undo them.
+ *
  * `apiFetch` returns the raw Response; `apiFetchJson` throws on non-2xx so
  * callers cannot silently swallow failures (this was the bug that hid every
  * 403 from the wizard's "Launch Campaign" flow).
@@ -72,17 +77,24 @@ let refreshInFlight: Promise<boolean> | null = null;
 /** Refreshes that succeeded since this page loaded. */
 let refreshesDone = 0;
 let lastRefreshAt = -Infinity;
+/** Sign-outs on their way; no refresh starts while there is one. */
+let signOutsInFlight = 0;
 
 /**
- * A 401 from the auth route is its answer, not an expired cookie: a wrong
- * password, a refused refresh, or a session check finding none.
+ * The auth route never triggers a renewal. Its sign-in 401 means a wrong
+ * password, and the refresh's own 401 must not ask for another refresh.
+ * Its session check (GET) is left out too, although its 401 can mean an
+ * expired cookie: renewing there would put the session checks, sign-in and
+ * the refresh in one rate limit of 5 a minute per address.
  */
 function isAuthRoute(input: string): boolean {
+  let path: string;
   try {
-    return new URL(input, "http://localhost").pathname === AUTH_ROUTE;
+    path = new URL(input, "http://localhost").pathname.replace(/\/+$/, "");
   } catch {
     return false;
   }
+  return path === AUTH_ROUTE || path.startsWith(`${AUTH_ROUTE}/`);
 }
 
 /**
@@ -96,9 +108,12 @@ function isAuthRoute(input: string): boolean {
  *   or not about the cookie at all, because the request carried a new one.
  */
 function renewAccessCookie(refreshesBeforeRequest: number): Promise<boolean> {
+  if (signOutsInFlight > 0) return Promise.resolve(false);
   if (refreshesDone !== refreshesBeforeRequest) return Promise.resolve(true);
   if (refreshInFlight) return refreshInFlight;
-  if (Date.now() - lastRefreshAt < MIN_REFRESH_GAP_MS) return Promise.resolve(false);
+  // A clock set back since the last refresh gives a negative gap: ask again.
+  const sinceLastRefresh = Date.now() - lastRefreshAt;
+  if (sinceLastRefresh >= 0 && sinceLastRefresh < MIN_REFRESH_GAP_MS) return Promise.resolve(false);
 
   refreshInFlight = fetch(AUTH_ROUTE, {
     method: "POST",
@@ -119,6 +134,23 @@ function renewAccessCookie(refreshesBeforeRequest: number): Promise<boolean> {
       refreshInFlight = null;
     });
   return refreshInFlight;
+}
+
+/**
+ * Send a sign-out (or anything else that clears the auth cookies) with no
+ * refresh running. A refresh answered after the sign-out would set again the
+ * cookies it has just cleared. This waits for one already on its way, and
+ * none starts until the sign-out has its answer; after that a refresh finds
+ * no refresh cookie.
+ */
+export async function signOutWith<T>(request: () => Promise<T>): Promise<T> {
+  signOutsInFlight++;
+  try {
+    await refreshInFlight;
+    return await request();
+  } finally {
+    signOutsInFlight--;
+  }
 }
 
 /**

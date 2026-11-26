@@ -6,8 +6,11 @@
  * request is recorded first, so a test can count what was sent even when the
  * request itself was unexpected.
  *
- * The bodies below copy what the real routes answer (`ok()` / `err()` in
- * `src/app/api/v1/_shared.ts`). Test data only: no real people or businesses.
+ * The bodies below copy the shape of the real routes' answers (`ok()` /
+ * `err()` in `src/app/api/v1/_shared.ts`). Which answer a route gives is each
+ * test's choice: a test that queues `expiredAccess` models a route that
+ * requires a sign-in, whether or not that route requires one today.
+ * Test data only: no real people or businesses.
  */
 import { vi } from "vitest";
 
