@@ -6,6 +6,8 @@
  *   npm run partner -- businesses
  *   npm run partner -- grant --partner <id> --business <biz_id> --by <founder email>
  *   npm run partner -- revoke --partner <id> --business <biz_id>
+ *   npm run partner -- list
+ *   npm run partner -- revoke-key --partner <id>
  *
  * Prints only the new key (once), ids, and lists. The key is never stored:
  * only its SHA-256 reaches the database.
@@ -17,12 +19,14 @@ export type PartnerCommand =
   | { command: "create"; name: string }
   | { command: "businesses" }
   | { command: "grant"; partner: string; business: string; by: string }
-  | { command: "revoke"; partner: string; business: string };
+  | { command: "revoke"; partner: string; business: string }
+  | { command: "list" }
+  | { command: "revoke-key"; partner: string };
 
 const USAGE =
   "usage: partner create --name <name> | businesses | " +
   "grant --partner <id> --business <biz_id> --by <email> | " +
-  "revoke --partner <id> --business <biz_id>";
+  "revoke --partner <id> --business <biz_id> | list | revoke-key --partner <id>";
 
 function flags(rest: string[]): Record<string, string> {
   const out: Record<string, string> = {};
@@ -59,6 +63,12 @@ export function parseArgs(argv: string[]): PartnerCommand {
     case "revoke": {
       const f = flags(rest);
       return { command, partner: need(f, "partner"), business: need(f, "business") };
+    }
+    case "list":
+      return { command };
+    case "revoke-key": {
+      const f = flags(rest);
+      return { command, partner: need(f, "partner") };
     }
     default:
       throw new Error(USAGE);
@@ -111,13 +121,35 @@ export async function run(argv: string[]): Promise<{ stdout: string }> {
     case "revoke": {
       requireBizId(cmd.business);
       const res = await db.query(
-        "update partner_businesses set revoked_at = now() where partner_id = $1 and business_id = $2 and revoked_at is null",
+        "update partner_businesses set revoked_at = now() where partner_id = $1 and business_id = $2 and revoked_at is null returning partner_id",
         [cmd.partner, cmd.business],
       );
-      if (res.rowCount === 0) {
+      // `rowCount` counts RETURNED rows in db/connection.ts, so the UPDATE must RETURN.
+      if (res.rows.length === 0) {
         throw new Error(`No active grant found for partner ${cmd.partner} and business ${cmd.business}`);
       }
       lines.push(`Revoked ${cmd.business} from partner ${cmd.partner}`);
+      break;
+    }
+    case "list": {
+      // Never selects key_hash: only the prefix identifies a key to a human.
+      const res = await db.query<{
+        id: string; name: string; key_prefix: string; created_at: string | Date; revoked_at: string | Date | null;
+      }>("select id, name, key_prefix, created_at, revoked_at from partners order by created_at", []);
+      const iso = (d: string | Date | null) => (d === null ? "-" : new Date(d).toISOString());
+      for (const r of res.rows) {
+        lines.push([r.id, r.name, r.key_prefix, iso(r.created_at), iso(r.revoked_at)].join("\t"));
+      }
+      if (res.rows.length === 0) lines.push("(no partners)");
+      break;
+    }
+    case "revoke-key": {
+      const res = await db.query<{ id: string }>(
+        "update partners set revoked_at = now() where id = $1 and revoked_at is null returning id",
+        [cmd.partner],
+      );
+      if (res.rows.length === 0) throw new Error(`No active key found for partner ${cmd.partner}`);
+      lines.push(`Revoked the key of partner ${cmd.partner}`);
       break;
     }
   }
@@ -133,8 +165,8 @@ if (process.argv[1]?.endsWith("partner.ts") && !process.env.VITEST) {
       return run(process.argv.slice(2));
     })
     .then((r) => {
-      process.stdout.write(r.stdout);
-      process.exit(0);
+      // Exit only once the write has flushed: a piped stdout can be cut off by exit().
+      process.stdout.write(r.stdout, () => process.exit(0));
     })
     .catch((e: unknown) => {
       console.error(e instanceof Error ? e.message : String(e));

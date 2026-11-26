@@ -4,6 +4,7 @@ const query = vi.fn();
 vi.mock("@/lib/db/connection", () => ({ db: { query: (...a: unknown[]) => query(...a) } }));
 
 import { run, parseArgs } from "../partner";
+import { hashPartnerKey } from "../../src/lib/partners/keys";
 
 const P = "11111111-1111-4111-8111-111111111111";
 const calls = () => query.mock.calls as [string, unknown[]][];
@@ -21,6 +22,7 @@ describe("partner script", () => {
     expect(key).toBeTruthy();
     const params = calls().flatMap(([, p]) => p);
     expect(params).not.toContain(key);
+    expect(params).toContain(hashPartnerKey(key));
     expect(params).toContain("Test partner");
     expect(params.some((p) => typeof p === "string" && /^[0-9a-f]{64}$/.test(p))).toBe(true);
     expect(out.stdout.split(key).length - 1).toBe(1);
@@ -63,6 +65,42 @@ describe("partner script", () => {
     expect(lastSql()).not.toMatch(/delete/i);
   });
 
+  it("revoke asks the database for the revoked rows (rowCount counts RETURNED rows, so no RETURNING reads as 0)", async () => {
+    await run(["revoke", "--partner", P, "--business", "biz_1"]);
+    expect(lastSql()).toMatch(/returning partner_id/i);
+  });
+
+  it("revoke-key sets revoked_at on an active key, with returning, and says so", async () => {
+    const out = await run(["revoke-key", "--partner", P]);
+    expect(lastSql()).toMatch(/update partners set revoked_at = now\(\) where id = \$1 and revoked_at is null returning id/i);
+    expect(calls().at(-1)![1]).toEqual([P]);
+    expect(out.stdout).toMatch(new RegExp(`Revoked the key of partner ${P}`));
+  });
+
+  it("revoke-key fails loudly when no active key was revoked", async () => {
+    query.mockResolvedValueOnce({ rows: [], rowCount: 0, duration: 0 });
+    await expect(run(["revoke-key", "--partner", P])).rejects.toThrow(`No active key found for partner ${P}`);
+  });
+
+  it("list shows id, name, prefix and dates, and never the hash", async () => {
+    query.mockResolvedValue({
+      rows: [{ id: P, name: "Test partner", key_prefix: "spp_live_0123abcd", created_at: "2026-11-01T00:00:00.000Z", revoked_at: null }],
+      rowCount: 1, duration: 0,
+    });
+    const out = await run(["list"]);
+    expect(lastSql()).toMatch(/from partners/i);
+    expect(lastSql()).not.toMatch(/key_hash/i);
+    expect(out.stdout).toContain(P);
+    expect(out.stdout).toContain("Test partner");
+    expect(out.stdout).toContain("spp_live_0123abcd");
+    expect(out.stdout).toContain("2026-11-01");
+  });
+
+  it("list says so when there are no partners", async () => {
+    query.mockResolvedValue({ rows: [], rowCount: 0, duration: 0 });
+    expect((await run(["list"])).stdout).toMatch(/no partners/i);
+  });
+
   it("revoke says Revoked when a grant was revoked", async () => {
     const out = await run(["revoke", "--partner", P, "--business", "biz_1"]);
     expect(out.stdout).toMatch(/Revoked biz_1/);
@@ -78,6 +116,9 @@ describe("partner script", () => {
   it("parseArgs rejects unknown commands and missing flags", () => {
     expect(() => parseArgs(["nope"])).toThrow(/usage/i);
     expect(() => parseArgs(["create"])).toThrow(/--name/);
+    expect(parseArgs(["list"])).toEqual({ command: "list" });
+    expect(parseArgs(["revoke-key", "--partner", P])).toEqual({ command: "revoke-key", partner: P });
+    expect(() => parseArgs(["revoke-key"])).toThrow(/--partner/);
     expect(parseArgs(["create", "--name", "A B"])).toEqual({ command: "create", name: "A B" });
   });
 });
