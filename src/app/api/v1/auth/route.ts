@@ -1,7 +1,8 @@
 /**
  * Auth API Route — /api/v1/auth
  *
- * GET:  Validate session (Bearer token -> user object + expiresAt)
+ * GET:  Session check (user object + expiresAt). With no good access token
+ *       it renews from the refresh cookie and sets new auth cookies.
  * POST: signup, login, logout, refresh, session, reset-password, confirm-reset
  *
  * In-memory user store with demo account pre-seeding.
@@ -168,10 +169,11 @@ type Renewal =
 /**
  * Answer from the refresh cookie and the account as it is now.
  *
- * The client renews the access cookie whenever it is gone, so this is where an
- * open tab meets the account again. The answer comes from the account on file,
- * as sign-in does, never from the token's own claims: otherwise a suspension or
- * a role change would never reach a tab left open.
+ * The refresh, and every session check that finds no good access cookie,
+ * renew here, so this is where an open tab meets the account again. The answer
+ * comes from the account on file, as sign-in does, never from the token's own
+ * claims: otherwise a suspension or a role change would never reach a tab left
+ * open.
  */
 async function renewFromRefreshCookie(req: NextRequest): Promise<Renewal> {
   const refreshCookie = req.cookies.get("sp-refresh-token")?.value;

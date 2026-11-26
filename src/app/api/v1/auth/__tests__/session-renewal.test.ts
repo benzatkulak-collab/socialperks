@@ -13,8 +13,8 @@ import { createTokenPair, hashPassword, verifyJWT } from "@/lib/auth";
 import { ensureUsersSeeded, putUser, type UserRecord } from "@/lib/auth/user-store";
 import { GET, POST } from "../route";
 
-// Every request comes from its own address: the auth routes share a
-// 5-a-minute rate limit per address, which the tests must not trip.
+// Every request comes from its own address, so no test trips a rate limit:
+// sign-in allows 5 a minute per address, the session checks 30.
 let address = 0;
 const nextAddress = () => `10.78.0.${++address}`;
 

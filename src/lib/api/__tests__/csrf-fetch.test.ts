@@ -421,9 +421,9 @@ describe("checkSession", () => {
 });
 
 describe("apiFetch asks for a refresh at most once a minute", () => {
-  // The refresh shares POST /api/v1/auth, and so its rate limit, with the
-  // sign-in form: 5 a minute per address. A tab whose refresh cookie has gone
-  // must not use that up.
+  // The refresh shares its rate limit, 30 a minute per address, with the
+  // session checks that every page load sends. A tab whose refresh cookie has
+  // gone must not use that up.
   const start = new Date("2026-03-02T15:00:00Z").getTime();
 
   beforeEach(() => {

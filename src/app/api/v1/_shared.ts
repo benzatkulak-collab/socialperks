@@ -95,8 +95,9 @@ export function getUser(req: NextRequest): AuthUser | null {
       if (apiKeyUser) return apiKeyUser;
     }
 
-    // Try JWT next. Access tokens only: the 7-day refresh token is only for
-    // POST /api/v1/auth {action: "refresh"}, never a credential itself.
+    // Try JWT next. Access tokens only: the 7-day refresh token is read only
+    // by the auth route's refresh action and its session checks, which renew
+    // from it; it is never a credential itself.
     const jwt = verifyJWT(token, "access");
     if (jwt) {
       return {

@@ -71,8 +71,9 @@ export interface ApiFetchOptions extends RequestInit {
 const AUTH_ROUTE = "/api/v1/auth";
 
 /**
- * Refreshes are at least this far apart. The refresh shares POST
- * /api/v1/auth, and so its rate limit, with sign-in: 5 a minute per address.
+ * Refreshes are at least this far apart. The refresh shares its rate limit
+ * (30 a minute per address) with the session checks that keep every page
+ * signed in, and a refused refresh gets the same answer when asked again.
  */
 const MIN_REFRESH_GAP_MS = 60_000;
 
