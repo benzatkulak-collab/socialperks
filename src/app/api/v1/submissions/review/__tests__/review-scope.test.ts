@@ -17,7 +17,7 @@ import { POST } from "../route";
 import { signJWT } from "@/lib/auth";
 import { generateCsrfToken } from "@/lib/security/csrf";
 import { campaignManager } from "@/lib/campaign-state-machine";
-import { createSubmission, clearStore as clearSubmissions } from "@/lib/submissions";
+import { createSubmission, getSubmissionById, clearStore as clearSubmissions } from "@/lib/submissions";
 import { getWallet, clearStore as clearWallets } from "@/lib/perk-wallet";
 import { getUsageSummary, recordCompletion, _resetUsage } from "@/lib/billing/enforcement";
 import { emailProvider, type EmailMessage } from "@/lib/email";
@@ -248,5 +248,52 @@ describe("POST /api/v1/submissions/review — the reviewer's reason", () => {
     const { status, json } = await review({ submissionId, decision: "reject", reason: "x".repeat(1001) });
     expect(status).toBe(400);
     expect(json.error.code).toBe("INVALID_NOTE");
+  });
+});
+
+/**
+ * A business at its monthly completion limit is refused the approval (403).
+ * The refusal must leave the submission as it was, pending and with no perk,
+ * so the business can approve it once the limit allows (next month, or after
+ * an upgrade). A rejection uses no completion and is never refused for it.
+ */
+describe("POST /api/v1/submissions/review — the monthly completion limit", () => {
+  function fillOwnerLimit(): void {
+    for (let i = 0; i < FREE_COMPLETIONS; i++) recordCompletion(OWNER_BIZ);
+  }
+
+  it("leaves the submission pending, with no perk and no email, when the limit refuses the approval", async () => {
+    fillOwnerLimit();
+    const { status, json } = await review({ submissionId, decision: "approve" });
+    expect(status).toBe(403);
+    expect(json.error.code).toBe("PLAN_LIMIT_EXCEEDED");
+    expect(getSubmissionById(submissionId)).toMatchObject({ status: "pending", perkAwarded: false });
+    expect(getWallet(CUSTOMER, OWNER_BIZ).perks).toHaveLength(0);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("lets the business approve the same submission once the limit allows", async () => {
+    fillOwnerLimit();
+    expect((await review({ submissionId, decision: "approve" })).status).toBe(403);
+    _resetUsage(); // a new month
+    const { status, json } = await review({ submissionId, decision: "approve" });
+    expect(status).toBe(200);
+    expect(json.data.perk.calculation).toMatchObject({ totalValue: 10, baseType: "pct" });
+    expect(getWallet(CUSTOMER, OWNER_BIZ).perks).toHaveLength(1);
+  });
+
+  it("answers ALREADY_REVIEWED, not the limit, for a submission already approved", async () => {
+    expect((await review({ submissionId, decision: "approve" })).status).toBe(200);
+    fillOwnerLimit();
+    const { status, json } = await review({ submissionId, decision: "approve" });
+    expect(status).toBe(400);
+    expect(json.error.code).toBe("ALREADY_REVIEWED");
+  });
+
+  it("still rejects while the business is at its limit", async () => {
+    fillOwnerLimit();
+    const { status } = await review({ submissionId, decision: "reject" });
+    expect(status).toBe(200);
+    expect(getSubmissionById(submissionId)?.status).toBe("rejected");
   });
 });

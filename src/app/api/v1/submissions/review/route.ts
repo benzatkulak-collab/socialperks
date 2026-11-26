@@ -131,6 +131,29 @@ export const POST = withTiming(async (req: NextRequest) => {
     createdAt: campaignLifecycle.expiry.launchedAt,
   };
 
+  // ── Plan enforcement: completion limit ────────────────────────────────────
+  // Checked BEFORE the review is recorded, so an approval the plan refuses
+  // leaves the submission pending (no perk, no email) and the business can
+  // approve it once the limit allows: next month, or after an upgrade. A
+  // submission that is no longer pending skips the check, so reviewing it
+  // again still answers ALREADY_REVIEWED. A rejection uses no completion.
+  const completionBusinessId = resolvedCampaign.businessId;
+  if (dv.data === "approve" && existingSubmission.status === "pending") {
+    await hydrateSubscriptions(); // cold-start: read the real plan, not "free"
+    const completionPlan = getBusinessPlan(completionBusinessId);
+    const completionCheck = checkCompletionLimit(completionBusinessId, completionPlan);
+    if (!completionCheck.allowed) {
+      const planLabel = completionPlan.charAt(0).toUpperCase() + completionPlan.slice(1);
+      const body403 = buildPlanLimitError(
+        `${planLabel} plan allows ${completionCheck.limit} completion${completionCheck.limit === 1 ? "" : "s"} per month. Upgrade for more.`,
+        completionCheck.limit,
+        completionCheck.current,
+        completionPlan
+      );
+      return NextResponse.json(body403, { status: 403 });
+    }
+  }
+
   // Perform the review
   const result = await reviewSubmission(
     sv.data,
@@ -151,22 +174,6 @@ export const POST = withTiming(async (req: NextRequest) => {
   let perk = null;
   if (dv.data === "approve") {
     const campaign = resolvedCampaign;
-
-    // ── Plan enforcement: completion limit ──────────────────────────────────
-    const completionBusinessId = campaign.businessId;
-    await hydrateSubscriptions(); // cold-start: read the real plan, not "free"
-    const completionPlan = getBusinessPlan(completionBusinessId);
-    const completionCheck = checkCompletionLimit(completionBusinessId, completionPlan);
-    if (!completionCheck.allowed) {
-      const planLabel = completionPlan.charAt(0).toUpperCase() + completionPlan.slice(1);
-      const body403 = buildPlanLimitError(
-        `${planLabel} plan allows ${completionCheck.limit} completion${completionCheck.limit === 1 ? "" : "s"} per month. Upgrade for more.`,
-        completionCheck.limit,
-        completionCheck.current,
-        completionPlan
-      );
-      return NextResponse.json(body403, { status: 403 });
-    }
 
     // Calculate perk value using submission engine (base perk: no tier flag
     // is stored with the campaign, so no follower count is needed).
