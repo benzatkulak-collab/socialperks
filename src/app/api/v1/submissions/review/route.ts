@@ -46,16 +46,19 @@ export const POST = withTiming(async (req: NextRequest) => {
   const csrfErr = requireCsrf(req);
   if (csrfErr) return csrfErr;
 
-  // Parse body
+  // Parse body. Besides the submission id, only the decision and the
+  // reviewer's note come from the caller. The campaign is never read from the
+  // body (an approval is priced, booked and counted from the submission's own
+  // stored campaign, see resolvedCampaign below), and neither is the email
+  // recipient (see submitterEmail below). A `campaign`, `followerCount`,
+  // `submitterEmail` or `submitterName` field a client still sends is ignored.
   const body = await parseBody<{
     submissionId?: string;
     reviewerId?: string;
     decision?: string;
     note?: string;
-    campaign?: LaunchedCampaign;
-    followerCount?: number;
-    submitterEmail?: string;
-    submitterName?: string;
+    /** The published name (OpenAPI, the MCP reviewSubmission tool) for `note`. */
+    reason?: string;
   }>(req);
   if (body instanceof Response) return body;
 
@@ -75,9 +78,11 @@ export const POST = withTiming(async (req: NextRequest) => {
   const dv = validateEnum(body.decision, "decision", ["approve", "reject"] as const);
   if (!dv.success) return err("INVALID_DECISION", dv.error, 400);
 
-  // Optional: validate note
-  if (body.note !== undefined) {
-    const nv = validateString(body.note, "note", { max: 1000 });
+  // Optional: validate note. The founder console sends it as `note`; the
+  // OpenAPI spec and the MCP tool call it `reason`.
+  const note = body.note ?? body.reason;
+  if (note !== undefined) {
+    const nv = validateString(note, "note", { max: 1000 });
     if (!nv.success) return err("INVALID_NOTE", nv.error, 400);
   }
 
@@ -101,15 +106,15 @@ export const POST = withTiming(async (req: NextRequest) => {
   const accessDenied = checkResourceAccess(tenant, campaignLifecycle.businessId);
   if (accessDenied) return accessDenied;
 
-  // Resolve the campaign server-side from the durable lifecycle so the perk
-  // award + notification email fire regardless of whether the caller sent
-  // body.campaign. The admin console (and any minimal client) only sends
-  // { submissionId, decision, note }; the old code gated awardPerk on
-  // body.campaign, so Approve silently awarded nothing and sent no email —
-  // the core loop dead-ended after approval. calculatePerkValue only reads
+  // Resolve the campaign server-side from the durable lifecycle, and ONLY from
+  // there: it is the campaign the tenant check above just passed. It decides
+  // the perk's value and type, the business whose wallet the perk lands in,
+  // the business whose monthly completion limit is checked and counted, and
+  // the campaign name in the customer's email. Nothing in the request body
+  // changes any of them. calculatePerkValue only reads
   // discountValue/discountType/useTiers; the remaining fields are filled from
   // the lifecycle (or safe defaults) so the LaunchedCampaign shape is honest.
-  const resolvedCampaign: LaunchedCampaign = body.campaign ?? {
+  const resolvedCampaign: LaunchedCampaign = {
     id: campaignLifecycle.id,
     businessId: campaignLifecycle.businessId,
     name: campaignLifecycle.name ?? "your campaign",
@@ -118,39 +123,22 @@ export const POST = withTiming(async (req: NextRequest) => {
     discountValue: campaignLifecycle.budget.allocated,
     discountType: campaignLifecycle.budget.type,
     expiresInDays: 0,
-    // Lifecycle doesn't carry the follower-tier flag; default off so the base
-    // perk is awarded. A client that wants tier bonuses can still pass
-    // body.campaign with useTiers + body.followerCount.
+    // The lifecycle doesn't carry a follower-tier flag, so every approval
+    // earns the base perk. A tier bonus would need the flag (and a follower
+    // count the server trusts) stored with the campaign.
     useTiers: false,
     status: "active",
     createdAt: campaignLifecycle.expiry.launchedAt,
   };
 
-  // Perform the review
-  const result = await reviewSubmission(
-    sv.data,
-    rv.data,
-    dv.data as "approve" | "reject",
-    body.note
-  );
-
-  if (!result.success) {
-    const status = result.error!.code === "NOT_FOUND" ? 404 : 400;
-    return err(result.error!.code, result.error!.message, status);
-  }
-
-  const submission = result.data!;
-
-  // If approving, calculate and award the perk using the server-resolved
-  // campaign (above). Fires for every approval, not just ones where the
-  // caller happened to send body.campaign.
-  let perk = null;
-  if (dv.data === "approve") {
-    const campaign = resolvedCampaign;
-    const followerCount = body.followerCount ?? 0;
-
-    // ── Plan enforcement: completion limit ──────────────────────────────────
-    const completionBusinessId = campaign.businessId;
+  // ── Plan enforcement: completion limit ────────────────────────────────────
+  // Checked BEFORE the review is recorded, so an approval the plan refuses
+  // leaves the submission pending (no perk, no email) and the business can
+  // approve it once the limit allows: next month, or after an upgrade. A
+  // submission that is no longer pending skips the check, so reviewing it
+  // again still answers ALREADY_REVIEWED. A rejection uses no completion.
+  const completionBusinessId = resolvedCampaign.businessId;
+  if (dv.data === "approve" && existingSubmission.status === "pending") {
     await hydrateSubscriptions(); // cold-start: read the real plan, not "free"
     const completionPlan = getBusinessPlan(completionBusinessId);
     const completionCheck = checkCompletionLimit(completionBusinessId, completionPlan);
@@ -164,9 +152,32 @@ export const POST = withTiming(async (req: NextRequest) => {
       );
       return NextResponse.json(body403, { status: 403 });
     }
+  }
 
-    // Calculate perk value using submission engine
-    const perkCalc = calculatePerkValue(submission, campaign, followerCount);
+  // Perform the review
+  const result = await reviewSubmission(
+    sv.data,
+    rv.data,
+    dv.data as "approve" | "reject",
+    note
+  );
+
+  if (!result.success) {
+    const status = result.error!.code === "NOT_FOUND" ? 404 : 400;
+    return err(result.error!.code, result.error!.message, status);
+  }
+
+  const submission = result.data!;
+
+  // If approving, calculate and award the perk using the server-resolved
+  // campaign (above).
+  let perk = null;
+  if (dv.data === "approve") {
+    const campaign = resolvedCampaign;
+
+    // Calculate perk value using submission engine (base perk: no tier flag
+    // is stored with the campaign, so no follower count is needed).
+    const perkCalc = calculatePerkValue(submission, campaign);
 
     // Record completion in campaign state machine (if tracked)
     const lifecycle = campaignManager.getState(submission.campaignId);
@@ -207,21 +218,19 @@ export const POST = withTiming(async (req: NextRequest) => {
     }
   }
 
-  // Fire-and-forget notification email to submitter. The recipient is resolved
-  // from the request OR the submission's stored metadata — the public /c submit
-  // persists { email, name } there (submissions/public/route.ts), so the
-  // "your perk is ready" email fires regardless of what the reviewing client
-  // sends. Previously gating on body.submitterEmail meant the customer was
-  // never told their perk was approved.
+  // Fire-and-forget notification email to submitter. The recipient and the
+  // greeting come ONLY from the submission's stored metadata: the public /c
+  // submit persists { email, name } there (submissions/public/route.ts), so the
+  // "your perk is ready" email fires without the reviewing client sending
+  // anything. The approval email carries the customer's perk link, so it goes
+  // only to the address the customer gave, never to one in the request.
   const submitterEmail =
-    body.submitterEmail ??
-    (typeof submission.metadata.email === "string" ? submission.metadata.email : undefined);
+    typeof submission.metadata.email === "string" ? submission.metadata.email : undefined;
   const submitterName =
-    body.submitterName ??
-    (typeof submission.metadata.name === "string" ? submission.metadata.name : undefined);
+    typeof submission.metadata.name === "string" ? submission.metadata.name : undefined;
   if (submitterEmail) {
     const recipientName = submitterName || "there";
-    const campaignName = body.campaign?.name || resolvedCampaign.name || "your campaign";
+    const campaignName = resolvedCampaign.name || "your campaign";
 
     if (dv.data === "approve") {
       const perkDisplay = perk?.calculation
@@ -237,7 +246,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       );
       emailProvider.send({ to: submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     } else {
-      const template = submissionRejectedEmail(recipientName, campaignName, body.note ?? undefined);
+      const template = submissionRejectedEmail(recipientName, campaignName, note);
       emailProvider.send({ to: submitterEmail, ...template }).catch((e: unknown) => console.error("[Email] Submission notification failed:", e instanceof Error ? e.message : e));
     }
   }
