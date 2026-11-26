@@ -28,12 +28,28 @@ import {
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://socialperks.app";
 
+// The routes parse their answers STRICTLY (so a mapping bug that adds a field
+// fails loudly), but the published document is OPEN: a field added later must
+// not be a documented contract break. Only `additionalProperties: false` goes;
+// a record's value schema (`additionalProperties: {...}`) stays.
+function openObjects(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(openObjects);
+  if (node && typeof node === "object") {
+    return Object.fromEntries(
+      Object.entries(node as Record<string, unknown>)
+        .filter(([k, v]) => !(k === "additionalProperties" && v === false))
+        .map(([k, v]) => [k, openObjects(v)]),
+    );
+  }
+  return node;
+}
+
 // Partner response schemas come from the same zod schemas the routes parse
 // their answers with, so the document cannot drift from the routes.
 function partnerJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _omit, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
   void _omit;
-  return rest;
+  return openObjects(rest) as Record<string, unknown>;
 }
 
 function partnerEnvelope(schema: z.ZodType) {
@@ -72,6 +88,8 @@ const partnerWindowParams = [
 const partnerCommonErrors = {
   "401": partnerError("Missing, unknown or revoked partner key"),
   "429": partnerError("Rate limit exceeded"),
+  "500": partnerError("The request could not be completed (the failure is logged)"),
+  "503": partnerError("The key could not be checked right now; retry later. The key is not refused"),
 };
 
 function buildSpec() {
@@ -607,6 +625,8 @@ function buildSpec() {
             "401": partnerCommonErrors["401"],
             "404": partnerError("Business not found for this partner"),
             "429": partnerCommonErrors["429"],
+            "500": partnerCommonErrors["500"],
+            "503": partnerCommonErrors["503"],
           },
         },
       },
