@@ -132,8 +132,13 @@ describe("POST /api/v1/submissions/review — the founder", () => {
     expect(getWallet(CUSTOMER, OWNER_BIZ).perks).toHaveLength(1);
     expect(getUsageSummary(OWNER_BIZ).completions.used).toBe(1);
     expect(sent.map((m) => m.to)).toEqual([CUSTOMER_EMAIL]);
-    // The business's own live stream hears about it, as for its own review.
-    expect(published).toHaveBeenCalledWith("submission.approved", { submissionId, decision: "approve" }, OWNER_BIZ);
+    // The business's own live stream hears about it, as for its own review,
+    // with the campaign's stored name for its bell.
+    expect(published).toHaveBeenCalledWith(
+      "submission.approved",
+      { submissionId, decision: "approve", campaignName: "Owner test campaign" },
+      OWNER_BIZ,
+    );
   });
 
   it("rejects one and saves the reason", async () => {
