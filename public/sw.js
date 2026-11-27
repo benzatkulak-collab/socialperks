@@ -6,7 +6,7 @@
 //   Other API reads:            Network only, 503 when offline
 //   Static assets:              Cache-first, network fallback
 //   Pages:                      Stale-while-revalidate
-//   Offline mutations:          Queued in IndexedDB, replayed on reconnect
+//   API writes:                 Network only, 503 when offline
 // ══════════════════════════════════════════════════════════════════════════════
 
 // v3 (Nov 2026): earlier workers kept a copy of every API read, signed-in
@@ -39,89 +39,26 @@ const APP_SHELL = [
   "/favicon.svg",
 ];
 
-// ─── IndexedDB Helpers (for offline mutation queue) ─────────────────────────
+// ─── The old worker's write queue ──────────────────────────────────────────
 
-const IDB_NAME = "social-perks-sw";
-const IDB_VERSION = 1;
-const MUTATION_STORE = "pendingMutations";
+// Earlier workers kept each write they could not send in this IndexedDB
+// database, with its headers and body, answered 202 "will sync", and never
+// sent it: nothing in the app asked them to. This worker keeps no writes,
+// and activating it deletes the database with whatever it still holds.
+const OLD_WRITE_QUEUE_DB = "social-perks-sw";
 
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(IDB_NAME, IDB_VERSION);
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(MUTATION_STORE)) {
-        db.createObjectStore(MUTATION_STORE, { keyPath: "id", autoIncrement: true });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function queueMutation(method, url, body, headers) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(MUTATION_STORE, "readwrite");
-    const store = tx.objectStore(MUTATION_STORE);
-    store.add({
-      method,
-      url,
-      body,
-      headers: Object.fromEntries(
-        [...headers].filter(([k]) => !k.startsWith("content-length"))
-      ),
-      timestamp: Date.now(),
-    });
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function drainMutationQueue() {
-  const db = await openDB();
-
-  const getAllMutations = () =>
-    new Promise((resolve, reject) => {
-      const tx = db.transaction(MUTATION_STORE, "readonly");
-      const store = tx.objectStore(MUTATION_STORE);
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-
-  const deleteMutation = (id) =>
-    new Promise((resolve, reject) => {
-      const tx = db.transaction(MUTATION_STORE, "readwrite");
-      const store = tx.objectStore(MUTATION_STORE);
-      const request = store.delete(id);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-
-  const mutations = await getAllMutations();
-
-  // Sort by timestamp to replay in order
-  mutations.sort((a, b) => a.timestamp - b.timestamp);
-
-  for (const mutation of mutations) {
+function deleteOldWriteQueue() {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === "undefined") return resolve();
     try {
-      const response = await fetch(mutation.url, {
-        method: mutation.method,
-        headers: mutation.headers,
-        body: mutation.body ? JSON.stringify(mutation.body) : undefined,
-      });
-
-      if (response.ok || response.status < 500) {
-        // Success or client error (don't retry client errors)
-        await deleteMutation(mutation.id);
-      }
-      // 5xx errors left in queue for next attempt
+      const request = indexedDB.deleteDatabase(OLD_WRITE_QUEUE_DB);
+      // "blocked" means a connection is still open; the delete still happens
+      // once it closes, so activation does not wait for it.
+      request.onsuccess = request.onerror = request.onblocked = () => resolve();
     } catch {
-      // Network still down — stop draining
-      break;
+      resolve();
     }
-  }
+  });
 }
 
 // ─── Install: Pre-cache app shell ──────────────────────────────────────────
@@ -139,17 +76,20 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// ─── Activate: Clean up old caches ────────────────────────────────────────
+// ─── Activate: Clean up old caches and the old write queue ────────────────
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys
-          .filter((key) => key.startsWith("sp-") && !key.startsWith(CACHE_VERSION))
-          .map((key) => caches.delete(key))
-      );
-    })
+    Promise.all([
+      caches.keys().then((keys) => {
+        return Promise.all(
+          keys
+            .filter((key) => key.startsWith("sp-") && !key.startsWith(CACHE_VERSION))
+            .map((key) => caches.delete(key))
+        );
+      }),
+      deleteOldWriteQueue(),
+    ])
   );
   // Claim all open tabs so the new SW takes effect immediately
   self.clients.claim();
@@ -177,51 +117,27 @@ function changesWhoIsSignedIn(url, request) {
   return SIGN_IN_ROUTES.has(url.pathname.replace(/\/+$/, ""));
 }
 
-function offlineApiResponse() {
-  return new Response(
-    JSON.stringify({ error: "You are offline and no cached data is available." }),
-    { status: 503, headers: { "Content-Type": "application/json" } }
-  );
+function offlineApiResponse(request) {
+  const isWrite = request.method !== "GET" && request.method !== "HEAD";
+  const error = isWrite
+    ? "You are offline. This change was not saved."
+    : "You are offline and no cached data is available.";
+  return new Response(JSON.stringify({ error }), {
+    status: 503,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
-// API requests: mutations are queued when offline; reads go to the network,
-// and only public reads keep a copy for when it fails
+// API requests go to the network. Only public reads keep a copy, for when it
+// fails; every other request answers 503 while offline.
 async function handleApiRequest(request) {
-  const isReadOnly = request.method === "GET" || request.method === "HEAD";
-
-  if (!isReadOnly) {
-    // Mutation: try network, queue if offline
-    try {
-      return await fetch(request);
-    } catch {
-      // Offline — queue mutation for later replay
-      let body = null;
-      try {
-        body = await request.clone().json();
-      } catch {
-        // No body or non-JSON
-      }
-      await queueMutation(request.method, request.url, body, request.headers);
-      return new Response(
-        JSON.stringify({
-          queued: true,
-          message: "You are offline. This change will sync when you reconnect.",
-        }),
-        {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-  }
-
-  // Any other read, and every HEAD: the network only. The answer goes to the
-  // page as it arrives, and no copy is kept.
+  // A write, any other read, and every HEAD: the network only. The answer
+  // goes to the page as it arrives, and nothing is kept.
   if (!isPublicApiRead(new URL(request.url), request)) {
     try {
       return await fetch(request);
     } catch {
-      return offlineApiResponse();
+      return offlineApiResponse(request);
     }
   }
 
@@ -238,7 +154,7 @@ async function handleApiRequest(request) {
     return response;
   } catch {
     const cached = await caches.match(request, { cacheName: API_CACHE });
-    return cached || offlineApiResponse();
+    return cached || offlineApiResponse(request);
   }
 }
 
@@ -317,29 +233,9 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
-// ─── Background Sync: Replay queued mutations ─────────────────────────────
+// ─── Messages from the page ────────────────────────────────────────────────
 
-self.addEventListener("sync", (event) => {
-  if (event.tag === "replay-mutations") {
-    event.waitUntil(drainMutationQueue());
-  }
-});
-
-// Also drain on message from the main thread
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "DRAIN_MUTATIONS") {
-    event.waitUntil(
-      drainMutationQueue().then(() => {
-        // Notify all clients that sync is complete
-        self.clients.matchAll().then((clients) => {
-          clients.forEach((client) => {
-            client.postMessage({ type: "MUTATIONS_DRAINED" });
-          });
-        });
-      })
-    );
-  }
-
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }

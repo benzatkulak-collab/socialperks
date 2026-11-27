@@ -74,23 +74,6 @@ export function useOffline(): UseOfflineResult {
     };
   }, [syncStatus]);
 
-  // Listen for SW messages about mutation drain completion
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "MUTATIONS_DRAINED") {
-        setPendingMutations(0);
-        setSyncStatus("synced");
-      }
-    };
-
-    navigator.serviceWorker.addEventListener("message", handleMessage);
-    return () => {
-      navigator.serviceWorker.removeEventListener("message", handleMessage);
-    };
-  }, []);
-
   // Auto-sync when coming back online
   useEffect(() => {
     if (!isOnline || syncStatus !== "pending") return;

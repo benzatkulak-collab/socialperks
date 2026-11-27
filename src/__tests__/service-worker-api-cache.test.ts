@@ -20,6 +20,10 @@
  *   can change who is signed in, so it empties the copies the worker kept.
  * - New cache names make the activate step delete every cache an earlier
  *   worker kept.
+ * - Writes go to the network only and answer 503 offline. The old worker
+ *   kept a write it could not send in IndexedDB (`social-perks-sw`), with its
+ *   headers and body, answered 202 "will sync", and never sent it: nothing in
+ *   the app asked it to. Activating the new worker deletes that database.
  *
  * The test runs sw.js in a sandbox with a stand-in `self`, network and Cache
  * Storage, and fires install, activate and fetch events at it. All data is
@@ -94,7 +98,24 @@ function startWorker(seed: Seed = {}) {
   const storage = createCacheStorage(seed);
   const network = {
     online: true,
+    /** Every request the worker sent, as method and path. */
+    requests: [] as string[],
     answer: (request: Request): Response => json({ success: true, data: { path: new URL(request.url).pathname } }),
+  };
+  // IndexedDB that records what the worker asks of it. An open never answers,
+  // so a worker that waits on a database hangs, and the tests see it.
+  const idb = { opened: [] as string[], deleted: [] as string[] };
+  const indexedDB = {
+    open: (name: string) => {
+      idb.opened.push(name);
+      return {};
+    },
+    deleteDatabase: (name: string) => {
+      idb.deleted.push(name);
+      const request: { onsuccess?: () => void } = {};
+      setTimeout(() => request.onsuccess?.(), 0);
+      return request;
+    },
   };
   const self = {
     location: { origin: ORIGIN },
@@ -104,15 +125,21 @@ function startWorker(seed: Seed = {}) {
   };
   const fetch = async (input: Request | string, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(new URL(input, ORIGIN), init);
+    network.requests.push(`${request.method} ${new URL(request.url).pathname}`);
     if (!network.online) throw new TypeError("Failed to fetch");
     return network.answer(request);
   };
-  vm.runInNewContext(WORKER_SOURCE, { self, URL, Request, Response, Headers, console, fetch, caches: storage.api, indexedDB: {} });
+  vm.runInNewContext(WORKER_SOURCE, { self, URL, Request, Response, Headers, console, fetch, caches: storage.api, indexedDB });
 
   const fire = (type: string, event: Record<string, unknown>) => {
     const listener = listeners.get(type);
     if (!listener) throw new Error(`sw.js registered no ${type} listener`);
     listener(event);
+  };
+
+  /** Fires an event the worker may not listen for at all. */
+  const fireIfListening = (type: string, event: Record<string, unknown>) => {
+    listeners.get(type)?.(event);
   };
 
   /** Fires a lifecycle event and waits for what it asked to finish. */
@@ -139,9 +166,22 @@ function startWorker(seed: Seed = {}) {
   return {
     storage,
     network,
+    idb,
     dispatch,
+    fireIfListening,
     install: () => lifecycle("install"),
     activate: () => lifecycle("activate"),
+    /** The worker's answer, or "still waiting" if it has none within a second. */
+    answerWithin: async (url: string, init?: RequestInit): Promise<Response | string> => {
+      const { answer } = dispatch(url, init);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const stillWaiting = new Promise<string>((resolve) => {
+        timer = setTimeout(() => resolve("still waiting"), 1000);
+      });
+      const first = await Promise.race([answer ?? Promise.resolve("left to the browser"), stillWaiting]);
+      clearTimeout(timer);
+      return first;
+    },
     /** The worker's answer, once the work it kept running has finished as well. */
     send: async (url: string, init?: RequestInit): Promise<Response | null> => {
       const { answer, kept } = dispatch(url, init);
@@ -336,5 +376,50 @@ describe("public/sw.js — the caches earlier workers kept", () => {
     expect(own).toHaveLength(2); // the app shell and the public reads
     await worker.activate();
     expect(worker.storage.names()).toEqual(own);
+  });
+
+  it("deletes the database where the old worker kept unsent writes when it activates", async () => {
+    const worker = startWorker();
+    await worker.activate();
+    expect(worker.idb.deleted).toEqual(["social-perks-sw"]);
+  });
+});
+
+describe("public/sw.js — writes while offline", () => {
+  it("answers a write with 503 while offline, and keeps nothing of it", async () => {
+    const worker = startWorker();
+    worker.network.online = false;
+    const answer = await worker.answerWithin("/api/v1/campaigns", post({ businessId: "biz_test_alpha", name: "Test campaign" }));
+    expect(answer).toBeInstanceOf(Response);
+    expect((answer as Response).status).toBe(503);
+    expect(worker.idb.opened).toEqual([]);
+  });
+
+  it("sends a write to the network and hands back the server's answer", async () => {
+    const worker = startWorker();
+    worker.network.answer = () => json({ success: true, data: { id: "cmp_test_one" } }, 201);
+    const answer = await worker.send("/api/v1/campaigns", post({ businessId: "biz_test_alpha", name: "Test campaign" }));
+    expect(answer?.status).toBe(201);
+    expect(worker.idb.opened).toEqual([]);
+  });
+
+  it("empties the copies it kept on a sign-out sent while offline, and answers it with 503", async () => {
+    const worker = startWorker();
+    await worker.send("/api/v1/stats/public");
+    worker.network.online = false;
+    const answer = await worker.answerWithin("/api/v1/auth", post({ action: "logout" }));
+    await settled();
+    expect(answer).toBeInstanceOf(Response);
+    expect((answer as Response).status).toBe(503);
+    expect(worker.storage.urls()).toEqual([]);
+  });
+
+  it("sends nothing on its own: no sync event or message replays a write", async () => {
+    const worker = startWorker();
+    worker.fireIfListening("sync", { tag: "replay-mutations", waitUntil: () => {} });
+    worker.fireIfListening("message", { data: { type: "DRAIN_MUTATIONS" }, waitUntil: () => {} });
+    await settled();
+    expect(worker.idb.opened).toEqual([]);
+    expect(worker.network.requests).toEqual([]);
   });
 });
