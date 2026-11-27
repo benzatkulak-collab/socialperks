@@ -71,6 +71,8 @@ export type AuditAction =
   | "admin.user.password_reset"
   | "admin.user.impersonated"
   | "admin.user.impersonation_ended"
+  // The founder approving or rejecting a business's submission
+  | "admin.submission.reviewed"
   // Admin agent control plane
   | "admin.agent.enabled"
   | "admin.agent.disabled"

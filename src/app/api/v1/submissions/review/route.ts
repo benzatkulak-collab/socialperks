@@ -7,12 +7,16 @@ import { NextResponse } from "next/server";
 import {
   ok,
   err,
+  getUser,
   rateLimit,
   requireCsrf,
   parseBody,
   withTiming,
+  type AuthUser,
 } from "../../_shared";
 import { withTenant, checkResourceAccess } from "../../_tenant";
+import type { TenantContext } from "@/lib/multi-tenant/isolation";
+import { audit } from "@/lib/audit-log";
 import { reviewSubmission, calculatePerkValue, getSubmissionById, hydrateSubmissions } from "@/lib/submissions";
 import { awardPerk, persistPerk } from "@/lib/perk-wallet";
 import { campaignManager } from "@/lib/campaign-state-machine";
@@ -30,13 +34,33 @@ import {
 } from "@/lib/billing/enforcement";
 import { hydrateSubscriptions } from "@/lib/billing/store";
 
+// ─── Who reviews ────────────────────────────────────────────────────────────
+
+/**
+ * The caller, and the business they review for.
+ *
+ * - The founder, an admin with no business of their own, may review any
+ *   business's submission (Ben, 2026-11-26). GET /api/v1/submissions lists
+ *   every submission to that account, and the founder console's Approve and
+ *   Reject buttons act on that list. `tenant` is null for the founder.
+ * - Anyone else needs a business (403 NO_TENANT without one) and reviews
+ *   only submissions on its own business's campaigns. An admin with a
+ *   business of its own counts as that business here, as in
+ *   GET /api/v1/submissions.
+ */
+function reviewerOf(req: NextRequest): { user: AuthUser; tenant: TenantContext | null } | NextResponse {
+  const user = getUser(req);
+  if (user && user.role === "admin" && !user.businessId) return { user, tenant: null };
+  return withTenant(req);
+}
+
 // ─── POST ───────────────────────────────────────────────────────────────────
 
 export const POST = withTiming(async (req: NextRequest) => {
-  // Auth + tenant isolation
-  const tenantResult = withTenant(req);
-  if (tenantResult instanceof NextResponse) return tenantResult;
-  const { tenant } = tenantResult;
+  // Auth + tenant isolation: the founder, or a business (see reviewerOf).
+  const reviewer = reviewerOf(req);
+  if (reviewer instanceof NextResponse) return reviewer;
+  const { tenant } = reviewer;
 
   // Rate limit — standard
   const limited = rateLimit(req, "standard");
@@ -72,7 +96,7 @@ export const POST = withTiming(async (req: NextRequest) => {
   // bug: clients had to know + send their own id, which led to the
   // dashboard's Approve button 400ing with INVALID_REVIEWER_ID when
   // it wasn't included.
-  const rv = { success: true as const, data: tenantResult.user.id, error: undefined };
+  const rv = { success: true as const, data: reviewer.user.id, error: undefined };
 
   // Validate decision
   const dv = validateEnum(body.decision, "decision", ["approve", "reject"] as const);
@@ -103,11 +127,16 @@ export const POST = withTiming(async (req: NextRequest) => {
   if (!campaignLifecycle) {
     return err("NOT_FOUND", "Campaign for this submission not found", 404);
   }
-  const accessDenied = checkResourceAccess(tenant, campaignLifecycle.businessId);
-  if (accessDenied) return accessDenied;
+  // A business reviews only its own campaigns' submissions; the founder
+  // (no tenant) any business's.
+  if (tenant) {
+    const accessDenied = checkResourceAccess(tenant, campaignLifecycle.businessId);
+    if (accessDenied) return accessDenied;
+  }
 
   // Resolve the campaign server-side from the durable lifecycle, and ONLY from
-  // there: it is the campaign the tenant check above just passed. It decides
+  // there: it is the submission's own campaign, the one a business's tenant
+  // check above just passed. It decides
   // the perk's value and type, the business whose wallet the perk lands in,
   // the business whose monthly completion limit is checked and counted, and
   // the campaign name in the customer's email. Nothing in the request body
@@ -168,6 +197,19 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   const submission = result.data!;
+
+  // A founder review goes to the audit log, naming the business it was for.
+  // (A business's own review is recorded by the submission's reviewedBy.)
+  if (!tenant) {
+    audit({
+      action: "admin.submission.reviewed",
+      actor: `user:${reviewer.user.id}`,
+      businessId: campaignLifecycle.businessId,
+      resourceId: `submission:${submission.id}`,
+      ok: true,
+      meta: { decision: dv.data, campaignId: submission.campaignId },
+    });
+  }
 
   // If approving, calculate and award the perk using the server-resolved
   // campaign (above).
