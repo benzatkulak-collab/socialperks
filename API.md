@@ -823,12 +823,20 @@ Handles OAuth redirect from social platform. Query params: `code`, `state`, `err
 
 | Field | Value |
 |-------|-------|
-| Auth | Token query param |
-| Rate limit | relaxed |
+| Auth | Access cookie, Bearer token, API key, or `?token=` |
+| Rate limit | None |
 
-**Query params:** `token` (required -- session token, demo token, or API key), `businessId` (optional -- scope to business events).
+Signs in the way other routes do: the `sp-access-token` cookie (all a browser has, since `EventSource` sends no headers), `Authorization: Bearer`, or `x-api-key`. A non-browser client may instead pass `?token=` (an access JWT or a session token), which decides when it is given. Never the 7-day refresh token.
 
-Returns: `text/event-stream` with events like `connected`, `campaign.created`, `submission.approved`, `tier.unlocked`, `cashback.requested`, etc.
+**Query params:** `businessId` (optional; a business always receives its own events, and only the founder may name another business), `token` (optional, see above).
+
+Returns `text/event-stream`: a `connected` event, then the caller's events, then a `heartbeat` every 30 s. The events are `submission.created`, `submission.approved`, `submission.rejected`, `campaign.created`, `campaign.updated`, `campaign.paused`, `campaign.resumed` and `campaign.ended`, each for the caller's own business; the founder also receives `user.created`. Every event is named (`event: <type>`), so listen with `addEventListener(type)`, not `onmessage`. A stream ends when the credential that opened it expires, and after 15 minutes at most; check `HEAD` again before reconnecting.
+
+Other answers: `204 No Content` when this server streams nothing (`REALTIME_EVENTS`, off in production unless set to `on`) or the account can receive no events (an account with no business); `401` not signed in; `403` another business's events.
+
+### `HEAD /api/v1/events` -- can this caller stream?
+
+The same checks and status codes as `GET`, without opening a stream. The web client asks it before each connection, through `apiFetch`, which is where an expired access cookie gets renewed (PR #252 adds that renewal). After a `401` it asks once more a minute later before it stops.
 
 ---
 

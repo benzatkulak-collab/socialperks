@@ -294,8 +294,13 @@ export const POST = withTiming(async (req: NextRequest) => {
   }
 
   const eventType = dv.data === "approve" ? "submission.approved" : "submission.rejected";
-  const reviewBusinessId = campaignManager.getState(submission.campaignId)?.businessId;
-  eventPublisher.publish(eventType, { submissionId: sv.data, decision: dv.data }, reviewBusinessId);
+  const reviewCampaign = campaignManager.getState(submission.campaignId);
+  const reviewBusinessId = reviewCampaign?.businessId;
+  eventPublisher.publish(
+    eventType,
+    { submissionId: sv.data, decision: dv.data, campaignName: reviewCampaign?.name },
+    reviewBusinessId,
+  );
 
   return ok({
     submission,
