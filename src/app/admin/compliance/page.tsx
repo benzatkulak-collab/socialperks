@@ -56,12 +56,14 @@ export default function AdminCompliancePage() {
 
   const runNow = async () => {
     setWorking(true);
-    await fetch("/api/v1/admin/agents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ agentId: "compliance-watchdog", action: "run" }),
-    });
+    try {
+      await apiFetch("/api/v1/admin/agents", {
+        method: "POST",
+        body: JSON.stringify({ agentId: "compliance-watchdog", action: "run" }),
+      });
+    } catch {
+      // No CSRF token or no connection. The read below shows the agent as it is.
+    }
     setWorking(false);
     fetchAgent();
   };
