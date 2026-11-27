@@ -8,13 +8,32 @@
  * All ids and emails here are made up.
  */
 
-import { describe, it, expect } from "vitest";
+import { beforeAll, describe, it, expect } from "vitest";
 import { NextRequest } from "next/server";
 import { GET as getWallet } from "../wallet/route";
 import { GET as getAuth, POST as postAuth } from "../auth/route";
 import { createTokenPair } from "@/lib/auth";
+import { ensureUsersSeeded, putUser } from "@/lib/auth/user-store";
 
 const tokens = createTokenPair("usr_test_token_owner", "influencer", "token.owner@example.test", null);
+
+// The refresh exchange answers from the account on file, not from the
+// token's claims (auth/__tests__/refresh-checks-account.test.ts), so the
+// token's owner has to be an account.
+beforeAll(async () => {
+  await ensureUsersSeeded();
+  await putUser({
+    id: "usr_test_token_owner",
+    email: "token.owner@example.test",
+    name: "Token Owner",
+    passwordHash: "not-a-real-hash",
+    role: "influencer",
+    businessId: null,
+    suspendedAt: null,
+    suspensionReason: null,
+    createdAt: "2026-03-01T15:00:00.000Z",
+  });
+});
 
 let ipCounter = 0;
 

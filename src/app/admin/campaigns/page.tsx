@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type State = "draft" | "active" | "paused" | "ended" | "expired";
 
@@ -69,7 +70,7 @@ export default function AdminCampaignsPage() {
     const params = new URLSearchParams();
     if (stateFilter !== "all") params.set("state", stateFilter);
     params.set("perPage", "100");
-    const res = await fetch(`/api/v1/campaigns?${params}`, { credentials: "include" });
+    const res = await apiFetch(`/api/v1/campaigns?${params}`);
     const json = await res.json();
     if (json.success) {
       let list: Campaign[] = json.data?.campaigns ?? [];

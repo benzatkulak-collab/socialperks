@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnimateOnScroll } from "@/components/shared/animate-on-scroll";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PLATFORMS } from "@/lib/platforms";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -117,9 +118,7 @@ export function PortalAnalytics({ businessId }: PortalAnalyticsProps) {
 
     async function fetchData() {
       try {
-        const res = await fetch(`/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`, {
-          credentials: "include",
-        });
+        const res = await apiFetch(`/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`);
         if (!res.ok) throw new Error(`Failed to load campaigns (${res.status})`);
         const json = await res.json();
         if (!cancelled) {

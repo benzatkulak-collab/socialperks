@@ -8,6 +8,7 @@ import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
 import { useAdminUser } from "@/components/admin/admin-guard";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Status = "pending" | "approved" | "rejected";
 
@@ -54,7 +55,7 @@ export default function AdminSubmissionsPage() {
     const params = new URLSearchParams();
     if (statusFilter !== "all") params.set("status", statusFilter);
     params.set("perPage", "100");
-    const res = await fetch(`/api/v1/submissions?${params}`, { credentials: "include" });
+    const res = await apiFetch(`/api/v1/submissions?${params}`);
     const json = await res.json();
     if (json.success) {
       let list: Submission[] = json.data?.submissions ?? [];

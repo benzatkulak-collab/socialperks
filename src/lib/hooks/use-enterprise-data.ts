@@ -7,6 +7,7 @@ import type { Location } from "@/components/enterprise/multi-location";
 import type { ReportData, ReportMetric, CampaignPerformance, LocationComparison, PlatformBreakdown } from "@/components/enterprise/report-types";
 import type { BrandGuidelines, CampaignTemplate, PendingReview, LocationCompliance } from "@/components/enterprise/brand-manager";
 import type { ApiKey as EntApiKey, Webhook as EntWebhook, ApiUsageStats } from "@/components/enterprise/api-console";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ═══════════════ API Response Types ═══════════════
 
@@ -393,13 +394,13 @@ export function useEnterpriseData(businessId: string | null | undefined): Enterp
     try {
       // Fetch campaigns and submissions in parallel
       const [campaignsRes, submissionsRes] = await Promise.all([
-        fetch(
+        apiFetch(
           `/api/v1/campaigns?businessId=${encodeURIComponent(businessId)}`,
-          { signal: controller.signal, credentials: "include" },
+          { signal: controller.signal },
         ),
-        fetch(
+        apiFetch(
           `/api/v1/submissions?businessId=${encodeURIComponent(businessId)}`,
-          { signal: controller.signal, credentials: "include" },
+          { signal: controller.signal },
         ),
       ]);
 

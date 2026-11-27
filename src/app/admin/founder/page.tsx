@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface ActivityEvent {
   type: "signup" | "campaign_launched" | "subscription_started" | "subscription_canceled";
@@ -74,10 +75,7 @@ export default function FounderDashboard() {
   const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     try {
-      const r = await fetch("/api/v1/admin/founder-overview", {
-        signal,
-        credentials: "include",
-      });
+      const r = await apiFetch("/api/v1/admin/founder-overview", { signal });
       if (r.status === 401 || r.status === 403) {
         setError("Admin access required to view this dashboard.");
         return;

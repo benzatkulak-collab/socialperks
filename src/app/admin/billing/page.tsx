@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface UsageResponse {
   plan: string;
@@ -54,13 +55,13 @@ export default function AdminBillingPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [uRes, aRes] = await Promise.allSettled([
-      fetch("/api/v1/billing", {
+      apiFetch("/api/v1/billing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        skipCsrf: true, // a read sent as POST; /billing checks no CSRF token
         body: JSON.stringify({ action: "get_usage" }),
       }),
-      fetch("/api/v1/admin/agents", { credentials: "include" }),
+      apiFetch("/api/v1/admin/agents"),
     ]);
 
     if (uRes.status === "fulfilled" && uRes.value.ok) {

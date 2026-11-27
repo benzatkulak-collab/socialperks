@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { findNavItem } from "./nav-config";
+import { signOutWith } from "@/lib/api/csrf-fetch";
 
 interface AuthUser {
   id: string;
@@ -38,20 +39,24 @@ export function AdminTopbar() {
   }, []);
 
   const handleLogout = async () => {
-    await fetch("/api/v1/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ action: "logout" }),
-    });
+    await signOutWith(() =>
+      fetch("/api/v1/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "logout" }),
+      })
+    );
     router.push("/");
   };
 
   const handleExitImpersonation = async () => {
-    await fetch("/api/v1/admin/impersonate", {
-      method: "DELETE",
-      credentials: "include",
-    });
+    await signOutWith(() =>
+      fetch("/api/v1/admin/impersonate", {
+        method: "DELETE",
+        credentials: "include",
+      })
+    );
     router.refresh();
     window.location.reload();
   };
