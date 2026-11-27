@@ -104,7 +104,9 @@ function startWorker(seed: Seed = {}) {
   };
   // IndexedDB that records what the worker asks of it. An open never answers,
   // so a worker that waits on a database hangs, and the tests see it.
-  const idb = { opened: [] as string[], deleted: [] as string[] };
+  // With `blockDelete`, a delete reports "blocked" (a connection still open)
+  // and never finishes.
+  const idb = { opened: [] as string[], deleted: [] as string[], blockDelete: false };
   const indexedDB = {
     open: (name: string) => {
       idb.opened.push(name);
@@ -112,8 +114,8 @@ function startWorker(seed: Seed = {}) {
     },
     deleteDatabase: (name: string) => {
       idb.deleted.push(name);
-      const request: { onsuccess?: () => void } = {};
-      setTimeout(() => request.onsuccess?.(), 0);
+      const request: { onsuccess?: () => void; onblocked?: () => void } = {};
+      setTimeout(() => (idb.blockDelete ? request.onblocked?.() : request.onsuccess?.()), 0);
       return request;
     },
   };
@@ -382,6 +384,19 @@ describe("public/sw.js — the caches earlier workers kept", () => {
     const worker = startWorker();
     await worker.activate();
     expect(worker.idb.deleted).toEqual(["social-perks-sw"]);
+  });
+
+  // A worker stuck in "activating" would hold back every request the site makes.
+  it("finishes activating even when an open connection blocks that delete", async () => {
+    const worker = startWorker();
+    worker.idb.blockDelete = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const stillActivating = new Promise<string>((resolve) => {
+      timer = setTimeout(() => resolve("still activating"), 1000);
+    });
+    const outcome = await Promise.race([worker.activate().then(() => "activated"), stillActivating]);
+    clearTimeout(timer);
+    expect(outcome).toBe("activated");
   });
 });
 
