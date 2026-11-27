@@ -1100,6 +1100,51 @@ export const SCHEMA = {
     relations: [],
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PARTNER API (keys and the businesses each partner may read)
+  // Not in migrate.ts's rlsTables: scoped in application code, like
+  // launched_campaign_state; a business_id tenant policy would hide the
+  // partner row from the app's own key lookup.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  partners: {
+    columns: {
+      id: { type: "uuid", nullable: false, default: "gen_random_uuid()" },
+      name: { type: "text", nullable: false },
+      key_hash: { type: "text", nullable: false },
+      key_prefix: { type: "text", nullable: false },
+      created_at: { type: "timestamptz", nullable: false, default: "now()" },
+      revoked_at: { type: "timestamptz", nullable: true },
+    },
+    indexes: [
+      { columns: ["id"], unique: true, name: "partners_pkey" },
+      { columns: ["key_hash"], unique: true, name: "partners_key_hash_unique" },
+    ],
+    relations: [
+      { type: "one-to-many", table: "partner_businesses", foreignKey: "partner_id", description: "Partner is granted many businesses" },
+    ],
+  },
+
+  partner_businesses: {
+    columns: {
+      partner_id: {
+        type: "uuid",
+        nullable: false,
+        references: { table: "partners", column: "id", onDelete: "CASCADE" },
+      },
+      business_id: { type: "text", nullable: false },
+      granted_by: { type: "text", nullable: false },
+      granted_at: { type: "timestamptz", nullable: false, default: "now()" },
+      revoked_at: { type: "timestamptz", nullable: true },
+    },
+    indexes: [
+      { columns: ["partner_id", "business_id"], unique: true, name: "partner_businesses_partner_business_unique" },
+    ],
+    relations: [
+      { type: "many-to-one", table: "partners", foreignKey: "partner_id", description: "Grant belongs to a partner" },
+    ],
+  },
+
 } as const satisfies Record<string, TableDef>;
 
 // ─── Helper Types ────────────────────────────────────────────────────────────

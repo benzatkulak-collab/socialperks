@@ -18,9 +18,79 @@
 // and let edge cache do the heavy lifting.
 
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import {
+  partnerBusinessesResponse,
+  partnerOverviewResponse,
+  partnerWeekResponse,
+} from "@/lib/partners/schemas";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://socialperks.app";
+
+// The routes parse their answers STRICTLY (so a mapping bug that adds a field
+// fails loudly), but the published document is OPEN: a field added later must
+// not be a documented contract break. Only `additionalProperties: false` goes;
+// a record's value schema (`additionalProperties: {...}`) stays.
+function openObjects(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(openObjects);
+  if (node && typeof node === "object") {
+    return Object.fromEntries(
+      Object.entries(node as Record<string, unknown>)
+        .filter(([k, v]) => !(k === "additionalProperties" && v === false))
+        .map(([k, v]) => [k, openObjects(v)]),
+    );
+  }
+  return node;
+}
+
+// Partner response schemas come from the same zod schemas the routes parse
+// their answers with, so the document cannot drift from the routes.
+function partnerJsonSchema(schema: z.ZodType): Record<string, unknown> {
+  const { $schema: _omit, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
+  void _omit;
+  return openObjects(rest) as Record<string, unknown>;
+}
+
+function partnerEnvelope(schema: z.ZodType) {
+  return {
+    allOf: [
+      { $ref: "#/components/schemas/SuccessEnvelope" },
+      { type: "object", properties: { data: partnerJsonSchema(schema) } },
+    ],
+  };
+}
+
+function partnerError(description: string) {
+  return {
+    description,
+    content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } },
+  };
+}
+
+const partnerWindowParams = [
+  {
+    name: "from",
+    in: "query",
+    required: true,
+    description: "Start of the window, inclusive (ISO-8601 instant).",
+    schema: { type: "string", format: "date-time" },
+  },
+  {
+    name: "to",
+    in: "query",
+    required: true,
+    description: "End of the window, exclusive (ISO-8601 instant). Must be after `from`, at most 31 days later.",
+    schema: { type: "string", format: "date-time" },
+  },
+];
+
+const partnerCommonErrors = {
+  "401": partnerError("Missing, unknown or revoked partner key"),
+  "429": partnerError("Rate limit exceeded"),
+  "500": partnerError("The request could not be completed (the failure is logged)"),
+  "503": partnerError("The key could not be checked right now; retry later. The key is not refused"),
+};
 
 function buildSpec() {
   return {
@@ -48,6 +118,7 @@ function buildSpec() {
       { name: "Programs", description: "Multi-action perk programs" },
       { name: "Auth", description: "Authentication and session management" },
       { name: "Infrastructure", description: "Health, status, OpenAPI" },
+      { name: "Partner", description: "Read-only numbers for the businesses granted to a partner key" },
     ],
     components: {
       securitySchemes: {
@@ -62,6 +133,11 @@ function buildSpec() {
           scheme: "bearer",
           bearerFormat: "JWT",
           description: "JWT issued by /api/v1/auth.",
+        },
+        PartnerKey: {
+          type: "http",
+          scheme: "bearer",
+          description: "`spp_live_…` partner key, sent as `Authorization: Bearer <key>`.",
         },
       },
       schemas: {
@@ -497,6 +573,60 @@ function buildSpec() {
                 },
               },
             },
+          },
+        },
+      },
+      "/partner/businesses": {
+        get: {
+          tags: ["Partner"],
+          summary: "Businesses granted to the calling partner",
+          security: [{ PartnerKey: [] }],
+          responses: {
+            "200": {
+              description: "Granted businesses",
+              content: { "application/json": { schema: partnerEnvelope(partnerBusinessesResponse) } },
+            },
+            ...partnerCommonErrors,
+          },
+        },
+      },
+      "/partner/overview": {
+        get: {
+          tags: ["Partner"],
+          summary: "Window numbers for every granted business",
+          security: [{ PartnerKey: [] }],
+          parameters: partnerWindowParams,
+          responses: {
+            "200": {
+              description: "Numbers per granted business",
+              content: { "application/json": { schema: partnerEnvelope(partnerOverviewResponse) } },
+            },
+            "400": partnerError("Invalid window"),
+            ...partnerCommonErrors,
+          },
+        },
+      },
+      "/partner/businesses/{id}/week": {
+        get: {
+          tags: ["Partner"],
+          summary: "Window numbers for one granted business",
+          description: "A business that is not granted to the caller answers 404, exactly like one that does not exist.",
+          security: [{ PartnerKey: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+            ...partnerWindowParams,
+          ],
+          responses: {
+            "200": {
+              description: "Numbers for the business",
+              content: { "application/json": { schema: partnerEnvelope(partnerWeekResponse) } },
+            },
+            "400": partnerError("Invalid window"),
+            "401": partnerCommonErrors["401"],
+            "404": partnerError("Business not found for this partner"),
+            "429": partnerCommonErrors["429"],
+            "500": partnerCommonErrors["500"],
+            "503": partnerCommonErrors["503"],
           },
         },
       },
