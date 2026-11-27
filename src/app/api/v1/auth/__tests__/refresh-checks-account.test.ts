@@ -2,10 +2,11 @@
  * POST /api/v1/auth {action: "refresh"} answers from the account as it is
  * now, not from the claims the refresh token carries.
  *
- * The client renews the 15-minute access cookie on every 401 (apiFetch), so
- * the refresh is the only point where an open tab meets the account again.
- * Without these checks a suspension, a role change or the end of an
- * impersonation would never reach a tab that stays open.
+ * The client renews the 15-minute access cookie on every 401 (apiFetch), and
+ * the session checks renew it with the same routine, so a renewal is where
+ * an open tab meets the account again. Without these checks a suspension, a
+ * role change or the end of an impersonation would never reach a tab that
+ * stays open.
  */
 import { NextRequest } from "next/server";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -15,8 +16,8 @@ import { ensureUsersSeeded, putUser, type UserRecord } from "@/lib/auth/user-sto
 import { POST as authPOST } from "../route";
 import { POST as impersonatePOST } from "../../admin/impersonate/route";
 
-// Every request comes from its own address: the auth routes share a
-// 5-a-minute rate limit per address, which the tests must not trip.
+// Every request comes from its own address, so no test trips a rate limit:
+// sign-in allows 5 a minute per address, the refresh 30.
 let address = 0;
 const nextAddress = () => `10.77.0.${++address}`;
 

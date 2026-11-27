@@ -187,7 +187,7 @@ npm run test:coverage  # Run tests with coverage report
 ## API Endpoints (primary routes — ~100 route handlers total; see API.md)
 ```
 # Auth
-GET  /api/v1/auth                    # Validate session (Bearer token)
+GET  /api/v1/auth                    # Session check; renews from the refresh cookie (may set cookies)
 POST /api/v1/auth                    # Login/signup/logout/refresh/reset-password
 
 # Campaigns

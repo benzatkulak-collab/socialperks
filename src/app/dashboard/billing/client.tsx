@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api/csrf-fetch";
+import { apiFetch, checkSession } from "@/lib/api/csrf-fetch";
 
 interface UsageBar {
   used: number;
@@ -57,10 +57,7 @@ async function readBusinessId(): Promise<string | null> {
   // hardcoding cookie parsing here. This endpoint validates the session
   // and returns the user record.
   try {
-    const res = await fetch("/api/v1/auth", {
-      method: "GET",
-      credentials: "include",
-    });
+    const res = await checkSession();
     if (res.status === 401) return null;
     const json: { success?: boolean; data?: { user?: { businessId?: string | null } } } = await res.json();
     return json.data?.user?.businessId ?? null;

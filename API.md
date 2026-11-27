@@ -31,12 +31,19 @@ Rate limit tiers:
 
 ## Auth
 
-### `GET /api/v1/auth` -- Validate session
+Rate limits on `/api/v1/auth`, per address:
+- sign-in, sign-up and password reset: 5 a minute, shared (so is any other POST action, and a body that is not a JSON object);
+- session checks (`GET`, and `POST` `session`) and the refresh: 30 a minute, shared;
+- logout: not limited.
+
+### `GET /api/v1/auth` -- Session check
 
 | Field | Value |
 |-------|-------|
-| Auth | Bearer token |
-| Rate limit | relaxed |
+| Auth | `sp-access-token` cookie or Bearer token; else the `sp-refresh-token` cookie |
+| Rate limit | 30/min per address, shared with `refresh` and `session` |
+
+With a good access token it answers and sets no cookies. Without one, it renews from the `sp-refresh-token` cookie (sent only to `/api/v1/auth`): it answers as signed in and sets a new access cookie, a new 7-day refresh cookie and the 7-day `sp-session` marker. A suspended account gets 401 `ACCOUNT_SUSPENDED` and its cookies are cleared; with no access token and no refresh cookie the answer is 401 `NO_TOKEN`. Every answer of this route that sets or clears the auth cookies carries `Cache-Control: no-store`.
 
 **Response:**
 ```json
@@ -46,12 +53,12 @@ Rate limit tiers:
 }
 ```
 
-### `POST /api/v1/auth` -- Login / Signup / Logout / Refresh / Reset
+### `POST /api/v1/auth` -- Login / Signup / Logout / Refresh / Session / Reset
 
 | Field | Value |
 |-------|-------|
 | Auth | None (login/signup/reset) or Bearer token (logout/session) |
-| Rate limit | strict (5/min) |
+| Rate limit | 5/min per address (login, signup, reset-password, confirm-reset); 30/min (refresh, session); none (logout) |
 
 **Actions:**
 
@@ -84,13 +91,13 @@ Legacy PIN login (backwards compat):
 ```json
 { "action": "logout", "token": "..." }
 ```
-Or send `Authorization: Bearer <token>` header.
+Or send `Authorization: Bearer <token>` header. Clears the auth cookies whether or not a token is sent. Never rate-limited.
 
 #### `action: "refresh"`
 Uses `sp-refresh-token` cookie. Returns new access token + cookies.
 
 #### `action: "session"`
-Same as GET, but via POST. Send token in body or Authorization header.
+Same as GET, renewal included, but via POST. Send token in body or Authorization header.
 
 #### `action: "reset-password"`
 ```json

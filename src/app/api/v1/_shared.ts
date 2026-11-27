@@ -98,8 +98,9 @@ export function getUser(req: NextRequest): AuthUser | null {
       if (apiKeyUser) return apiKeyUser;
     }
 
-    // Try JWT next. Access tokens only: the 7-day refresh token is only for
-    // POST /api/v1/auth {action: "refresh"}, never a credential itself.
+    // Try JWT next. Access tokens only: the 7-day refresh token is read only
+    // by the auth route's refresh action and its session checks, which renew
+    // from it; it is never a credential itself.
     const jwt = verifyJWT(token, "access");
     if (jwt) {
       return {
@@ -295,12 +296,19 @@ function deriveAnonSessionId(req: NextRequest): string {
 
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 
+/**
+ * Count this request against the caller's address and the route's path.
+ * With `bucket`, the request has a counter of its own (path + "#bucket"),
+ * so a different kind of request on the same path cannot use it up.
+ */
 export function rateLimit(
   req: NextRequest,
-  tier: RateLimitTier = "standard"
+  tier: RateLimitTier = "standard",
+  bucket?: string
 ): NextResponse | null {
   const ip = getClientIp(req);
-  const endpoint = new URL(req.url).pathname;
+  const path = new URL(req.url).pathname;
+  const endpoint = bucket ? `${path}#${bucket}` : path;
   const result = checkRateLimit(ip, endpoint, tier);
 
   if (!result.allowed) {
