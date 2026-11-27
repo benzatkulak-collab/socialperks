@@ -21,9 +21,11 @@
  * - New cache names make the activate step delete every cache an earlier
  *   worker kept.
  * - Writes go to the network only and answer 503 offline. The old worker
- *   kept a write it could not send in IndexedDB (`social-perks-sw`), with its
- *   headers and body, answered 202 "will sync", and never sent it: nothing in
- *   the app asked it to. Activating the new worker deletes that database.
+ *   kept a write it could not send in IndexedDB (`social-perks-sw`): its
+ *   address and headers, the CSRF token among them. The failed fetch had
+ *   already used the body, so that was saved as null. It answered 202 "will
+ *   sync" and never sent it: nothing in the app asked it to. Activating the
+ *   new worker deletes that database.
  *
  * The test runs sw.js in a sandbox with a stand-in `self`, network and Cache
  * Storage, and fires install, activate and fetch events at it. All data is

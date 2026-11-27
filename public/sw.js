@@ -42,9 +42,11 @@ const APP_SHELL = [
 // ─── The old worker's write queue ──────────────────────────────────────────
 
 // Earlier workers kept each write they could not send in this IndexedDB
-// database, with its headers and body, answered 202 "will sync", and never
-// sent it: nothing in the app asked them to. This worker keeps no writes,
-// and activating it deletes the database with whatever it still holds.
+// database: its address and headers, the CSRF token among them. The failed
+// fetch had already used the body, so that was saved as null. They answered
+// 202 "will sync" and never sent it: nothing in the app asked them to. This
+// worker keeps no writes, and activating it deletes the database with
+// whatever it still holds.
 const OLD_WRITE_QUEUE_DB = "social-perks-sw";
 
 function deleteOldWriteQueue() {
