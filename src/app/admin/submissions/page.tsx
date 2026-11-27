@@ -125,10 +125,8 @@ function AdminSubmissionsContent() {
     let succeeded = 0;
     for (const id of ids) {
       try {
-        const res = await fetch("/api/v1/submissions/review", {
+        const res = await apiFetch("/api/v1/submissions/review", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ submissionId: id, reviewerId: user.id, decision }),
         });
         if (res.ok) succeeded += 1;
@@ -328,10 +326,8 @@ function SubmissionDrawer({
     }
     setWorking(decision);
     try {
-      const res = await fetch("/api/v1/submissions/review", {
+      const res = await apiFetch("/api/v1/submissions/review", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           submissionId: submission.id,
           reviewerId,

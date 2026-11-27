@@ -103,10 +103,8 @@ export default function AdminUsersPage() {
       if (!selected) return;
       setWorking(action);
       try {
-        const res = await fetch("/api/v1/admin/users", {
+        const res = await apiFetch("/api/v1/admin/users", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ email: selected.email, action, ...payload }),
         });
         const json = await res.json();
@@ -436,10 +434,8 @@ function UserDrawer({
               size="sm"
               onClick={async () => {
                 try {
-                  const res = await fetch("/api/v1/admin/impersonate", {
+                  const res = await apiFetch("/api/v1/admin/impersonate", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                     body: JSON.stringify({ email: user.email }),
                   });
                   const json = await res.json();

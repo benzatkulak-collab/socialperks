@@ -48,10 +48,8 @@ export default function AdminApiKeysPage() {
     setCreating(true);
     setNewPlaintext(null);
     try {
-      const res = await fetch("/api/v1/api-keys", {
+      const res = await apiFetch("/api/v1/api-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           agentName: newKeyName,
           permissions: newKeyPerms.split(",").map((p) => p.trim()).filter(Boolean),
@@ -60,7 +58,8 @@ export default function AdminApiKeysPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setNewPlaintext(json.data?.plaintext ?? json.data?.token ?? null);
+        // POST /api/v1/api-keys sends the plaintext in `key`, this once only.
+        setNewPlaintext(json.data?.key ?? null);
         setNewKeyName("");
         fetchKeys();
       } else {
