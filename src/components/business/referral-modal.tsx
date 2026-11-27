@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface ReferralData {
   code: string;
@@ -41,7 +42,7 @@ export function ReferralModal({ open, onClose }: ReferralModalProps) {
     if (!open) return;
     const ac = new AbortController();
     setError(null);
-    fetch("/api/v1/referrals/me", { signal: ac.signal, credentials: "include" })
+    apiFetch("/api/v1/referrals/me", { signal: ac.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const body = (await r.json()) as { success: boolean; data?: ReferralData };

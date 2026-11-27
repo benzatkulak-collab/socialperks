@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
 import { useAdminUser } from "@/components/admin/admin-guard";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Status = "pending" | "approved" | "rejected";
 
@@ -39,7 +41,16 @@ function formatDate(iso: string): string {
   });
 }
 
+// useSearchParams needs a Suspense boundary for static rendering.
 export default function AdminSubmissionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminSubmissionsContent />
+    </Suspense>
+  );
+}
+
+function AdminSubmissionsContent() {
   const user = useAdminUser();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +65,7 @@ export default function AdminSubmissionsPage() {
     const params = new URLSearchParams();
     if (statusFilter !== "all") params.set("status", statusFilter);
     params.set("perPage", "100");
-    const res = await fetch(`/api/v1/submissions?${params}`, { credentials: "include" });
+    const res = await apiFetch(`/api/v1/submissions?${params}`);
     const json = await res.json();
     if (json.success) {
       let list: Submission[] = json.data?.submissions ?? [];
@@ -76,6 +87,26 @@ export default function AdminSubmissionsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // A partner's link: /admin/submissions?submission=<id>. Open that submission's
+  // drawer once per id: from the loaded list, otherwise through the read-one route.
+  const linkedId = useSearchParams()?.get("submission") ?? null;
+  const openedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!linkedId || loading || openedFor.current === linkedId) return;
+    openedFor.current = linkedId;
+    const inList = submissions.find((s) => s.id === linkedId);
+    if (inList) { setDetailSub(inList); return; }
+    void (async () => {
+      try {
+        const res = await apiFetch(`/api/v1/admin/submissions?id=${encodeURIComponent(linkedId)}`);
+        const json = await res.json();
+        if (json?.success && json.data?.submission) setDetailSub(json.data.submission as Submission);
+      } catch {
+        // an unknown or unreachable id leaves the list as it is
+      }
+    })();
+  }, [linkedId, loading, submissions]);
+
   const toggleSelect = (id: string) => {
     const next = new Set(selected);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -94,10 +125,8 @@ export default function AdminSubmissionsPage() {
     let succeeded = 0;
     for (const id of ids) {
       try {
-        const res = await fetch("/api/v1/submissions/review", {
+        const res = await apiFetch("/api/v1/submissions/review", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ submissionId: id, reviewerId: user.id, decision }),
         });
         if (res.ok) succeeded += 1;
@@ -297,10 +326,8 @@ function SubmissionDrawer({
     }
     setWorking(decision);
     try {
-      const res = await fetch("/api/v1/submissions/review", {
+      const res = await apiFetch("/api/v1/submissions/review", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           submissionId: submission.id,
           reviewerId,

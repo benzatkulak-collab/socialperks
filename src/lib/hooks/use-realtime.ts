@@ -1,26 +1,36 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { openEventStream } from "@/lib/realtime/event-stream";
+import { REALTIME_EVENT_TYPES } from "@/lib/realtime/event-types";
 
 export interface RealtimeEvent {
   type: string;
   payload: Record<string, unknown>;
+  /** When this browser received it. */
   timestamp: string;
 }
 
 interface UseRealtimeOptions {
+  /**
+   * The business whose events to receive. The stream signs in with the
+   * access cookie, and a business receives its own events whatever it names;
+   * only the founder may choose.
+   */
   businessId?: string;
-  userId?: string;
   enabled?: boolean;
 }
 
+/**
+ * The signed-in account's realtime events (GET /api/v1/events). See
+ * src/lib/realtime/event-stream.ts for how it connects, renews the cookie and
+ * reconnects. `subscribe(type, handler)` hears one event type; "*" hears
+ * every type in REALTIME_EVENT_TYPES.
+ */
 export function useRealtime(options: UseRealtimeOptions = {}) {
-  const { businessId, userId, enabled = true } = options;
+  const { businessId, enabled = true } = options;
   const [connected, setConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<RealtimeEvent | null>(null);
-  const sourceRef = useRef<EventSource | null>(null);
-  const retryRef = useRef(0);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handlersRef = useRef<Map<string, Set<(event: RealtimeEvent) => void>>>(new Map());
 
   const subscribe = useCallback((type: string, handler: (event: RealtimeEvent) => void) => {
@@ -33,67 +43,29 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
 
-    function connect() {
-      const params = new URLSearchParams();
-      // Pass identity context — the access token cookie is sent automatically via withCredentials
-      if (businessId) {
-        params.set("businessId", businessId);
-      } else if (userId) {
-        params.set("userId", userId);
-      } else {
-        return; // No identity, can't connect
-      }
-
-      const source = new EventSource(`/api/v1/events?${params.toString()}`);
-      sourceRef.current = source;
-
-      source.onopen = () => {
-        setConnected(true);
-        retryRef.current = 0;
-      };
-
-      source.onmessage = (e) => {
-        try {
-          const event: RealtimeEvent = JSON.parse(e.data);
-          if (event.type === "heartbeat") return;
-          setLastEvent(event);
-          // Notify subscribers
-          const handlers = handlersRef.current;
-          const typeHandlers = handlers.get(event.type);
-          if (typeHandlers) typeHandlers.forEach(h => h(event));
-          const wildcardHandlers = handlers.get("*");
-          if (wildcardHandlers) wildcardHandlers.forEach(h => h(event));
-        } catch {
-          // Ignore malformed events
-        }
-      };
-
-      source.onerror = () => {
-        setConnected(false);
-        source.close();
-        sourceRef.current = null;
-        // EventSource doesn't expose the response status — if the server
-        // returns 401 the browser fires onerror in a tight loop. Cap retries
-        // at 5 so we don't hammer the endpoint forever when the token is
-        // bad. Real users with a working session will reconnect on the
-        // first one or two attempts.
-        if (retryRef.current >= 5) return;
-        // Exponential backoff: 1s, 2s, 4s, 8s... max 30s
-        const delay = Math.min(1000 * Math.pow(2, retryRef.current), 30000);
-        retryRef.current++;
-        retryTimerRef.current = setTimeout(connect, delay);
-      };
-    }
-
-    connect();
+    const stream = openEventStream({
+      businessId,
+      eventTypes: REALTIME_EVENT_TYPES,
+      onConnectedChange: setConnected,
+      onEvent: (type, data) => {
+        const event: RealtimeEvent = {
+          type,
+          payload: data && typeof data === "object" ? (data as Record<string, unknown>) : {},
+          timestamp: new Date().toISOString(),
+        };
+        setLastEvent(event);
+        // Notify subscribers
+        const handlers = handlersRef.current;
+        handlers.get(type)?.forEach((h) => h(event));
+        handlers.get("*")?.forEach((h) => h(event));
+      },
+    });
 
     return () => {
-      sourceRef.current?.close();
-      sourceRef.current = null;
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      stream.close();
       setConnected(false);
     };
-  }, [enabled, businessId, userId]);
+  }, [enabled, businessId]);
 
   return { connected, lastEvent, subscribe };
 }

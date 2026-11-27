@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
 import { useLivePoll } from "@/components/admin/use-live-poll";
 import { LiveIndicator } from "@/components/admin/live-indicator";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Mode = "off" | "dry-run" | "live";
 type Status = "idle" | "running" | "errored";
@@ -94,7 +95,7 @@ export default function AdminAgentsPage() {
 
   const fetchAgents = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/admin/agents", { credentials: "include" });
+    const res = await apiFetch("/api/v1/admin/agents");
     const json = await res.json();
     if (json.success) setAgents(json.data?.agents ?? []);
     setLoading(false);
@@ -106,36 +107,42 @@ export default function AdminAgentsPage() {
 
   const setMode = async (agentId: string, mode: Mode) => {
     setWorking(`mode:${agentId}`);
-    await fetch("/api/v1/admin/agents", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ agentId, mode }),
-    });
+    try {
+      await apiFetch("/api/v1/admin/agents", {
+        method: "PATCH",
+        body: JSON.stringify({ agentId, mode }),
+      });
+    } catch {
+      // No CSRF token or no connection. The read below shows the mode as it is.
+    }
     setWorking(null);
     fetchAgents();
   };
 
   const setConfig = async (agentId: string, config: Partial<AgentConfigValues>) => {
     setWorking(`config:${agentId}`);
-    await fetch("/api/v1/admin/agents", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ agentId, config }),
-    });
+    try {
+      await apiFetch("/api/v1/admin/agents", {
+        method: "PATCH",
+        body: JSON.stringify({ agentId, config }),
+      });
+    } catch {
+      // As in setMode: the read below shows the config as it is.
+    }
     setWorking(null);
     fetchAgents();
   };
 
   const runNow = async (agentId: string) => {
     setWorking(`run:${agentId}`);
-    await fetch("/api/v1/admin/agents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ agentId, action: "run" }),
-    });
+    try {
+      await apiFetch("/api/v1/admin/agents", {
+        method: "POST",
+        body: JSON.stringify({ agentId, action: "run" }),
+      });
+    } catch {
+      // As in setMode: the read below shows the last run as it is.
+    }
     setWorking(null);
     fetchAgents();
   };

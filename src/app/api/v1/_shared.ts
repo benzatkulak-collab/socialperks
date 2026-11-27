@@ -12,6 +12,9 @@ import { verifyJWT, sessionStore } from "@/lib/auth";
 import { verifyApiKey } from "@/lib/auth/api-keys";
 import { validateCsrfToken } from "@/lib/security/csrf";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
+import { getClientIp } from "./_client-ip";
+
+export { getClientIp };
 
 // ─── Response Helpers ────────────────────────────────────────────────────────
 
@@ -83,6 +86,22 @@ export interface AuthUser {
  * inspect businessId instead).
  */
 export function getUser(req: NextRequest): AuthUser | null {
+  return authenticate(req)?.user ?? null;
+}
+
+/** Who a request authenticates as, and until when that credential holds. */
+export interface Authenticated {
+  user: AuthUser;
+  /**
+   * When the credential stops being accepted, in ms since the epoch: a JWT's
+   * `exp`, a session's or API key's expiry. Null for an API key that never
+   * expires. A long-lived response (the realtime stream) ends by then.
+   */
+  expiresAt: number | null;
+}
+
+/** getUser, with the credential's expiry. Same checks, in the same order. */
+export function authenticate(req: NextRequest): Authenticated | null {
   // 1. Check Authorization header
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
@@ -95,15 +114,19 @@ export function getUser(req: NextRequest): AuthUser | null {
       if (apiKeyUser) return apiKeyUser;
     }
 
-    // Try JWT next. Access tokens only: the 7-day refresh token is only for
-    // POST /api/v1/auth {action: "refresh"}, never a credential itself.
+    // Try JWT next. Access tokens only: the 7-day refresh token is read only
+    // by the auth route's refresh action and its session checks, which renew
+    // from it; it is never a credential itself.
     const jwt = verifyJWT(token, "access");
     if (jwt) {
       return {
-        id: jwt.sub,
-        email: jwt.email,
-        role: jwt.role,
-        businessId: jwt.businessId,
+        user: {
+          id: jwt.sub,
+          email: jwt.email,
+          role: jwt.role,
+          businessId: jwt.businessId,
+        },
+        expiresAt: jwt.exp * 1000,
       };
     }
 
@@ -111,10 +134,13 @@ export function getUser(req: NextRequest): AuthUser | null {
     const session = sessionStore.get(token);
     if (session) {
       return {
-        id: session.userId,
-        email: session.email,
-        role: session.userRole,
-        businessId: session.businessId,
+        user: {
+          id: session.userId,
+          email: session.email,
+          role: session.userRole,
+          businessId: session.businessId,
+        },
+        expiresAt: session.expiresAt,
       };
     }
   }
@@ -133,10 +159,13 @@ export function getUser(req: NextRequest): AuthUser | null {
     const jwt = verifyJWT(cookie, "access");
     if (jwt) {
       return {
-        id: jwt.sub,
-        email: jwt.email,
-        role: jwt.role,
-        businessId: jwt.businessId,
+        user: {
+          id: jwt.sub,
+          email: jwt.email,
+          role: jwt.role,
+          businessId: jwt.businessId,
+        },
+        expiresAt: jwt.exp * 1000,
       };
     }
   }
@@ -145,8 +174,8 @@ export function getUser(req: NextRequest): AuthUser | null {
 }
 
 /**
- * Resolve an API key into an AuthUser, or null if the key is invalid /
- * expired / revoked.
+ * Resolve an API key into the caller it stands for, or null if the key is
+ * invalid / expired / revoked.
  *
  * The key store is imported statically. It used to be a lazy
  * `require("@/lib/auth/api-keys")`, which had two costs: the `@/` alias does
@@ -157,18 +186,21 @@ export function getUser(req: NextRequest): AuthUser | null {
  * hydrates sessions from the database at module load, so the key store now
  * warms at the same moment. No route runs on the edge runtime.
  */
-function tryApiKey(plaintext: string, method: string): AuthUser | null {
+function tryApiKey(plaintext: string, method: string): Authenticated | null {
   const record = verifyApiKey(plaintext);
   if (!record) return null;
   // A key that may not write authenticates nothing that writes.
   if (!keyAllowsMethod(record.permissions, method)) return null;
   return {
-    // Use the api-key record id rather than businessId so audit logs
-    // can distinguish between two agents acting on the same business.
-    id: `agent:${record.id}`,
-    email: `${record.agentName}@agent.local`,
-    role: "agent",
-    businessId: record.businessId,
+    user: {
+      // Use the api-key record id rather than businessId so audit logs
+      // can distinguish between two agents acting on the same business.
+      id: `agent:${record.id}`,
+      email: `${record.agentName}@agent.local`,
+      role: "agent",
+      businessId: record.businessId,
+    },
+    expiresAt: record.expiresAt ? record.expiresAt.getTime() : null,
   };
 }
 
@@ -293,39 +325,18 @@ function deriveAnonSessionId(req: NextRequest): string {
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 
 /**
- * Resolve the client's IP from request headers.
- *
- * SECURITY: Previously trusted the leftmost X-Forwarded-For value, which
- * is attacker-spoofable. Order:
- *   1. `x-nf-client-connection-ip`: production runs on Netlify with
- *      Cloudflare DNS-only (grey cloud), and Netlify sets this to the
- *      visitor's address. It comes first because, without the Cloudflare
- *      proxy, a client could send its own `cf-connecting-ip`.
- *   2. `cf-connecting-ip`: set by the Cloudflare proxy (orange cloud) on
- *      any other host, e.g. the Docker image on a container host.
- *   3. `x-real-ip`, `x-vercel-forwarded-for` (legacy Vercel host), and
- *      only finally XFF (spoofable but better than 'unknown').
+ * Count this request against the caller's address and the route's path.
+ * With `bucket`, the request has a counter of its own (path + "#bucket"),
+ * so a different kind of request on the same path cannot use it up.
  */
-function getClientIp(req: NextRequest): string {
-  const netlifyIp = req.headers.get("x-nf-client-connection-ip");
-  if (netlifyIp) return netlifyIp.trim();
-  const cfIp = req.headers.get("cf-connecting-ip");
-  if (cfIp) return cfIp.trim();
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
-  const vercelXff = req.headers.get("x-vercel-forwarded-for");
-  if (vercelXff) return vercelXff.split(",")[0]?.trim() ?? "unknown";
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0]?.trim() ?? "unknown";
-  return "unknown";
-}
-
 export function rateLimit(
   req: NextRequest,
-  tier: RateLimitTier = "standard"
+  tier: RateLimitTier = "standard",
+  bucket?: string
 ): NextResponse | null {
   const ip = getClientIp(req);
-  const endpoint = new URL(req.url).pathname;
+  const path = new URL(req.url).pathname;
+  const endpoint = bucket ? `${path}#${bucket}` : path;
   const result = checkRateLimit(ip, endpoint, tier);
 
   if (!result.allowed) {

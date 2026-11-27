@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface Program {
   id: string;
@@ -39,7 +40,7 @@ export default function AdminProgramsPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/admin/programs", { credentials: "include" });
+    const res = await apiFetch("/api/v1/admin/programs");
     const json = await res.json();
     if (json.success) {
       setPrograms(json.data?.programs ?? []);

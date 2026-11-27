@@ -31,12 +31,19 @@ Rate limit tiers:
 
 ## Auth
 
-### `GET /api/v1/auth` -- Validate session
+Rate limits on `/api/v1/auth`, per address:
+- sign-in, sign-up and password reset: 5 a minute, shared (so is any other POST action, and a body that is not a JSON object);
+- session checks (`GET`, and `POST` `session`) and the refresh: 30 a minute, shared;
+- logout: not limited.
+
+### `GET /api/v1/auth` -- Session check
 
 | Field | Value |
 |-------|-------|
-| Auth | Bearer token |
-| Rate limit | relaxed |
+| Auth | `sp-access-token` cookie or Bearer token; else the `sp-refresh-token` cookie |
+| Rate limit | 30/min per address, shared with `refresh` and `session` |
+
+With a good access token it answers and sets no cookies. Without one, it renews from the `sp-refresh-token` cookie (sent only to `/api/v1/auth`): it answers as signed in and sets a new access cookie, a new 7-day refresh cookie and the 7-day `sp-session` marker. A suspended account gets 401 `ACCOUNT_SUSPENDED` and its cookies are cleared; with no access token and no refresh cookie the answer is 401 `NO_TOKEN`. Every answer of this route that sets or clears the auth cookies carries `Cache-Control: no-store`.
 
 **Response:**
 ```json
@@ -46,12 +53,12 @@ Rate limit tiers:
 }
 ```
 
-### `POST /api/v1/auth` -- Login / Signup / Logout / Refresh / Reset
+### `POST /api/v1/auth` -- Login / Signup / Logout / Refresh / Session / Reset
 
 | Field | Value |
 |-------|-------|
 | Auth | None (login/signup/reset) or Bearer token (logout/session) |
-| Rate limit | strict (5/min) |
+| Rate limit | 5/min per address (login, signup, reset-password, confirm-reset); 30/min (refresh, session); none (logout) |
 
 **Actions:**
 
@@ -84,13 +91,13 @@ Legacy PIN login (backwards compat):
 ```json
 { "action": "logout", "token": "..." }
 ```
-Or send `Authorization: Bearer <token>` header.
+Or send `Authorization: Bearer <token>` header. Clears the auth cookies whether or not a token is sent. Never rate-limited.
 
 #### `action: "refresh"`
 Uses `sp-refresh-token` cookie. Returns new access token + cookies.
 
 #### `action: "session"`
-Same as GET, but via POST. Send token in body or Authorization header.
+Same as GET, renewal included, but via POST. Send token in body or Authorization header.
 
 #### `action: "reset-password"`
 ```json
@@ -816,12 +823,20 @@ Handles OAuth redirect from social platform. Query params: `code`, `state`, `err
 
 | Field | Value |
 |-------|-------|
-| Auth | Token query param |
-| Rate limit | relaxed |
+| Auth | Access cookie, Bearer token, API key, or `?token=` |
+| Rate limit | None |
 
-**Query params:** `token` (required -- session token, demo token, or API key), `businessId` (optional -- scope to business events).
+Signs in the way other routes do: the `sp-access-token` cookie (all a browser has, since `EventSource` sends no headers), `Authorization: Bearer`, or `x-api-key`. A non-browser client may instead pass `?token=` (an access JWT or a session token), which decides when it is given. Never the 7-day refresh token.
 
-Returns: `text/event-stream` with events like `connected`, `campaign.created`, `submission.approved`, `tier.unlocked`, `cashback.requested`, etc.
+**Query params:** `businessId` (optional; a business always receives its own events, and only the founder may name another business), `token` (optional, see above).
+
+Returns `text/event-stream`: a `connected` event, then the caller's events, then a `heartbeat` every 30 s. The events are `submission.created`, `submission.approved`, `submission.rejected`, `campaign.created`, `campaign.updated`, `campaign.paused`, `campaign.resumed` and `campaign.ended`, each for the caller's own business; the founder also receives `user.created`. Every event is named (`event: <type>`), so listen with `addEventListener(type)`, not `onmessage`. A stream ends when the credential that opened it expires, and after 15 minutes at most; check `HEAD` again before reconnecting.
+
+Other answers: `204 No Content` when this server streams nothing (`REALTIME_EVENTS`, off in production unless set to `on`) or the account can receive no events (an account with no business); `401` not signed in; `403` another business's events.
+
+### `HEAD /api/v1/events` -- can this caller stream?
+
+The same checks and status codes as `GET`, without opening a stream. The web client asks it before each connection, through `apiFetch`, which is where an expired access cookie gets renewed (PR #252 adds that renewal). After a `401` it asks once more a minute later before it stops.
 
 ---
 

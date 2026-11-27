@@ -34,9 +34,15 @@ function buildImpersonationCookies(
     secure ? "Secure" : "",
   ].filter(Boolean).join("; ");
 
+  // No refresh cookie: an impersonated session ends with its 15 minutes, as
+  // the markers below do. The client renews the access cookie from the
+  // refresh cookie on every 401, so a 7-day one would keep the admin in the
+  // customer's account with no ribbon. Expire it rather than leave it out:
+  // the admin's own refresh cookie would renew the tab back into the admin's
+  // account partway through.
   const refreshCookie = [
-    `sp-refresh-token=${tokens.refreshToken}`,
-    "HttpOnly", "Path=/api/v1/auth", "Max-Age=604800", "SameSite=Lax",
+    "sp-refresh-token=",
+    "HttpOnly", "Path=/api/v1/auth", "Max-Age=0", "SameSite=Lax",
     secure ? "Secure" : "",
   ].filter(Boolean).join("; ");
 

@@ -15,7 +15,7 @@
  * campaigns), and apiFetch attaches the Bearer token + CSRF token.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api/csrf-fetch";
 import { track } from "@/lib/analytics";
 import { Card } from "@/components/ui/card";
@@ -42,6 +42,8 @@ interface PortalSubmissionsProps {
   campaigns: Array<{ id: string; name?: string }>;
   /** Reports the current pending count up to the portal (for the nav badge). */
   onPendingCount?: (n: number) => void;
+  /** A submission to scroll to and highlight (from a deep link). Starts on "All" so a decided one is listed too. */
+  highlightId?: string;
 }
 
 function fmtDate(iso: string): string {
@@ -71,10 +73,10 @@ function customerLabel(row: SubmissionRow): string {
   return "A customer";
 }
 
-export function PortalSubmissions({ campaigns, onPendingCount }: PortalSubmissionsProps) {
+export function PortalSubmissions({ campaigns, onPendingCount, highlightId }: PortalSubmissionsProps) {
   const [rows, setRows] = useState<SubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"pending" | "all">("pending");
+  const [filter, setFilter] = useState<"pending" | "all">(highlightId ? "all" : "pending");
   const [working, setWorking] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
 
@@ -110,6 +112,16 @@ export function PortalSubmissions({ campaigns, onPendingCount }: PortalSubmissio
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Scroll to the linked submission once it is listed. An id that is not in the
+  // list does nothing.
+  const scrolledFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!highlightId || loading || scrolledFor.current === highlightId) return;
+    if (!rows.some((r) => r.id === highlightId)) return;
+    scrolledFor.current = highlightId;
+    document.getElementById(`submission-${highlightId}`)?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  }, [highlightId, loading, rows]);
 
   const review = useCallback(
     async (row: SubmissionRow, decision: "approve" | "reject") => {
@@ -218,7 +230,13 @@ export function PortalSubmissions({ campaigns, onPendingCount }: PortalSubmissio
             const action = findAction(row.actionId);
             const isPending = row.status === "pending";
             return (
-              <Card key={row.id} padding="md" borderColor={isPending ? "amber" : undefined}>
+              <div
+                key={row.id}
+                id={`submission-${row.id}`}
+                data-highlighted={row.id === highlightId ? "true" : undefined}
+                className={row.id === highlightId ? "rounded-xl ring-2 ring-brand-cyan/60" : undefined}
+              >
+              <Card padding="md" borderColor={isPending ? "amber" : undefined}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -271,6 +289,7 @@ export function PortalSubmissions({ campaigns, onPendingCount }: PortalSubmissio
                   )}
                 </div>
               </Card>
+              </div>
             );
           })}
         </div>

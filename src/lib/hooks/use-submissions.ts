@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 export interface Submission {
   id: string;
@@ -29,7 +30,7 @@ export function useSubmissions(userId: string) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/v1/submissions?userId=${encodeURIComponent(userId)}`, { signal: controller.signal, credentials: "include" });
+      const res = await apiFetch(`/api/v1/submissions?userId=${encodeURIComponent(userId)}`, { signal: controller.signal });
       if (!res.ok) throw new Error(`Failed to fetch submissions (${res.status})`);
       const json = await res.json();
       if (controller.signal.aborted) return;

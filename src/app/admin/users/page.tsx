@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Role = "business" | "influencer" | "enterprise" | "admin";
 
@@ -83,7 +84,7 @@ export default function AdminUsersPage() {
     params.set("page", String(page));
     params.set("perPage", "25");
     try {
-      const res = await fetch(`/api/v1/admin/users?${params}`, { credentials: "include" });
+      const res = await apiFetch(`/api/v1/admin/users?${params}`);
       const json = await res.json();
       if (json.success) setData(json.data);
       else setError(json.error?.message ?? "Failed to load users");
@@ -102,10 +103,8 @@ export default function AdminUsersPage() {
       if (!selected) return;
       setWorking(action);
       try {
-        const res = await fetch("/api/v1/admin/users", {
+        const res = await apiFetch("/api/v1/admin/users", {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ email: selected.email, action, ...payload }),
         });
         const json = await res.json();
@@ -435,10 +434,8 @@ function UserDrawer({
               size="sm"
               onClick={async () => {
                 try {
-                  const res = await fetch("/api/v1/admin/impersonate", {
+                  const res = await apiFetch("/api/v1/admin/impersonate", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
                     body: JSON.stringify({ email: user.email }),
                   });
                   const json = await res.json();

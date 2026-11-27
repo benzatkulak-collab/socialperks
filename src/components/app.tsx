@@ -24,6 +24,7 @@ const CtaSection = dynamic(() => import("@/components/landing/cta-section").then
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLocalStorage } from "@/lib/hooks/use-store";
+import { checkSession, signOutWith } from "@/lib/api/csrf-fetch";
 import { createSeedData } from "@/lib/seed";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 
@@ -198,11 +199,9 @@ export function SocialPerksApp() {
     const timeout = setTimeout(() => controller.abort(), SESSION_RESTORE_TIMEOUT);
     async function restoreSession() {
       try {
-        const res = await fetch("/api/v1/auth", {
-          method: "GET",
-          credentials: "include",
-          signal: controller.signal,
-        });
+        // The timeout ends only this wait: the check itself is shared, and
+        // may renew the session on the server.
+        const res = await checkSession(controller.signal);
         if (!res.ok) return;
         const json = await res.json();
         if (cancelled) return;
@@ -285,7 +284,7 @@ export function SocialPerksApp() {
         setAuthHash(hash.replace(/^#/, ""));
         setScreen("auth");
         // Clear hash so back button works naturally
-        window.history.replaceState(null, "", window.location.pathname);
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
       }
     }
     window.addEventListener("hashchange", handleHashChange);
@@ -308,12 +307,14 @@ export function SocialPerksApp() {
 
   const handleLogout = useCallback(async () => {
     try {
-      await fetch("/api/v1/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ action: "logout" }),
-      });
+      await signOutWith(() =>
+        fetch("/api/v1/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ action: "logout" }),
+        })
+      );
     } catch {
       // Best-effort — clear local state regardless
     }

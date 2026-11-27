@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Tier = "micro" | "mid" | "macro" | "mega";
 
@@ -54,7 +55,7 @@ export default function AdminInfluencersPage() {
     const params = new URLSearchParams();
     if (tier !== "all") params.set("tier", tier);
     params.set("perPage", "100");
-    const res = await fetch(`/api/v1/influencers?${params}`, { credentials: "include" });
+    const res = await apiFetch(`/api/v1/influencers?${params}`);
     const json = await res.json();
     if (json.success) {
       let list: Influencer[] = json.data?.influencers ?? [];

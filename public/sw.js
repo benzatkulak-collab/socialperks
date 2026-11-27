@@ -9,11 +9,13 @@
 //   API writes:                 Network only, 503 when offline
 // ══════════════════════════════════════════════════════════════════════════════
 
-// v3 (Nov 2026): earlier workers kept a copy of every API read, signed-in
-// ones included, and answered from it offline to whoever used the browser
-// next. This one keeps public reads only. New names make the activate step
-// below delete every cache an earlier worker kept: v1's, and v2's from the
-// realtime-stream fix, whichever of the two ships first.
+// v2 (Nov 2026): v1 answered the realtime stream itself and could keep a
+// finished stream (with the caller's email) in its API cache. New names make
+// the activate step below delete every v1 cache.
+// v3 (Nov 2026): v1 and v2 kept a copy of every API read, signed-in ones
+// included, and answered from it offline to whoever used the browser next.
+// This one keeps public reads only, and no unsent writes. New names make the
+// activate step below delete every cache an earlier worker kept.
 const CACHE_VERSION = "sp-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -101,6 +103,13 @@ self.addEventListener("activate", (event) => {
 
 function isApiRoute(url) {
   return url.pathname.startsWith("/api/v1/");
+}
+
+// The realtime stream and its HEAD check, or any request for an event stream
+function isEventStream(url, request) {
+  if (url.pathname === "/api/v1/events") return true;
+  const accept = request.headers.get("accept") || "";
+  return accept.includes("text/event-stream");
 }
 
 function isStaticAsset(url) {
@@ -216,6 +225,16 @@ self.addEventListener("fetch", (event) => {
 
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Leave the realtime stream to the browser. The worker of v1 and v2 read a
+  // GET's whole body to keep a copy before it answered, and GET
+  // /api/v1/events never ends, so the page never heard a byte of it. This
+  // worker would pass it through, but has nothing to add to a stream. Its HEAD
+  // check goes straight to the server too: the client must hear the server's
+  // answer.
+  if (isEventStream(url, event.request)) {
     return;
   }
 

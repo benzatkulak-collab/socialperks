@@ -1,13 +1,14 @@
 /**
  * Auth API Route — /api/v1/auth
  *
- * GET:  Validate session (Bearer token -> user object + expiresAt)
+ * GET:  Session check (user object + expiresAt). With no good access token
+ *       it renews from the refresh cookie and sets new auth cookies.
  * POST: signup, login, logout, refresh, session, reset-password, confirm-reset
  *
  * In-memory user store with demo account pre-seeding.
  */
 
-import type { NextRequest } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import { ok, err, getUser, rateLimit, parseBody, withTiming } from "../_shared";
 import { metrics, METRIC } from "@/lib/reliability/metrics";
 import {
@@ -25,6 +26,7 @@ import { findByCode, recordConversion } from "@/lib/referrals/codes";
 import {
   ensureUsersSeeded,
   getUserByEmail,
+  getUserById,
   hasUser,
   putUser,
   type UserRecord,
@@ -46,6 +48,9 @@ const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 const ensureSeeded = ensureUsersSeeded;
 
 // ─── Cookie Helper ──────────────────────────────────────────────────────────
+
+/** How long the refresh cookie, and the session marker with it, live: 7 days. */
+const REFRESH_COOKIE_MAX_AGE = 604800;
 
 function buildCookieHeaders(
   userId: string,
@@ -78,7 +83,7 @@ function buildCookieHeaders(
     `sp-refresh-token=${tokens.refreshToken}`,
     "HttpOnly",
     "Path=/api/v1/auth",
-    `Max-Age=604800`,
+    `Max-Age=${REFRESH_COOKIE_MAX_AGE}`,
     `SameSite=Lax`,
     secure ? "Secure" : "",
   ]
@@ -86,12 +91,13 @@ function buildCookieHeaders(
     .join("; ");
 
   // Non-HttpOnly marker cookie used by the client to short-circuit session
-  // restore without exposing the real access token to JS. Same Max-Age as
-  // the access cookie so they expire together.
+  // restore without exposing the real access token to JS. It lives as long
+  // as the refresh cookie, not the 15-minute access cookie: while the refresh
+  // cookie can renew the session, a reload must still ask the server.
   const sessionMarker = [
     "sp-session=1",
     "Path=/",
-    `Max-Age=900`,
+    `Max-Age=${REFRESH_COOKIE_MAX_AGE}`,
     `SameSite=Lax`,
     secure ? "Secure" : "",
   ]
@@ -105,6 +111,8 @@ function buildCookieHeaders(
       // emit each cookie as its own Set-Cookie header (HTTP requires
       // multiple Set-Cookie lines, not comma-joined).
       "Set-Cookie": `${accessCookie}\u0000${refreshCookie}\u0000${sessionMarker}`,
+      // An answer that carries the auth cookies is never kept by a cache.
+      "Cache-Control": "no-store",
     },
   };
 }
@@ -145,17 +153,106 @@ function clearCookieHeaders(): Record<string, string> {
     .filter(Boolean)
     .join("; ");
 
-  return { "Set-Cookie": `${accessClear}\u0000${refreshClear}\u0000${markerClear}` };
+  return {
+    "Set-Cookie": `${accessClear}\u0000${refreshClear}\u0000${markerClear}`,
+    "Cache-Control": "no-store",
+  };
+}
+
+// ─── Renewal From the Refresh Cookie ────────────────────────────────────────
+
+type Renewal =
+  | { ok: true; account: UserRecord; accessToken: string; headers: Record<string, string> }
+  // noCookie is true only when the request carries no sp-refresh-token at all.
+  | { ok: false; noCookie: boolean; response: NextResponse };
+
+/**
+ * Answer from the refresh cookie and the account as it is now.
+ *
+ * The refresh, and every session check that finds no good access cookie,
+ * renew here, so this is where an open tab meets the account again. The answer
+ * comes from the account on file, as sign-in does, never from the token's own
+ * claims: otherwise a suspension or a role change would never reach a tab left
+ * open.
+ */
+async function renewFromRefreshCookie(req: NextRequest): Promise<Renewal> {
+  const refreshCookie = req.cookies.get("sp-refresh-token")?.value;
+  if (!refreshCookie) {
+    return {
+      ok: false,
+      noCookie: true,
+      response: err("NO_REFRESH_TOKEN", "No refresh token provided", 401),
+    };
+  }
+
+  const payload = verifyJWT(refreshCookie);
+  if (!payload || payload.type !== "refresh") {
+    return {
+      ok: false,
+      noCookie: false,
+      response: err("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired", 401),
+    };
+  }
+
+  await ensureSeeded();
+  const account = getUserById(payload.sub);
+  if (!account) {
+    // Possibly deleted, possibly a server that failed to load the accounts
+    // table. Keep the cookie for a server that can answer.
+    return {
+      ok: false,
+      noCookie: false,
+      response: err("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired", 401),
+    };
+  }
+  if (account.suspendedAt) {
+    return {
+      ok: false,
+      noCookie: false,
+      response: err(
+        "ACCOUNT_SUSPENDED",
+        "This account has been suspended. Contact support.",
+        401,
+        clearCookieHeaders()
+      ),
+    };
+  }
+
+  const { tokens, headers } = buildCookieHeaders(account.id, account.role, account.email, account.businessId);
+  return { ok: true, account, accessToken: tokens.accessToken, headers };
+}
+
+/** A session check's answer after a renewal: `{ user, expiresAt }`, with the new cookies. */
+function answerRenewed({ account, accessToken, headers }: Extract<Renewal, { ok: true }>): NextResponse {
+  const jwt = verifyJWT(accessToken, "access");
+  return ok(
+    {
+      user: { id: account.id, email: account.email, role: account.role, businessId: account.businessId },
+      expiresAt: jwt ? new Date(jwt.exp * 1000).toISOString() : null,
+    },
+    200,
+    headers
+  );
 }
 
 // ─── GET /api/v1/auth — Validate Session ────────────────────────────────────
 
+/** The rate-limit counter of the session checks (GET, POST "session") and the refresh. */
+const SESSION_BUCKET = "session";
+
 export const GET = withTiming(async (req: NextRequest) => {
-  const limited = rateLimit(req, "strict");
+  // A page checks its session on every load: its own counter, so it can
+  // neither use up sign-in's five a minute nor be locked out by them.
+  const limited = rateLimit(req, "standard", SESSION_BUCKET);
   if (limited) return limited;
 
   const user = getUser(req);
   if (!user) {
+    // No usable access token: the refresh cookie travels with this request
+    // (Path=/api/v1/auth), so renew from it rather than make the client ask.
+    const renewal = await renewFromRefreshCookie(req);
+    if (renewal.ok) return answerRenewed(renewal);
+    if (!renewal.noCookie) return renewal.response;
     return err("NO_TOKEN", "No session token provided. Send Authorization: Bearer <token>.", 401);
   }
 
@@ -191,9 +288,9 @@ export const GET = withTiming(async (req: NextRequest) => {
 // ─── POST /api/v1/auth — Auth Actions ──────────────────────────────────────
 
 export const POST = withTiming(async (req: NextRequest) => {
-  const limited = rateLimit(req, "strict");
-  if (limited) return limited;
-
+  // Parse first: which counter applies depends on the action. A body that
+  // is not JSON is counted like a sign-in attempt, and refused with the 429
+  // before the 400.
   const body = await parseBody<{
     action?: string;
     email?: string;
@@ -205,9 +302,26 @@ export const POST = withTiming(async (req: NextRequest) => {
     newPassword?: string;
     referralCode?: string;
   }>(req);
-  if (body instanceof Response) return body;
+  if (body instanceof Response) return rateLimit(req, "strict") ?? body;
+  // A JSON body that is not an object (null, a number, a string) is counted
+  // like any other sign-in attempt, then refused.
+  if (body === null || typeof body !== "object") {
+    return rateLimit(req, "strict") ?? err("INVALID_BODY", "Request body must be a JSON object", 400);
+  }
 
   const action = body.action ?? "login";
+
+  // A logout is never refused: it only clears cookies and drops a session
+  // token the caller already holds, and a refused one would leave the person
+  // signed in for the refresh cookie's 7 days. The refresh and the session
+  // check share the session counter; every other action shares the strict one.
+  if (action !== "logout") {
+    const limited =
+      action === "refresh" || action === "session"
+        ? rateLimit(req, "standard", SESSION_BUCKET)
+        : rateLimit(req, "strict");
+    if (limited) return limited;
+  }
 
   switch (action) {
     // ── Signup ──────────────────────────────────────────────────────────────
@@ -474,21 +588,13 @@ export const POST = withTiming(async (req: NextRequest) => {
 
     // ── Refresh ────────────────────────────────────────────────────────────
     case "refresh": {
-      const refreshCookie = req.cookies.get("sp-refresh-token")?.value;
-      if (!refreshCookie) {
-        return err("NO_REFRESH_TOKEN", "No refresh token provided", 401);
-      }
-
-      const payload = verifyJWT(refreshCookie);
-      if (!payload || payload.type !== "refresh") {
-        return err("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired", 401);
-      }
-
-      const { tokens, headers } = buildCookieHeaders(payload.sub, payload.role, payload.email, payload.businessId);
+      const renewal = await renewFromRefreshCookie(req);
+      if (!renewal.ok) return renewal.response;
+      const { account, accessToken, headers } = renewal;
       return ok(
         {
-          user: { id: payload.sub, email: payload.email, role: payload.role, businessId: payload.businessId },
-          accessToken: tokens.accessToken,
+          user: { id: account.id, email: account.email, role: account.role, businessId: account.businessId },
+          accessToken,
         },
         200,
         headers
@@ -504,12 +610,8 @@ export const POST = withTiming(async (req: NextRequest) => {
       const cookieToken = req.cookies.get("sp-access-token")?.value ?? null;
       const token = bearer ?? cookieToken ?? body.token ?? null;
 
-      if (!token) {
-        return err("NO_TOKEN", "No session token provided", 401);
-      }
-
       // Try session store
-      const session = sessionStore.get(token);
+      const session = token ? sessionStore.get(token) : undefined;
       if (session) {
         return ok({
           user: { id: session.userId, email: session.email, role: session.userRole, businessId: session.businessId },
@@ -518,7 +620,7 @@ export const POST = withTiming(async (req: NextRequest) => {
       }
 
       // Try JWT. Access tokens only: a refresh token is not a session.
-      const jwt = verifyJWT(token, "access");
+      const jwt = token ? verifyJWT(token, "access") : null;
       if (jwt) {
         return ok({
           user: { id: jwt.sub, email: jwt.email, role: jwt.role, businessId: jwt.businessId },
@@ -526,7 +628,14 @@ export const POST = withTiming(async (req: NextRequest) => {
         });
       }
 
-      return err("INVALID_SESSION", "Session is invalid or expired", 401);
+      // No token validates: renew from the refresh cookie when there is one.
+      const renewal = await renewFromRefreshCookie(req);
+      if (renewal.ok) return answerRenewed(renewal);
+      if (!renewal.noCookie) return renewal.response;
+
+      return token
+        ? err("INVALID_SESSION", "Session is invalid or expired", 401)
+        : err("NO_TOKEN", "No session token provided", 401);
     }
 
     // ── Reset Password ─────────────────────────────────────────────────────

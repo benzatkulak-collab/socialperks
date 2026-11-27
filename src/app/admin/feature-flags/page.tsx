@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface FlagMap {
   [flagId: string]: boolean | string | number | null;
@@ -30,10 +31,8 @@ export default function AdminFeatureFlagsPage() {
   const toggleFlag = async (flagId: string, value: boolean) => {
     setWorking(flagId);
     try {
-      await fetch("/api/v1/flags", {
+      await apiFetch("/api/v1/flags", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ flagId, value }),
       });
     } catch {

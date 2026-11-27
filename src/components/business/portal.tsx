@@ -85,11 +85,13 @@ const REWARD_OPTIONS = [
 export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProps) {
   // Initial tab can be set via `?tab=analytics` so direct /analytics
   // redirects can land on the right view rather than the dashboard.
-  const initialPage: "home" | "analytics" =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("tab") === "analytics"
-      ? "analytics"
-      : "home";
+  // `?tab=submissions&submission=<id>` opens Submissions on one submission
+  // (a partner's "open it" link).
+  const linkParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const linkedTab = linkParams?.get("tab");
+  const linkedSubmission = linkedTab === "submissions" ? linkParams?.get("submission") ?? undefined : undefined;
+  const initialPage: "home" | "analytics" | "submissions" =
+    linkedTab === "analytics" ? "analytics" : linkedTab === "submissions" ? "submissions" : "home";
   const [page, setPage] = useState<"home" | "create" | "campaigns" | "analytics" | "submissions">(initialPage);
   const [myCampaigns, setMyCampaigns] = useState<ActiveCampaign[]>([]);
 
@@ -122,7 +124,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
   const [referralModalOpen, setReferralModalOpen] = useState(false);
   useEffect(() => {
     const ac = new AbortController();
-    fetch("/api/v1/referrals/me", { signal: ac.signal, credentials: "include" })
+    apiFetch("/api/v1/referrals/me", { signal: ac.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
         if (!body?.data) return;
@@ -169,12 +171,6 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
 
   const { stats, loading: dashboardLoading } = useBusinessDashboard(biz.id);
   const { connected, subscribe } = useRealtime({ businessId: biz.id });
-
-  // Extract auth token from cookie for SSE notifications
-  const authToken = useMemo(() => {
-    if (typeof document === "undefined") return null;
-    return document.cookie.match(/sp-access-token=([^;]+)/)?.[1] ?? null;
-  }, []);
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -625,7 +621,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
               {biz.avatar} {biz.name}
             </button>
             {connected && <span className="flex h-2 w-2 rounded-full bg-brand-green animate-pulse" title="Live" />}
-            <NotificationCenter token={authToken} />
+            <NotificationCenter businessId={biz.id} />
             <Button variant="ghost" size="sm" onClick={onLogout}>Log Out</Button>
           </div>
         </div>
@@ -695,6 +691,7 @@ export function BusinessPortal({ biz, data, save, onLogout }: BusinessPortalProp
             <PortalSubmissions
               campaigns={myCampaigns}
               onPendingCount={setPendingSubmissions}
+              highlightId={linkedSubmission}
             />
           </SectionErrorBoundary>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface ApiKeyMetadata {
   id: string;
@@ -31,9 +32,8 @@ async function jsonFetch<T>(
   url: string,
   init: RequestInit = {}
 ): Promise<{ ok: true; data: T } | { ok: false; status: number; code: string; message: string }> {
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     ...init,
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",

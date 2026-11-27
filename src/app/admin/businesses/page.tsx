@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 type Size = "solo" | "small" | "medium" | "enterprise";
 
@@ -56,7 +57,7 @@ export default function AdminBusinessesPage() {
     if (search) params.set("search", search);
     if (size !== "all") params.set("size", size);
     if (industry) params.set("industry", industry);
-    const res = await fetch(`/api/v1/admin/businesses?${params}`, { credentials: "include" });
+    const res = await apiFetch(`/api/v1/admin/businesses?${params}`);
     const json = await res.json();
     if (json.success) setData(json.data);
     setLoading(false);

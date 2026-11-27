@@ -4,9 +4,9 @@
  *     business's stream is refused
  *   - the founder (role "admin", no business): every event, or one
  *     business's if it asks
- *   - any other account (an influencer): no business's events. It used to
- *     get EVERY business's events, and asking for one business by
- *     ?businessId= used to work for anyone
+ *   - any other account (an influencer): no business's events, so no stream
+ *     at all (204 No Content). It used to get EVERY business's events, and
+ *     asking for one business by ?businessId= used to work for anyone
  * Events that name no business (a new sign-up's `user.created`, which carries
  * the new account's email) go to the founder only.
  *
@@ -80,12 +80,10 @@ describe("GET /api/v1/events — what is forwarded", () => {
     expect(text).not.toContain(NEW_SIGNUP_EMAIL);
   });
 
-  it("gives an account with no business no business's events and no sign-up emails", async () => {
+  it("opens no stream for an account with no business (204): it would receive no business's events and no sign-up emails", async () => {
     const { status, text } = await streamWhile(`token=${token("usr_test_influencer", "influencer", null)}`, publishAll);
-    expect(status).toBe(200);
-    expect(text).not.toContain("sub_test_for_a");
-    expect(text).not.toContain("sub_test_for_b");
-    expect(text).not.toContain(NEW_SIGNUP_EMAIL);
+    expect(status).toBe(204);
+    expect(text).toBe("");
   });
 
   it("gives the founder every event", async () => {

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
 import { useLivePoll } from "@/components/admin/use-live-poll";
 import { LiveIndicator } from "@/components/admin/live-indicator";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface Decision {
   targetId: string;
@@ -45,7 +46,7 @@ export default function AdminFraudPage() {
 
   const fetchAgent = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/admin/agents", { credentials: "include" });
+    const res = await apiFetch("/api/v1/admin/agents");
     const json = await res.json();
     if (json.success) {
       const found = (json.data?.agents ?? []).find((a: AgentRow & { name: string }) => a.id === "fraud-sentinel");
@@ -60,12 +61,14 @@ export default function AdminFraudPage() {
 
   const runNow = async () => {
     setWorking(true);
-    await fetch("/api/v1/admin/agents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ agentId: "fraud-sentinel", action: "run" }),
-    });
+    try {
+      await apiFetch("/api/v1/admin/agents", {
+        method: "POST",
+        body: JSON.stringify({ agentId: "fraud-sentinel", action: "run" }),
+      });
+    } catch {
+      // No CSRF token or no connection. The read below shows the agent as it is.
+    }
     setWorking(false);
     fetchAgent();
   };

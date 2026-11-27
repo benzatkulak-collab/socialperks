@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface ApiKey {
   id: string;
@@ -34,7 +35,7 @@ export default function AdminApiKeysPage() {
 
   const fetchKeys = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/api-keys", { credentials: "include" });
+    const res = await apiFetch("/api/v1/api-keys");
     const json = await res.json();
     if (json.success) setKeys(json.data?.keys ?? []);
     setLoading(false);
@@ -47,10 +48,8 @@ export default function AdminApiKeysPage() {
     setCreating(true);
     setNewPlaintext(null);
     try {
-      const res = await fetch("/api/v1/api-keys", {
+      const res = await apiFetch("/api/v1/api-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           agentName: newKeyName,
           permissions: newKeyPerms.split(",").map((p) => p.trim()).filter(Boolean),
@@ -59,7 +58,8 @@ export default function AdminApiKeysPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setNewPlaintext(json.data?.plaintext ?? json.data?.token ?? null);
+        // POST /api/v1/api-keys sends the plaintext in `key`, this once only.
+        setNewPlaintext(json.data?.key ?? null);
         setNewKeyName("");
         fetchKeys();
       } else {

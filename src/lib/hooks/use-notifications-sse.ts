@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { openEventStream } from "@/lib/realtime/event-stream";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,12 +39,14 @@ function eventToNotification(eventType: string, data: Record<string, unknown>): 
         timestamp,
         read: false,
       };
+    // Only a business (and the founder) receives events since #250, so the
+    // bell speaks to the business: an approval is its own decision on a
+    // customer's submission, and the event carries no perk amount.
     case "submission.approved":
       return {
         id,
         type: eventType,
-        message: `Your submission was approved! +$${(data.perkValue as number) ?? (data.value as number) ?? 0}`,
-        value: (data.perkValue as number) ?? (data.value as number) ?? undefined,
+        message: `Submission approved for ${(data.campaignName as string) || "a campaign"}`,
         campaignName: (data.campaignName as string) || undefined,
         timestamp,
         read: false,
@@ -82,17 +85,40 @@ function eventToNotification(eventType: string, data: Record<string, unknown>): 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const MAX_NOTIFICATIONS = 20;
-const INITIAL_RETRY_MS = 1000;
-const MAX_RETRY_MS = 30000;
+
+/** The events the bell turns into notifications. */
+const NOTIFICATION_EVENT_TYPES = [
+  "submission.created",
+  "submission.approved",
+  "submission.rejected",
+  "campaign.created",
+  "user.created",
+] as const;
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
-export function useNotificationsSSE(token: string | null): UseNotificationsSSEReturn {
+interface UseNotificationsSSEOptions {
+  /**
+   * The business whose events to show. Name the same business as the page's
+   * useRealtime, so the two share one connection; a business receives its own
+   * events whatever it names.
+   */
+  businessId?: string;
+  enabled?: boolean;
+}
+
+/**
+ * The signed-in account's notifications, from GET /api/v1/events. It signs
+ * in with the HttpOnly access cookie, which the browser sends by itself;
+ * src/lib/realtime/event-stream.ts says how it connects, renews the cookie
+ * and reconnects. It used to take a token the portals read from
+ * `document.cookie`, which never holds an HttpOnly cookie, so it never
+ * connected.
+ */
+export function useNotificationsSSE(options: UseNotificationsSSEOptions = {}): UseNotificationsSSEReturn {
+  const { businessId, enabled = true } = options;
   const [notifications, setNotifications] = useState<SSENotification[]>([]);
   const [connected, setConnected] = useState(false);
-  const sourceRef = useRef<EventSource | null>(null);
-  const retryRef = useRef(0);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
@@ -105,70 +131,28 @@ export function useNotificationsSSE(token: string | null): UseNotificationsSSERe
   }, []);
 
   useEffect(() => {
-    if (!token || typeof window === "undefined") return;
+    if (!enabled || typeof window === "undefined") return;
 
-    function connect() {
-      const params = new URLSearchParams({ token: token! });
-      const source = new EventSource(`/api/v1/events?${params.toString()}`);
-      sourceRef.current = source;
-
-      source.addEventListener("connected", () => {
-        setConnected(true);
-        retryRef.current = 0;
-      });
-
-      // The SSE endpoint sends named events via `event: <type>`
-      // We listen for the specific event types we care about
-      const eventTypes = [
-        "submission.created",
-        "submission.approved",
-        "submission.rejected",
-        "campaign.created",
-        "user.created",
-      ];
-
-      for (const type of eventTypes) {
-        source.addEventListener(type, (e: MessageEvent) => {
-          try {
-            const data = JSON.parse(e.data) as Record<string, unknown>;
-            const notification = eventToNotification(type, data);
-            if (notification) {
-              setNotifications((prev) =>
-                [notification, ...prev].slice(0, MAX_NOTIFICATIONS)
-              );
-            }
-          } catch {
-            // Ignore malformed events
-          }
-        });
-      }
-
-      source.onerror = () => {
-        setConnected(false);
-        source.close();
-        sourceRef.current = null;
-        // EventSource swallows the HTTP status — cap retries at 5 so a bad
-        // token doesn't put us in a hot loop hitting /api/v1/events.
-        if (retryRef.current >= 5) return;
-        // Exponential backoff: 1s, 2s, 4s, 8s... max 30s
-        const delay = Math.min(
-          INITIAL_RETRY_MS * Math.pow(2, retryRef.current),
-          MAX_RETRY_MS
+    const stream = openEventStream({
+      businessId,
+      eventTypes: NOTIFICATION_EVENT_TYPES,
+      onConnectedChange: setConnected,
+      onEvent: (type, data) => {
+        const notification = eventToNotification(
+          type,
+          data && typeof data === "object" ? (data as Record<string, unknown>) : {}
         );
-        retryRef.current++;
-        retryTimerRef.current = setTimeout(connect, delay);
-      };
-    }
-
-    connect();
+        if (notification) {
+          setNotifications((prev) => [notification, ...prev].slice(0, MAX_NOTIFICATIONS));
+        }
+      },
+    });
 
     return () => {
-      sourceRef.current?.close();
-      sourceRef.current = null;
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      stream.close();
       setConnected(false);
     };
-  }, [token]);
+  }, [enabled, businessId]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
