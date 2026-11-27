@@ -166,6 +166,31 @@ describe("acquisition agent — per-run send cap", () => {
   });
 });
 
+describe("acquisition agent — queue error recovery", () => {
+  it("marks a lead not-executed and skips contacted_at stamp when emailQueue.add throws", async () => {
+    // Verifies the invariant documented in the agent: a queue/DB hiccup must
+    // leave `executed: false` so the lead retries on the next tick rather than
+    // being silently dropped or double-sent after a partial stamp.
+    LEADS = [hotLead(0)];
+
+    const jobsMod = await import("@/lib/jobs/registry");
+    const addSpy = vi
+      .spyOn(jobsMod.emailQueue, "add")
+      .mockImplementationOnce(() => {
+        throw new Error("queue full");
+      });
+
+    const decisions = await run(true, 5);
+
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].executed).toBe(false);
+    // contacted_at must NOT be stamped — the lead should surface next run.
+    expect(CONTACTED).toEqual([]);
+
+    addSpy.mockRestore();
+  });
+});
+
 describe("acquisition agent — outbound copy compliance", () => {
   it("never offers a perk for a review (Google/Yelp/TripAdvisor reviews are banned)", async () => {
     LEADS = [hotLead(0)];
