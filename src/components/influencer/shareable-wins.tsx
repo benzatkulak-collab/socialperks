@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface EarningsResponse {
   last90Days: { cents: number; dollars: number };
@@ -32,7 +33,7 @@ export function ShareableWins() {
     if (typeof window !== "undefined") {
       setShareUrl(window.location.origin);
     }
-    fetch("/api/v1/influencers/me/earnings", { credentials: "include" })
+    apiFetch("/api/v1/influencers/me/earnings")
       .then((r) => r.json())
       .then((j) => {
         if (j.success) setData(j.data as EarningsResponse);

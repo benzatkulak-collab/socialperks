@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageContainer, AdminPageHeader } from "@/components/admin/admin-page-header";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface Referral {
   id: string;
@@ -35,7 +36,7 @@ export default function AdminReferralsPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/v1/referrals", { credentials: "include" });
+    const res = await apiFetch("/api/v1/referrals");
     const json = await res.json();
     if (json.success) setData(json.data);
     setLoading(false);

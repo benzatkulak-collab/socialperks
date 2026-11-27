@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api/csrf-fetch";
 
 interface UsageBar {
   used: number;
@@ -69,10 +70,12 @@ async function readBusinessId(): Promise<string | null> {
 }
 
 async function postBilling<T>(body: Record<string, unknown>): Promise<{ ok: true; data: T } | { ok: false; status: number; code: string; message: string }> {
-  const res = await fetch("/api/v1/billing", {
+  // /billing checks no CSRF token: apiFetch is here for the cookie renewal,
+  // and skipCsrf keeps the request as it was (no extra /csrf round trip).
+  const res = await apiFetch("/api/v1/billing", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
+    skipCsrf: true,
     body: JSON.stringify(body),
   });
   let json: { success?: boolean; data?: T; error?: { code: string; message: string } };

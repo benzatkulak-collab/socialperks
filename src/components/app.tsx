@@ -24,6 +24,7 @@ const CtaSection = dynamic(() => import("@/components/landing/cta-section").then
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLocalStorage } from "@/lib/hooks/use-store";
+import { signOutWith } from "@/lib/api/csrf-fetch";
 import { createSeedData } from "@/lib/seed";
 import type { SeedData, SeedBusiness, SeedInfluencer } from "@/lib/seed";
 
@@ -308,12 +309,14 @@ export function SocialPerksApp() {
 
   const handleLogout = useCallback(async () => {
     try {
-      await fetch("/api/v1/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ action: "logout" }),
-      });
+      await signOutWith(() =>
+        fetch("/api/v1/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ action: "logout" }),
+        })
+      );
     } catch {
       // Best-effort — clear local state regardless
     }

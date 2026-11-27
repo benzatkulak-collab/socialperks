@@ -5,6 +5,11 @@
  * `sp-access-token` cookie as a Bearer token + `X-CSRF-Token` on every
  * mutating request, and retries once on `CSRF_TOKEN_INVALID`/`CSRF_TOKEN_MISSING`.
  *
+ * It also renews the 15-minute access cookie: a 401 from anything but the
+ * auth route asks `POST /api/v1/auth {action: "refresh"}` for a new one and
+ * sends the request once more (see `renewAccessCookie`). Sign-outs go
+ * through `signOutWith`, so a renewal cannot undo them.
+ *
  * `apiFetch` returns the raw Response; `apiFetchJson` throws on non-2xx so
  * callers cannot silently swallow failures (this was the bug that hid every
  * 403 from the wizard's "Launch Campaign" flow).
@@ -58,14 +63,117 @@ export interface ApiFetchOptions extends RequestInit {
   skipCsrf?: boolean;
 }
 
+// ─── Access-cookie renewal ──────────────────────────────────────────────────
+
+const AUTH_ROUTE = "/api/v1/auth";
+
+/**
+ * Refreshes are at least this far apart. The refresh shares POST
+ * /api/v1/auth, and so its rate limit, with sign-in: 5 a minute per address.
+ */
+const MIN_REFRESH_GAP_MS = 60_000;
+
+let refreshInFlight: Promise<boolean> | null = null;
+/** Refreshes that succeeded since this page loaded. */
+let refreshesDone = 0;
+let lastRefreshAt = -Infinity;
+/** Sign-outs on their way; no refresh starts while there is one. */
+let signOutsInFlight = 0;
+
+/**
+ * The auth route never triggers a renewal. Its sign-in 401 means a wrong
+ * password, and the refresh's own 401 must not ask for another refresh.
+ * Its session check (GET) is left out too, although its 401 can mean an
+ * expired cookie: renewing there would put the session checks, sign-in and
+ * the refresh in one rate limit of 5 a minute per address.
+ */
+function isAuthRoute(input: string): boolean {
+  let path: string;
+  try {
+    path = new URL(input, "http://localhost").pathname.replace(/\/+$/, "");
+  } catch {
+    return false;
+  }
+  return path === AUTH_ROUTE || path.startsWith(`${AUTH_ROUTE}/`);
+}
+
+/**
+ * Get a new access cookie for a request that got 401. Resolves true when the
+ * request is worth repeating:
+ * - a refresh succeeded after the request was sent, so it carried the old
+ *   cookie: repeat it as it is;
+ * - otherwise one refresh, shared by every caller that asks while it runs,
+ *   and at most one a minute. A 401 within a minute of the last refresh is
+ *   either a refusal that will not change (the refresh cookie has gone too)
+ *   or not about the cookie at all, because the request carried a new one.
+ */
+function renewAccessCookie(refreshesBeforeRequest: number): Promise<boolean> {
+  if (signOutsInFlight > 0) return Promise.resolve(false);
+  if (refreshesDone !== refreshesBeforeRequest) return Promise.resolve(true);
+  if (refreshInFlight) return refreshInFlight;
+  // A clock set back since the last refresh gives a negative gap: ask again.
+  const sinceLastRefresh = Date.now() - lastRefreshAt;
+  if (sinceLastRefresh >= 0 && sinceLastRefresh < MIN_REFRESH_GAP_MS) return Promise.resolve(false);
+
+  refreshInFlight = fetch(AUTH_ROUTE, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "refresh" }),
+  })
+    .then(
+      (res) => res.ok,
+      () => false // offline or blocked: the caller still gets its own 401
+    )
+    .then((renewed) => {
+      lastRefreshAt = Date.now();
+      if (renewed) refreshesDone++;
+      return renewed;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
+/**
+ * Send a sign-out (or anything else that clears the auth cookies) with no
+ * refresh running. A refresh answered after the sign-out would set again the
+ * cookies it has just cleared. This waits for one already on its way, and
+ * none starts until the sign-out has its answer; after that a refresh finds
+ * no refresh cookie.
+ */
+export async function signOutWith<T>(request: () => Promise<T>): Promise<T> {
+  signOutsInFlight++;
+  try {
+    await refreshInFlight;
+    return await request();
+  } finally {
+    signOutsInFlight--;
+  }
+}
+
 /**
  * Authenticated, CSRF-aware fetch. Returns the raw Response — callers should
  * still check `res.ok`. For a throwing happy-path use `apiFetchJson`.
+ *
+ * On a 401 from anything but the auth route it renews the 15-minute access
+ * cookie with the 7-day refresh cookie and sends the request once more. When
+ * no renewal happens it returns the 401 as it came, for the caller to handle.
  */
 export async function apiFetch(
   input: string,
   init: ApiFetchOptions = {}
 ): Promise<Response> {
+  const refreshesBeforeRequest = refreshesDone;
+  const res = await send(input, init);
+  if (res.status !== 401 || isAuthRoute(input)) return res;
+  if (!(await renewAccessCookie(refreshesBeforeRequest))) return res;
+  return send(input, init);
+}
+
+/** One request: auth header, CSRF token for writes, and one CSRF retry. */
+async function send(input: string, init: ApiFetchOptions): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
   const needsCsrf = !init.skipCsrf && MUTATING_METHODS.has(method);
 
