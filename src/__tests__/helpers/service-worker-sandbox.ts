@@ -23,8 +23,12 @@ export function settled(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-/** Cache Storage in memory, keyed by URL, with the calls sw.js makes. `seed` maps cache names to {path: body}. */
-export function createCacheStorage(seed: Seed) {
+/**
+ * Cache Storage in memory, keyed by URL, with the calls sw.js makes. `seed` maps cache names to {path: body}.
+ * `addAll` fetches through `fetchForAddAll`; without it, it keeps nothing.
+ */
+export function createCacheStorage(seed: Seed, fetchForAddAll?: (request: Request) => Promise<Response>) {
+  let writesRefused = false;
   const stores = new Map<string, Map<string, Response>>();
   for (const [name, entries] of Object.entries(seed)) {
     stores.set(
@@ -35,18 +39,36 @@ export function createCacheStorage(seed: Seed) {
     );
   }
   const keyOf = (request: Request | string) => (typeof request === "string" ? new URL(request, ORIGIN).href : request.url);
-  const cacheFor = (store: Map<string, Response>) => ({
+  const cacheFor = (store: Map<string, Response>) => {
     // Like the real Cache API: GETs only, and the body is read to the end.
-    put: async (request: Request, response: Response) => {
+    const put = async (request: Request, response: Response) => {
       if (request.method !== "GET") throw new TypeError(`Request method '${request.method}' is unsupported`);
       const body = await response.arrayBuffer();
       store.set(keyOf(request), new Response(body, { status: response.status, headers: response.headers }));
-    },
-    match: async (request: Request) => store.get(keyOf(request))?.clone(),
-    addAll: async () => {},
-  });
+    };
+    return {
+      put,
+      match: async (request: Request) => store.get(keyOf(request))?.clone(),
+      // Like the real Cache API: fetches every address and keeps them all, or
+      // none if one fails or answers outside 200-299.
+      addAll: async (requests: (Request | string)[]) => {
+        if (!fetchForAddAll) return;
+        const fetched = await Promise.all(
+          requests.map(async (input) => {
+            const request = typeof input === "string" ? new Request(new URL(input, ORIGIN)) : input;
+            const response = await fetchForAddAll(request);
+            if (!response.ok) throw new TypeError(`addAll: ${request.url} answered ${response.status}`);
+            return { request, response };
+          })
+        );
+        for (const { request, response } of fetched) await put(request, response);
+      },
+    };
+  };
   const api = {
     open: async (name: string) => {
+      // A full disk or a locked-down browser: Cache Storage will not open a cache to write in.
+      if (writesRefused) throw new Error("Cache Storage refused to open a cache");
       if (!stores.has(name)) stores.set(name, new Map());
       return cacheFor(stores.get(name)!);
     },
@@ -68,13 +90,16 @@ export function createCacheStorage(seed: Seed) {
     names: () => [...stores.keys()],
     /** Every URL kept, in any cache. */
     urls: () => [...stores.values()].flatMap((store) => [...store.keys()]),
+    /** From now on, opening a cache fails: nothing more can be kept. What is kept can still be read. */
+    refuseWrites: () => {
+      writesRefused = true;
+    },
   };
 }
 
 /** sw.js, started in a sandbox. The network answers 200 with made-up JSON until told otherwise. */
 export function startWorker(seed: Seed = {}) {
   const listeners = new Map<string, Listener>();
-  const storage = createCacheStorage(seed);
   const network = {
     online: true,
     /** Every request the worker sent, as method and path. */
@@ -110,6 +135,8 @@ export function startWorker(seed: Seed = {}) {
     if (!network.online) throw new TypeError("Failed to fetch");
     return network.answer(request);
   };
+  // Install's `cache.addAll` fetches through the same network.
+  const storage = createCacheStorage(seed, fetch);
   vm.runInNewContext(WORKER_SOURCE, { self, URL, Request, Response, Headers, console, fetch, caches: storage.api, indexedDB });
 
   const fire = (type: string, event: Record<string, unknown>) => {
