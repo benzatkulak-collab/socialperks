@@ -13,15 +13,14 @@ import { apiFetch } from "@/lib/api/csrf-fetch";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+/** A campaign as `GET /api/v1/campaigns` lists it: the fields this page reads. */
 interface Campaign {
   id: string;
-  campaignId?: string;
   businessId: string;
   name?: string;
   state: string;
-  completions?: number;
-  maxCompletions?: number | null;
-  launchedAt?: string;
+  /** Approved completions, and the most allowed: null for no limit. */
+  completions: { current: number; max: number | null };
 }
 
 interface Submission {
@@ -57,11 +56,10 @@ interface AdminStats {
   security: {
     auditFailures24h: number;
     recentAudit: Array<{
-      id: string;
       action: string;
       actor: string;
       ok: boolean;
-      occurredAt: string;
+      timestamp: string;
       resourceId?: string | null;
     }>;
   };
@@ -277,7 +275,7 @@ function RecentSubmissionsTable({
 function ActiveCampaignsList({ campaigns }: { campaigns: Campaign[] }) {
   const active = campaigns
     .filter((c) => c.state === "active")
-    .sort((a, b) => (b.completions ?? 0) - (a.completions ?? 0));
+    .sort((a, b) => b.completions.current - a.completions.current);
 
   if (active.length === 0) {
     return (
@@ -290,11 +288,11 @@ function ActiveCampaignsList({ campaigns }: { campaigns: Campaign[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {active.slice(0, 10).map((camp) => (
-        <Card key={camp.id ?? camp.campaignId} padding="sm" borderColor="green" hoverable>
+        <Card key={camp.id} padding="sm" borderColor="green" hoverable>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-brand-text truncate">
-                {camp.name || camp.campaignId || camp.id}
+                {camp.name || camp.id}
               </p>
               <p className="text-2xs text-brand-muted font-mono mt-0.5">
                 {camp.businessId.slice(0, 16)}
@@ -304,14 +302,14 @@ function ActiveCampaignsList({ campaigns }: { campaigns: Campaign[] }) {
           </div>
           <div className="flex items-center gap-4 mt-2">
             <Stat
-              value={camp.completions ?? 0}
+              value={camp.completions.current}
               label="Completions"
               color="cyan"
               size="sm"
             />
-            {camp.maxCompletions && (
+            {camp.completions.max !== null && (
               <Stat
-                value={camp.maxCompletions}
+                value={camp.completions.max}
                 label="Max"
                 color="muted"
                 size="sm"
@@ -382,10 +380,10 @@ function AuditPreview({ stats }: { stats: AdminStats | null }) {
               </tr>
             </thead>
             <tbody>
-              {recentAudit.map((entry) => (
-                <tr key={entry.id} className="border-b border-brand-border/50">
+              {recentAudit.map((entry, i) => (
+                <tr key={`${entry.timestamp}-${i}`} className="border-b border-brand-border/50">
                   <td className="px-4 py-2 text-xs text-brand-dim font-mono">
-                    {formatDate(entry.occurredAt)}
+                    {formatDate(entry.timestamp)}
                   </td>
                   <td className="px-4 py-2 text-xs text-brand-text font-mono">
                     {entry.action}
