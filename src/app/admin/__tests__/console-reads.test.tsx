@@ -18,6 +18,11 @@
  *   for a number and read a `maxCompletions` the route never sends, so a
  *   single active campaign made React throw, and the whole console home was
  *   lost.
+ * - `/admin/campaigns` lists the same answer. It looked for completions as a
+ *   number or under `total`, a limit under `maxCompletions` and the launch
+ *   under `launchedAt`, so every campaign showed 0 completions, no limit and
+ *   no launch date ("—"), and the total of completions was always 0. The
+ *   launch date is `expiry.launchedAt`.
  *
  * So the sections these tests look at are not answered by hand: the events
  * and campaigns are recorded with the real `audit()` and `campaignManager`,
@@ -26,7 +31,7 @@
  *
  * All ids, names and emails here are made up.
  */
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { NextRequest } from "next/server";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -255,6 +260,60 @@ describe("/admin: Active Campaigns", () => {
       { name: "Spring Story Tag", completions: "3", max: "50" },
       { name: "Open Reel Shout-out", completions: "1", max: null },
     ]);
+    expect(reactErrors).not.toHaveBeenCalled();
+  });
+});
+
+describe("/admin/campaigns", () => {
+  /** Each row of the table, in the order shown: its campaign, completions and launch date. */
+  async function campaignRows() {
+    await screen.findAllByRole("button", { name: /Manage/ });
+    const [, ...rows] = screen.getAllByRole("row");
+    return rows.map((row) => {
+      const cells = within(row).getAllByRole("cell");
+      return {
+        campaign: cells[0].querySelector("p")?.textContent,
+        completions: cells[3].textContent,
+        launched: cells[4].textContent,
+      };
+    });
+  }
+
+  /** The value under a label in the open campaign's drawer. */
+  function drawerValue(label: string): string | null | undefined {
+    return screen.getByText(label, { selector: "p" }).nextElementSibling?.textContent;
+  }
+
+  /** Two campaigns, launched on Mar 1 and Mar 2, as the campaigns route lists them on Mar 2. */
+  async function twoCampaigns(): Promise<Response> {
+    await at("2026-03-01T15:00:00.000Z", () => activeCampaign("camp_test_limited", "Spring Story Tag", 50, 3));
+    await at("2026-03-02T15:00:00.000Z", () => activeCampaign("camp_test_unlimited", "Open Reel Shout-out", null, 1));
+    return at("2026-03-02T15:10:00.000Z", campaignsNow);
+  }
+
+  it("lists each campaign's completions, limit and launch date, and their total", async () => {
+    const reactErrors = await openPage(() => import("../campaigns/page"), {
+      "GET /api/v1/campaigns": await twoCampaigns(),
+    });
+
+    expect(await campaignRows()).toEqual([
+      { campaign: "Spring Story Tag", completions: "3 / 50", launched: "Mar 1, 2026" },
+      { campaign: "Open Reel Shout-out", completions: "1", launched: "Mar 2, 2026" },
+    ]);
+    expect(statValue(document.body, "Total Completions")).toBe("4");
+    expect(reactErrors).not.toHaveBeenCalled();
+  });
+
+  it("shows a campaign's completions, limit and launch date when it is opened", async () => {
+    const reactErrors = await openPage(() => import("../campaigns/page"), {
+      "GET /api/v1/campaigns": await twoCampaigns(),
+    });
+
+    const [firstCampaign] = await screen.findAllByRole("button", { name: /Manage/ });
+    fireEvent.click(firstCampaign);
+
+    expect(drawerValue("Completions")).toBe("3 / 50");
+    expect(drawerValue("Launched")).toBe("Mar 1, 2026");
     expect(reactErrors).not.toHaveBeenCalled();
   });
 });

@@ -17,9 +17,10 @@ interface Campaign {
   businessId: string;
   name?: string;
   state: State;
-  completions?: number | { total: number };
-  maxCompletions?: number | null;
-  launchedAt?: string;
+  /** Approved completions, and the most allowed: null for no limit. */
+  completions: { current: number; max: number | null };
+  /** When the campaign was launched, and when it runs out. */
+  expiry: { launchedAt: string; expiresAt: string };
   tier?: string;
   rewardAmount?: number;
   actionId?: string;
@@ -49,12 +50,6 @@ function stateColor(state: State): "green" | "amber" | "red" | "cyan" | "muted" 
 function formatDate(iso?: string): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function completionsOf(c: Campaign): number {
-  if (typeof c.completions === "number") return c.completions;
-  if (typeof c.completions === "object" && c.completions !== null) return c.completions.total ?? 0;
-  return 0;
 }
 
 export default function AdminCampaignsPage() {
@@ -121,7 +116,7 @@ export default function AdminCampaignsPage() {
     active: campaigns.filter((c) => c.state === "active").length,
     paused: campaigns.filter((c) => c.state === "paused").length,
     ended: campaigns.filter((c) => c.state === "ended" || c.state === "expired").length,
-    completions: campaigns.reduce((sum, c) => sum + completionsOf(c), 0),
+    completions: campaigns.reduce((sum, c) => sum + c.completions.current, 0),
   };
 
   return (
@@ -214,10 +209,10 @@ export default function AdminCampaignsPage() {
                     <Badge color={stateColor(c.state)} dot size="sm">{c.state}</Badge>
                   </td>
                   <td className="px-4 py-3 text-xs text-brand-text font-mono">
-                    {completionsOf(c)}
-                    {c.maxCompletions && <span className="text-brand-muted"> / {c.maxCompletions}</span>}
+                    {c.completions.current}
+                    {c.completions.max !== null && <span className="text-brand-muted"> / {c.completions.max}</span>}
                   </td>
-                  <td className="px-4 py-3 text-xs text-brand-dim font-mono">{formatDate(c.launchedAt)}</td>
+                  <td className="px-4 py-3 text-xs text-brand-dim font-mono">{formatDate(c.expiry.launchedAt)}</td>
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={(e) => { e.stopPropagation(); setSelected(c); }}
@@ -292,7 +287,8 @@ function CampaignDrawer({
             <div>
               <p className="text-2xs uppercase font-mono text-brand-muted mb-1">Completions</p>
               <p className="text-sm text-brand-text font-mono">
-                {completionsOf(campaign)}{campaign.maxCompletions ? ` / ${campaign.maxCompletions}` : ""}
+                {campaign.completions.current}
+                {campaign.completions.max !== null ? ` / ${campaign.completions.max}` : ""}
               </p>
             </div>
             {campaign.platformId && (
@@ -315,7 +311,7 @@ function CampaignDrawer({
             )}
             <div>
               <p className="text-2xs uppercase font-mono text-brand-muted mb-1">Launched</p>
-              <p className="text-xs text-brand-dim font-mono">{formatDate(campaign.launchedAt)}</p>
+              <p className="text-xs text-brand-dim font-mono">{formatDate(campaign.expiry.launchedAt)}</p>
             </div>
           </div>
 
