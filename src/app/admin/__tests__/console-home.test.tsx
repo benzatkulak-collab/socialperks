@@ -12,10 +12,16 @@
  *   from the in-memory buffer. An entry carries its time as `timestamp` and
  *   has no id. The page read `occurredAt` and keyed each row by `id`, so every
  *   row showed "Invalid Date", whatever its action, and no row had a key.
+ * - "Active Campaigns" is `GET /api/v1/campaigns`. For the founder it lists
+ *   every campaign the server holds, as the campaign state machine keeps it:
+ *   `completions` is `{ current, max }`. The page took `completions` for a
+ *   number and read a `maxCompletions` the route never sends, so a single
+ *   active campaign made React throw, and the whole console home was lost.
  *
  * So the sections these tests look at are not answered by hand: the events
- * are recorded with the real `audit()`, the real route is asked as the
- * founder, and its answer goes to the real page.
+ * and campaigns are recorded with the real `audit()` and `campaignManager`,
+ * the real route is asked as the founder, and its answer goes to the real
+ * page.
  *
  * All ids, names and emails here are made up.
  */
@@ -199,6 +205,48 @@ describe("/admin: Recent Audit Events", () => {
     expect(await auditRows()).toEqual([
       ["Mar 2, 10:04 AM", "admin.submission.reviewed", "user:usr_test_founder", "ok"],
       ["Mar 2, 10:04 AM", "admin.submission.reviewed", "user:usr_test_founder", "ok"],
+    ]);
+    expect(reactErrors).not.toHaveBeenCalled();
+  });
+});
+
+describe("/admin: Active Campaigns", () => {
+  /** Launches an active campaign and records `completed` approved completions. */
+  function activeCampaign(id: string, name: string, maxCompletions: number | null, completed: number): void {
+    campaignManager.launch(id, "biz_test_owner", {
+      name,
+      budgetAllocated: 10,
+      budgetType: "pct",
+      maxCompletions,
+      expiresInDays: 30,
+      actions: ["ig_st"],
+    });
+    for (let i = 0; i < completed; i++) campaignManager.recordCompletion(id);
+  }
+
+  /** The value shown above a stat's label in a card, or null with no such stat. */
+  function statValue(card: HTMLElement, label: string): string | null {
+    return within(card).queryByText(label)?.previousElementSibling?.textContent ?? null;
+  }
+
+  /** Each card in the list, in the order shown: its name, completions and limit. */
+  async function campaignCards() {
+    const list = (await screen.findByRole("heading", { name: "Active Campaigns" })).nextElementSibling!;
+    return Array.from(list.children as HTMLCollectionOf<HTMLElement>).map((card) => ({
+      name: card.querySelector("p")?.textContent,
+      completions: statValue(card, "Completions"),
+      max: statValue(card, "Max"),
+    }));
+  }
+
+  it("shows each active campaign's completions and limit, most completed first", async () => {
+    activeCampaign("camp_test_unlimited", "Open Reel Shout-out", null, 1);
+    activeCampaign("camp_test_limited", "Spring Story Tag", 50, 3);
+    const reactErrors = await openHome({ stats: await statsAfter([], "2026-03-02T15:10:00.000Z"), campaigns: await campaignsNow() });
+
+    expect(await campaignCards()).toEqual([
+      { name: "Spring Story Tag", completions: "3", max: "50" },
+      { name: "Open Reel Shout-out", completions: "1", max: null },
     ]);
     expect(reactErrors).not.toHaveBeenCalled();
   });
