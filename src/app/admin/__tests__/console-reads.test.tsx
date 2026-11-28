@@ -1,22 +1,23 @@
 // @vitest-environment happy-dom
 /**
- * What the console home shows, given its routes' real answers.
+ * What the founder console shows, given its routes' real answers.
  *
- * The page writes out by hand the shape of each answer it reads, and its
- * other tests answer with empty lists, so nothing compared those shapes with
- * what the routes send:
+ * Each console page writes out by hand the shape of each answer it reads,
+ * and the console's other tests answer with fixtures or empty lists, so
+ * nothing compared those shapes with what the routes send:
  *
- * - "Recent Audit Events" is `security.recentAudit` from
+ * - The home's "Recent Audit Events" is `security.recentAudit` from
  *   `GET /api/v1/admin/stats`: the audit log's own entries, as
  *   `queryAuditLog()` in `src/lib/audit-log.ts` returns them from Postgres or
  *   from the in-memory buffer. An entry carries its time as `timestamp` and
  *   has no id. The page read `occurredAt` and keyed each row by `id`, so every
  *   row showed "Invalid Date", whatever its action, and no row had a key.
- * - "Active Campaigns" is `GET /api/v1/campaigns`. For the founder it lists
- *   every campaign the server holds, as the campaign state machine keeps it:
- *   `completions` is `{ current, max }`. The page took `completions` for a
- *   number and read a `maxCompletions` the route never sends, so a single
- *   active campaign made React throw, and the whole console home was lost.
+ * - The home's "Active Campaigns" is `GET /api/v1/campaigns`. For the founder
+ *   it lists every campaign the server holds, as the campaign state machine
+ *   keeps it: `completions` is `{ current, max }`. The page took `completions`
+ *   for a number and read a `maxCompletions` the route never sends, so a
+ *   single active campaign made React throw, and the whole console home was
+ *   lost.
  *
  * So the sections these tests look at are not answered by hand: the events
  * and campaigns are recorded with the real `audit()` and `campaignManager`,
@@ -39,8 +40,8 @@ import { fakeApi, listOf, okWith } from "@/__tests__/helpers/fake-api";
 /** The founder: an admin with no business of their own. */
 const FOUNDER = { id: "usr_test_founder", email: "founder@example.test", role: "admin", businessId: null };
 
-// The page shows a time in the viewer's own zone. Pin one, so that the
-// expected text can be written out by hand. 2026-03-02 is EST (UTC-5).
+// The console shows a time in the viewer's own zone. Pin one, so that the
+// expected text can be written out by hand. March 2026 is EST (UTC-5).
 const zoneBefore = process.env.TZ;
 beforeAll(() => {
   process.env.TZ = "America/New_York";
@@ -58,6 +59,17 @@ afterEach(() => {
   _resetAuditLog();
   campaignManager._reset();
 });
+
+/** Runs `fn` with the server's clock at `time`. */
+async function at<T>(time: string, fn: () => T | Promise<T>): Promise<T> {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(time));
+  try {
+    return await fn();
+  } finally {
+    vi.useRealTimers();
+  }
+}
 
 let requestCount = 0;
 
@@ -83,25 +95,60 @@ async function askAsFounder(route: (req: NextRequest) => Promise<Response>, path
   return res;
 }
 
-/** The stats route's answer after recording each event at its own time, asked at `askedAt`. */
-async function statsAfter(events: Array<{ at: string; entry: AuditEntry }>, askedAt: string): Promise<Response> {
-  vi.useFakeTimers({ toFake: ["Date"] });
+/** Records each event at its own time, as the routes do with audit(). */
+async function recordEvents(events: Array<{ at: string; entry: AuditEntry }>): Promise<void> {
   // audit() also writes each entry to the console as a structured log line.
   const auditLogLines = vi.spyOn(console, "warn").mockImplementation(() => {});
-  for (const { at, entry } of events) {
-    vi.setSystemTime(new Date(at));
-    audit(entry);
-  }
+  for (const event of events) await at(event.at, () => audit(event.entry));
   auditLogLines.mockRestore();
-  vi.setSystemTime(new Date(askedAt));
-  const res = await askAsFounder(getAdminStats, "/api/v1/admin/stats");
-  vi.useRealTimers();
-  return res;
+}
+
+/** Launches an active campaign and records `completed` approved completions. */
+function activeCampaign(id: string, name: string, maxCompletions: number | null, completed: number): void {
+  campaignManager.launch(id, "biz_test_owner", {
+    name,
+    budgetAllocated: 10,
+    budgetType: "pct",
+    maxCompletions,
+    expiresInDays: 30,
+    actions: ["ig_st"],
+  });
+  for (let i = 0; i < completed; i++) campaignManager.recordCompletion(id);
+}
+
+/** The stats route's answer for the audit log as it is now. */
+function statsNow(): Promise<Response> {
+  return askAsFounder(getAdminStats, "/api/v1/admin/stats");
 }
 
 /** The campaigns route's answer, for the campaigns the server holds now. */
 function campaignsNow(): Promise<Response> {
   return askAsFounder(listCampaigns, "/api/v1/campaigns");
+}
+
+/**
+ * Opens a console page in a freshly loaded tab, signed in as the founder,
+ * with each route's one answer given.
+ *
+ * Returns what React logs as errors meanwhile. A list row with no key is one
+ * of them, but React reports it once per component in a whole test run, in
+ * whichever test renders first, so every test here checks the log.
+ */
+async function openPage(load: () => Promise<{ default: ComponentType }>, answers: Record<string, Response>) {
+  const reactErrors = vi.spyOn(console, "error");
+  fakeApi({
+    "GET /api/v1/auth": [okWith({ user: FOUNDER, expiresAt: null })],
+    ...Object.fromEntries(Object.entries(answers).map(([route, res]) => [route, [() => res]])),
+  });
+  vi.resetModules();
+  const { AdminGuard } = await import("@/components/admin/admin-guard");
+  const { default: Page } = await load();
+  render(
+    <AdminGuard>
+      <Page />
+    </AdminGuard>
+  );
+  return reactErrors;
 }
 
 /** `GET /api/v1/admin/system` while the server is healthy. */
@@ -117,45 +164,27 @@ const systemHealth = {
   cpu: { userMicros: 1000, systemMicros: 500 },
 };
 
-/**
- * Opens the console home in a freshly loaded tab, signed in as the founder,
- * with the stats and campaigns routes' answers given and nothing else to show.
- *
- * Returns what React logs as errors meanwhile. A list row with no key is one
- * of them, but React reports it once per component in a whole test run, in
- * whichever test renders first, so every test here checks the log.
- */
-async function openHome(answers: { stats: Response; campaigns: Response }) {
-  const reactErrors = vi.spyOn(console, "error");
-  fakeApi({
-    "GET /api/v1/auth": [okWith({ user: FOUNDER, expiresAt: null })],
-    "GET /api/v1/campaigns": [() => answers.campaigns],
-    "GET /api/v1/submissions": [listOf("submissions", [])],
-    "GET /api/v1/admin/system": [okWith(systemHealth)],
-    "GET /api/v1/admin/stats": [() => answers.stats],
-    "GET /api/v1/admin/agents": [okWith({ agents: [] })],
+/** The console home, with these stats and campaigns answers and nothing else to show. */
+function openHome(answers: { stats: Response; campaigns: Response }) {
+  return openPage(() => import("../page"), {
+    "GET /api/v1/campaigns": answers.campaigns,
+    "GET /api/v1/submissions": listOf("submissions", [])(),
+    "GET /api/v1/admin/system": okWith(systemHealth)(),
+    "GET /api/v1/admin/stats": answers.stats,
+    "GET /api/v1/admin/agents": okWith({ agents: [] })(),
   });
-  vi.resetModules();
-  const { AdminGuard } = await import("@/components/admin/admin-guard");
-  const { default: Home } = (await import("../page")) as { default: ComponentType };
-  render(
-    <AdminGuard>
-      <Home />
-    </AdminGuard>
-  );
-  return reactErrors;
 }
 
-/** The section under a heading of the console home, once the page has loaded. */
-async function section(name: string): Promise<HTMLElement> {
-  const heading = await screen.findByRole("heading", { name });
-  return heading.closest("section")!;
+/** The value shown above a stat's label, or null with no such stat. */
+function statValue(container: HTMLElement, label: string): string | null {
+  return within(container).queryByText(label)?.previousElementSibling?.textContent ?? null;
 }
 
 describe("/admin: Recent Audit Events", () => {
   /** The rows, newest first: When, Action, Actor, Status. */
   async function auditRows(): Promise<string[][]> {
-    const [, ...rows] = within(await section("Recent Audit Events")).getAllByRole("row");
+    const heading = await screen.findByRole("heading", { name: "Recent Audit Events" });
+    const [, ...rows] = within(heading.closest("section")!).getAllByRole("row");
     return rows.map((row) => within(row).getAllByRole("cell").map((cell) => cell.textContent ?? ""));
   }
 
@@ -172,14 +201,12 @@ describe("/admin: Recent Audit Events", () => {
   }
 
   it("shows when each event happened, whatever its action", async () => {
-    const stats = await statsAfter(
-      [
-        { at: "2026-03-02T14:58:00.000Z", entry: { action: "auth.login_success", actor: `user:${FOUNDER.id}`, ok: true } },
-        { at: "2026-03-02T15:04:00.000Z", entry: founderApproval("sub_test_1") },
-        { at: "2026-03-02T15:07:00.000Z", entry: { action: "api_key.verification_failed", actor: "api-key:key_test_1", ok: false } },
-      ],
-      "2026-03-02T15:10:00.000Z"
-    );
+    await recordEvents([
+      { at: "2026-03-02T14:58:00.000Z", entry: { action: "auth.login_success", actor: `user:${FOUNDER.id}`, ok: true } },
+      { at: "2026-03-02T15:04:00.000Z", entry: founderApproval("sub_test_1") },
+      { at: "2026-03-02T15:07:00.000Z", entry: { action: "api_key.verification_failed", actor: "api-key:key_test_1", ok: false } },
+    ]);
+    const stats = await at("2026-03-02T15:10:00.000Z", statsNow);
     const reactErrors = await openHome({ stats, campaigns: await campaignsNow() });
 
     expect(await auditRows()).toEqual([
@@ -193,13 +220,11 @@ describe("/admin: Recent Audit Events", () => {
   it("gives two events of the same millisecond a row each, and each row its own key", async () => {
     // Two approvals one after the other can be stamped with the same time.
     // Two rows with one key is an error React reports every time.
-    const stats = await statsAfter(
-      [
-        { at: "2026-03-02T15:04:00.000Z", entry: founderApproval("sub_test_1") },
-        { at: "2026-03-02T15:04:00.000Z", entry: founderApproval("sub_test_2") },
-      ],
-      "2026-03-02T15:10:00.000Z"
-    );
+    await recordEvents([
+      { at: "2026-03-02T15:04:00.000Z", entry: founderApproval("sub_test_1") },
+      { at: "2026-03-02T15:04:00.000Z", entry: founderApproval("sub_test_2") },
+    ]);
+    const stats = await at("2026-03-02T15:10:00.000Z", statsNow);
     const reactErrors = await openHome({ stats, campaigns: await campaignsNow() });
 
     expect(await auditRows()).toEqual([
@@ -211,24 +236,6 @@ describe("/admin: Recent Audit Events", () => {
 });
 
 describe("/admin: Active Campaigns", () => {
-  /** Launches an active campaign and records `completed` approved completions. */
-  function activeCampaign(id: string, name: string, maxCompletions: number | null, completed: number): void {
-    campaignManager.launch(id, "biz_test_owner", {
-      name,
-      budgetAllocated: 10,
-      budgetType: "pct",
-      maxCompletions,
-      expiresInDays: 30,
-      actions: ["ig_st"],
-    });
-    for (let i = 0; i < completed; i++) campaignManager.recordCompletion(id);
-  }
-
-  /** The value shown above a stat's label in a card, or null with no such stat. */
-  function statValue(card: HTMLElement, label: string): string | null {
-    return within(card).queryByText(label)?.previousElementSibling?.textContent ?? null;
-  }
-
   /** Each card in the list, in the order shown: its name, completions and limit. */
   async function campaignCards() {
     const list = (await screen.findByRole("heading", { name: "Active Campaigns" })).nextElementSibling!;
@@ -242,7 +249,7 @@ describe("/admin: Active Campaigns", () => {
   it("shows each active campaign's completions and limit, most completed first", async () => {
     activeCampaign("camp_test_unlimited", "Open Reel Shout-out", null, 1);
     activeCampaign("camp_test_limited", "Spring Story Tag", 50, 3);
-    const reactErrors = await openHome({ stats: await statsAfter([], "2026-03-02T15:10:00.000Z"), campaigns: await campaignsNow() });
+    const reactErrors = await openHome({ stats: await statsNow(), campaigns: await campaignsNow() });
 
     expect(await campaignCards()).toEqual([
       { name: "Spring Story Tag", completions: "3", max: "50" },
