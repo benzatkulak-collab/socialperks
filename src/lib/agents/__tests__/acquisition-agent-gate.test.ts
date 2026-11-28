@@ -166,6 +166,49 @@ describe("acquisition agent — per-run send cap", () => {
   });
 });
 
+describe("acquisition agent — decisions sort order", () => {
+  it("returns decisions in highest-confidence-first order regardless of DB fetch order", async () => {
+    // Three leads with distinct expected scores, placed in ASCENDING score
+    // order in the DB (oldest-first fetch). The agent must sort them by
+    // confidence before returning so the admin dashboard always shows the
+    // most-actionable leads at the top.
+    //   cold  : base 0.30 (no bonuses, non-ICP)
+    //   warm  : 0.60 (referred, non-ICP)
+    //   hot   : 0.95 (all bonuses, ICP, fresh) → hotLead()
+    LEADS = [
+      {
+        email: "cold@example.com",
+        business_name: null,
+        city: null,
+        vertical: "other",
+        referrer: null,
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+      {
+        email: "warm@example.com",
+        business_name: null,
+        city: null,
+        vertical: "other",
+        referrer: "partner",
+        created_at: new Date(NOW.getTime() - 5 * 86_400_000).toISOString(),
+      },
+      hotLead(99),
+    ];
+
+    const decisions = await run(false, 25);
+
+    expect(decisions).toHaveLength(3);
+
+    // Confidence must be non-increasing.
+    for (let i = 1; i < decisions.length; i++) {
+      expect(decisions[i].confidence).toBeLessThanOrEqual(decisions[i - 1].confidence);
+    }
+
+    // The hot lead must surface first even though it was last in DB order.
+    expect(decisions[0].targetId).toBe("lead99@example.com");
+  });
+});
+
 describe("acquisition agent — outbound copy compliance", () => {
   it("never offers a perk for a review (Google/Yelp/TripAdvisor reviews are banned)", async () => {
     LEADS = [hotLead(0)];
