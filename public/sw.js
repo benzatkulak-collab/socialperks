@@ -4,9 +4,12 @@
 // Strategies:
 //   Public API reads:           Network-first, cache fallback (PUBLIC_API_READS)
 //   Other API reads:            Network only, 503 when offline
-//   Static assets:              Cache-first, network fallback
-//   Pages:                      Stale-while-revalidate
+//   Built files (/_next/static/): Cache-first, network fallback
+//   Other static files:         Network-first, cache fallback
+//   Pages:                      Network-first, cache fallback
 //   API writes:                 Network only, 503 when offline
+//   Pages and static files never keep a non-GET answer, or one marked
+//   `private` or `no-store`
 // ══════════════════════════════════════════════════════════════════════════════
 
 // v2 (Nov 2026): v1 answered the realtime stream itself and could keep a
@@ -16,7 +19,14 @@
 // included, and answered from it offline to whoever used the browser next.
 // This one keeps public reads only, and no unsent writes. New names make the
 // activate step below delete every cache an earlier worker kept.
-const CACHE_VERSION = "sp-v3";
+// v4 (Nov 2026): v1 to v3 answered pages from the copy they kept and fetched
+// the new page for next time, so the first visit after a deploy ran the build
+// before it; `/` and `/dashboard`, kept at install, stayed on the build the
+// worker was installed with. This one answers pages, and public files whose
+// name stays the same from build to build, from the network, and keeps the
+// copy for when the network fails. New names make the activate step below
+// delete the stale copies.
+const CACHE_VERSION = "sp-v4";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -33,7 +43,9 @@ const PUBLIC_API_READS = new Set(["/api/v1/stats/public", "/api/v1/search"]);
 // impersonation. The worker empties its API copies when one goes by.
 const SIGN_IN_ROUTES = new Set(["/api/v1/auth", "/api/v1/admin/impersonate"]);
 
-// App shell resources to pre-cache on install
+// App shell resources to pre-cache on install. Each must be the same for
+// everyone (the live site serves them `public`): install keeps them whatever
+// their Cache-Control says.
 const APP_SHELL = [
   "/",
   "/dashboard",
@@ -118,6 +130,12 @@ function isStaticAsset(url) {
   );
 }
 
+// A file the build wrote under /_next/static/. Its name carries a hash of its
+// content, so a new build means a new name and a copy never goes stale.
+function isBuiltFile(url) {
+  return url.pathname.startsWith("/_next/static/");
+}
+
 function isPublicApiRead(url, request) {
   return request.method === "GET" && PUBLIC_API_READS.has(url.pathname);
 }
@@ -169,51 +187,77 @@ async function handleApiRequest(request) {
   }
 }
 
-// Cache-first for static assets
-async function handleStaticAsset(request) {
-  const cached = await caches.match(request);
+// Whether a copy of this answer may be kept, for when the network fails. The
+// Cache API keeps GET answers only. An answer the server marks `private` or
+// `no-store` is never kept: a perk link's page carries a person's codes, and
+// the copy would be shown, offline, to whoever uses this browser next.
+function mayKeep(request, response) {
+  if (request.method !== "GET" || !response.ok) return false;
+  const cacheControl = (response.headers.get("cache-control") || "").toLowerCase();
+  return !/(^|[\s,])(private|no-store)([\s,=]|$)/.test(cacheControl);
+}
+
+// Keeps a copy without holding up the answer. A copy that cannot be written
+// (a full disk, a browser that refuses) is simply not kept.
+function keepCopy(cacheName, request, response) {
+  if (!mayKeep(request, response)) return;
+  const copy = response.clone();
+  caches
+    .open(cacheName)
+    .then((cache) => cache.put(request, copy))
+    .catch(() => {});
+}
+
+// The copy to answer with when the network fails. The handler's own cache
+// comes first: a page's latest copy is in the page cache, while `/` and
+// `/dashboard` also have the copy kept at install in the static cache, which
+// `caches.match` alone would find first (it searches caches in the order they
+// were made).
+async function findCopy(request, cacheName) {
+  try {
+    return (await caches.match(request, { cacheName })) || (await caches.match(request));
+  } catch {
+    return undefined;
+  }
+}
+
+// Cache-first for built files: their name changes whenever their content does
+async function handleBuiltFile(request) {
+  const cached = await findCopy(request, STATIC_CACHE);
   if (cached) {
     return cached;
   }
 
   try {
     const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(STATIC_CACHE);
-      cache.put(request, response.clone());
-    }
+    keepCopy(STATIC_CACHE, request, response);
     return response;
   } catch {
-    return new Response("", { status: 503, statusText: "Offline" });
+    return offlineFileResponse();
   }
 }
 
-// Stale-while-revalidate for pages
-async function handlePageRequest(request) {
-  const cached = await caches.match(request);
-
-  const networkFetch = fetch(request)
-    .then(async (response) => {
-      if (response.ok) {
-        const cache = await caches.open(PAGE_CACHE);
-        cache.put(request, response.clone());
-      }
-      return response;
-    })
-    .catch(() => null);
-
-  if (cached) {
-    // Return stale immediately, revalidate in background
-    networkFetch; // fire-and-forget
-    return cached;
-  }
-
-  // No cache — must wait for network
-  const response = await networkFetch;
-  if (response) {
+// Network first for pages and for public files whose name stays the same from
+// one build to the next (/manifest.json, icons), so a deploy reaches the next
+// load. The server's answer is shown, an error too, as it would be with no
+// worker. A good answer is kept for when the network fails, and only then is
+// the copy used: the latest one kept, or for `/` and `/dashboard` the one kept
+// at install.
+async function networkFirst(request, cacheName, offlineResponse) {
+  try {
+    const response = await fetch(request);
+    keepCopy(cacheName, request, response);
     return response;
+  } catch {
+    return (await findCopy(request, cacheName)) || offlineResponse();
   }
+}
 
+function offlineFileResponse() {
+  return new Response("", { status: 503, statusText: "Offline" });
+}
+
+function offlinePageResponse() {
   return new Response(
     "<html><body style='background:#0C0F1A;color:#22D3EE;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'><div style='text-align:center'><h1>You are offline</h1><p>Please reconnect to continue.</p></div></body></html>",
     { status: 503, headers: { "Content-Type": "text/html" } }
@@ -247,10 +291,12 @@ self.addEventListener("fetch", (event) => {
       event.waitUntil(caches.delete(API_CACHE));
     }
     event.respondWith(handleApiRequest(event.request));
+  } else if (isBuiltFile(url)) {
+    event.respondWith(handleBuiltFile(event.request));
   } else if (isStaticAsset(url)) {
-    event.respondWith(handleStaticAsset(event.request));
+    event.respondWith(networkFirst(event.request, STATIC_CACHE, offlineFileResponse));
   } else {
-    event.respondWith(handlePageRequest(event.request));
+    event.respondWith(networkFirst(event.request, PAGE_CACHE, offlinePageResponse));
   }
 });
 
