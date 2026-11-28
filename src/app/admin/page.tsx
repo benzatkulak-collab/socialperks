@@ -57,11 +57,10 @@ interface AdminStats {
   security: {
     auditFailures24h: number;
     recentAudit: Array<{
-      id: string;
       action: string;
       actor: string;
       ok: boolean;
-      occurredAt: string;
+      timestamp: string;
       resourceId?: string | null;
     }>;
   };
@@ -382,10 +381,10 @@ function AuditPreview({ stats }: { stats: AdminStats | null }) {
               </tr>
             </thead>
             <tbody>
-              {recentAudit.map((entry) => (
-                <tr key={entry.id} className="border-b border-brand-border/50">
+              {recentAudit.map((entry, i) => (
+                <tr key={`${entry.timestamp}-${i}`} className="border-b border-brand-border/50">
                   <td className="px-4 py-2 text-xs text-brand-dim font-mono">
-                    {formatDate(entry.occurredAt)}
+                    {formatDate(entry.timestamp)}
                   </td>
                   <td className="px-4 py-2 text-xs text-brand-text font-mono">
                     {entry.action}
